@@ -26,7 +26,6 @@ public:
     static void checkForPeriodicalActions( enum FirmwareState state = NotBusy );
     static void executeGCode(GCode *com);
     static void waitUntilEndOfAllMoves();
-    static void waitUntilEndOfZOS();
     static void printCurrentPosition();
     static void printTemperatures(bool showRaw = false);
 #if FAN_PIN>-1 && FEATURE_FAN_CONTROL

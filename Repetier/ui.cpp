@@ -5384,8 +5384,6 @@ void UIDisplay::executeAction(int action)
                 startZOScan();
                 //gehe zurück und zeige dem User was passiert.
                 exitmenu();
-                //wartet nur wenn an:
-                //Commands::waitUntilEndOfZOS(); -> Nein, weil der Nutzer das aktiv steuern und abbrechen können soll. Ist ja hier kein M-code in Reihe.
                 break;
             }
             case UI_ACTION_RF_DO_MHIER_AUTO_MATRIX_LEVELING:
@@ -5394,8 +5392,6 @@ void UIDisplay::executeAction(int action)
                 startZOScan(true); //Scan aber an vielen Punkten und Gewichtet.
                 //gehe zurück und zeige dem User was passiert.
                 exitmenu();
-                //wartet nur wenn an:
-                //Commands::waitUntilEndOfZOS(); -> Nein, weil der Nutzer das aktiv steuern und abbrechen können soll. Ist ja hier kein M-code in Reihe.
                 break;
             }
             case UI_ACTION_RF_DO_SAVE_ACTIVE_ZMATRIX:

@@ -1,6 +1,13 @@
 TODO: Testing, testing ..
 TODO: Zaldo said that he experienced a hard reset while starting some Z-Calibration. (Awaiting further information about this bug)
 
+V RF.01.42.24.Mod (2018-11-01)
+- the firmware shows long filenames in menu (for all very long filenames) again. (No more short filenames, but they are cut at 26-char-limit)
+- increased Z_ENDSTOP_MAX_HYSTERESIS on all printers to have a better compatibility to some special community members machines
+- set all HEAT_BED_SCAN_DOWN_FAST_MM to 0.2mm because AtlonXP stated that the former 0.1mm is already on the edge for some print beds.
+- some cleanup for the keepAlive-function
+- some other code and comments cleanup
+
 V RF.01.42.23.Mod (2018-09-27)
 - updated the file write functions to fit SdFat Lib 1.07
 - cleanup in repetier.h, removed double declarations

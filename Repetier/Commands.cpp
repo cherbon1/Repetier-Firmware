@@ -18,8 +18,8 @@
 
 #include "Repetier.h"
 
-int         Commands::lowestRAMValue     = MAX_RAM;
-int         Commands::lowestRAMValueSend = MAX_RAM;
+int  Commands::lowestRAMValue     = MAX_RAM;
+int  Commands::lowestRAMValueSend = MAX_RAM;
 
 void Commands::commandLoop()
 {
@@ -28,8 +28,7 @@ void Commands::commandLoop()
     GCode::readFromSD();
 #endif //SDSUPPORT
     GCode *code = GCode::peekCurrentCommand();
-    if(code)
-    {
+    if (code) {
 #if SDSUPPORT
         if(sd.savetosd)
         {
@@ -49,7 +48,13 @@ void Commands::commandLoop()
         code->popCurrentCommand();
 		Commands::checkForPeriodicalActions(Processing);  //check heater and other stuff every n milliseconds
     } else {
-		Commands::checkForPeriodicalActions(NotBusy);  //check heater and other stuff every n milliseconds
+		enum FirmwareState state = NotBusy;
+		if( g_pauseMode != PAUSE_MODE_NONE )
+		{
+			state = Paused;
+		}
+	
+		Commands::checkForPeriodicalActions(state);  //check heater and other stuff every n milliseconds
 	}
 } // commandLoop
 
@@ -130,24 +135,6 @@ void Commands::waitUntilEndOfAllMoves()
 #endif // FEATURE_HEAT_BED_Z_COMPENSATION
     }
 } // waitUntilEndOfAllMoves
-
-
-/** \brief Waits until M3900 is finished. */
-void Commands::waitUntilEndOfZOS()
-{
-    char    bWait = 0;
-
-    if( g_nZOSScanStatus )       bWait = 1;
-
-    while( bWait )
-    {
-        Commands::checkForPeriodicalActions( Processing );
-
-        bWait = 0;
-        if( g_nZOSScanStatus )       bWait = 1;
-    }
-
-} // waitUntilEndOfZOS
 
 
 void Commands::printCurrentPosition()
