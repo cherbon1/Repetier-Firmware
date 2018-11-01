@@ -2183,7 +2183,7 @@ void Printer::stopPrint() //function for aborting USB and SD-Prints
 extern void ui_check_keys(int &action);
 bool Printer::checkAbortKeys( void ){
     int16_t activeKeys = 0;
-    ui_check_keys(activeKeys);
+    uid.ui_check_keys(activeKeys);
     if(activeKeys == UI_ACTION_OK || activeKeys == UI_ACTION_BACK){
         return true;
     }
@@ -2193,7 +2193,7 @@ bool Printer::checkAbortKeys( void ){
 bool Printer::checkPlayKey( void ){
     if(g_pauseMode == PAUSE_MODE_NONE){
         int16_t activeKeys = 0;
-        ui_check_keys(activeKeys);
+		uid.ui_check_keys(activeKeys);
         if(activeKeys == UI_ACTION_RF_CONTINUE){
             return true;
         }

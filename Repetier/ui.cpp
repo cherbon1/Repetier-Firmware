@@ -72,19 +72,6 @@ void beep(uint8_t duration,uint8_t count)
 #else
         WRITE(BEEPER_PIN,HIGH);
 #endif // defined(BEEPER_TYPE_INVERTING) && BEEPER_TYPE_INVERTING
-#else
-#if UI_DISPLAY_I2C_CHIPTYPE==0
-#if BEEPER_ADDRESS == UI_DISPLAY_I2C_ADDRESS
-        HAL::i2cWrite(uid.outputMask & ~BEEPER_PIN);
-#else
-        HAL::i2cWrite(~BEEPER_PIN);
-#endif // BEEPER_ADDRESS == UI_DISPLAY_I2C_ADDRESS
-#endif // UI_DISPLAY_I2C_CHIPTYPE==0
-
-#if UI_DISPLAY_I2C_CHIPTYPE==1
-        HAL::i2cWrite((BEEPER_PIN) | uid.outputMask);
-        HAL::i2cWrite(((BEEPER_PIN) | uid.outputMask)>>8);
-#endif // UI_DISPLAY_I2C_CHIPTYPE==1
 #endif // BEEPER_TYPE==1 && defined(BEEPER_PIN) && BEEPER_PIN>=0
 
         HAL::delayMilliseconds(duration);
@@ -95,20 +82,6 @@ void beep(uint8_t duration,uint8_t count)
 #else
         WRITE(BEEPER_PIN,LOW);
 #endif // defined(BEEPER_TYPE_INVERTING) && BEEPER_TYPE_INVERTING
-#else
-#if UI_DISPLAY_I2C_CHIPTYPE==0
-
-#if BEEPER_ADDRESS == UI_DISPLAY_I2C_ADDRESS
-        HAL::i2cWrite((BEEPER_PIN) | uid.outputMask);
-#else
-        HAL::i2cWrite(255);
-#endif // BEEPER_ADDRESS == UI_DISPLAY_I2C_ADDRESS
-#endif // UI_DISPLAY_I2C_CHIPTYPE==0
-
-#if UI_DISPLAY_I2C_CHIPTYPE==1
-        HAL::i2cWrite( uid.outputMask);
-        HAL::i2cWrite(uid.outputMask>>8);
-#endif // UI_DISPLAY_I2C_CHIPTYPE==1
 #endif // BEEPER_TYPE==1 && defined(BEEPER_PIN) && BEEPER_PIN>=0
 
         HAL::delayMilliseconds(duration);
@@ -368,6 +341,11 @@ static const char           versionString[] PROGMEM  = UI_VERSION_STRING;
 
 #if UI_DISPLAY_TYPE==1 || UI_DISPLAY_TYPE==2
 
+UIDisplay::UIDisplay()
+{
+	locked = 0;
+} // UIDisplay
+
 void lcdWriteNibble(uint8_t value)
 {
     WRITE(UI_DISPLAY_D4_PIN,value & 1);
@@ -380,7 +358,6 @@ void lcdWriteNibble(uint8_t value)
     __asm__("nop\n\t""nop\n\t""nop\n\t""nop\n\t""nop\n\t""nop\n\t");
 
 } // lcdWriteNibble
-
 
 void lcdWriteByte(uint8_t c,uint8_t rs)
 {
@@ -445,6 +422,7 @@ void initCspecchars(){
     uid.createChar(7,c9);
     normalchars = false;
 }
+
 void initNSpecchars(){
     uid.createChar(1,character_back);
     uid.createChar(2,character_degree);
@@ -456,7 +434,7 @@ void initNSpecchars(){
     normalchars = true;
 }
 
-void initializeLCD(bool normal)
+void UIDisplay::initializeLCD(bool normal)
 {
     // bring all display pins into a defined state
     SET_INPUT(UI_DISPLAY_D4_PIN);
@@ -594,10 +572,37 @@ void UIDisplay::printRow(uint8_t r,char *txt,char *txt2,uint8_t changeAtCol)
 } // printRow
 #endif // UI_DISPLAY_TYPE<4
 
-UIDisplay::UIDisplay()
+void UIDisplay::ui_init_keys()
 {
-    locked = 0;
-} // UIDisplay
+	UI_KEYS_INIT_BUTTON_LOW(ENABLE_KEY_1);  // push button, connects gnd to pin
+	UI_KEYS_INIT_BUTTON_LOW(ENABLE_KEY_2);  // push button, connects gnd to pin
+	UI_KEYS_INIT_BUTTON_LOW(ENABLE_KEY_3);  // push button, connects gnd to pin
+	UI_KEYS_INIT_BUTTON_LOW(ENABLE_KEY_4);  // push button, connects gnd to pin
+	UI_KEYS_INIT_BUTTON_LOW(ENABLE_KEY_5);  // push button, connects gnd to pin
+
+	UI_KEYS_INIT_BUTTON_LOW(ENABLE_KEY_E1); // PINJ.2, 80, X12.1 - push button, connects gnd to pin
+	UI_KEYS_INIT_BUTTON_LOW(ENABLE_KEY_E2); // PINJ.4, 81, X12.2 - push button, connects gnd to pin
+	UI_KEYS_INIT_BUTTON_LOW(ENABLE_KEY_E3); // PINJ.5, 82, X12.3 - push button, connects gnd to pin
+	UI_KEYS_INIT_BUTTON_LOW(ENABLE_KEY_E4); // PINJ.6, 83, X12.4 - push button, connects gnd to pin
+	UI_KEYS_INIT_BUTTON_LOW(ENABLE_KEY_E5); // PINH.7, 85, X12.6 - push button, connects gnd to pin
+	UI_KEYS_INIT_BUTTON_LOW(ENABLE_KEY_E6); // PINH.2, 86, X12.7 - push button, connects gnd to pin
+} // ui_init_keys
+
+void UIDisplay::ui_check_keys(int &action)
+{
+	UI_KEYS_BUTTON_LOW(ENABLE_KEY_1, UI_ACTION_OK);          // push button, connects gnd to pin
+	UI_KEYS_BUTTON_LOW(ENABLE_KEY_2, UI_ACTION_NEXT);        // push button, connects gnd to pin
+	UI_KEYS_BUTTON_LOW(ENABLE_KEY_5, UI_ACTION_PREVIOUS);    // push button, connects gnd to pin
+	UI_KEYS_BUTTON_LOW(ENABLE_KEY_4, UI_ACTION_BACK);        // push button, connects gnd to pin
+	UI_KEYS_BUTTON_LOW(ENABLE_KEY_3, UI_ACTION_RIGHT);      // push button, connects gnd to pin
+
+	UI_KEYS_BUTTON_LOW(ENABLE_KEY_E1, UI_ACTION_RF_HEAT_BED_UP);         // PINJ.2, 80, X12.1 - push button, connects gnd to pin
+	UI_KEYS_BUTTON_LOW(ENABLE_KEY_E2, UI_ACTION_RF_HEAT_BED_DOWN);       // PINJ.4, 81, X12.2 - push button, connects gnd to pin
+	UI_KEYS_BUTTON_LOW(ENABLE_KEY_E3, UI_ACTION_RF_EXTRUDER_RETRACT);    // PINJ.5, 82, X12.3 - push button, connects gnd to pin
+	UI_KEYS_BUTTON_LOW(ENABLE_KEY_E4, UI_ACTION_RF_EXTRUDER_OUTPUT);     // PINJ.6, 83, X12.4 - push button, connects gnd to pin
+	UI_KEYS_BUTTON_LOW(ENABLE_KEY_E5, UI_ACTION_RF_CONTINUE);            // PINH.7, 85, X12.6 - push button, connects gnd to pin
+	UI_KEYS_BUTTON_LOW(ENABLE_KEY_E6, UI_ACTION_RF_PAUSE);               // PINH.2, 86, X12.7 - push button, connects gnd to pin
+} // ui_check_keys
 
 void UIDisplay::initialize()
 {
@@ -2530,7 +2535,7 @@ void sdrefresh(uint16_t &r, char cache[UI_ROWS][MAX_COLS + 1])
         if(file.isDir())
             uid.printCols[uid.col++] = bFOLD; // Prepend folder symbol
 
-        length = RMath::min((int)strlen(tempLongFilename), MAX_COLS - uid.col);
+        length = RMath::min((int)strlen(tempLongFilename), (int)MAX_COLS - (int)uid.col);
         memcpy(uid.printCols + uid.col, tempLongFilename, length);
         uid.col += length;
         uid.printCols[uid.col] = 0;
@@ -5569,7 +5574,7 @@ void UIDisplay::fastAction()
         flags |= UI_FLAG_KEY_TEST_RUNNING;
 
             int16_t nextAction = 0;
-            ui_check_keys(nextAction);
+            uid.ui_check_keys(nextAction);
 
             if(lastButtonAction!=nextAction)
             {

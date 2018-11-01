@@ -6928,7 +6928,7 @@ void continuePrint( void )
                  Com::printFLN( PSTR( "LCD re-init") );
                  countplays = 1;
                  showInformation( PSTR(UI_TEXT_MANUAL), PSTR(UI_TEXT_Z_CIRCUIT), PSTR(UI_TEXT_RESET) );
-                 initializeLCD();
+                 uid.initializeLCD();
             }
         }
         return;
@@ -9316,7 +9316,7 @@ void processCommand( GCode* pCommand )
                         case 13:
                         {
                             Com::printFLN( PSTR( "LCD re-initialization") );
-                            initializeLCD();
+                            uid.initializeLCD();
                         }
 
                         case 14:

@@ -16,7 +16,7 @@
 */
 
 
-#if !defined(UI_MENU_H) && defined(UI_MAIN)
+#if !defined(UI_MENU_H)
 #define UI_MENU_H
 
 /*

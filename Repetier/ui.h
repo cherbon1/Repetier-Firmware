@@ -247,6 +247,33 @@
 // Load basic language definition to make sure all values are defined
 #include "uilang.h"
 
+// Load some parts of the printers configuration
+#if MOTHERBOARD == DEVICE_TYPE_RF1000
+#define UI_HAS_KEYS                       1        // 1 = Some keys attached
+#define UI_HAS_BACK_KEY                   1
+#define UI_DISPLAY_TYPE                   1        // 1 = LCD Display with 4 bit data bus
+//#define UI_DISPLAY_CHARSET                  1
+#define UI_COLS                          16        //check MAX_COLS when changed
+#define UI_ROWS                           4        //do not change for RF1000 or RF2000!
+#define UI_DELAYPERCHAR                 320
+#define UI_SPACER                        ""
+#define UI_INVERT_MENU_DIRECTION        false
+#define UI_INVERT_INCREMENT_DIRECTION   true
+#endif // MOTHERBOARD == DEVICE_TYPE_RF1000
+
+#if MOTHERBOARD == DEVICE_TYPE_RF2000 || MOTHERBOARD == DEVICE_TYPE_RF2000v2
+#define UI_HAS_KEYS                       1        // 1 = Some keys attached
+#define UI_HAS_BACK_KEY                   1
+#define UI_DISPLAY_TYPE                   1        // 1 = LCD Display with 4 bit data bus
+//#define UI_DISPLAY_CHARSET                  1
+#define UI_COLS                          20        //check MAX_COLS when changed
+#define UI_ROWS                           4        //do not change for RF1000 or RF2000!
+#define UI_DELAYPERCHAR                 320
+#define UI_SPACER                        "    "
+#define UI_INVERT_MENU_DIRECTION        false
+#define UI_INVERT_INCREMENT_DIRECTION   true
+#endif // MOTHERBOARD == DEVICE_TYPE_RF2000 || MOTHERBOARD == DEVICE_TYPE_RF2000v2
+
 //mtype usw.
 #define UI_MENU_TYPE_INFO 0
 #define UI_MENU_TYPE_FILE_SELECTOR 1
@@ -437,7 +464,6 @@ public:
     millis_t            nextRepeat;                 // Time of next autorepeat
     millis_t            lastNextPrev;               // for increasing speed settings
     float               lastNextAccumul;            // Accumulated value
-    unsigned int        outputMask;                 // Output mask for backlight, leds etc.
     int                 repeatDuration;             // Time beween to actions if autorepeat is enabled
     uint8_t             encoderStartScreen;
     char                statusMsg[MAX_COLS + 1];
@@ -447,16 +473,20 @@ public:
     PGM_P               statusText;
     char                locked;
 
+	UIDisplay();
+
     void addInt(int value,uint8_t digits,char fillChar=' '); // Print int into printCols
     void addLong(long value,char digits);
     void addFloat(float number, char fixdigits,uint8_t digits);
     void addStringP(PGM_P text);
+	void ui_init_keys();
+	void ui_check_keys(int &action);
     void okAction();
     void rightAction();
     void nextPreviousAction(int8_t next);
-    UIDisplay();
     void createChar(uint8_t location,const uint8_t charmap[]);
     void initialize(); // Initialize display and keys
+	void initializeLCD(bool normal = true);
     void printRow(uint8_t r,char *txt,char *txt2,uint8_t changeAtCol); // Print row on display
     void printRowP(uint8_t r,PGM_P txt);
     void parse(char *txt,bool ram); /// Parse output and write to printCols;
@@ -470,16 +500,6 @@ public:
     void adjustMenuPos();
     void setStatusP(PGM_P txt,bool error = false);
     void setStatus(char *txt,bool error = false,bool force = false);
-
-    inline void setOutputMaskBits(unsigned int bits)
-    {
-        outputMask|=bits;
-    } // setOutputMaskBits
-
-    inline void unsetOutputMaskBits(unsigned int bits)
-    {
-        outputMask&=~bits;
-    } // unsetOutputMaskBits
 
 #if SDSUPPORT
     char                cwd[SD_MAX_FOLDER_DEPTH*LONG_FILENAME_LENGTH+2];
@@ -496,109 +516,6 @@ public:
 };
 
 extern UIDisplay uid;
-
-// initializeLCD()
-void initializeLCD(bool normal = true);
-void initCspecchars();
-void initNSpecchars();
-
-#if MOTHERBOARD == DEVICE_TYPE_RF1000
-#define UI_HAS_KEYS                       1        // 1 = Some keys attached
-#define UI_HAS_BACK_KEY                   1
-#define UI_DISPLAY_TYPE                   1        // 1 = LCD Display with 4 bit data bus
-//#define UI_DISPLAY_CHARSET                  1
-#define UI_COLS                          16        //check MAX_COLS when changed
-#define UI_ROWS                           4        //do not change for RF1000 or RF2000!
-#define UI_DELAYPERCHAR                 320
-#define UI_SPACER                        ""
-#define UI_INVERT_MENU_DIRECTION        false
-#define UI_INVERT_INCREMENT_DIRECTION   true
-
-#ifdef UI_MAIN
-void ui_init_keys()
-{
-    UI_KEYS_INIT_BUTTON_LOW(ENABLE_KEY_1);  // push button, connects gnd to pin
-    UI_KEYS_INIT_BUTTON_LOW(ENABLE_KEY_2);  // push button, connects gnd to pin
-    UI_KEYS_INIT_BUTTON_LOW(ENABLE_KEY_3);  // push button, connects gnd to pin
-    UI_KEYS_INIT_BUTTON_LOW(ENABLE_KEY_4);  // push button, connects gnd to pin
-    UI_KEYS_INIT_BUTTON_LOW(ENABLE_KEY_5);  // push button, connects gnd to pin
-
-    UI_KEYS_INIT_BUTTON_LOW(ENABLE_KEY_E1); // PINJ.2, 80, X12.1 - push button, connects gnd to pin
-    UI_KEYS_INIT_BUTTON_LOW(ENABLE_KEY_E2); // PINJ.4, 81, X12.2 - push button, connects gnd to pin
-    UI_KEYS_INIT_BUTTON_LOW(ENABLE_KEY_E3); // PINJ.5, 82, X12.3 - push button, connects gnd to pin
-    UI_KEYS_INIT_BUTTON_LOW(ENABLE_KEY_E4); // PINJ.6, 83, X12.4 - push button, connects gnd to pin
-    UI_KEYS_INIT_BUTTON_LOW(ENABLE_KEY_E5); // PINH.7, 85, X12.6 - push button, connects gnd to pin
-    UI_KEYS_INIT_BUTTON_LOW(ENABLE_KEY_E6); // PINH.2, 86, X12.7 - push button, connects gnd to pin
-} // ui_init_keys
-
-
-void ui_check_keys(int &action)
-{
-    UI_KEYS_BUTTON_LOW(ENABLE_KEY_1,UI_ACTION_OK);          // push button, connects gnd to pin
-    UI_KEYS_BUTTON_LOW(ENABLE_KEY_2,UI_ACTION_NEXT);        // push button, connects gnd to pin
-    UI_KEYS_BUTTON_LOW(ENABLE_KEY_5,UI_ACTION_PREVIOUS);    // push button, connects gnd to pin
-    UI_KEYS_BUTTON_LOW(ENABLE_KEY_4,UI_ACTION_BACK);        // push button, connects gnd to pin
-    UI_KEYS_BUTTON_LOW(ENABLE_KEY_3,UI_ACTION_RIGHT );      // push button, connects gnd to pin
-
-    UI_KEYS_BUTTON_LOW(ENABLE_KEY_E1,UI_ACTION_RF_HEAT_BED_UP);         // PINJ.2, 80, X12.1 - push button, connects gnd to pin
-    UI_KEYS_BUTTON_LOW(ENABLE_KEY_E2,UI_ACTION_RF_HEAT_BED_DOWN);       // PINJ.4, 81, X12.2 - push button, connects gnd to pin
-    UI_KEYS_BUTTON_LOW(ENABLE_KEY_E3,UI_ACTION_RF_EXTRUDER_RETRACT);    // PINJ.5, 82, X12.3 - push button, connects gnd to pin
-    UI_KEYS_BUTTON_LOW(ENABLE_KEY_E4,UI_ACTION_RF_EXTRUDER_OUTPUT);     // PINJ.6, 83, X12.4 - push button, connects gnd to pin
-    UI_KEYS_BUTTON_LOW(ENABLE_KEY_E5,UI_ACTION_RF_CONTINUE);            // PINH.7, 85, X12.6 - push button, connects gnd to pin
-    UI_KEYS_BUTTON_LOW(ENABLE_KEY_E6,UI_ACTION_RF_PAUSE);               // PINH.2, 86, X12.7 - push button, connects gnd to pin
-} // ui_check_keys
-#endif // UI_MAIN
-#endif // MOTHERBOARD == DEVICE_TYPE_RF1000
-
-
-#if MOTHERBOARD == DEVICE_TYPE_RF2000 || MOTHERBOARD == DEVICE_TYPE_RF2000v2
-#define UI_HAS_KEYS                       1        // 1 = Some keys attached
-#define UI_HAS_BACK_KEY                   1
-#define UI_DISPLAY_TYPE                   1        // 1 = LCD Display with 4 bit data bus
-//#define UI_DISPLAY_CHARSET                  1
-#define UI_COLS                          20        //check MAX_COLS when changed
-#define UI_ROWS                           4        //do not change for RF1000 or RF2000!
-#define UI_DELAYPERCHAR                 320
-#define UI_SPACER                        "    "
-#define UI_INVERT_MENU_DIRECTION        false
-#define UI_INVERT_INCREMENT_DIRECTION   true
-
-#ifdef UI_MAIN
-void ui_init_keys()
-{
-    UI_KEYS_INIT_BUTTON_LOW(ENABLE_KEY_1);  // push button, connects gnd to pin
-    UI_KEYS_INIT_BUTTON_LOW(ENABLE_KEY_2);  // push button, connects gnd to pin
-    UI_KEYS_INIT_BUTTON_LOW(ENABLE_KEY_3);  // push button, connects gnd to pin
-    UI_KEYS_INIT_BUTTON_LOW(ENABLE_KEY_4);  // push button, connects gnd to pin
-    UI_KEYS_INIT_BUTTON_LOW(ENABLE_KEY_5);  // push button, connects gnd to pin
-
-    UI_KEYS_INIT_BUTTON_LOW(ENABLE_KEY_E1); // PINJ.2, 80, X12.1 - push button, connects gnd to pin
-    UI_KEYS_INIT_BUTTON_LOW(ENABLE_KEY_E2); // PINJ.4, 81, X12.2 - push button, connects gnd to pin
-    UI_KEYS_INIT_BUTTON_LOW(ENABLE_KEY_E3); // PINJ.5, 82, X12.3 - push button, connects gnd to pin
-    UI_KEYS_INIT_BUTTON_LOW(ENABLE_KEY_E4); // PINJ.6, 83, X12.4 - push button, connects gnd to pin
-    UI_KEYS_INIT_BUTTON_LOW(ENABLE_KEY_E5); // PINH.7, 85, X12.6 - push button, connects gnd to pin
-    UI_KEYS_INIT_BUTTON_LOW(ENABLE_KEY_E6); // PINH.2, 86, X12.7 - push button, connects gnd to pin
-} // ui_init_keys
-
-
-void ui_check_keys(int &action)
-{
-    UI_KEYS_BUTTON_LOW(ENABLE_KEY_1,UI_ACTION_OK);          // push button, connects gnd to pin
-    UI_KEYS_BUTTON_LOW(ENABLE_KEY_2,UI_ACTION_NEXT);        // push button, connects gnd to pin
-    UI_KEYS_BUTTON_LOW(ENABLE_KEY_5,UI_ACTION_PREVIOUS);    // push button, connects gnd to pin
-    UI_KEYS_BUTTON_LOW(ENABLE_KEY_4,UI_ACTION_BACK);        // push button, connects gnd to pin
-    UI_KEYS_BUTTON_LOW(ENABLE_KEY_3,UI_ACTION_RIGHT );      // push button, connects gnd to pin
-
-    UI_KEYS_BUTTON_LOW(ENABLE_KEY_E1,UI_ACTION_RF_HEAT_BED_UP);         // PINJ.2, 80, X12.1 - push button, connects gnd to pin
-    UI_KEYS_BUTTON_LOW(ENABLE_KEY_E2,UI_ACTION_RF_HEAT_BED_DOWN);       // PINJ.4, 81, X12.2 - push button, connects gnd to pin
-    UI_KEYS_BUTTON_LOW(ENABLE_KEY_E3,UI_ACTION_RF_EXTRUDER_RETRACT);    // PINJ.5, 82, X12.3 - push button, connects gnd to pin
-    UI_KEYS_BUTTON_LOW(ENABLE_KEY_E4,UI_ACTION_RF_EXTRUDER_OUTPUT);     // PINJ.6, 83, X12.4 - push button, connects gnd to pin
-    UI_KEYS_BUTTON_LOW(ENABLE_KEY_E5,UI_ACTION_RF_CONTINUE);            // PINH.7, 85, X12.6 - push button, connects gnd to pin
-    UI_KEYS_BUTTON_LOW(ENABLE_KEY_E6,UI_ACTION_RF_PAUSE);               // PINH.2, 86, X12.7 - push button, connects gnd to pin
-} // ui_check_keys
-#endif // UI_MAIN
-#endif // MOTHERBOARD == DEVICE_TYPE_RF2000 || MOTHERBOARD == DEVICE_TYPE_RF2000v2
-
 
 #if UI_ROWS==4
 #if UI_COLS==16
