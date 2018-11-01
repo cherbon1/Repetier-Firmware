@@ -594,7 +594,7 @@ Crash with backside metal RFx000: ~ >10.0..12.0f
 Overflow in Z-Matrix: >12.7f
 */
 #define Z_ENDSTOP_DRIVE_OVER                 0.8f                              //mm
-#define Z_ENDSTOP_MAX_HYSTERESIS             0.3f                              //mm
+#define Z_ENDSTOP_MAX_HYSTERESIS             0.5f                              //mm
 
 /** \brief By default all endstops are pulled up to HIGH. You need a pullup if you
 use a mechanical endstop connected with GND. Set value to false for no pullup
@@ -980,7 +980,7 @@ Above this value the z compensation will distribute the roughness of the surface
 #define HEAT_BED_SCAN_IDLE_PRESSURE_MAX         7500                                                                    // [digits]
 
 #define HEAT_BED_SCAN_UP_FAST_MM                -0.02f                                                                  // [mm]
-#define HEAT_BED_SCAN_DOWN_FAST_MM              0.1f                                                                    // [mm]
+#define HEAT_BED_SCAN_DOWN_FAST_MM              0.2f                                                                    // [mm]
 #define HEAT_BED_SCAN_UP_SLOW_MM                -0.004f                                                                 // [mm]
 #define HEAT_BED_SCAN_DOWN_SLOW_MM              0.004f                                                                  // [mm]
 

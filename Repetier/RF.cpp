@@ -568,7 +568,8 @@ void scanHeatBed( void )
     {
 		// show that we are active
 		previousMillisCmd = HAL::timeInMilliseconds(); //prevent inactive shutdown of steppers/temps
-
+		GCode::keepAlive( Calibrating );
+		
         if( g_nHeatBedScanStatus != 15 &&
             g_nHeatBedScanStatus != 20 &&
             g_nHeatBedScanStatus != 22 &&
@@ -2050,6 +2051,7 @@ void alignExtruders( void )
     {
 		// show that we are active
 		previousMillisCmd = HAL::timeInMilliseconds(); //prevent inactive shutdown of steppers/temps
+		GCode::keepAlive( Calibrating );
 		
         if( g_nAlignExtrudersStatus != 123 &&
             g_nAlignExtrudersStatus != 125 )
@@ -2290,6 +2292,7 @@ void searchZOScan( void )
 
 	if( g_nZOSScanStatus ) {
 		previousMillisCmd = HAL::timeInMilliseconds(); //prevent inactive shutdown of steppers/temps
+		GCode::keepAlive( Calibrating );
 
 		switch ( g_nZOSScanStatus ) {
             case 1:
@@ -2427,7 +2430,6 @@ void searchZOScan( void )
 
                 // move a bit away from the heat bed in order to achieve better measurements in case of hardware configurations where the extruder is very close to the heat bed after the z-homing
                 UI_STATUS_UPD( UI_TEXT_ZCALIB );
-                GCode::keepAlive( Processing );
                 g_nZOSScanStatus = 4;
                 break;
             }
@@ -2479,14 +2481,12 @@ void searchZOScan( void )
                 Com::printFLN( PSTR( ") [(x,y) Steps]" ) );
 #endif // DEBUG_HEAT_BED_SCAN == 2
                 PrintLine::moveRelativeDistanceInSteps( xScanPosition, yScanPosition, 0, 0, RMath::min(Printer::homingFeedrate[X_AXIS],Printer::homingFeedrate[Y_AXIS]), true, true );
-                GCode::keepAlive( Processing );
                 g_nZOSScanStatus = 6;
                 break;
             }
             case 6:
             {
                 g_scanRetries = 20; //für 9, 10, 20
-                GCode::keepAlive( Processing );
                 g_nZOSScanStatus = 9;
                 break;
             }
@@ -2494,7 +2494,6 @@ void searchZOScan( void )
             case 7: //ab hier bei Fehler:
             {
                 HAL::delayMilliseconds( HEAT_BED_SCAN_DELAY );
-                GCode::keepAlive( Processing );
                 moveZPlusDownFast();
                 g_nZOSScanStatus = 9;
                 break;
@@ -2533,7 +2532,6 @@ void searchZOScan( void )
                     Com::printFLN( PSTR( " g_nMinPressureIdle = " ), g_nMinPressureIdle );
                     Com::printFLN( PSTR( " g_nMaxPressureIdle = " ), g_nMaxPressureIdle );
 #endif // DEBUG_HEAT_BED_SCAN == 2
-                GCode::keepAlive( Processing );
                 g_nZOSScanStatus = 10;
                 break;
             }
@@ -2580,7 +2578,6 @@ void searchZOScan( void )
                     g_retryZScan = 0;
                     g_scanRetries--;
                     Com::printFLN( PSTR( "Bettsuchproblem 10 -> 7 :" ), g_scanRetries );
-                    GCode::keepAlive( Processing );
                     g_nZOSScanStatus = 7;
                     break;
                 }
@@ -2593,7 +2590,6 @@ void searchZOScan( void )
                   break;
                 }
 
-                GCode::keepAlive( Processing );
                 g_nZOSScanStatus = 20;
                 break;
             }
@@ -2629,7 +2625,6 @@ void searchZOScan( void )
                         g_retryZScan = 0;
                         g_scanRetries--;
                         Com::printFLN( PSTR( "Suchproblem 20 -> 7:" ), g_scanRetries );
-                        GCode::keepAlive( Processing );
                         g_nZOSScanStatus = 7;
                         prebreak = true; break;
                       }
@@ -2645,7 +2640,6 @@ void searchZOScan( void )
 
                       // show height
                       Com::printFLN( PSTR( "Z = " ), g_nZScanZPosition * Printer::invAxisStepsPerMM[Z_AXIS],4 );
-                      GCode::keepAlive( Processing );
                 }
                 if(prebreak) break;
                 g_nZOSScanStatus = 50;
@@ -3641,6 +3635,7 @@ void findZOrigin( void )
     {
 		// show that we are active
 		previousMillisCmd = HAL::timeInMilliseconds(); //prevent inactive shutdown of steppers/temps
+		GCode::keepAlive( Calibrating );
 	
         UI_STATUS_UPD( UI_TEXT_FIND_Z_ORIGIN );
 
@@ -3950,6 +3945,7 @@ void scanWorkPart( void )
     {
 		// show that we are active
 		previousMillisCmd = HAL::timeInMilliseconds(); //prevent inactive shutdown of steppers/temps
+		GCode::keepAlive( Calibrating );
 		
         UI_STATUS( UI_TEXT_WORK_PART_SCAN );
 
@@ -6342,12 +6338,6 @@ void handleStrainGaugeFeatures(millis_t uTime){
 }
 
 void handlePauseTime(millis_t uTime){
-	if( g_pauseMode != PAUSE_MODE_NONE )
-    {
-        // show that we are paused
-        GCode::keepAlive( Paused ); //keepAlive limitiert seine Ausführzeit selbst: alle 2s, darunter wird geskipped.
-    }
-
     if( g_uPauseTime )
     {
         if( !g_pauseBeepDone )
@@ -6769,6 +6759,7 @@ void loopFeatures() //wird so aufgerufen, dass es ein ~100ms Takt sein sollte.
     static char     nEntered = 0;
     if( nEntered ) return; // do not enter more than once
     nEntered ++;	
+	
 	millis_t uTime = HAL::timeInMilliseconds();
 	handleStopPrint(uTime);
 	handleStartPrint();
@@ -10234,9 +10225,14 @@ void processCommand( GCode* pCommand )
                                 Com::printFLN( PSTR( "M3900/M3901: ERROR in Config ### ZOS SKIPPED ###" ) );
                             }
                             else{
-                                //M3900:
-                                startZOScan(pCommand->hasR()); //mit R im GCode macht der Scan ein Auto-Matrix-Leveling, anstatt die anderen Schalter zu bedienen.
-                                Commands::waitUntilEndOfZOS();
+                                // M3900:
+								// mit R im GCode macht der Scan ein Auto-Matrix-Leveling, anstatt die anderen Schalter zu bedienen.
+                                startZOScan(pCommand->hasR());
+								// Warte bis Z-Offset-Scan beendet wurde.
+                                while( g_nZOSScanStatus )
+								{
+									Commands::checkForPeriodicalActions( Calibrating );
+								}
                             }
                         }
                     }

@@ -1516,7 +1516,7 @@ int8_t Printer::checkHome(int8_t axis) //X_AXIS 0, Y_AXIS 1, Z_AXIS 2
     int mmLoops = Printer::axisStepsPerMM[axis]; //fahre in mm-Blöcken.
 
     while(1){
-        Commands::checkForPeriodicalActions( Processing );
+        Commands::checkForPeriodicalActions( Calibrating );
 
         for( int i=0; i < mmLoops; i++ )
         {
@@ -1595,7 +1595,7 @@ int8_t Printer::checkHome(int8_t axis) //X_AXIS 0, Y_AXIS 1, Z_AXIS 2
 
     Didsteps = abs(Didsteps);
     while(Didsteps > 0){
-        Commands::checkForPeriodicalActions( Processing );
+        Commands::checkForPeriodicalActions( Calibrating );
 
         if(Didsteps >= mmLoops){
             Didsteps -= mmLoops;
