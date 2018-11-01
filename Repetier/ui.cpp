@@ -25,15 +25,6 @@ extern const int8_t encoder_table[16] PROGMEM ;
 #include <inttypes.h>
 #include <ctype.h>
 
-
-#if BEEPER_TYPE==2 && defined(UI_HAS_I2C_KEYS) && UI_I2C_KEY_ADDRESS!=BEEPER_ADDRESS
-#error Beeper address and i2c key address must be identical
-#else
-#if BEEPER_TYPE==2
-#define UI_I2C_KEY_ADDRESS BEEPER_ADDRESS
-#endif // BEEPER_TYPE==2
-#endif // BEEPER_TYPE==2 && defined(UI_HAS_I2C_KEYS) && UI_I2C_KEY_ADDRESS!=BEEPER_ADDRESS
-
 #if UI_PRINT_AUTORETURN_TO_MENU_AFTER || UI_MILL_AUTORETURN_TO_MENU_AFTER
 millis_t g_nAutoReturnTime       = 0;
 bool     g_nAutoReturnMessage    = false;
@@ -43,56 +34,34 @@ char    g_nYesNo                 = 0;       // 0 = no, 1 = yes
 volatile char    g_nContinueButtonPressed = 0;
 char    g_nServiceRequest        = 0;
 
-void beep(uint8_t duration,uint8_t count)
+void beep(uint8_t duration, uint8_t count)
 {
-#if FEATURE_BEEPER
-    if( !Printer::enableBeeper )
-    {
-        // we shall not beep
-        return;
-    }
+#if FEATURE_BEEPER && defined(BEEPER_PIN) && BEEPER_PIN>=0
+	if (!Printer::enableBeeper)
+	{
+		// we shall not beep
+		return;
+	}
 
-#if BEEPER_TYPE!=0
-#if BEEPER_TYPE==1 && defined(BEEPER_PIN) && BEEPER_PIN>=0
-    SET_OUTPUT(BEEPER_PIN);
-#endif //  BEEPER_TYPE==1 && defined(BEEPER_PIN) && BEEPER_PIN>=0
+	SET_OUTPUT(BEEPER_PIN);
+#ifndef BEEPER_TYPE_INVERTING
+#define BEEPER_TYPE_INVERTING   false
+#endif // BEEPER_TYPE_INVERTING
 
-#if BEEPER_TYPE==2
-    HAL::i2cStartWait(BEEPER_ADDRESS+I2C_WRITE);
-#if UI_DISPLAY_I2C_CHIPTYPE==1
-    HAL::i2cWrite( 0x14); // Start at port a
-#endif // UI_DISPLAY_I2C_CHIPTYPE==1
-#endif // BEEPER_TYPE==2
-
-    for(uint8_t i=0; i<count; i++)
-    {
-#if BEEPER_TYPE==1 && defined(BEEPER_PIN) && BEEPER_PIN>=0
-#if defined(BEEPER_TYPE_INVERTING) && BEEPER_TYPE_INVERTING
-        WRITE(BEEPER_PIN,LOW);
+	for (uint8_t i = 0; i < count; i++)
+	{
+#if BEEPER_TYPE_INVERTING
+		WRITE(BEEPER_PIN, LOW);
+		HAL::delayMilliseconds(duration);
+		WRITE(BEEPER_PIN, HIGH);
 #else
-        WRITE(BEEPER_PIN,HIGH);
-#endif // defined(BEEPER_TYPE_INVERTING) && BEEPER_TYPE_INVERTING
-#endif // BEEPER_TYPE==1 && defined(BEEPER_PIN) && BEEPER_PIN>=0
-
-        HAL::delayMilliseconds(duration);
-
-#if BEEPER_TYPE==1 && defined(BEEPER_PIN) && BEEPER_PIN>=0
-#if defined(BEEPER_TYPE_INVERTING) && BEEPER_TYPE_INVERTING
-        WRITE(BEEPER_PIN,HIGH);
-#else
-        WRITE(BEEPER_PIN,LOW);
-#endif // defined(BEEPER_TYPE_INVERTING) && BEEPER_TYPE_INVERTING
-#endif // BEEPER_TYPE==1 && defined(BEEPER_PIN) && BEEPER_PIN>=0
-
-        HAL::delayMilliseconds(duration);
-    }
-
-#if BEEPER_TYPE==2
-    HAL::i2cStop();
-#endif // BEEPER_TYPE==2
-#endif // BEEPER_TYPE!=0
-#endif // FEATURE_BEEPER
-
+		WRITE(BEEPER_PIN, HIGH);
+		HAL::delayMilliseconds(duration);
+		WRITE(BEEPER_PIN, LOW);
+#endif // BEEPER_TYPE_INVERTING
+		HAL::delayMilliseconds(duration);
+	}
+#endif // FEATURE_BEEPER && defined(BEEPER_PIN) && BEEPER_PIN>=0
 } // beep
 
 
@@ -654,13 +623,6 @@ void UIDisplay::initialize()
 #endif // UI_DISPLAY_TYPE == 5
 
 #endif // UI_DISPLAY_TYPE>0
-
-#if UI_DISPLAY_I2C_CHIPTYPE==0 && (BEEPER_TYPE==2 || defined(UI_HAS_I2C_KEYS))
-    // Make sure the beeper is off
-    HAL::i2cStartWait(UI_I2C_KEY_ADDRESS+I2C_WRITE);
-    HAL::i2cWrite(255); // Disable beeper, enable read for other pins.
-    HAL::i2cStop();
-#endif // UI_DISPLAY_I2C_CHIPTYPE==0 && (BEEPER_TYPE==2 || defined(UI_HAS_I2C_KEYS))
 
     if( READ(5) == 0 && READ(11) == 0 && READ(42) == 0 )
     {
