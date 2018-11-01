@@ -1,6 +1,9 @@
 TODO: Testing, testing ..
 TODO: Zaldo said that he experienced a hard reset while starting some Z-Calibration. (Awaiting further information about this bug)
 
+V RF.01.43.02.Mod (2018-11-01)
+- cleanup of display-code
+
 V RF.01.43.01.Mod (2018-11-01)
 - cleanup of beeper-code
 

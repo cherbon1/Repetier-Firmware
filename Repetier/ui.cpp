@@ -80,7 +80,6 @@ bool UIMenuEntry::showEntry() const
         ret = (f2 & Printer::menuMode) == 0;
     }
     return ret;
-
 } // showEntry
 
 
@@ -474,10 +473,7 @@ void UIDisplay::initializeLCD(bool normal)
 } // initializeLCD
 
 // ----------- end direct LCD driver
-#endif // UI_DISPLAY_TYPE==1 || UI_DISPLAY_TYPE==2
 
-
-#if UI_DISPLAY_TYPE<4
 void UIDisplay::printRow(uint8_t r,char *txt,char *txt2,uint8_t changeAtCol)
 {
     changeAtCol = RMath::min((uint8_t)UI_COLS,changeAtCol);
@@ -485,10 +481,6 @@ void UIDisplay::printRow(uint8_t r,char *txt,char *txt2,uint8_t changeAtCol)
 
     // Set row
     if(r >= UI_ROWS) return;
-
-#if UI_DISPLAY_TYPE==3
-    lcdStartWrite();
-#endif // UI_DISPLAY_TYPE==3
 
     lcdWriteByte(128 + HAL::readFlashByte((const char *)&LCDLineOffsets[r]),0); // Position cursor
     char c;
@@ -533,13 +525,8 @@ void UIDisplay::printRow(uint8_t r,char *txt,char *txt2,uint8_t changeAtCol)
             col++;
         }
     }
-
-#if UI_DISPLAY_TYPE==3
-    lcdStopWrite();
-#endif // UI_DISPLAY_TYPE==3
-
 } // printRow
-#endif // UI_DISPLAY_TYPE<4
+#endif // UI_DISPLAY_TYPE==1 || UI_DISPLAY_TYPE==2
 
 void UIDisplay::ui_init_keys()
 {
@@ -596,43 +583,27 @@ void UIDisplay::initialize()
     folderLevel = 0;
 #endif // SDSUPPORT
 
-#if UI_DISPLAY_TYPE>0
     initializeLCD(false);
     initCspecchars();
 
-#if UI_DISPLAY_TYPE == 5
-    //u8g picture loop
-    u8g_FirstPage(&u8g);
-    do
-    {
-#endif // UI_DISPLAY_TYPE == 5
-
-        for(uint8_t y=0; y<UI_ROWS; y++) displayCache[y][0] = 0;
-        printRowP(0, PSTR(BIGC0) );
-        printRowP(1, PSTR(BIGC1) );
+    for(uint8_t y=0; y<UI_ROWS; y++) displayCache[y][0] = 0;
+    printRowP(0, PSTR(BIGC0) );
+    printRowP(1, PSTR(BIGC1) );
 #if UI_ROWS>3
-        printRowP(UI_ROWS-2, PSTR(BIGC2) );
+    printRowP(UI_ROWS-2, PSTR(BIGC2) );
 #endif // UI_ROWS>3
 #if UI_ROWS>2
-        printRowP(UI_ROWS-1, PSTR(BIGC3) );
+    printRowP(UI_ROWS-1, PSTR(BIGC3) );
 #endif // UI_ROWS>2
-
-#if UI_DISPLAY_TYPE == 5
-    }
-    while( u8g_NextPage(&u8g) );  //end picture loop
-#endif // UI_DISPLAY_TYPE == 5
-
-#endif // UI_DISPLAY_TYPE>0
-
+	
     if( READ(5) == 0 && READ(11) == 0 && READ(42) == 0 )
     {
         g_nServiceRequest = 1;
     }
-
 } // initialize
 
 
-#if UI_DISPLAY_TYPE==1 || UI_DISPLAY_TYPE==2 || UI_DISPLAY_TYPE==3
+#if UI_DISPLAY_TYPE==1 || UI_DISPLAY_TYPE==2
 void UIDisplay::createChar(uint8_t location,const uint8_t charmap[])
 {
     location &= 0x7; // we only have 8 locations 0-7
@@ -643,7 +614,7 @@ void UIDisplay::createChar(uint8_t location,const uint8_t charmap[])
     }
 
 } // createChar
-#endif // UI_DISPLAY_TYPE==1 || UI_DISPLAY_TYPE==2 || UI_DISPLAY_TYPE==3
+#endif // UI_DISPLAY_TYPE==1 || UI_DISPLAY_TYPE==2
 
 
 void UIDisplay::printRowP(uint8_t r,PGM_P txt)

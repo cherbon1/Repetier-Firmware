@@ -252,7 +252,6 @@
 #define UI_HAS_KEYS                       1        // 1 = Some keys attached
 #define UI_HAS_BACK_KEY                   1
 #define UI_DISPLAY_TYPE                   1        // 1 = LCD Display with 4 bit data bus
-//#define UI_DISPLAY_CHARSET                  1
 #define UI_COLS                          16        //check MAX_COLS when changed
 #define UI_ROWS                           4        //do not change for RF1000 or RF2000!
 #define UI_DELAYPERCHAR                 320
@@ -265,7 +264,6 @@
 #define UI_HAS_KEYS                       1        // 1 = Some keys attached
 #define UI_HAS_BACK_KEY                   1
 #define UI_DISPLAY_TYPE                   1        // 1 = LCD Display with 4 bit data bus
-//#define UI_DISPLAY_CHARSET                  1
 #define UI_COLS                          20        //check MAX_COLS when changed
 #define UI_ROWS                           4        //do not change for RF1000 or RF2000!
 #define UI_DELAYPERCHAR                 320
@@ -534,10 +532,6 @@ extern UIDisplay uid;
 #include "uimenu.h"
 
 #if UI_DISPLAY_TYPE!=0
-#if UI_DISPLAY_TYPE==3
-#define COMPILE_I2C_DRIVER
-#endif // UI_DISPLAY_TYPE==3
-
 #define UI_INITIALIZE uid.initialize();
 #define UI_FAST if(pwm_count_heater & 4) {uid.fastAction();}
 #define UI_SLOW uid.slowAction();

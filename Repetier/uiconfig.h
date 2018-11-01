@@ -19,19 +19,6 @@
 #ifndef UI_CONFIG_H
 #define UI_CONFIG_H
 
-
-/** While the ascii chars are all the same, the driver have different charsets
-for special chars used in different countries. The charset allows to fix for
-this problem. If characters look wrong, try a different charset. If nothing
-works, use the ascii charset 0 as fallback. Not the nicest for everything but working!
-
-0 = ASCII fallback
-1 = Default works on most displays. This has some japanese chars in charset
-2 = Alternative charset with more european chars
-
-*/
-//#define UI_DISPLAY_CHARSET 2
-
 /* What type of chip is used for I2C communication
 0 : PCF8574 or PCF8574A or compatible chips.
 1 : MCP23017
