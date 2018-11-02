@@ -12796,7 +12796,7 @@ void updateRGBLightStatus( void )
 #endif // FEATURE_RGB_LIGHT_EFFECTS
 
 #if FEATURE_HEAT_BED_Z_COMPENSATION
-char loadActiveHeatBedFromExtEEPROM() {
+void loadActiveHeatBedFromExtEEPROM() {
 	char uTemp = (char)readWord24C256(I2C_ADDRESS_EXTERNAL_EEPROM, EEPROM_OFFSET_ACTIVE_HEAT_BED_Z_MATRIX);
 
 	if (uTemp < 1 || uTemp > EEPROM_MAX_HEAT_BED_SECTORS)
@@ -12810,7 +12810,7 @@ char loadActiveHeatBedFromExtEEPROM() {
 #endif // FEATURE_HEAT_BED_Z_COMPENSATION
 
 #if FEATURE_WORK_PART_Z_COMPENSATION
-char loadActiveWorkPartFromExtEEPROM() {
+void loadActiveWorkPartFromExtEEPROM() {
 	char uTemp = (char)readWord24C256(I2C_ADDRESS_EXTERNAL_EEPROM, EEPROM_OFFSET_ACTIVE_WORK_PART_Z_MATRIX);
 
 	if (uTemp < 1 || uTemp > EEPROM_MAX_HEAT_BED_SECTORS)
