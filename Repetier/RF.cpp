@@ -12795,32 +12795,45 @@ void updateRGBLightStatus( void )
 } // updateRGBLightStatus
 #endif // FEATURE_RGB_LIGHT_EFFECTS
 
+#if FEATURE_HEAT_BED_Z_COMPENSATION
+char loadActiveHeatBedFromExtEEPROM() {
+	char uTemp = (char)readWord24C256(I2C_ADDRESS_EXTERNAL_EEPROM, EEPROM_OFFSET_ACTIVE_HEAT_BED_Z_MATRIX);
+
+	if (uTemp < 1 || uTemp > EEPROM_MAX_HEAT_BED_SECTORS)
+	{
+		Com::printFLN(PSTR("Invalid active heat bed within ext. EEPROM detected: "), (int)uTemp);
+		uTemp = 1;
+	}
+
+	g_nActiveHeatBed = uTemp;
+}
+#endif // FEATURE_HEAT_BED_Z_COMPENSATION
+
+#if FEATURE_WORK_PART_Z_COMPENSATION
+char loadActiveWorkPartFromExtEEPROM() {
+	char uTemp = (char)readWord24C256(I2C_ADDRESS_EXTERNAL_EEPROM, EEPROM_OFFSET_ACTIVE_WORK_PART_Z_MATRIX);
+
+	if (uTemp < 1 || uTemp > EEPROM_MAX_HEAT_BED_SECTORS)
+	{
+		Com::printFLN(PSTR("Invalid active work part within ext. EEPROM detected: "), (int)uTemp);
+		uTemp = 1;
+	}
+
+	g_nActiveWorkPart = uTemp;
+}
+#endif //FEATURE_WORK_PART_Z_COMPENSATION
 
 void setupForPrinting( void )
 {
     Printer::setSomeTempsensorDefect(false);
 
 #if FEATURE_HEAT_BED_Z_COMPENSATION
-
-    g_nActiveHeatBed = (char)readWord24C256( I2C_ADDRESS_EXTERNAL_EEPROM, EEPROM_OFFSET_ACTIVE_HEAT_BED_Z_MATRIX );
-
-    if( g_nActiveHeatBed < 1 || g_nActiveHeatBed > EEPROM_MAX_HEAT_BED_SECTORS )
-    {
-        if( Printer::debugErrors() )
-        {
-            Com::printFLN( PSTR( "setupForPrinting(): invalid active heat bed z matrix detected: " ), (int)g_nActiveHeatBed );
-        }
-
-        // continue with the default heat bed z matrix
-        g_nActiveHeatBed = 1;
-    }
-
+	loadActiveHeatBedFromExtEEPROM();
     if( g_ZCompensationMatrix[0][0] != EEPROM_FORMAT )
     {
         // we load the z compensation matrix before its first usage because this can take some time
         prepareZCompensation();
     }
-
 #endif // FEATURE_HEAT_BED_Z_COMPENSATION
 
 #if EEPROM_MODE
@@ -12865,28 +12878,13 @@ void setupForPrinting( void )
 
 void setupForMilling( void )
 {
-
 #if FEATURE_WORK_PART_Z_COMPENSATION
-
-    g_nActiveWorkPart = (char)readWord24C256( I2C_ADDRESS_EXTERNAL_EEPROM, EEPROM_OFFSET_ACTIVE_WORK_PART_Z_MATRIX );
-
-    if( g_nActiveWorkPart < 1 || g_nActiveWorkPart > EEPROM_MAX_WORK_PART_SECTORS )
-    {
-        if( Printer::debugErrors() )
-        {
-            Com::printFLN( PSTR( "setupForMilling(): invalid active work part detected: " ), (int)g_nActiveWorkPart );
-        }
-
-        // continue with the default work part
-        g_nActiveWorkPart = 1;
-    }
-
+	loadActiveWorkPartFromExtEEPROM();
     if( g_ZCompensationMatrix[0][0] != EEPROM_FORMAT )
     {
         // we load the z compensation matrix before its first usage because this can take some time
         prepareZCompensation();
     }
-
 #endif // FEATURE_WORK_PART_Z_COMPENSATION
 
 #if EEPROM_MODE

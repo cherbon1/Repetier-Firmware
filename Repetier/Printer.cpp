@@ -1138,20 +1138,6 @@ void Printer::setup()
     sd.mount(true /* Silent mount because otherwise RF1000 prints errors if no sdcard is present at boottime*/);
 #endif // SDSUPPORT
 
-    g_nActiveHeatBed = (char)readWord24C256( I2C_ADDRESS_EXTERNAL_EEPROM, EEPROM_OFFSET_ACTIVE_HEAT_BED_Z_MATRIX );
-#if FEATURE_MILLING_MODE
-    g_nActiveWorkPart = (char)readWord24C256( I2C_ADDRESS_EXTERNAL_EEPROM, EEPROM_OFFSET_ACTIVE_WORK_PART_Z_MATRIX );
-#endif // FEATURE_MILLING_MODE
-
-    if (Printer::ZMode == Z_VALUE_MODE_SURFACE)
-    {
-        if( g_ZCompensationMatrix[0][0] != EEPROM_FORMAT )
-        {
-            // we load the z compensation matrix
-            prepareZCompensation();
-        }
-    }
-
 #if FEATURE_RGB_LIGHT_EFFECTS
     setRGBLEDs( 0, 0, 0 );
 
