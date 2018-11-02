@@ -5727,6 +5727,42 @@ void saveCompensationMatrix( unsigned int uAddress )
 } // saveCompensationMatrix
 
 
+#if FEATURE_HEAT_BED_Z_COMPENSATION
+bool loadActiveHeatBedFromExtEEPROM() {
+	char uTemp = (char)readWord24C256(I2C_ADDRESS_EXTERNAL_EEPROM, EEPROM_OFFSET_ACTIVE_HEAT_BED_Z_MATRIX);
+
+	if (uTemp < 1 || uTemp > EEPROM_MAX_HEAT_BED_SECTORS)
+	{
+		Com::printFLN(PSTR("Invalid active heat bed within ext. EEPROM detected: "), (int)uTemp);
+		if (g_nActiveHeatBed < 1 || g_nActiveHeatBed > EEPROM_MAX_HEAT_BED_SECTORS) {
+			g_nActiveHeatBed = 1;
+		}
+		return false;
+	}
+
+	g_nActiveHeatBed = uTemp;
+	return true;
+}
+#endif // FEATURE_HEAT_BED_Z_COMPENSATION
+
+#if FEATURE_WORK_PART_Z_COMPENSATION
+bool loadActiveWorkPartFromExtEEPROM() {
+	char uTemp = (char)readWord24C256(I2C_ADDRESS_EXTERNAL_EEPROM, EEPROM_OFFSET_ACTIVE_WORK_PART_Z_MATRIX);
+
+	if (uTemp < 1 || uTemp > EEPROM_MAX_HEAT_BED_SECTORS)
+	{
+		Com::printFLN(PSTR("Invalid active work part within ext. EEPROM detected: "), (int)uTemp);
+		if (g_nActiveWorkPart < 1 || g_nActiveWorkPart > EEPROM_MAX_HEAT_BED_SECTORS) {
+			g_nActiveWorkPart = 1;
+		}
+		return false;
+	}
+
+	g_nActiveWorkPart = uTemp;
+	return true;
+}
+#endif //FEATURE_WORK_PART_Z_COMPENSATION
+
 char loadCompensationMatrix( unsigned int uAddress )
 {
     unsigned short  uTemp;
@@ -5765,14 +5801,8 @@ char loadCompensationMatrix( unsigned int uAddress )
 #endif // FEATURE_MILLING_MODE
  #if FEATURE_HEAT_BED_Z_COMPENSATION
             // load the currently active heat bed compensation matrix
-            uTemp = readWord24C256( I2C_ADDRESS_EXTERNAL_EEPROM, EEPROM_OFFSET_ACTIVE_HEAT_BED_Z_MATRIX );
-
-            if( uTemp < 1 || uTemp > EEPROM_MAX_HEAT_BED_SECTORS )
+            if(!loadActiveHeatBedFromExtEEPROM())
             {
-                if( Printer::debugErrors() )
-                {
-                    Com::printFLN( PSTR( "loadMatrix(): invalid active heat bed z matrix: " ), (int)uTemp );
-                }
                 return -1;
             }
 
@@ -5793,14 +5823,8 @@ char loadCompensationMatrix( unsigned int uAddress )
         {
  #if FEATURE_WORK_PART_Z_COMPENSATION
             // load the currently active work part compensation matrix
-            uTemp = readWord24C256( I2C_ADDRESS_EXTERNAL_EEPROM, EEPROM_OFFSET_ACTIVE_WORK_PART_Z_MATRIX );
-
-            if( uTemp < 1 || uTemp > EEPROM_MAX_WORK_PART_SECTORS )
+            if(!loadActiveWorkPartFromExtEEPROM())
             {
-                if( Printer::debugErrors() )
-                {
-                    Com::printFLN( PSTR( "loadMatrix(): invalid active work part: " ), (int)uTemp );
-                }
                 return -1;
             }
 
@@ -12794,34 +12818,6 @@ void updateRGBLightStatus( void )
 
 } // updateRGBLightStatus
 #endif // FEATURE_RGB_LIGHT_EFFECTS
-
-#if FEATURE_HEAT_BED_Z_COMPENSATION
-void loadActiveHeatBedFromExtEEPROM() {
-	char uTemp = (char)readWord24C256(I2C_ADDRESS_EXTERNAL_EEPROM, EEPROM_OFFSET_ACTIVE_HEAT_BED_Z_MATRIX);
-
-	if (uTemp < 1 || uTemp > EEPROM_MAX_HEAT_BED_SECTORS)
-	{
-		Com::printFLN(PSTR("Invalid active heat bed within ext. EEPROM detected: "), (int)uTemp);
-		uTemp = 1;
-	}
-
-	g_nActiveHeatBed = uTemp;
-}
-#endif // FEATURE_HEAT_BED_Z_COMPENSATION
-
-#if FEATURE_WORK_PART_Z_COMPENSATION
-void loadActiveWorkPartFromExtEEPROM() {
-	char uTemp = (char)readWord24C256(I2C_ADDRESS_EXTERNAL_EEPROM, EEPROM_OFFSET_ACTIVE_WORK_PART_Z_MATRIX);
-
-	if (uTemp < 1 || uTemp > EEPROM_MAX_HEAT_BED_SECTORS)
-	{
-		Com::printFLN(PSTR("Invalid active work part within ext. EEPROM detected: "), (int)uTemp);
-		uTemp = 1;
-	}
-
-	g_nActiveWorkPart = uTemp;
-}
-#endif //FEATURE_WORK_PART_Z_COMPENSATION
 
 void setupForPrinting( void )
 {
