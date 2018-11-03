@@ -696,9 +696,52 @@ void EEPROM::readDataFromEEPROM()
     Printer::maxAccelerationMMPerSquareSecond[X_AXIS] = HAL::eprGetFloat(EPR_X_MAX_ACCEL);
     Printer::maxAccelerationMMPerSquareSecond[Y_AXIS] = HAL::eprGetFloat(EPR_Y_MAX_ACCEL);
     Printer::maxAccelerationMMPerSquareSecond[Z_AXIS] = HAL::eprGetFloat(EPR_Z_MAX_ACCEL);
+	if (Printer::maxAccelerationMMPerSquareSecond[X_AXIS] <= 5.0f || Printer::maxAccelerationMMPerSquareSecond[X_AXIS] >= 6000.0f) {
+		Printer::maxAccelerationMMPerSquareSecond[X_AXIS] = MAX_ACCELERATION_UNITS_PER_SQ_SECOND_X;
+#if FEATURE_AUTOMATIC_EEPROM_UPDATE
+		HAL::eprSetFloat(EPR_X_MAX_ACCEL, MAX_ACCELERATION_UNITS_PER_SQ_SECOND_X);
+		change = true; //update checksum later in this function
+#endif //FEATURE_AUTOMATIC_EEPROM_UPDATE
+	}
+	if (Printer::maxAccelerationMMPerSquareSecond[Y_AXIS] <= 5.0f || Printer::maxAccelerationMMPerSquareSecond[Y_AXIS] >= 6000.0f) {
+		Printer::maxAccelerationMMPerSquareSecond[Y_AXIS] = MAX_ACCELERATION_UNITS_PER_SQ_SECOND_Y;
+#if FEATURE_AUTOMATIC_EEPROM_UPDATE
+		HAL::eprSetFloat(EPR_Y_MAX_ACCEL, MAX_ACCELERATION_UNITS_PER_SQ_SECOND_Y);
+		change = true; //update checksum later in this function
+#endif //FEATURE_AUTOMATIC_EEPROM_UPDATE
+	}
+	if (Printer::maxAccelerationMMPerSquareSecond[Z_AXIS] <= 5.0f || Printer::maxAccelerationMMPerSquareSecond[Z_AXIS] >= 6000.0f) {
+		Printer::maxAccelerationMMPerSquareSecond[Z_AXIS] = MAX_ACCELERATION_UNITS_PER_SQ_SECOND_Z;
+#if FEATURE_AUTOMATIC_EEPROM_UPDATE
+		HAL::eprSetFloat(EPR_Z_MAX_ACCEL, MAX_ACCELERATION_UNITS_PER_SQ_SECOND_Z);
+		change = true; //update checksum later in this function
+#endif //FEATURE_AUTOMATIC_EEPROM_UPDATE
+	}
+
     Printer::maxTravelAccelerationMMPerSquareSecond[X_AXIS] = HAL::eprGetFloat(EPR_X_MAX_TRAVEL_ACCEL);
     Printer::maxTravelAccelerationMMPerSquareSecond[Y_AXIS] = HAL::eprGetFloat(EPR_Y_MAX_TRAVEL_ACCEL);
     Printer::maxTravelAccelerationMMPerSquareSecond[Z_AXIS] = HAL::eprGetFloat(EPR_Z_MAX_TRAVEL_ACCEL);
+	if (Printer::maxTravelAccelerationMMPerSquareSecond[X_AXIS] <= 5.0f || Printer::maxTravelAccelerationMMPerSquareSecond[X_AXIS] >= 6000.0f) {
+		Printer::maxTravelAccelerationMMPerSquareSecond[X_AXIS] = MAX_TRAVEL_ACCELERATION_UNITS_PER_SQ_SECOND_X;
+#if FEATURE_AUTOMATIC_EEPROM_UPDATE
+		HAL::eprSetFloat(EPR_X_MAX_TRAVEL_ACCEL, MAX_TRAVEL_ACCELERATION_UNITS_PER_SQ_SECOND_X);
+		change = true; //update checksum later in this function
+#endif //FEATURE_AUTOMATIC_EEPROM_UPDATE
+	}
+	if (Printer::maxTravelAccelerationMMPerSquareSecond[Y_AXIS] <= 5.0f || Printer::maxTravelAccelerationMMPerSquareSecond[Y_AXIS] >= 6000.0f) {
+		Printer::maxTravelAccelerationMMPerSquareSecond[Y_AXIS] = MAX_TRAVEL_ACCELERATION_UNITS_PER_SQ_SECOND_Y;
+#if FEATURE_AUTOMATIC_EEPROM_UPDATE
+		HAL::eprSetFloat(EPR_Y_MAX_TRAVEL_ACCEL, MAX_TRAVEL_ACCELERATION_UNITS_PER_SQ_SECOND_Y);
+		change = true; //update checksum later in this function
+#endif //FEATURE_AUTOMATIC_EEPROM_UPDATE
+	}
+	if (Printer::maxTravelAccelerationMMPerSquareSecond[Z_AXIS] <= 5.0f || Printer::maxTravelAccelerationMMPerSquareSecond[Z_AXIS] >= 6000.0f) {
+		Printer::maxTravelAccelerationMMPerSquareSecond[Z_AXIS] = MAX_TRAVEL_ACCELERATION_UNITS_PER_SQ_SECOND_Z;
+#if FEATURE_AUTOMATIC_EEPROM_UPDATE
+		HAL::eprSetFloat(EPR_Z_MAX_TRAVEL_ACCEL, MAX_TRAVEL_ACCELERATION_UNITS_PER_SQ_SECOND_Z);
+		change = true; //update checksum later in this function
+#endif //FEATURE_AUTOMATIC_EEPROM_UPDATE
+	}
 
 #if HAVE_HEATED_BED
     heatedBedController.pidDriveMax = HAL::eprGetByte(EPR_BED_DRIVE_MAX);

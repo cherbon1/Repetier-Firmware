@@ -1,6 +1,11 @@
 TODO: Testing, testing ..
 TODO: Zaldo said that he experienced a hard reset while starting some Z-Calibration. (Awaiting further information about this bug)
 
+V RF.01.43.04.Mod (2018-11-03)
+- removed old Mod-FEATURE_DEBUG_MOVE_CACHE_TIMING
+- added a check for EEPROM read acceleration settings (for print and travel acc)
+- minor changes
+
 V RF.01.43.03.Mod (2018-11-02)
 - some refactoring and cleanup
 

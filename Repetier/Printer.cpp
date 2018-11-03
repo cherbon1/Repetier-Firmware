@@ -39,9 +39,9 @@ short           Printer::max_milling_all_axis_acceleration = MILLER_ACCELERATION
 #endif // FEATURE_MILLING_MODE
 
 /** Acceleration in steps/s^2 in printing mode.*/
-unsigned long   Printer::maxPrintAccelerationStepsPerSquareSecond[4];
+uint32_t        Printer::maxPrintAccelerationStepsPerSquareSecond[4];
 /** Acceleration in steps/s^2 in movement mode.*/
-unsigned long   Printer::maxTravelAccelerationStepsPerSquareSecond[4];
+uint32_t        Printer::maxTravelAccelerationStepsPerSquareSecond[4];
 
 uint8_t         Printer::relativeCoordinateMode = false;                ///< Determines absolute (false) or relative Coordinates (true).
 uint8_t         Printer::relativeExtruderCoordinateMode = false;        ///< Determines Absolute or Relative E Codes while in Absolute Coordinates mode. E is always relative in Relative Coordinates mode.
@@ -305,17 +305,17 @@ void Printer::updateDerivedParameter()
         {
 #endif // FEATURE_MILLING_MODE
             /** Acceleration in steps/s^2 in printing mode.*/
-            maxPrintAccelerationStepsPerSquareSecond[i] = maxAccelerationMMPerSquareSecond[i] * axisStepsPerMM[i];
+            maxPrintAccelerationStepsPerSquareSecond[i] = uint32_t(maxAccelerationMMPerSquareSecond[i] * axisStepsPerMM[i]);
             /** Acceleration in steps/s^2 in movement mode.*/
-            maxTravelAccelerationStepsPerSquareSecond[i] = maxTravelAccelerationMMPerSquareSecond[i] * axisStepsPerMM[i];
+            maxTravelAccelerationStepsPerSquareSecond[i] = uint32_t(maxTravelAccelerationMMPerSquareSecond[i] * axisStepsPerMM[i]);
 #if FEATURE_MILLING_MODE
         }
         else
         {
             /** Acceleration in steps/s^2 in milling mode.*/
-            maxPrintAccelerationStepsPerSquareSecond[i] = MILLER_ACCELERATION * axisStepsPerMM[i];
+            maxPrintAccelerationStepsPerSquareSecond[i] = uint32_t(MILLER_ACCELERATION * axisStepsPerMM[i]);
             /** Acceleration in steps/s^2 in milling-movement mode.*/
-            maxTravelAccelerationStepsPerSquareSecond[i] = MILLER_ACCELERATION * axisStepsPerMM[i];
+            maxTravelAccelerationStepsPerSquareSecond[i] = uint32_t(MILLER_ACCELERATION * axisStepsPerMM[i]);
         }
 #endif  // FEATURE_MILLING_MODE
     }
