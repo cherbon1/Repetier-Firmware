@@ -296,18 +296,18 @@ void Printer::updateDerivedParameter()
     if(backlashZ!=0) backlashDir |= 32;
 #endif // ENABLE_BACKLASH_COMPENSATION
 
-    for(uint8_t i = 0; i < 4; i++)
+    for(uint8_t axis = 0; axis < 4; axis++)
     {
-        invAxisStepsPerMM[i] = 1.0f / axisStepsPerMM[i];
+        invAxisStepsPerMM[axis] = 1.0f / axisStepsPerMM[axis];
 
 #if FEATURE_MILLING_MODE
         if( Printer::operatingMode == OPERATING_MODE_PRINT )
         {
 #endif // FEATURE_MILLING_MODE
             /** Acceleration in steps/s^2 in printing mode.*/
-            maxPrintAccelerationStepsPerSquareSecond[i] = uint32_t(maxAccelerationMMPerSquareSecond[i] * axisStepsPerMM[i]);
+            maxPrintAccelerationStepsPerSquareSecond[axis] = uint32_t(maxAccelerationMMPerSquareSecond[axis] * axisStepsPerMM[axis]);
             /** Acceleration in steps/s^2 in movement mode.*/
-            maxTravelAccelerationStepsPerSquareSecond[i] = uint32_t(maxTravelAccelerationMMPerSquareSecond[i] * axisStepsPerMM[i]);
+            maxTravelAccelerationStepsPerSquareSecond[axis] = uint32_t(maxTravelAccelerationMMPerSquareSecond[axis] * axisStepsPerMM[axis]);
 #if FEATURE_MILLING_MODE
         }
         else
