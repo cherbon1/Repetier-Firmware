@@ -1,6 +1,11 @@
 TODO: Testing, testing ..
 TODO: Zaldo said that he experienced a hard reset while starting some Z-Calibration. (Awaiting further information about this bug)
 
+V RF.01.43.06.Mod (2018-11-07)
+- hardening for correct saving of the workpart number and heatbed number
+- autocorrection for wrong workpart numbers and heatbed numbers
+- some small fix for RF.01.43.05 refactoring
+
 V RF.01.43.05.Mod (2018-11-04)
 - more intuitive limits for EEPROM acceleration settings (5 and 6000 are included)
 - some minor refactoring

@@ -549,7 +549,7 @@ void scanHeatBed( void )
         showError( PSTR(UI_TEXT_HEAT_BED_SCAN_ABORTED) );
 
         // restore the compensation values from the EEPROM
-        if( loadCompensationMatrix( 0 ) )
+        if ( loadCompensationMatrix( (unsigned int)(EEPROM_SECTOR_SIZE * g_nActiveHeatBed) ) )
         {
             // there is no valid compensation matrix available
             initCompensationMatrix();
@@ -559,8 +559,7 @@ void scanHeatBed( void )
         g_nLastZScanZPosition = 0;
         g_retryZScan          = 0;
         g_retryStatus         = 0;
-
-
+		
         return;
     }
 
@@ -3926,8 +3925,7 @@ void scanWorkPart( void )
         BEEP_ABORT_WORK_PART_SCAN
 
         // restore the compensation values from the EEPROM
-        if( loadCompensationMatrix( 0 ) ) // --> Bei Adresse 0 wird in der Funktion ermittelt welche Adresse passt.
-        {
+        if ( loadCompensationMatrix( (EEPROM_SECTOR_SIZE * 9) + (unsigned int)(EEPROM_SECTOR_SIZE * g_nActiveWorkPart) ) ) {
             // there is no valid compensation matrix available
             initCompensationMatrix();
         }
@@ -5626,6 +5624,12 @@ void saveCompensationMatrix( unsigned int uAddress )
     short           x;
     short           y;
 
+	if (uAddress == 0) {
+		Com::printFLN(PSTR("saveMatrix(): valid uAddress - aborted!"));
+
+		return;
+	}
+
     if( g_ZCompensationMatrix[0][0] && g_uZMatrixMax[X_AXIS] && g_uZMatrixMax[Y_AXIS] ) //valid in RAM means writing ok
     {
         // we have valid compensation values
@@ -5728,15 +5732,29 @@ void saveCompensationMatrix( unsigned int uAddress )
 
 
 #if FEATURE_HEAT_BED_Z_COMPENSATION
+bool saveActiveHeatBedToExtEEPROM(char newActiveHeatBed) {
+	if (newActiveHeatBed < 1 || newActiveHeatBed > EEPROM_MAX_HEAT_BED_SECTORS) {
+		return false;
+	}
+
+	char oldActiveHeatBed = (char)readWord24C256(I2C_ADDRESS_EXTERNAL_EEPROM, EEPROM_OFFSET_ACTIVE_HEAT_BED_Z_MATRIX);
+	if (oldActiveHeatBed != newActiveHeatBed) {
+		writeWord24C256(I2C_ADDRESS_EXTERNAL_EEPROM, EEPROM_OFFSET_ACTIVE_HEAT_BED_Z_MATRIX, newActiveHeatBed);
+	}
+
+	return true;
+}
+
 bool loadActiveHeatBedFromExtEEPROM() {
 	char uTemp = (char)readWord24C256(I2C_ADDRESS_EXTERNAL_EEPROM, EEPROM_OFFSET_ACTIVE_HEAT_BED_Z_MATRIX);
 
-	if (uTemp < 1 || uTemp > EEPROM_MAX_HEAT_BED_SECTORS)
-	{
+	if (uTemp < 1 || uTemp > EEPROM_MAX_HEAT_BED_SECTORS) {
 		Com::printFLN(PSTR("Invalid active heat bed within ext. EEPROM detected: "), (int)uTemp);
 		if (g_nActiveHeatBed < 1 || g_nActiveHeatBed > EEPROM_MAX_HEAT_BED_SECTORS) {
 			g_nActiveHeatBed = 1;
 		}
+		saveActiveHeatBedToExtEEPROM(g_nActiveHeatBed);
+
 		return false;
 	}
 
@@ -5746,15 +5764,29 @@ bool loadActiveHeatBedFromExtEEPROM() {
 #endif // FEATURE_HEAT_BED_Z_COMPENSATION
 
 #if FEATURE_WORK_PART_Z_COMPENSATION
+bool saveActiveWorkPartToExtEEPROM(char newActiveWorkPart) {
+	if (newActiveWorkPart < 1 || newActiveWorkPart > EEPROM_MAX_HEAT_BED_SECTORS) {
+		return false;
+	}
+
+	char oldActiveWorkPart = (char)readWord24C256(I2C_ADDRESS_EXTERNAL_EEPROM, EEPROM_OFFSET_ACTIVE_WORK_PART_Z_MATRIX);
+	if (oldActiveWorkPart != newActiveWorkPart) {
+		writeWord24C256(I2C_ADDRESS_EXTERNAL_EEPROM, EEPROM_OFFSET_ACTIVE_WORK_PART_Z_MATRIX, newActiveWorkPart);
+	}
+
+	return true;
+}
+
 bool loadActiveWorkPartFromExtEEPROM() {
 	char uTemp = (char)readWord24C256(I2C_ADDRESS_EXTERNAL_EEPROM, EEPROM_OFFSET_ACTIVE_WORK_PART_Z_MATRIX);
 
-	if (uTemp < 1 || uTemp > EEPROM_MAX_HEAT_BED_SECTORS)
-	{
+	if (uTemp < 1 || uTemp > EEPROM_MAX_HEAT_BED_SECTORS) {
 		Com::printFLN(PSTR("Invalid active work part within ext. EEPROM detected: "), (int)uTemp);
 		if (g_nActiveWorkPart < 1 || g_nActiveWorkPart > EEPROM_MAX_HEAT_BED_SECTORS) {
 			g_nActiveWorkPart = 1;
 		}
+		saveActiveWorkPartToExtEEPROM(g_nActiveWorkPart);
+
 		return false;
 	}
 
@@ -5765,6 +5797,12 @@ bool loadActiveWorkPartFromExtEEPROM() {
 
 char loadCompensationMatrix( unsigned int uAddress )
 {
+	if (uAddress == 0) {
+		Com::printFLN(PSTR("loadMatrix(): valid uAddress - aborted!"));
+
+		return -1;
+	}
+
     unsigned short  uTemp;
     unsigned short  uDimensionX;
     unsigned short  uDimensionY;
@@ -5774,15 +5812,13 @@ char loadCompensationMatrix( unsigned int uAddress )
     short           x;
     short           y;
     float           fMicroStepCorrection;
-
-
+	
     Printer::disableCMPnow(true); // vorher, nicht nachher ausschalten, sonst arbeitet unter Umständen die alte matrix.
 
     // check the stored header format
     uTemp = readWord24C256( I2C_ADDRESS_EXTERNAL_EEPROM, EEPROM_OFFSET_HEADER_FORMAT );
 
-    if( uTemp != EEPROM_FORMAT )
-    {
+    if ( uTemp != EEPROM_FORMAT ) {
         if( Printer::debugErrors() )
         {
             Com::printF( PSTR( "loadMatrix(): invalid header format: " ), (int)uTemp );
@@ -5790,52 +5826,6 @@ char loadCompensationMatrix( unsigned int uAddress )
             Com::printFLN( PSTR( ")" ) );
         }
         return -1;
-    }
-
-    if( !uAddress )
-    {
-        // we have to detect the to-be-loaded compensation matrix automatically
-#if FEATURE_MILLING_MODE
-        if( Printer::operatingMode == OPERATING_MODE_PRINT )
-        {
-#endif // FEATURE_MILLING_MODE
- #if FEATURE_HEAT_BED_Z_COMPENSATION
-            // load the currently active heat bed compensation matrix
-            if(!loadActiveHeatBedFromExtEEPROM())
-            {
-                return -1;
-            }
-
-            g_nActiveHeatBed    = (char)uTemp;
-            uAddress            = (unsigned int)(EEPROM_SECTOR_SIZE * uTemp);
-
-            if( Printer::debugErrors() )
-            {
-                Com::printFLN( PSTR( "loadMatrix(): active heat bed z matrix: " ), (int)g_nActiveHeatBed );
-            }
- #else
-            // we do not support the heat bed compensation
-            return -1;
- #endif // FEATURE_HEAT_BED_Z_COMPENSATION
-#if FEATURE_MILLING_MODE
-        }
-        else
-        {
- #if FEATURE_WORK_PART_Z_COMPENSATION
-            // load the currently active work part compensation matrix
-            if(!loadActiveWorkPartFromExtEEPROM())
-            {
-                return -1;
-            }
-
-            g_nActiveWorkPart = (char)uTemp;
-            uAddress          = (EEPROM_SECTOR_SIZE *9) + (unsigned int)(EEPROM_SECTOR_SIZE * uTemp);
- #else
-            // we do not support the work part compensation
-            return -1;
- #endif // FEATURE_WORK_PART_Z_COMPENSATION
-        }
-#endif // FEATURE_MILLING_MODE
     }
 
 #if FEATURE_WORK_PART_Z_COMPENSATION && FEATURE_MILLING_MODE
@@ -7618,15 +7608,12 @@ void processCommand( GCode* pCommand )
                         break;
                     }
 
-                    // switch to the specified z-compensation matrix
-                    g_nActiveHeatBed = (char)nTemp;
-                    writeWord24C256( I2C_ADDRESS_EXTERNAL_EEPROM, EEPROM_OFFSET_ACTIVE_HEAT_BED_Z_MATRIX, g_nActiveHeatBed );
-                    clearCompensationMatrix( (unsigned int)(EEPROM_SECTOR_SIZE * g_nActiveHeatBed) );
-
-                    if( Printer::debugInfo() )
-                    {
-                        Com::printFLN( PSTR( "M3011: cleared heat bed z matrix: " ), nTemp );
-                    }
+                    if (saveActiveHeatBedToExtEEPROM((char)nTemp)) {
+						// switch to the specified z-compensation matrix
+						g_nActiveHeatBed = (char)nTemp;
+						clearCompensationMatrix( (unsigned int)(EEPROM_SECTOR_SIZE * g_nActiveHeatBed) );
+						Com::printFLN( PSTR( "M3011: cleared heat bed z matrix: " ), nTemp );
+					}
                 }
                 break;
             }
@@ -8895,17 +8882,12 @@ void processCommand( GCode* pCommand )
                         break;
                     }
 
-                    // switch to the specified work part
-                    g_nActiveWorkPart = (char)nTemp;
-                    writeWord24C256( I2C_ADDRESS_EXTERNAL_EEPROM, EEPROM_OFFSET_ACTIVE_WORK_PART_Z_MATRIX, g_nActiveWorkPart );
-                    clearCompensationMatrix( (EEPROM_SECTOR_SIZE *9) + (unsigned int)(EEPROM_SECTOR_SIZE * g_nActiveWorkPart) );
-
-                    if( Printer::debugInfo() )
-                    {
-                        Com::printFLN( PSTR( "M3151: cleared z-compensation matrix: " ), nTemp );
-                    }
-
-                    // TODO: in case the z-compensation is active at the moment, this command should not work
+					if (saveActiveWorkPartToExtEEPROM((char)nTemp)) {
+						// switch to the specified work part
+						g_nActiveWorkPart = (char)nTemp;
+						clearCompensationMatrix((EEPROM_SECTOR_SIZE * 9) + (unsigned int)(EEPROM_SECTOR_SIZE * g_nActiveWorkPart));
+						Com::printFLN(PSTR("M3151: cleared z-compensation matrix: "), nTemp);
+					}
                 }
                 break;
             }
@@ -12377,22 +12359,19 @@ void switchOperatingMode( char newOperatingMode )
 
 void switchActiveWorkPart( char newActiveWorkPart )
 {
-    if( newActiveWorkPart < 1 || newActiveWorkPart > EEPROM_MAX_WORK_PART_SECTORS )
+    if( !saveActiveWorkPartToExtEEPROM(newActiveWorkPart) )
     {
         // do not allow not-supported z-compensation matrix
         return;
     }
 
     g_nActiveWorkPart = newActiveWorkPart;
-    writeWord24C256( I2C_ADDRESS_EXTERNAL_EEPROM, EEPROM_OFFSET_ACTIVE_WORK_PART_Z_MATRIX, g_nActiveWorkPart );
 
     if( loadCompensationMatrix( (EEPROM_SECTOR_SIZE *9) + (unsigned int)(EEPROM_SECTOR_SIZE * g_nActiveWorkPart) ) )
     {
         // there is no valid z-compensation matrix available
         initCompensationMatrix();
     }
-    return;
-
 } // switchActiveWorkPart
 
 
@@ -12507,22 +12486,19 @@ void setScanXYEnd( void )
 #if FEATURE_HEAT_BED_Z_COMPENSATION
 void switchActiveHeatBed( char newActiveHeatBed )
 {
-    if( newActiveHeatBed < 1 || newActiveHeatBed > EEPROM_MAX_HEAT_BED_SECTORS )
+    if( !saveActiveHeatBedToExtEEPROM(newActiveHeatBed) )
     {
         // do not allow not-supported z-compensation matrix
         return;
     }
 
     g_nActiveHeatBed = newActiveHeatBed;
-    writeWord24C256( I2C_ADDRESS_EXTERNAL_EEPROM, EEPROM_OFFSET_ACTIVE_HEAT_BED_Z_MATRIX, g_nActiveHeatBed );
 
     if( loadCompensationMatrix( (unsigned int)(EEPROM_SECTOR_SIZE * g_nActiveHeatBed) ) )
     {
         // there is no valid z-compensation matrix available
         initCompensationMatrix();
     }
-    return;
-
 } // switchActiveHeatBed
 #endif // FEATURE_HEAT_BED_Z_COMPENSATION
 

@@ -313,9 +313,9 @@ void Printer::updateDerivedParameter()
         else
         {
             /** Acceleration in steps/s^2 in milling mode.*/
-            maxPrintAccelerationStepsPerSquareSecond[i] = uint32_t(MILLER_ACCELERATION * axisStepsPerMM[i]);
+            maxPrintAccelerationStepsPerSquareSecond[axis] = uint32_t(MILLER_ACCELERATION * axisStepsPerMM[axis]);
             /** Acceleration in steps/s^2 in milling-movement mode.*/
-            maxTravelAccelerationStepsPerSquareSecond[i] = uint32_t(MILLER_ACCELERATION * axisStepsPerMM[i]);
+            maxTravelAccelerationStepsPerSquareSecond[axis] = uint32_t(MILLER_ACCELERATION * axisStepsPerMM[axis]);
         }
 #endif  // FEATURE_MILLING_MODE
     }
