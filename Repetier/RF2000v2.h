@@ -594,7 +594,7 @@ Crash with Einhausung/Plexiglas backside RFx000: ~ >5.0 .. 6.0f
 Crash with backside metal RFx000: ~ >10.0..12.0f
 Overflow in Z-Matrix: >12.7f
 */
-#define Z_ENDSTOP_DRIVE_OVER                 1.3f                              //mm
+#define Z_ENDSTOP_DRIVE_OVER                 3.0f                              //mm
 #define Z_ENDSTOP_MAX_HYSTERESIS             0.2f                              //mm
 
 /** \brief By default all endstops are pulled up to HIGH. You need a pullup if you

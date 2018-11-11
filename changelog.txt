@@ -1,6 +1,10 @@
 TODO: Testing, testing ..
 TODO: Zaldo said that he experienced a hard reset while starting some Z-Calibration. (Awaiting further information about this bug)
 
+V RF.01.43.07.Mod (2018-11-11)
+- RF2000v2: Z_ENDSTOP_DRIVE_OVER to 3.0f, because this is possible on stock printers.
+- Fixed inkonsistent line endings in RF.cpp
+
 V RF.01.43.06.Mod (2018-11-07)
 - hardening for correct saving of the workpart number and heatbed number
 - autocorrection for wrong workpart numbers and heatbed numbers
