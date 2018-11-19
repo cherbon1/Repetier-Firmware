@@ -1,4 +1,9 @@
-V RF.01.43.09.Mod (2018-11-11)
+V RF.01.43.10.Mod (2018-11-19)
+- removed old double-quad-octa-stepping system.
+- added an improved shift-stepping system which can make single, double, tripple, (...,) sixes steps.
+- fixed that homing speed does not remember settings higher than homing speed nevertheless they have been settable via menu.
+
+V RF.01.43.09.Mod (2018-11-18)
 - Decreased maximum speed settings within Configuration.h/RFx000.h
 - Switched off DEBUG_FREE_MEMORY as default.
 

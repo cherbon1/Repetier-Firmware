@@ -811,19 +811,23 @@ own weight, so this is nearly never needed. */
 // ##   configuration of the speed vs. cpu usage
 // ##########################################################################################
 
-/** \brief The firmware can only handle 16000Hz interrupt frequency cleanly. If you need higher speeds
-a faster solution is needed, and this is to double/quadruple the steps in one interrupt call.
+/**
+\brief The firmware can only handle a limited interrupt frequency cleanly.
+If you need higher speeds
+a faster solution is needed, and this is to double/tripple/quadruple the steps in one interrupt call.
 This is like reducing your 1/16th microstepping to 1/8 or 1/4. It is much cheaper then 1 or 3
-additional stepper interrupts with all it's overhead. As a result you can go as high as
-40000Hz. STEP_DOUBLER_FREQUENCY should be in range 5000-12000 for RFx000 but 8000 is much for RF2000 (with ADVANCE?).
+additional stepper interrupts with all it's overhead. As a result you can gain higher Output-Step-Frequencies.
 
-STEP_DOUBLER_FREQUENCY can be changed in Menu-> Configuration->Stepper->DblFq:
+STEP_PACKING_MIN_INTERVAL can be changed in Menu-> Configuration->Stepper->DblFq:
 */
-#define STEP_DOUBLER_FREQUENCY              7000
+#define STEP_PACKING_MIN_INTERVAL           2900 // (F_CPU / safe Steprate)
 
-/** \brief If you reach STEP_DOUBLER_FREQUENCY the firmware will do 2 or 4 steps with nearly no delay. That can be too fast
+#define MIN_STEP_PACKING_MIN_INTERVAL       2900
+#define MAX_STEP_PACKING_MIN_INTERVAL       4000
+
+/** \brief If you reach STEP_PACKING_MIN_INTERVAL the firmware will do 2, 3 or 4... steps with nearly no delay. That can be too fast
 for some printers causing an early stall. */
-#define DOUBLE_STEP_DELAY                   0                                                   // [us] was 1, NIBBELS: Repetier set this to 0 when removing half stepping
+#define MULTI_STEP_DELAY                   0                                                   // [us] was 1, NIBBELS: Repetier set this to 0 when removing half stepping
 
 /** \brief Number of moves we can cache in advance.
 This number of moves can be cached in advance. If you wan't to cache more, increase this. Especially on

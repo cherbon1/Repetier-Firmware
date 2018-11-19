@@ -1334,12 +1334,9 @@ void UIDisplay::parse(char *txt,bool ram)
                 }
                 if(c2=='p')                                                                             // %op : Is single double or quadstepping?
                 {
-                    switch(Printer::stepsPerTimerCall){
-                        case 1: addStringP( PSTR(" Sgl") ); break; //Single Stepping aktiv
-                        case 2: addStringP( PSTR(" Dbl") ); break; //Double Stepping aktiv
-                        case 4: addStringP( PSTR(" Qud") ); break; //Quad Stepping aktiv
-                        case 8: addStringP( PSTR(" Oct") ); break; //Octa Stepping aktiv
-                    }
+					addInt(Printer::stepsPerTimerCall, 1);
+                    addStringP(PSTR("ST"));
+
                     break;
                 }
 
@@ -1656,11 +1653,9 @@ void UIDisplay::parse(char *txt,bool ram)
                 }
  #endif //FEATURE_ADJUSTABLE_MICROSTEPS
 #endif // NUM_EXTRUDER>0
-                else if(c2 == 'g')                                                                      // %Xg : Printer::stepsDoublerFrequency
+                else if(c2 == 'g')                                                                      // %Xg : Printer::stepsPackingMinInterval
                 {
-                    addInt(Printer::stepsDoublerFrequency,4);
-                    addStringP( PSTR(" ") );
-                    addInt(int(Printer::stepsDoublerFrequency/RMath::max(Printer::axisStepsPerMM[X_AXIS],Printer::axisStepsPerMM[Y_AXIS])),2);
+					addInt(Printer::stepsPackingMinInterval, 4);
                 }
 #if FEATURE_ADJUSTABLE_MICROSTEPS
                 else if(c2 == 'x')                                                                      // %Xx : XY Stepper Microsteps
@@ -4179,11 +4174,11 @@ void UIDisplay::nextPreviousAction(int8_t next)
             break;
         }
 #endif //FEATURE_DIGIT_FLOW_COMPENSATION
-        case UI_ACTION_FREQ_DBL:
+        case UI_ACTION_SHIFT_INTERVAL:
         {
-            INCREMENT_MIN_MAX(Printer::stepsDoublerFrequency,500,5000,12000);
+            INCREMENT_MIN_MAX(Printer::stepsPackingMinInterval, -100, MIN_STEP_PACKING_MIN_INTERVAL, MAX_STEP_PACKING_MIN_INTERVAL);
 #if FEATURE_AUTOMATIC_EEPROM_UPDATE
-            HAL::eprSetInt16( EPR_RF_FREQ_DBL, Printer::stepsDoublerFrequency  );
+            HAL::eprSetInt16(EPR_RF_STEP_PACKING_MIN_INTERVAL, Printer::stepsPackingMinInterval);
             EEPROM::updateChecksum();
 #endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
             break;

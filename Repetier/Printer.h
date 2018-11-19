@@ -81,7 +81,7 @@ public:
     static uint8_t          flag2;
     static uint8_t          flag3;
     static uint8_t          stepsPerTimerCall;
-    static uint16_t         stepsDoublerFrequency;
+    static uint16_t         stepsPackingMinInterval;
     static volatile unsigned long interval;                     // Last step duration in ticks.
     static volatile float   v;                                  // Last planned printer speed.
     static unsigned long    timer;                              // used for acceleration/deceleration timing

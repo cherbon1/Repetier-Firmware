@@ -127,7 +127,7 @@ List of placeholder:
 %Xl : Advance L value
 %Xb : E0 Advance L value
 %Xc : E1 Advance L value
-%Xg : Printer::stepsDoublerFrequency
+%Xg : Printer::stepsPackingMinInterval
 %Xf : Extruder max. start feedrate
 %XF : Extruder max. feedrate
 %XA : Extruder max. acceleration
@@ -289,7 +289,7 @@ for 2 row displays. You can add additional pages or change the default pages lik
                                 )
     #else
         UI_PAGE4(ui_page_mod2,  "Layer Height: %LHmm",
-                                "Speed:    %ovmm/s",
+                                "Speed:%op %ovmm/s",
                                 "zCMP: %Lm..%LM mm",   /*7+5+4*/
                                 "eCMP: %LP%%%@Z:%LC" /*6+LP%5+"@Z:"3+6:*/
                                 )
@@ -1056,7 +1056,7 @@ UI_MENU_CHANGEACTION_FILTER(ui_menu_advanceL_e0,  UI_TEXT_EXTR_ADVANCE_L_E0, UI_
  #define UI_MENU_MOTOR_E1_COUNT 0
 #endif //NUM_EXTRUDER>1
 
-UI_MENU_CHANGEACTION(ui_menu_freq_dbl,UI_TEXT_FREQ_DBL,UI_ACTION_FREQ_DBL)
+UI_MENU_CHANGEACTION(ui_menu_freq_dbl,UI_TEXT_FREQ_DBL,UI_ACTION_SHIFT_INTERVAL)
 #define UI_MENU_FREQ_DBL_COND   ,&ui_menu_freq_dbl
 #define UI_MENU_FREQ_DBL_COUNT 1
 

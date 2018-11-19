@@ -19,13 +19,13 @@
 #include "Repetier.h"
 
 // ================ Sanity checks ================
-#ifndef STEP_DOUBLER_FREQUENCY
-#error Please add new parameter STEP_DOUBLER_FREQUENCY to your configuration.
+#ifndef STEP_PACKING_MIN_INTERVAL
+#error Please add new parameter STEP_PACKING_MIN_INTERVAL to your configuration.
 #else
-#if STEP_DOUBLER_FREQUENCY<5000 || STEP_DOUBLER_FREQUENCY>12000
-#error STEP_DOUBLER_FREQUENCY should be in range 5000-12000.
-#endif // STEP_DOUBLER_FREQUENCY<5000 || STEP_DOUBLER_FREQUENCY>12000
-#endif // STEP_DOUBLER_FREQUENCY
+#if STEP_PACKING_MIN_INTERVAL<MIN_STEP_PACKING_MIN_INTERVAL || STEP_PACKING_MIN_INTERVAL>MAX_STEP_PACKING_MIN_INTERVAL
+#error STEP_PACKING_MIN_INTERVAL should be in range of MIN_STEP_PACKING_MIN_INTERVAL .. MAX_STEP_PACKING_MIN_INTERVAL
+#endif // STEP_PACKING_MIN_INTERVAL<MIN_STEP_PACKING_MIN_INTERVAL || STEP_PACKING_MIN_INTERVAL>MAX_STEP_PACKING_MIN_INTERVAL
+#endif // STEP_PACKING_MIN_INTERVAL
 
 #ifdef EXTRUDER_SPEED
 #error EXTRUDER_SPEED is not used any more. Values are now taken from extruder definition.
@@ -1890,9 +1890,9 @@ long PrintLine::performMove(PrintLine* move, char forQueue)
 
     for(fast8_t loop=0; loop < max_loops; loop++) {
 
-#if STEPPER_HIGH_DELAY+DOUBLE_STEP_DELAY > 0
-        if(loop) HAL::delayMicroseconds(STEPPER_HIGH_DELAY+DOUBLE_STEP_DELAY);
-#endif // STEPPER_HIGH_DELAY+DOUBLE_STEP_DELAY > 0
+#if STEPPER_HIGH_DELAY+MULTI_STEP_DELAY > 0
+        if(loop) HAL::delayMicroseconds(STEPPER_HIGH_DELAY+MULTI_STEP_DELAY);
+#endif // STEPPER_HIGH_DELAY+MULTI_STEP_DELAY > 0
 
         if(move->isEMove())
         {
@@ -2049,15 +2049,11 @@ long PrintLine::performMove(PrintLine* move, char forQueue)
     interval          -> actual sent interval that might be manipulated
     v                 -> not manipulated active speed
     ***/
+	//v [Steps/s] -> interval in [ [OP/s] / [Steps/s] ] = OPs/Steps = Time inbetween two steps.
     speed_t v;
 
     Printer::stepNumber += max_loops;
-    Printer::timer      += (max_loops == 1 ?  Printer::interval       :
-                           (max_loops == 2 ? (Printer::interval << 1) :
-                           (max_loops == 4 ? (Printer::interval << 2) :
-                           (max_loops == 8 ? (Printer::interval << 3) :
-                                             (Printer::interval * max_loops)
-                            ))));
+    Printer::timer      += (Printer::interval * max_loops);
 
     //If acceleration is enabled on this move and we are in the acceleration segment, calculate the current interval
     if (move->moveAccelerating())   // we are accelerating
@@ -2097,27 +2093,11 @@ long PrintLine::performMove(PrintLine* move, char forQueue)
     }
     Printer::interval = HAL::CPUDivU2(v);
 
+	// Dieses Limit bedeutet max. 31250 steps/s bei 16mhz.
+	if (Printer::interval < 512) Printer::interval = 512;
+
     //RETURN manipulated value:
     unsigned long interval = Printer::interval;
-
-    //Now manipulate step-width=interval according to double- or quadstepping needs:
-    //we know that next time will be a double or quad step so we let pass twice the time and set the stepsPerTimerCall accordingly.
-    if(v > Printer::stepsDoublerFrequency) {
-        if(v > Printer::stepsDoublerFrequency << 1) {
-            if(v > Printer::stepsDoublerFrequency << 2) {
-                Printer::stepsPerTimerCall = 8;
-                interval <<= 3; //speed div 8
-            } else {
-                Printer::stepsPerTimerCall = 4;
-                interval <<= 2; //speed div 4
-            }
-        } else {
-            Printer::stepsPerTimerCall = 2;
-            interval <<= 1; //speed div 2
-        }
-    } else {
-        Printer::stepsPerTimerCall = 1;
-    }
 
 #if FEATURE_DIGIT_FLOW_COMPENSATION
     if(Printer::interval_mod){
@@ -2128,6 +2108,15 @@ long PrintLine::performMove(PrintLine* move, char forQueue)
         }
     }
 #endif // FEATURE_DIGIT_FLOW_COMPENSATION
+
+	//Now manipulate step-width=interval according to single-, double-, tripple-, ... steppings needs:
+	//we know that next time will be a (as example) double or quad step so we let pass twice the time and set the stepsPerTimerCall accordingly.
+	Printer::stepsPerTimerCall = 1;
+	unsigned long one_interval = interval;
+	while (interval < Printer::stepsPackingMinInterval) {
+		interval += one_interval;
+		Printer::stepsPerTimerCall += 1;
+	}
 
     if( move->stepsRemaining <= 0 || move->isNoMove() )  // line finished
     {

@@ -63,7 +63,7 @@ uint8_t         Printer::debugLevel = 6; ///< Bitfield defining debug output. 1 
 #endif // ALLOW_EXTENDED_COMMUNICATION < 2
 
 uint8_t         Printer::stepsPerTimerCall = 1;
-uint16_t        Printer::stepsDoublerFrequency = STEP_DOUBLER_FREQUENCY;
+uint16_t        Printer::stepsPackingMinInterval = STEP_PACKING_MIN_INTERVAL;
 uint8_t         Printer::menuMode = 0;
 
 volatile unsigned long   Printer::interval;                             ///< Last step duration in ticks.
@@ -2052,9 +2052,9 @@ void Printer::performZCompensation( void )
         //Insert little wait if next Z step might follow now.
         if( isDirectOrQueueOrCompZMove() )
         {
-#if STEPPER_HIGH_DELAY+DOUBLE_STEP_DELAY>0
-            HAL::delayMicroseconds(STEPPER_HIGH_DELAY+DOUBLE_STEP_DELAY);
-#endif // STEPPER_HIGH_DELAY+DOUBLE_STEP_DELAY>0
+#if STEPPER_HIGH_DELAY+MULTI_STEP_DELAY>0
+            HAL::delayMicroseconds(STEPPER_HIGH_DELAY+MULTI_STEP_DELAY);
+#endif // STEPPER_HIGH_DELAY+MULTI_STEP_DELAY>0
             return;
         }
         else if( compensatedPositionCurrentStepsZ == compensatedPositionTargetStepsZ /* && not isDirectOrQueueOrCompZMove() */ ) stepperDirection[Z_AXIS] = 0; //-> Ich glaube, das brauchen wir hier nicht, wenn der DirectMove sauber abschließt. Hier wird nur reingeschummelt wenn ein DirectMove läuft.

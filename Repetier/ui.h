@@ -177,7 +177,7 @@
 #define UI_ACTION_EXTR_STEPS_E1             1688
 #define UI_ACTION_ADVANCE_L_E0              1689
 #define UI_ACTION_ADVANCE_L_E1              1690
-#define UI_ACTION_FREQ_DBL                  1691
+#define UI_ACTION_SHIFT_INTERVAL            1691
 
 #define UI_ACTION_FAN_HZ                    1692
 #define UI_ACTION_FAN_MODE                  1693
