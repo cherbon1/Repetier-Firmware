@@ -778,14 +778,14 @@ Only values which are a factor of 10ms or 0==OFF will work precisely */
 /** \brief Maximum feedrate, the system allows. Higher feedrates are reduced to these values.
     The axis order in all axis related arrays is X, Y, Z
      Overridden if EEPROM activated. */
-#define MAX_FEEDRATE_X                      200
-#define MAX_FEEDRATE_Y                      200
-#define MAX_FEEDRATE_Z                      12
+#define MAX_FEEDRATE_X                      150
+#define MAX_FEEDRATE_Y                      150
+#define MAX_FEEDRATE_Z                      9
 
 /** \brief Home position speed in mm/s. Overridden if EEPROM activated. These values can be overridden by EEPROM but are considered as maximum allowed values */
 #define HOMING_FEEDRATE_X_PRINT             80
 #define HOMING_FEEDRATE_Y_PRINT             80
-#define HOMING_FEEDRATE_Z_PRINT             10
+#define HOMING_FEEDRATE_Z_PRINT             9
 
 #define HOMING_FEEDRATE_X_MILL              70
 #define HOMING_FEEDRATE_Y_MILL              70

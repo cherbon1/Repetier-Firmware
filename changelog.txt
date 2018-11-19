@@ -1,5 +1,6 @@
-TODO: Testing, testing ..
-TODO: Zaldo said that he experienced a hard reset while starting some Z-Calibration. (Awaiting further information about this bug)
+V RF.01.43.09.Mod (2018-11-11)
+- Decreased maximum speed settings within Configuration.h/RFx000.h
+- Switched off DEBUG_FREE_MEMORY as default.
 
 V RF.01.43.08.Mod (2018-11-11)
 - Fixed small log output Z-axis bug in function "Checkhome" when having z-compensation turned on.
