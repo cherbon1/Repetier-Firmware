@@ -1,3 +1,7 @@
+V RF.01.43.11.Mod (2018-11-19)
+- enabled SD-Card CRC check by setting USE_SD_CRC to 2
+- small fix to equalize function prototype with function parameters.
+
 V RF.01.43.10.Mod (2018-11-19)
 - removed old double-quad-octa-stepping system.
 - added an improved shift-stepping system which can make single, double, tripple, (...,) sixes steps.
