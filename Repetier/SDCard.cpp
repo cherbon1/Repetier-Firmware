@@ -49,7 +49,7 @@ void SDCard::automount()
     if(READ(SDCARDDETECT) != SDCARDDETECTINVERTED){
         if(sdactive || sdmode == 100)   // Card removed
         {
-            Com::printFLN(PSTR("SD card removed"));
+            Com::printFLN(PSTR("SD Card removed"));
 #if UI_DISPLAY_TYPE!=0
             uid.exitmenu();
 #endif // UI_DISPLAY_TYPE!=0
@@ -61,7 +61,7 @@ void SDCard::automount()
             UI_STATUS( UI_TEXT_SD_INSERTED );
             mount(/*not silent mount*/);
             if(sdmode != 100) // send message only if we have success
-                Com::printFLN(PSTR("SD card inserted")); // Not translatable or host will not understand signal
+                Com::printFLN(PSTR("SD Card inserted")); // Not translatable or host will not understand signal
 #if UI_DISPLAY_TYPE!=0
             if(sdactive) {
                 Printer::setAutomount(true);

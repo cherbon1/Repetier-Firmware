@@ -5021,20 +5021,6 @@ void UIDisplay::executeAction(int action)
 #endif // NUM_EXTRUDER == 2
 
 #if SDSUPPORT
-/*
-            case UI_ACTION_SD_DELETE:
-            {
-                if(sd.sdactive)
-                {
-                    pushMenu((void*)&ui_menu_sd_fileselector,false);
-                }
-                else
-                {
-                    UI_ERROR(UI_TEXT_NOSDCARD);
-                }
-                break;
-            }
-*/
             case UI_ACTION_SD_PRINT:
             {
                 if(sd.sdactive)
