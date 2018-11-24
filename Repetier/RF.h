@@ -511,7 +511,6 @@ extern const char   ui_text_output_object[]         PROGMEM;
 extern const char   ui_text_park_heat_bed[]         PROGMEM;
 extern const char   ui_text_pause[]                 PROGMEM;
 extern const char   ui_text_home[]                  PROGMEM;
-extern const char   ui_text_delete_file[]           PROGMEM;
 extern const char   ui_text_z_compensation[]        PROGMEM;
 extern const char   ui_text_change_mode[]           PROGMEM;
 extern const char   ui_text_change_z_type[]         PROGMEM;

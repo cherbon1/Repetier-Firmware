@@ -742,8 +742,8 @@ UI_MENU_SUBMENU_FILTER(ui_menu_conf_fan, UI_TEXT_FAN_CONF_MENU, ui_menu_settings
   #define UI_MOUNT_CNT 2
   #define UI_MOUNT_CMD ,&ui_menu_sd_mount,&ui_menu_sd_unmount
  #endif // (SDCARDDETECT) && SDCARDDETECT>-1
-//UI_MENU_ACTIONCOMMAND_FILTER(ui_menu_sd_delete,UI_TEXT_DELETE_FILE,UI_ACTION_SD_DELETE,MENU_MODE_SD_MOUNTED, MENU_MODE_SD_PRINTING | MENU_MODE_PAUSED)
- #define UI_MENU_SD {UI_MENU_ADDCONDBACK &ui_menu_sd_print_file,&ui_menu_sd_mill_file,&ui_menu_sd_pause_print,&ui_menu_sd_pause_mill,&ui_menu_sd_stop_print,&ui_menu_sd_stop_mill,&ui_menu_sd_continue_print,&ui_menu_sd_continue_mill /*,&ui_menu_sd_delete*/ UI_MOUNT_CMD}
+
+ #define UI_MENU_SD {UI_MENU_ADDCONDBACK &ui_menu_sd_print_file,&ui_menu_sd_mill_file,&ui_menu_sd_pause_print,&ui_menu_sd_pause_mill,&ui_menu_sd_stop_print,&ui_menu_sd_stop_mill,&ui_menu_sd_continue_print,&ui_menu_sd_continue_mill UI_MOUNT_CMD}
  UI_MENU(ui_menu_sd,UI_MENU_SD,UI_MENU_BACKCNT+8/*+1*/+UI_MOUNT_CNT)
  UI_MENU_SUBMENU_FILTER(ui_menu_sd_sub,UI_TEXT_SD_CARD,ui_menu_sd,0, MENU_MODE_PRINTING)
 
