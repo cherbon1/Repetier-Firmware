@@ -942,6 +942,7 @@ void scanHeatBed( void )
                 // home the z-axis in order to find the starting point again
                 Printer::homeAxis( false, false, true ); //Neben Bett: Home Z
                 moveZ( long(Printer::axisStepsPerMM[Z_AXIS] * g_scanStartZLiftMM) ); //spacing for bed
+				g_nLastZScanZPosition = 0; //Reset last scan position to avoid abort due to this limitter
 
                 g_nHeatBedScanStatus = 47;
                 g_lastScanTime       = HAL::timeInMilliseconds();
@@ -955,7 +956,7 @@ void scanHeatBed( void )
             {
                 PrintLine::moveRelativeDistanceInSteps( 0, nY, 0, 0, Printer::homingFeedrate[Y_AXIS], true, true );
 
-                g_nHeatBedScanStatus = 50;
+                g_nHeatBedScanStatus = 48;
                 g_lastScanTime       = HAL::timeInMilliseconds();
 
 #if DEBUG_HEAT_BED_SCAN == 2
@@ -963,6 +964,28 @@ void scanHeatBed( void )
 #endif // DEBUG_HEAT_BED_SCAN == 2
                 break;
             }
+			case 48: // Remeasure inconsistent pressure values to have new clean fence levels
+			{
+				if ((HAL::timeInMilliseconds() - g_lastScanTime) < HEAT_BED_SCAN_DELAY)
+				{
+					// do not check too early
+					break;
+				}
+
+				if (readIdlePressure(&g_nFirstIdlePressure))
+				{
+					// we were unable to determine the idle pressure
+					break;
+				}
+				else
+				{
+					adjustPressureLimits(g_nFirstIdlePressure);
+				}
+				g_nHeatBedScanStatus = 50;
+				g_lastScanTime = HAL::timeInMilliseconds();
+
+				break;
+			}
 //############################################################### /ERROR HANDLING
             case 49:
             {
@@ -1397,6 +1420,7 @@ void scanHeatBed( void )
                 Printer::homeAxis( false, false, true ); //Neben Bett: Home Z
                 // ensure that there is no z endstop hit before we perform the z-axis homing
                 moveZ( long(Printer::axisStepsPerMM[Z_AXIS] * g_scanStartZLiftMM) );  //spacing for bed - wird von moveUpFast() später korrigiert.
+				g_nLastZScanZPosition = 0; //Reset last scan position to avoid abort due to this limitter
 
                 g_nHeatBedScanStatus = 107;
                 g_lastScanTime       = HAL::timeInMilliseconds();
@@ -1409,7 +1433,7 @@ void scanHeatBed( void )
             case 107:
             {
                 PrintLine::moveRelativeDistanceInSteps( 0, long(HEAT_BED_SCAN_Y_CALIBRATION_POINT_MM * Printer::axisStepsPerMM[Y_AXIS]), 0, 0, Printer::homingFeedrate[Y_AXIS], true, true );
-                g_nHeatBedScanStatus = 110;
+                g_nHeatBedScanStatus = 108;
                 g_lastScanTime       = HAL::timeInMilliseconds();
 
 #if DEBUG_HEAT_BED_SCAN == 2
@@ -1417,6 +1441,28 @@ void scanHeatBed( void )
 #endif // DEBUG_HEAT_BED_SCAN == 2
                 break;
             }
+			case 108: // Remeasure inconsistent pressure values to have new clean fence levels
+			{
+				if ((HAL::timeInMilliseconds() - g_lastScanTime) < HEAT_BED_SCAN_DELAY)
+				{
+					// do not check too early
+					break;
+				}
+
+				if (readIdlePressure(&g_nFirstIdlePressure))
+				{
+					// we were unable to determine the idle pressure
+					break;
+				}
+				else
+				{
+					adjustPressureLimits(g_nFirstIdlePressure);
+				}
+				g_nHeatBedScanStatus = 110;
+				g_lastScanTime = HAL::timeInMilliseconds();
+
+				break;
+			}
 //############################################################### /ERROR HANDLING
             case 110:
             {
@@ -1754,6 +1800,7 @@ void scanHeatBed( void )
                 // home the z-axis in order to find the starting point again
                 Printer::homeAxis( false, false, true ); //Neben Bett: Home Z
                 moveZ( long(Printer::axisStepsPerMM[Z_AXIS] * g_scanStartZLiftMM) ); //spacing for bed
+				g_nLastZScanZPosition = 0; //Reset last scan position to avoid abort due to this limitter
 
                 g_nHeatBedScanStatus = 141;
                 g_lastScanTime       = HAL::timeInMilliseconds();
@@ -1767,7 +1814,7 @@ void scanHeatBed( void )
             {
                 PrintLine::moveRelativeDistanceInSteps( 0, long(HEAT_BED_SCAN_Y_CALIBRATION_POINT_MM * Printer::axisStepsPerMM[Y_AXIS]), 0, 0, Printer::homingFeedrate[Y_AXIS], true, true );
 
-                g_nHeatBedScanStatus = 144;
+                g_nHeatBedScanStatus = 142;
                 g_lastScanTime       = HAL::timeInMilliseconds();
 
 #if DEBUG_HEAT_BED_SCAN == 2
@@ -1775,6 +1822,28 @@ void scanHeatBed( void )
 #endif // DEBUG_HEAT_BED_SCAN == 2
                 break;
             }
+			case 142: // Remeasure inconsistent pressure values to have new clean fence levels
+			{
+				if ((HAL::timeInMilliseconds() - g_lastScanTime) < HEAT_BED_SCAN_DELAY)
+				{
+					// do not check too early
+					break;
+				}
+
+				if (readIdlePressure(&g_nFirstIdlePressure))
+				{
+					// we were unable to determine the idle pressure
+					break;
+				}
+				else
+				{
+					adjustPressureLimits(g_nFirstIdlePressure);
+				}
+				g_nHeatBedScanStatus = 144;
+				g_lastScanTime = HAL::timeInMilliseconds();
+
+				break;
+			}
 
 //############################################################### /ERROR HANDLING
             case 144:
@@ -5002,7 +5071,7 @@ void moveZPlusDownSlow(uint8_t acuteness)
             Com::printFLN( PSTR( "Z = " ), g_nZScanZPosition*Printer::invAxisStepsPerMM[Z_AXIS] );
             error = true;
         }
-        if( g_nLastZScanZPosition && abs(g_nZScanZPosition - g_nLastZScanZPosition) >
+        else if( g_nLastZScanZPosition && abs(g_nZScanZPosition - g_nLastZScanZPosition) >
                 g_nScanHeatBedDownFastSteps*( 2 + /*nach wiederholungen etwas mehr zulassen. krumme keramik braucht wohl mehr ... */
                                             (g_scanRetries < HEAT_BED_SCAN_RETRIES ? /* nur beachten bei wiederholung */
                                                             (HEAT_BED_SCAN_RETRIES - g_scanRetries <= 2 ? HEAT_BED_SCAN_RETRIES - g_scanRetries : 2) /* nie mehr als 0.2 bzw 2x draufschlagen, das reicht sicher - sonst ist es ein anderer fehler. */
@@ -5012,7 +5081,7 @@ void moveZPlusDownSlow(uint8_t acuteness)
             Com::printFLN( PSTR( "dZ_lastpos = " ), abs(g_nZScanZPosition - g_nLastZScanZPosition)*Printer::invAxisStepsPerMM[Z_AXIS] );
             error = true;
         }
-        if( abs(startScanZPosition - g_nZScanZPosition) > g_nScanHeatBedDownFastSteps*2/acuteness ) {
+        else if( abs(startScanZPosition - g_nZScanZPosition) > g_nScanHeatBedDownFastSteps*2/acuteness ) {
             Com::printFLN( PSTR( "dZ_move = " ), g_nZScanZPosition*Printer::invAxisStepsPerMM[Z_AXIS] );
             error = true;
         }

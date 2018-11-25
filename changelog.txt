@@ -1,3 +1,7 @@
+V RF.01.43.12.Mod (2018-11-25)
+- some reset-fix for improved heat bed scan stability
+- some code cleanup commits
+
 V RF.01.43.11.Mod (2018-11-19)
 - enabled SD-Card CRC check by setting USE_SD_CRC to 2
 - small fix to equalize function prototype with function parameters.
