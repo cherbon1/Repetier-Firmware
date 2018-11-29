@@ -1,3 +1,6 @@
+V RF.01.43.13.Mod (2018-11-29)
+- FEATURE_MILLING_MODE is now switched off by default, because most of the people dont need it.
+
 V RF.01.43.12.Mod (2018-11-25)
 - some reset-fix for improved heat bed scan stability
 - some code cleanup commits
