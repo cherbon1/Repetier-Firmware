@@ -45,50 +45,50 @@ uint16_t HAL::integerSqrt(int32_t a) {
 
     uint16_t b;
 
-    __asm__ __volatile__ (
-        "ldi   R19, 0xc0 \n\t"
-        "clr   R18 \n\t"        // rotation mask in R19:R18
-        "ldi   R27, 0x40 \n\t"
-        "sub   R26, R26 \n\t"   // developing sqrt in R27:R26, C=0
-        "1:  brcs  2f \n\t"           // C --> Bit is always 1
-        "cp    %C1, R26 \n\t"
-        "cpc   %D1, R27 \n\t"     // Does test value fit?
-        "brcs  3f \n\t"           // C --> nope, bit is 0
-        "2:  sub   %C1, R26 \n\t"
-        "sbc   %D1, R27 \n\t"     // Adjust argument for next bit
-        "or    R26, R18 \n\t"
-        "or    R27, R19 \n\t"     // Set bit to 1
-        "3:  lsr   R19 \n\t"
-        "ror   R18 \n\t"          // Shift right mask, C --> end loop
-        "eor   R27, R19 \n\t"
-        "eor   R26, R18 \n\t"     // Shift right only test bit in result
-        "rol   %A1 \n\t"          // Bit 0 only set if end of loop
-        "rol   %B1 \n\t"
-        "rol   %C1 \n\t"
-        "rol   %D1 \n\t"          // Shift left remaining argument (C used at 1:)
-        "sbrs  %A1, 0 \n\t"       // Skip if 15 bits developed
-        "rjmp  1b \n\t"           // Develop 15 bits of the sqrt
-        "brcs  4f \n\t"           // C--> Last bits always 1
-        "cp    R26, %C1 \n\t"
-        "cpc   R27, %D1 \n\t"     // Test for last bit 1
-        "brcc  5f \n\t"           // NC --> bit is 0
-        "4:  sbc   %B1, R19 \n\t"     // Subtract C (any value from 1 to 0x7f will do)
-        "sbc   %C1, R26 \n\t"
-        "sbc   %D1, R27 \n\t"     // Update argument for test
-        "inc   R26 \n\t"          // Last bit is 1
-        "5:  lsl   %B1 \n\t"          // Only bit 7 matters
-        "rol   %C1 \n\t"
-        "rol   %D1 \n\t"          // Remainder * 2 + C
-        "brcs  6f \n\t"           // C --> Always round up
-        "cp    R26, %C1 \n\t"
-        "cpc   R27, %D1 \n\t"     // C decides rounding
-        "6:  adc   R26, R19 \n\t"
-        "adc   R27, R19 \n\t"     // Round up if C (R19=0)
-        "mov   %B0, R27 \n\t"     // return in R25:R24 for avr-gcc ABI compliance
-        "mov   %A0, R26 \n\t"
-        :"=r"(b)
-        :"r"(a)
-        :"r18", "r19", "r27", "r26" );
+	__asm volatile (
+		"ldi   R19, 0xc0 \n\t"
+		"clr   R18 \n\t"        // rotation mask in R19:R18
+		"ldi   R27, 0x40 \n\t"
+		"sub   R26, R26 \n\t"   // developing sqrt in R27:R26, C=0
+		"1:  brcs  2f \n\t"           // C --> Bit is always 1
+		"cp    %C1, R26 \n\t"
+		"cpc   %D1, R27 \n\t"     // Does test value fit?
+		"brcs  3f \n\t"           // C --> nope, bit is 0
+		"2:  sub   %C1, R26 \n\t"
+		"sbc   %D1, R27 \n\t"     // Adjust argument for next bit
+		"or    R26, R18 \n\t"
+		"or    R27, R19 \n\t"     // Set bit to 1
+		"3:  lsr   R19 \n\t"
+		"ror   R18 \n\t"          // Shift right mask, C --> end loop
+		"eor   R27, R19 \n\t"
+		"eor   R26, R18 \n\t"     // Shift right only test bit in result
+		"rol   %A1 \n\t"          // Bit 0 only set if end of loop
+		"rol   %B1 \n\t"
+		"rol   %C1 \n\t"
+		"rol   %D1 \n\t"          // Shift left remaining argument (C used at 1:)
+		"sbrs  %A1, 0 \n\t"       // Skip if 15 bits developed
+		"rjmp  1b \n\t"           // Develop 15 bits of the sqrt
+		"brcs  4f \n\t"           // C--> Last bits always 1
+		"cp    R26, %C1 \n\t"
+		"cpc   R27, %D1 \n\t"     // Test for last bit 1
+		"brcc  5f \n\t"           // NC --> bit is 0
+		"4:  sbc   %B1, R19 \n\t"     // Subtract C (any value from 1 to 0x7f will do)
+		"sbc   %C1, R26 \n\t"
+		"sbc   %D1, R27 \n\t"     // Update argument for test
+		"inc   R26 \n\t"          // Last bit is 1
+		"5:  lsl   %B1 \n\t"          // Only bit 7 matters
+		"rol   %C1 \n\t"
+		"rol   %D1 \n\t"          // Remainder * 2 + C
+		"brcs  6f \n\t"           // C --> Always round up
+		"cp    R26, %C1 \n\t"
+		"cpc   R27, %D1 \n\t"     // C decides rounding
+		"6:  adc   R26, R19 \n\t"
+		"adc   R27, R19 \n\t"     // Round up if C (R19=0)
+		"mov   %B0, R27 \n\t"     // return in R25:R24 for avr-gcc ABI compliance
+		"mov   %A0, R26 \n\t"
+		: "=r"(b)
+		: "r"(a)
+		: "r18", "r19", "r27", "r26");
     return b;
 } // integerSqrt
 
@@ -137,7 +137,7 @@ int32_t HAL::CPUDivU2(unsigned int divisor)
             return Div4U2U(F_CPU,divisor); // These entries have overflows in lookuptable!
         }
         table = (unsigned short)&slow_div_lut[0];
-        __asm__ __volatile__( // needs 64 ticks neu 49 Ticks
+		__asm volatile ( // needs 64 ticks neu 49 Ticks
             "mov r18,%A1 \n\t"
             "andi r18,31 \n\t"  // divisor & 31 in r18
             "lsr %B1 \n\t" // divisor >> 4
@@ -177,7 +177,9 @@ int32_t HAL::CPUDivU2(unsigned int divisor)
             "clr %C0 \n\t"
             "clr %D0 \n\t"
             "clr r1 \n\t"
-            : "=&r" (res),"=&d"(divisor),"=&z"(table) : "1"(divisor),"2"(table) : "r18","r4","r5");
+            : "=&r" (res),"=&d"(divisor),"=&z"(table) 
+			: "1"(divisor),"2"(table) 
+			: "r18","r4","r5");
         return res;
         /*unsigned short adr0 = (unsigned short)&slow_div_lut+(divisor>>4)&1022;
         long y0=    pgm_read_dword_near(adr0);
@@ -187,7 +189,7 @@ int32_t HAL::CPUDivU2(unsigned int divisor)
     else
     {
         table = (unsigned short)&fast_div_lut[0];
-        __asm__ __volatile__( // needs 49 ticks
+		__asm volatile ( // needs 49 ticks
             "movw r18,%A1 \n\t"
             "andi r19,15 \n\t"  // divisor & 4095 in r18,r19
             "lsr %B1 \n\t" // divisor >> 3, then %B1 is 2*(divisor >> 12)
@@ -225,7 +227,9 @@ int32_t HAL::CPUDivU2(unsigned int divisor)
             "clr %C0 \n\t"
             "clr %D0 \n\t"
             "clr r1 \n\t"
-            : "=&r" (res),"=&d"(divisor),"=&z"(table) : "1"(divisor),"2"(table) : "r18","r19","r4","r5");
+            : "=&r" (res),"=&d"(divisor),"=&z"(table) 
+			: "1"(divisor),"2"(table) 
+			: "r18","r19","r4","r5");
         return res;
         /*
         // The asm mimics the following code
@@ -364,10 +368,8 @@ int HAL::getFreeRam() {
 
 void(* resetFunc) (void) = 0; // declare reset function @ address 0
 
-
 void HAL::resetHardware() {
     resetFunc();
-
 } // resetHardware
 
 
@@ -709,42 +711,42 @@ This function sets the OCR1A compare counter to get the next interrupt
 at delay ticks measured from the last interrupt. delay must be << 2^24 */
 inline void setTimer(uint32_t delay)
 {
-    __asm__ __volatile__ (
-        "cli \n\t"
-        "tst %C[delay] \n\t" //if(delay<65536) {
-        "brne else%= \n\t" // Still > 65535
-        "cpi %B[delay],255 \n\t"
-        "breq else%= \n\t" // delay <65280
-        "sts stepperWait,r1 \n\t" // stepperWait = 0;
-        "sts stepperWait+1,r1 \n\t"
-        "sts stepperWait+2,r1 \n\t"
-        "lds %C[delay],%[time] \n\t" // Read TCNT1
-        "lds %D[delay],%[time]+1 \n\t"
-        "ldi r18,100 \n\t" // Add 100 to TCNT1
-        "add %C[delay],r18 \n\t"
-        "adc %D[delay],r1 \n\t"
-        "cp %A[delay],%C[delay] \n\t" // delay<TCNT1+1
-        "cpc %B[delay],%D[delay] \n\t"
-        "brcc exact%= \n\t"
-        "sts %[ocr]+1,%D[delay] \n\t" //  OCR1A = TCNT1+100;
-        "sts %[ocr],%C[delay] \n\t"
-        "rjmp end%= \n\t"
-        "exact%=: sts %[ocr]+1,%B[delay] \n\t" //  OCR1A = delay;
-        "sts %[ocr],%A[delay] \n\t"
-        "rjmp end%= \n\t"
-        "else%=: subi   %B[delay], 0x80 \n\t" //} else { stepperWait = delay-32768;
-        "sbci   %C[delay], 0x00 \n\t"
-        "sts stepperWait,%A[delay] \n\t"
-        "sts stepperWait+1,%B[delay] \n\t"
-        "sts stepperWait+2,%C[delay] \n\t"
-        "ldi    %D[delay], 0x80 \n\t" //OCR1A = 32768;
-        "sts    %[ocr]+1, %D[delay] \n\t"
-        "sts    %[ocr], r1 \n\t"
-        "end%=: \n\t"
-        :[delay]"=&d"(delay) // Output
-        :"0"(delay),[ocr]"i" (_SFR_MEM_ADDR(OCR1A)),[time]"i"(_SFR_MEM_ADDR(TCNT1)) // Input
-        :"r18" // Clobber
-    );
+	__asm volatile (
+		"cli \n\t"
+		"tst %C[delay] \n\t" //if(delay<65536) {
+		"brne else%= \n\t" // Still > 65535
+		"cpi %B[delay],255 \n\t"
+		"breq else%= \n\t" // delay <65280
+		"sts stepperWait,r1 \n\t" // stepperWait = 0;
+		"sts stepperWait+1,r1 \n\t"
+		"sts stepperWait+2,r1 \n\t"
+		"lds %C[delay],%[time] \n\t" // Read TCNT1
+		"lds %D[delay],%[time]+1 \n\t"
+		"ldi r18,100 \n\t" // Add 100 to TCNT1
+		"add %C[delay],r18 \n\t"
+		"adc %D[delay],r1 \n\t"
+		"cp %A[delay],%C[delay] \n\t" // delay<TCNT1+1
+		"cpc %B[delay],%D[delay] \n\t"
+		"brcc exact%= \n\t"
+		"sts %[ocr]+1,%D[delay] \n\t" //  OCR1A = TCNT1+100;
+		"sts %[ocr],%C[delay] \n\t"
+		"rjmp end%= \n\t"
+		"exact%=: sts %[ocr]+1,%B[delay] \n\t" //  OCR1A = delay;
+		"sts %[ocr],%A[delay] \n\t"
+		"rjmp end%= \n\t"
+		"else%=: subi   %B[delay], 0x80 \n\t" //} else { stepperWait = delay-32768;
+		"sbci   %C[delay], 0x00 \n\t"
+		"sts stepperWait,%A[delay] \n\t"
+		"sts stepperWait+1,%B[delay] \n\t"
+		"sts stepperWait+2,%C[delay] \n\t"
+		"ldi    %D[delay], 0x80 \n\t" //OCR1A = 32768;
+		"sts    %[ocr]+1, %D[delay] \n\t"
+		"sts    %[ocr], r1 \n\t"
+		"end%=: \n\t"
+		: [delay]"=&d"(delay) // Output
+		: "0"(delay), [ocr]"i" (_SFR_MEM_ADDR(OCR1A)), [time]"i"(_SFR_MEM_ADDR(TCNT1)) // Input
+		: "r18"); // Clobber
+
     /* // Assembler above replaced this code
       if(delay<65280) {
         stepperWait = 0;
@@ -769,7 +771,7 @@ volatile long __attribute__((used)) stepperWait  = 0;
 ISR(TIMER1_COMPA_vect)
 {
     uint8_t doExit;
-    __asm__ __volatile__ (
+	__asm volatile (
         "ldi %[ex],0 \n\t"
         "lds r23,stepperWait+2 \n\t"
         "tst r23 \n\t" //if(stepperWait<65536) {
@@ -792,7 +794,9 @@ ISR(TIMER1_COMPA_vect)
         "sts stepperWait+2,r23 \n\t"
         "end1%=: ldi %[ex],1 \n\t"
         "end%=: \n\t"
-        :[ex]"=&d"(doExit):[ocr]"i" (_SFR_MEM_ADDR(OCR1A)):"r22","r23" );
+        : [ex]"=&d"(doExit)
+		: [ocr]"i" (_SFR_MEM_ADDR(OCR1A))
+		: "r22","r23");
     if(doExit) return;
 
     cbi(TIMSK1, OCIE1A); // prevent retrigger timer by disabling timer interrupt. Should be faster than guarding with insideTimer1.

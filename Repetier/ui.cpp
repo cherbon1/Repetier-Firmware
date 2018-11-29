@@ -25,15 +25,6 @@ extern const int8_t encoder_table[16] PROGMEM ;
 #include <inttypes.h>
 #include <ctype.h>
 
-
-#if BEEPER_TYPE==2 && defined(UI_HAS_I2C_KEYS) && UI_I2C_KEY_ADDRESS!=BEEPER_ADDRESS
-#error Beeper address and i2c key address must be identical
-#else
-#if BEEPER_TYPE==2
-#define UI_I2C_KEY_ADDRESS BEEPER_ADDRESS
-#endif // BEEPER_TYPE==2
-#endif // BEEPER_TYPE==2 && defined(UI_HAS_I2C_KEYS) && UI_I2C_KEY_ADDRESS!=BEEPER_ADDRESS
-
 #if UI_PRINT_AUTORETURN_TO_MENU_AFTER || UI_MILL_AUTORETURN_TO_MENU_AFTER
 millis_t g_nAutoReturnTime       = 0;
 bool     g_nAutoReturnMessage    = false;
@@ -43,83 +34,34 @@ char    g_nYesNo                 = 0;       // 0 = no, 1 = yes
 volatile char    g_nContinueButtonPressed = 0;
 char    g_nServiceRequest        = 0;
 
-void beep(uint8_t duration,uint8_t count)
+void beep(uint8_t duration, uint8_t count)
 {
-#if FEATURE_BEEPER
-    if( !Printer::enableBeeper )
-    {
-        // we shall not beep
-        return;
-    }
+#if FEATURE_BEEPER && defined(BEEPER_PIN) && BEEPER_PIN>=0
+	if (!Printer::enableBeeper)
+	{
+		// we shall not beep
+		return;
+	}
 
-#if BEEPER_TYPE!=0
-#if BEEPER_TYPE==1 && defined(BEEPER_PIN) && BEEPER_PIN>=0
-    SET_OUTPUT(BEEPER_PIN);
-#endif //  BEEPER_TYPE==1 && defined(BEEPER_PIN) && BEEPER_PIN>=0
+	SET_OUTPUT(BEEPER_PIN);
+#ifndef BEEPER_TYPE_INVERTING
+#define BEEPER_TYPE_INVERTING   false
+#endif // BEEPER_TYPE_INVERTING
 
-#if BEEPER_TYPE==2
-    HAL::i2cStartWait(BEEPER_ADDRESS+I2C_WRITE);
-#if UI_DISPLAY_I2C_CHIPTYPE==1
-    HAL::i2cWrite( 0x14); // Start at port a
-#endif // UI_DISPLAY_I2C_CHIPTYPE==1
-#endif // BEEPER_TYPE==2
-
-    for(uint8_t i=0; i<count; i++)
-    {
-#if BEEPER_TYPE==1 && defined(BEEPER_PIN) && BEEPER_PIN>=0
-#if defined(BEEPER_TYPE_INVERTING) && BEEPER_TYPE_INVERTING
-        WRITE(BEEPER_PIN,LOW);
+	for (uint8_t i = 0; i < count; i++)
+	{
+#if BEEPER_TYPE_INVERTING
+		WRITE(BEEPER_PIN, LOW);
+		HAL::delayMilliseconds(duration);
+		WRITE(BEEPER_PIN, HIGH);
 #else
-        WRITE(BEEPER_PIN,HIGH);
-#endif // defined(BEEPER_TYPE_INVERTING) && BEEPER_TYPE_INVERTING
-#else
-#if UI_DISPLAY_I2C_CHIPTYPE==0
-#if BEEPER_ADDRESS == UI_DISPLAY_I2C_ADDRESS
-        HAL::i2cWrite(uid.outputMask & ~BEEPER_PIN);
-#else
-        HAL::i2cWrite(~BEEPER_PIN);
-#endif // BEEPER_ADDRESS == UI_DISPLAY_I2C_ADDRESS
-#endif // UI_DISPLAY_I2C_CHIPTYPE==0
-
-#if UI_DISPLAY_I2C_CHIPTYPE==1
-        HAL::i2cWrite((BEEPER_PIN) | uid.outputMask);
-        HAL::i2cWrite(((BEEPER_PIN) | uid.outputMask)>>8);
-#endif // UI_DISPLAY_I2C_CHIPTYPE==1
-#endif // BEEPER_TYPE==1 && defined(BEEPER_PIN) && BEEPER_PIN>=0
-
-        HAL::delayMilliseconds(duration);
-
-#if BEEPER_TYPE==1 && defined(BEEPER_PIN) && BEEPER_PIN>=0
-#if defined(BEEPER_TYPE_INVERTING) && BEEPER_TYPE_INVERTING
-        WRITE(BEEPER_PIN,HIGH);
-#else
-        WRITE(BEEPER_PIN,LOW);
-#endif // defined(BEEPER_TYPE_INVERTING) && BEEPER_TYPE_INVERTING
-#else
-#if UI_DISPLAY_I2C_CHIPTYPE==0
-
-#if BEEPER_ADDRESS == UI_DISPLAY_I2C_ADDRESS
-        HAL::i2cWrite((BEEPER_PIN) | uid.outputMask);
-#else
-        HAL::i2cWrite(255);
-#endif // BEEPER_ADDRESS == UI_DISPLAY_I2C_ADDRESS
-#endif // UI_DISPLAY_I2C_CHIPTYPE==0
-
-#if UI_DISPLAY_I2C_CHIPTYPE==1
-        HAL::i2cWrite( uid.outputMask);
-        HAL::i2cWrite(uid.outputMask>>8);
-#endif // UI_DISPLAY_I2C_CHIPTYPE==1
-#endif // BEEPER_TYPE==1 && defined(BEEPER_PIN) && BEEPER_PIN>=0
-
-        HAL::delayMilliseconds(duration);
-    }
-
-#if BEEPER_TYPE==2
-    HAL::i2cStop();
-#endif // BEEPER_TYPE==2
-#endif // BEEPER_TYPE!=0
-#endif // FEATURE_BEEPER
-
+		WRITE(BEEPER_PIN, HIGH);
+		HAL::delayMilliseconds(duration);
+		WRITE(BEEPER_PIN, LOW);
+#endif // BEEPER_TYPE_INVERTING
+		HAL::delayMilliseconds(duration);
+	}
+#endif // FEATURE_BEEPER && defined(BEEPER_PIN) && BEEPER_PIN>=0
 } // beep
 
 
@@ -138,7 +80,6 @@ bool UIMenuEntry::showEntry() const
         ret = (f2 & Printer::menuMode) == 0;
     }
     return ret;
-
 } // showEntry
 
 
@@ -368,6 +309,11 @@ static const char           versionString[] PROGMEM  = UI_VERSION_STRING;
 
 #if UI_DISPLAY_TYPE==1 || UI_DISPLAY_TYPE==2
 
+UIDisplay::UIDisplay()
+{
+	locked = 0;
+} // UIDisplay
+
 void lcdWriteNibble(uint8_t value)
 {
     WRITE(UI_DISPLAY_D4_PIN,value & 1);
@@ -380,7 +326,6 @@ void lcdWriteNibble(uint8_t value)
     __asm__("nop\n\t""nop\n\t""nop\n\t""nop\n\t""nop\n\t""nop\n\t");
 
 } // lcdWriteNibble
-
 
 void lcdWriteByte(uint8_t c,uint8_t rs)
 {
@@ -445,6 +390,7 @@ void initCspecchars(){
     uid.createChar(7,c9);
     normalchars = false;
 }
+
 void initNSpecchars(){
     uid.createChar(1,character_back);
     uid.createChar(2,character_degree);
@@ -456,7 +402,7 @@ void initNSpecchars(){
     normalchars = true;
 }
 
-void initializeLCD(bool normal)
+void UIDisplay::initializeLCD(bool normal)
 {
     // bring all display pins into a defined state
     SET_INPUT(UI_DISPLAY_D4_PIN);
@@ -527,10 +473,7 @@ void initializeLCD(bool normal)
 } // initializeLCD
 
 // ----------- end direct LCD driver
-#endif // UI_DISPLAY_TYPE==1 || UI_DISPLAY_TYPE==2
 
-
-#if UI_DISPLAY_TYPE<4
 void UIDisplay::printRow(uint8_t r,char *txt,char *txt2,uint8_t changeAtCol)
 {
     changeAtCol = RMath::min((uint8_t)UI_COLS,changeAtCol);
@@ -538,10 +481,6 @@ void UIDisplay::printRow(uint8_t r,char *txt,char *txt2,uint8_t changeAtCol)
 
     // Set row
     if(r >= UI_ROWS) return;
-
-#if UI_DISPLAY_TYPE==3
-    lcdStartWrite();
-#endif // UI_DISPLAY_TYPE==3
 
     lcdWriteByte(128 + HAL::readFlashByte((const char *)&LCDLineOffsets[r]),0); // Position cursor
     char c;
@@ -586,18 +525,40 @@ void UIDisplay::printRow(uint8_t r,char *txt,char *txt2,uint8_t changeAtCol)
             col++;
         }
     }
-
-#if UI_DISPLAY_TYPE==3
-    lcdStopWrite();
-#endif // UI_DISPLAY_TYPE==3
-
 } // printRow
-#endif // UI_DISPLAY_TYPE<4
+#endif // UI_DISPLAY_TYPE==1 || UI_DISPLAY_TYPE==2
 
-UIDisplay::UIDisplay()
+void UIDisplay::ui_init_keys()
 {
-    locked = 0;
-} // UIDisplay
+	UI_KEYS_INIT_BUTTON_LOW(ENABLE_KEY_1);  // push button, connects gnd to pin
+	UI_KEYS_INIT_BUTTON_LOW(ENABLE_KEY_2);  // push button, connects gnd to pin
+	UI_KEYS_INIT_BUTTON_LOW(ENABLE_KEY_3);  // push button, connects gnd to pin
+	UI_KEYS_INIT_BUTTON_LOW(ENABLE_KEY_4);  // push button, connects gnd to pin
+	UI_KEYS_INIT_BUTTON_LOW(ENABLE_KEY_5);  // push button, connects gnd to pin
+
+	UI_KEYS_INIT_BUTTON_LOW(ENABLE_KEY_E1); // PINJ.2, 80, X12.1 - push button, connects gnd to pin
+	UI_KEYS_INIT_BUTTON_LOW(ENABLE_KEY_E2); // PINJ.4, 81, X12.2 - push button, connects gnd to pin
+	UI_KEYS_INIT_BUTTON_LOW(ENABLE_KEY_E3); // PINJ.5, 82, X12.3 - push button, connects gnd to pin
+	UI_KEYS_INIT_BUTTON_LOW(ENABLE_KEY_E4); // PINJ.6, 83, X12.4 - push button, connects gnd to pin
+	UI_KEYS_INIT_BUTTON_LOW(ENABLE_KEY_E5); // PINH.7, 85, X12.6 - push button, connects gnd to pin
+	UI_KEYS_INIT_BUTTON_LOW(ENABLE_KEY_E6); // PINH.2, 86, X12.7 - push button, connects gnd to pin
+} // ui_init_keys
+
+void UIDisplay::ui_check_keys(int &action)
+{
+	UI_KEYS_BUTTON_LOW(ENABLE_KEY_1, UI_ACTION_OK);          // push button, connects gnd to pin
+	UI_KEYS_BUTTON_LOW(ENABLE_KEY_2, UI_ACTION_NEXT);        // push button, connects gnd to pin
+	UI_KEYS_BUTTON_LOW(ENABLE_KEY_5, UI_ACTION_PREVIOUS);    // push button, connects gnd to pin
+	UI_KEYS_BUTTON_LOW(ENABLE_KEY_4, UI_ACTION_BACK);        // push button, connects gnd to pin
+	UI_KEYS_BUTTON_LOW(ENABLE_KEY_3, UI_ACTION_RIGHT);      // push button, connects gnd to pin
+
+	UI_KEYS_BUTTON_LOW(ENABLE_KEY_E1, UI_ACTION_RF_HEAT_BED_UP);         // PINJ.2, 80, X12.1 - push button, connects gnd to pin
+	UI_KEYS_BUTTON_LOW(ENABLE_KEY_E2, UI_ACTION_RF_HEAT_BED_DOWN);       // PINJ.4, 81, X12.2 - push button, connects gnd to pin
+	UI_KEYS_BUTTON_LOW(ENABLE_KEY_E3, UI_ACTION_RF_EXTRUDER_RETRACT);    // PINJ.5, 82, X12.3 - push button, connects gnd to pin
+	UI_KEYS_BUTTON_LOW(ENABLE_KEY_E4, UI_ACTION_RF_EXTRUDER_OUTPUT);     // PINJ.6, 83, X12.4 - push button, connects gnd to pin
+	UI_KEYS_BUTTON_LOW(ENABLE_KEY_E5, UI_ACTION_RF_CONTINUE);            // PINH.7, 85, X12.6 - push button, connects gnd to pin
+	UI_KEYS_BUTTON_LOW(ENABLE_KEY_E6, UI_ACTION_RF_PAUSE);               // PINH.2, 86, X12.7 - push button, connects gnd to pin
+} // ui_check_keys
 
 void UIDisplay::initialize()
 {
@@ -622,50 +583,27 @@ void UIDisplay::initialize()
     folderLevel = 0;
 #endif // SDSUPPORT
 
-#if UI_DISPLAY_TYPE>0
     initializeLCD(false);
     initCspecchars();
 
-#if UI_DISPLAY_TYPE == 5
-    //u8g picture loop
-    u8g_FirstPage(&u8g);
-    do
-    {
-#endif // UI_DISPLAY_TYPE == 5
-
-        for(uint8_t y=0; y<UI_ROWS; y++) displayCache[y][0] = 0;
-        printRowP(0, PSTR(BIGC0) );
-        printRowP(1, PSTR(BIGC1) );
+    for(uint8_t y=0; y<UI_ROWS; y++) displayCache[y][0] = 0;
+    printRowP(0, PSTR(BIGC0) );
+    printRowP(1, PSTR(BIGC1) );
 #if UI_ROWS>3
-        printRowP(UI_ROWS-2, PSTR(BIGC2) );
+    printRowP(UI_ROWS-2, PSTR(BIGC2) );
 #endif // UI_ROWS>3
 #if UI_ROWS>2
-        printRowP(UI_ROWS-1, PSTR(BIGC3) );
+    printRowP(UI_ROWS-1, PSTR(BIGC3) );
 #endif // UI_ROWS>2
-
-#if UI_DISPLAY_TYPE == 5
-    }
-    while( u8g_NextPage(&u8g) );  //end picture loop
-#endif // UI_DISPLAY_TYPE == 5
-
-#endif // UI_DISPLAY_TYPE>0
-
-#if UI_DISPLAY_I2C_CHIPTYPE==0 && (BEEPER_TYPE==2 || defined(UI_HAS_I2C_KEYS))
-    // Make sure the beeper is off
-    HAL::i2cStartWait(UI_I2C_KEY_ADDRESS+I2C_WRITE);
-    HAL::i2cWrite(255); // Disable beeper, enable read for other pins.
-    HAL::i2cStop();
-#endif // UI_DISPLAY_I2C_CHIPTYPE==0 && (BEEPER_TYPE==2 || defined(UI_HAS_I2C_KEYS))
-
+	
     if( READ(5) == 0 && READ(11) == 0 && READ(42) == 0 )
     {
         g_nServiceRequest = 1;
     }
-
 } // initialize
 
 
-#if UI_DISPLAY_TYPE==1 || UI_DISPLAY_TYPE==2 || UI_DISPLAY_TYPE==3
+#if UI_DISPLAY_TYPE==1 || UI_DISPLAY_TYPE==2
 void UIDisplay::createChar(uint8_t location,const uint8_t charmap[])
 {
     location &= 0x7; // we only have 8 locations 0-7
@@ -676,7 +614,7 @@ void UIDisplay::createChar(uint8_t location,const uint8_t charmap[])
     }
 
 } // createChar
-#endif // UI_DISPLAY_TYPE==1 || UI_DISPLAY_TYPE==2 || UI_DISPLAY_TYPE==3
+#endif // UI_DISPLAY_TYPE==1 || UI_DISPLAY_TYPE==2
 
 
 void UIDisplay::printRowP(uint8_t r,PGM_P txt)
@@ -1396,12 +1334,9 @@ void UIDisplay::parse(char *txt,bool ram)
                 }
                 if(c2=='p')                                                                             // %op : Is single double or quadstepping?
                 {
-                    switch(Printer::stepsPerTimerCall){
-                        case 1: addStringP( PSTR(" Sgl") ); break; //Single Stepping aktiv
-                        case 2: addStringP( PSTR(" Dbl") ); break; //Double Stepping aktiv
-                        case 4: addStringP( PSTR(" Qud") ); break; //Quad Stepping aktiv
-                        case 8: addStringP( PSTR(" Oct") ); break; //Octa Stepping aktiv
-                    }
+					addInt(Printer::stepsPerTimerCall, 1);
+                    addStringP(PSTR("ST"));
+
                     break;
                 }
 
@@ -1718,11 +1653,9 @@ void UIDisplay::parse(char *txt,bool ram)
                 }
  #endif //FEATURE_ADJUSTABLE_MICROSTEPS
 #endif // NUM_EXTRUDER>0
-                else if(c2 == 'g')                                                                      // %Xg : Printer::stepsDoublerFrequency
+                else if(c2 == 'g')                                                                      // %Xg : Printer::stepsPackingMinInterval
                 {
-                    addInt(Printer::stepsDoublerFrequency,4);
-                    addStringP( PSTR(" ") );
-                    addInt(int(Printer::stepsDoublerFrequency/RMath::max(Printer::axisStepsPerMM[X_AXIS],Printer::axisStepsPerMM[Y_AXIS])),2);
+					addInt(Printer::stepsPackingMinInterval, 4);
                 }
 #if FEATURE_ADJUSTABLE_MICROSTEPS
                 else if(c2 == 'x')                                                                      // %Xx : XY Stepper Microsteps
@@ -2530,7 +2463,7 @@ void sdrefresh(uint16_t &r, char cache[UI_ROWS][MAX_COLS + 1])
         if(file.isDir())
             uid.printCols[uid.col++] = bFOLD; // Prepend folder symbol
 
-        length = RMath::min((int)strlen(tempLongFilename), MAX_COLS - uid.col);
+        length = RMath::min((int)strlen(tempLongFilename), (int)MAX_COLS - (int)uid.col);
         memcpy(uid.printCols + uid.col, tempLongFilename, length);
         uid.col += length;
         uid.printCols[uid.col] = 0;
@@ -2815,7 +2748,6 @@ void UIDisplay::okAction()
             refreshPage();
             return;
         }
-
         uint8_t filePos = menuPos[menuLevel]-1;
         char filename[LONG_FILENAME_LENGTH+1];
 
@@ -2829,61 +2761,21 @@ void UIDisplay::okAction()
             return;
         }
 
-    /*     int16_t shortAction;
-       if (Printer::isAutomount())
-            shortAction = UI_ACTION_SD_PRINT;
-        else
-        {
-            men = (UIMenu*)menu[menuLevel-1];
-            entries = (UIMenuEntry**)pgm_read_word(&(men->entries));
-            ent =(UIMenuEntry *)pgm_read_word(&(entries[menuPos[menuLevel-1]]));
-            shortAction = pgm_read_word(&(ent->action));
-        }*/
         sd.file.close();
         sd.fat.chdir(cwd);
-    //    switch(shortAction)
-      //  {
-         //   case UI_ACTION_SD_PRINT:
-           // {
-                if (sd.selectFileByPos(filePos, false))
-                {
-                    sd.startPrint();
-                    BEEP_START_PRINTING
-                    exitmenu();
-                }
-              //  break;
-            //}
-/*            case UI_ACTION_SD_DELETE:
-            {
-                if(sd.sdactive)
-                {
-                    if(Printer::isMenuMode(MENU_MODE_SD_PRINTING))
-                    {
-                        // we do not allow to delete a file while we are printing/milling from the SD card
-                        Com::printFLN(PSTR("delete error: processing"));
 
-                        showError( (void*)ui_text_delete_file, (void*)ui_text_operation_denied );
-                        break;
-                    }
-                    sd.sdmode = 0;
-              ###      if (sd.selectFileByPos(filePos, false))###
-              ###      {###
-             ###           if(sd.file.remove()) {###
-            ##            //if(sd.fat.remove(filename)) {###
-                            Com::printFLN(Com::tFileDeleted);
-                            BEEP_LONG
-                            if(menuPos[menuLevel] > 0)
-                                menuPos[menuLevel]--;
-                            updateSDFileCount();
-                            break; //ok
-                        }
-                    }
-                    Com::printFLN(Com::tDeletionFailed);
-                    showError( (void*)ui_text_delete_file, (void*)ui_text_operation_denied );
-                }
-                break;
-            }*/
-        //}
+		/* 
+		This is not like original Repetier.
+		We open the file according to its position (filePos) in the directory.
+		That totally ignores the length limit of the filename
+		*/
+		if (sd.selectFileByPos(filePos, false))
+		{
+			sd.startPrint();
+			BEEP_START_PRINTING
+			exitmenu();
+		}
+
         return;
     }
 #endif // SDSUPPORT
@@ -4282,11 +4174,11 @@ void UIDisplay::nextPreviousAction(int8_t next)
             break;
         }
 #endif //FEATURE_DIGIT_FLOW_COMPENSATION
-        case UI_ACTION_FREQ_DBL:
+        case UI_ACTION_SHIFT_INTERVAL:
         {
-            INCREMENT_MIN_MAX(Printer::stepsDoublerFrequency,500,5000,12000);
+            INCREMENT_MIN_MAX(Printer::stepsPackingMinInterval, -100, MIN_STEP_PACKING_MIN_INTERVAL, MAX_STEP_PACKING_MIN_INTERVAL);
 #if FEATURE_AUTOMATIC_EEPROM_UPDATE
-            HAL::eprSetInt16( EPR_RF_FREQ_DBL, Printer::stepsDoublerFrequency  );
+            HAL::eprSetInt16(EPR_RF_STEP_PACKING_MIN_INTERVAL, Printer::stepsPackingMinInterval);
             EEPROM::updateChecksum();
 #endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
             break;
@@ -5129,20 +5021,6 @@ void UIDisplay::executeAction(int action)
 #endif // NUM_EXTRUDER == 2
 
 #if SDSUPPORT
-/*
-            case UI_ACTION_SD_DELETE:
-            {
-                if(sd.sdactive)
-                {
-                    pushMenu((void*)&ui_menu_sd_fileselector,false);
-                }
-                else
-                {
-                    UI_ERROR(UI_TEXT_NOSDCARD);
-                }
-                break;
-            }
-*/
             case UI_ACTION_SD_PRINT:
             {
                 if(sd.sdactive)
@@ -5425,8 +5303,6 @@ void UIDisplay::executeAction(int action)
                 startZOScan();
                 //gehe zurück und zeige dem User was passiert.
                 exitmenu();
-                //wartet nur wenn an:
-                //Commands::waitUntilEndOfZOS(); -> Nein, weil der Nutzer das aktiv steuern und abbrechen können soll. Ist ja hier kein M-code in Reihe.
                 break;
             }
             case UI_ACTION_RF_DO_MHIER_AUTO_MATRIX_LEVELING:
@@ -5435,8 +5311,6 @@ void UIDisplay::executeAction(int action)
                 startZOScan(true); //Scan aber an vielen Punkten und Gewichtet.
                 //gehe zurück und zeige dem User was passiert.
                 exitmenu();
-                //wartet nur wenn an:
-                //Commands::waitUntilEndOfZOS(); -> Nein, weil der Nutzer das aktiv steuern und abbrechen können soll. Ist ja hier kein M-code in Reihe.
                 break;
             }
             case UI_ACTION_RF_DO_SAVE_ACTIVE_ZMATRIX:
@@ -5614,7 +5488,7 @@ void UIDisplay::fastAction()
         flags |= UI_FLAG_KEY_TEST_RUNNING;
 
             int16_t nextAction = 0;
-            ui_check_keys(nextAction);
+            uid.ui_check_keys(nextAction);
 
             if(lastButtonAction!=nextAction)
             {

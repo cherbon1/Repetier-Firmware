@@ -21,7 +21,7 @@
 
 #define MAX_CMD_SIZE 96
 
-enum FirmwareState { NotBusy=0, Processing, Paused, WaitHeater };
+enum FirmwareState { NotBusy=0, Processing, Paused, WaitHeater, Calibrating };
 
 #if SDSUPPORT
 class SDCard;

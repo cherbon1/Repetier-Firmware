@@ -24,7 +24,7 @@
   #define UI_DISPLAY_CHARSET 1
  #else
   #define UI_DISPLAY_CHARSET 2
- #endif // MOTHERBOARD   == DEVICE_TYPE_RF1000
+ #endif // MOTHERBOARD == DEVICE_TYPE_RF1000
 #endif // !defined(UI_DISPLAY_CHARSET) || UI_DISPLAY_CHARSET>3
 
 //Symbolic character values for specific symbols.
@@ -93,11 +93,6 @@
 #define STR_szlig       "\337"
 #endif
 
-#define TEST176         "176\260\261\262\263\264\265\266\267\270\271\272\273\274\275\276\277"
-#define TEST192         "192\300\301\302\303\304\305\306\307\310\311\312\313\314\315\316\317"
-#define TEST208         "208\320\321\322\323\324\325\326\327\330\331\332\333\334\335\336\337"
-#define TEST224         "224\340\341\342\343\344\345\346\347\350\351\352\353\354\355\356\357"
-
 
 // ##########################################################################################
 // ##    English
@@ -130,7 +125,6 @@
 #define UI_TEXT_MILL_POS                "Milling..."
 #define UI_TEXT_PAUSED                  "Paused"
 #define UI_TEXT_IDLE                    "Idle"
-#define UI_TEXT_NOSDCARD                "No SD Card"
 #define UI_TEXT_BACK                    "Back \001"
 #define UI_TEXT_QUICK_SETTINGS          "Quick Settings"
 #define UI_TEXT_CONFIGURATION           "Configuration"
@@ -192,8 +186,6 @@
 #define UI_TEXT_CONTINUE_MILL           "Continue Mill"
 #define UI_TEXT_UNMOUNT_CARD            "Unmount Card"
 #define UI_TEXT_MOUNT_CARD              "Mount Card"
-#define UI_TEXT_SD_NOT_PRESENT          "Card missing"
-#define UI_TEXT_DELETE_FILE             "Delete File"
 #define UI_TEXT_FEEDRATE                "Feedrate"
 #define UI_TEXT_FEED_MAX_X              "Max X :%fx"
 #define UI_TEXT_FEED_MAX_Y              "Max Y :%fy"
@@ -432,14 +424,14 @@
     #define UI_TEXT_SENSEOFFSET_AUTOSTART   "AutoStart: %sa"
     #define UI_TEXT_SCAN_START_HEIGHT       "Scan Z-Lift: %Ss mm"
     #define UI_TEXT_DO_MHIER_AUTO_MATRIX_LEVELING "Auto-Matr.-Leveling"
-    #define UI_TEXT_FREQ_DBL                "DblFq:%Xgmm/s"
+    #define UI_TEXT_FREQ_DBL                "ShiftInterval: %Xg"
     #define UI_TEXT_EXTR_ADVANCE_L_E0       "E0-Advance L:%Xb"
     #define UI_TEXT_EXTR_ADVANCE_L_E1       "E1-Advance L:%Xc"
     #define UI_TEXT_EMERGENCY_PAUSE_MENU    "Emergency Pause"
     #define UI_TEXT_EMERGENCY_ZSTOP_MENU    "Z-Emergency Stop"
     #define UI_TEXT_SENSE_OFFSET_MENU       "SenseOffset"
     #define UI_TEXT_STRAIN_GAUGE            "F: %s1 L: %Fs%%%%11F: %s1 V: %om%%%"
-    #define UI_TEXT_STRAIN_GAUGE_SPEED      "F: %s1 V: %om%%%%op"
+    #define UI_TEXT_STRAIN_GAUGE_SPEED      "F: %s1 V: %om%%% %op"
     #define UI_TEXT_MIN_REACHED_UNHOMED     "Min reached unhomed"
     #define UI_TEXT_RGB_LIGHT_MODE          "RGB Light: %li"
     #define UI_TEXT_230V_OUTPUT             "230V Output: %ou"
@@ -495,14 +487,14 @@
     #define UI_TEXT_SENSEOFFSET_AUTOSTART   "AutoStart: %sa"
     #define UI_TEXT_SCAN_START_HEIGHT       "ScanZLift:%Ssmm"
     #define UI_TEXT_DO_MHIER_AUTO_MATRIX_LEVELING "Auto-Matr.-Leveling"
-    #define UI_TEXT_FREQ_DBL                "DblF:%Xgmm/s"
+	#define UI_TEXT_FREQ_DBL                "ShiftIntrvl:%Xg"
     #define UI_TEXT_EXTR_ADVANCE_L_E0       "E0-AdvanceL:%Xb"
     #define UI_TEXT_EXTR_ADVANCE_L_E1       "E1-AdvanceL:%Xc"
     #define UI_TEXT_EMERGENCY_PAUSE_MENU    "EmergencyPause"
     #define UI_TEXT_EMERGENCY_ZSTOP_MENU    "ZEmergencyStop"
     #define UI_TEXT_SENSE_OFFSET_MENU       "SenseOffset"
     #define UI_TEXT_STRAIN_GAUGE            "F:%s1 L:%Fs%%%%11F: %s1 V: %om%%%"
-    #define UI_TEXT_STRAIN_GAUGE_SPEED      "F:%s1 V:%om%%%%op"
+    #define UI_TEXT_STRAIN_GAUGE_SPEED      "F:%s1 V:%om%%% %op"
     #define UI_TEXT_MIN_REACHED_UNHOMED     "Min reached uho."
     #define UI_TEXT_RGB_LIGHT_MODE          "RGB Light: %li"
     #define UI_TEXT_BAUDRATE                "Baudrate:%oc"
@@ -569,7 +561,6 @@
 #define UI_TEXT_MILL_POS                "Fr" STR_auml "se..."
 #define UI_TEXT_PAUSED                  "Pausiert"
 #define UI_TEXT_IDLE                    "Leerlauf"
-#define UI_TEXT_NOSDCARD                "Keine SD Karte"
 #define UI_TEXT_BACK                    "Zur" STR_uuml "ck \001"
 #define UI_TEXT_CONFIGURATION           "Konfiguration"
 #define UI_TEXT_POSITION                "Position"
@@ -617,8 +608,6 @@
 #define UI_TEXT_MILL_FILE               "Fr" STR_auml "se Datei"
 #define UI_TEXT_UNMOUNT_CARD            "Unmount Karte"
 #define UI_TEXT_MOUNT_CARD              "Mount Karte"
-#define UI_TEXT_SD_NOT_PRESENT          "Karte fehlt"
-#define UI_TEXT_DELETE_FILE             "Datei l" STR_ouml "schen"
 #define UI_TEXT_FEEDRATE                "Feedrate"
 #define UI_TEXT_FEED_HOME_X             "Home X:%fX"
 #define UI_TEXT_FEED_HOME_Y             "Home Y:%fY"
@@ -843,14 +832,14 @@
     #define UI_TEXT_SENSEOFFSET_AUTOSTART   "AutoStart: %sa"
     #define UI_TEXT_SCAN_START_HEIGHT       "Scan Z-Hub: %Ss mm"
     #define UI_TEXT_DO_MHIER_AUTO_MATRIX_LEVELING "Auto-Matr.-Leveling"
-    #define UI_TEXT_FREQ_DBL                "DblFq:%Xgmm/s"
+	#define UI_TEXT_FREQ_DBL                "ShiftInterval: %Xg"
     #define UI_TEXT_EXTR_ADVANCE_L_E0       "E0-Advance L:%Xb"
     #define UI_TEXT_EXTR_ADVANCE_L_E1       "E1-Advance L:%Xc"
     #define UI_TEXT_EMERGENCY_PAUSE_MENU    "Notfall Pause"
     #define UI_TEXT_EMERGENCY_ZSTOP_MENU    "Z-Notfall Stop"
     #define UI_TEXT_SENSE_OFFSET_MENU       "SenseOffset"
     #define UI_TEXT_STRAIN_GAUGE            "F: %s1 L: %Fs%%%%11F: %s1 V: %om%%%"
-    #define UI_TEXT_STRAIN_GAUGE_SPEED      "F: %s1 V: %om%%%%op"
+    #define UI_TEXT_STRAIN_GAUGE_SPEED      "F: %s1 V: %om%%% %op"
     #define UI_TEXT_MIN_REACHED_UNHOMED     "Min Kontakt unhomed"
     #define UI_TEXT_EXTRUDER_OFFSET_X       "Extruder Abstand X"
     #define UI_TEXT_EXTRUDER_OFFSET_Y       "Extruder Abstand Y"
@@ -940,14 +929,14 @@
     #define UI_TEXT_SENSEOFFSET_AUTOSTART   "AutoStart: %sa"
     #define UI_TEXT_SCAN_START_HEIGHT       "Scan-ZHub:%Ssmm"
     #define UI_TEXT_DO_MHIER_AUTO_MATRIX_LEVELING "Auto-Matr.-Leveling"
-    #define UI_TEXT_FREQ_DBL                "DblF:%Xgmm/s"
+	#define UI_TEXT_FREQ_DBL                "ShiftIntrvl:%Xg"
     #define UI_TEXT_EXTR_ADVANCE_L_E0       "E0-AdvanceL:%Xb"
     #define UI_TEXT_EXTR_ADVANCE_L_E1       "E1-AdvanceL:%Xc"
     #define UI_TEXT_EMERGENCY_PAUSE_MENU    "Notfall Pause"
     #define UI_TEXT_EMERGENCY_ZSTOP_MENU    "Z-Notfall Stop"
     #define UI_TEXT_SENSE_OFFSET_MENU       "SenseOffset"
     #define UI_TEXT_STRAIN_GAUGE            "F:%s1 L:%Fs%%%%11F: %s1 V: %om%%%"
-    #define UI_TEXT_STRAIN_GAUGE_SPEED      "F:%s1 V:%om%%%%op"
+    #define UI_TEXT_STRAIN_GAUGE_SPEED      "F:%s1 V:%om%%% %op"
     #define UI_TEXT_MIN_REACHED_UNHOMED     "Min Kontakt uho."
     #define UI_TEXT_EXTRUDER_OFFSET_X       "Extr. Abstand X"
     #define UI_TEXT_EXTRUDER_OFFSET_Y       "Extr. Abstand Y"

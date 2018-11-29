@@ -49,7 +49,7 @@ void SDCard::automount()
     if(READ(SDCARDDETECT) != SDCARDDETECTINVERTED){
         if(sdactive || sdmode == 100)   // Card removed
         {
-            Com::printFLN(PSTR("SD card removed"));
+            Com::printFLN(PSTR("SD Card removed"));
 #if UI_DISPLAY_TYPE!=0
             uid.exitmenu();
 #endif // UI_DISPLAY_TYPE!=0
@@ -61,7 +61,7 @@ void SDCard::automount()
             UI_STATUS( UI_TEXT_SD_INSERTED );
             mount(/*not silent mount*/);
             if(sdmode != 100) // send message only if we have success
-                Com::printFLN(PSTR("SD card inserted")); // Not translatable or host will not understand signal
+                Com::printFLN(PSTR("SD Card inserted")); // Not translatable or host will not understand signal
 #if UI_DISPLAY_TYPE!=0
             if(sdactive) {
                 Printer::setAutomount(true);
@@ -326,6 +326,14 @@ void SDCard::writeCommand(GCode *code)
     }
 } // writeCommand
 
+/** Write a PROGMEM string to a file.	
+* \param[in] str Pointer to the PROGMEM string.	
+* Use getWriteError to check for errors.	
+*/	
+void SDCard::writePSTR(FSTRINGPARAM(str)) {
+	for (uint8_t c; (c = HAL::readFlashByte(str)); str++) file.write(c);	
+}
+  
 char *SDCard::createFilename(char *buffer, const dir_t &p) {
     char *pos = buffer, *src = (char*)p.name;
 
@@ -430,7 +438,7 @@ bool SDCard::selectFileByPos(uint16_t filePos, bool silent) {
 
     ffile.close();
     return false;
-} // getSDFilenameAt
+} // selectFileByPos
 
 
 void SDCard::printStatus() {

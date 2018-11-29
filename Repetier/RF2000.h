@@ -35,7 +35,7 @@
 #endif // NUM_EXTRUDER > 2 || NUM_EXTRUDER < 0
 
 /** \brief Allows to use the device for milling */
-#define FEATURE_MILLING_MODE                  1                                                   // 1 = on, 0 = off
+#define FEATURE_MILLING_MODE                  0                                                   // 1 = on, 0 = off
 
 #if FEATURE_MILLING_MODE
 
@@ -774,14 +774,14 @@ Only values which are a factor of 10ms or 0==OFF will work precisely */
 /** \brief Maximum feedrate, the system allows. Higher feedrates are reduced to these values.
     The axis order in all axis related arrays is X, Y, Z
      Overridden if EEPROM activated. */
-#define MAX_FEEDRATE_X                      200
-#define MAX_FEEDRATE_Y                      200
-#define MAX_FEEDRATE_Z                      12
+#define MAX_FEEDRATE_X                      150
+#define MAX_FEEDRATE_Y                      150
+#define MAX_FEEDRATE_Z                      9
 
 /** \brief Home position speed in mm/s. Overridden if EEPROM activated. These values can be overridden by EEPROM but are considered as maximum allowed values */
 #define HOMING_FEEDRATE_X_PRINT             80
 #define HOMING_FEEDRATE_Y_PRINT             80
-#define HOMING_FEEDRATE_Z_PRINT             10
+#define HOMING_FEEDRATE_Z_PRINT             9
 
 #define HOMING_FEEDRATE_X_MILL              70
 #define HOMING_FEEDRATE_Y_MILL              70
@@ -811,19 +811,23 @@ own weight, so this is nearly never needed. */
 // ##   configuration of the speed vs. cpu usage
 // ##########################################################################################
 
-/** \brief The firmware can only handle 16000Hz interrupt frequency cleanly. If you need higher speeds
-a faster solution is needed, and this is to double/quadruple the steps in one interrupt call.
+/**
+\brief The firmware can only handle a limited interrupt frequency cleanly.
+If you need higher speeds
+a faster solution is needed, and this is to double/tripple/quadruple the steps in one interrupt call.
 This is like reducing your 1/16th microstepping to 1/8 or 1/4. It is much cheaper then 1 or 3
-additional stepper interrupts with all it's overhead. As a result you can go as high as
-40000Hz. STEP_DOUBLER_FREQUENCY should be in range 5000-12000 for RFx000 but 8000 is much for RF2000 (with ADVANCE?).
+additional stepper interrupts with all it's overhead. As a result you can gain higher Output-Step-Frequencies.
 
-STEP_DOUBLER_FREQUENCY can be changed in Menu-> Configuration->Stepper->DblFq:
+STEP_PACKING_MIN_INTERVAL can be changed in Menu-> Configuration->Stepper->DblFq:
 */
-#define STEP_DOUBLER_FREQUENCY              7000
+#define STEP_PACKING_MIN_INTERVAL           2900 // (F_CPU / safe Steprate)
 
-/** \brief If you reach STEP_DOUBLER_FREQUENCY the firmware will do 2 or 4 steps with nearly no delay. That can be too fast
+#define MIN_STEP_PACKING_MIN_INTERVAL       2900
+#define MAX_STEP_PACKING_MIN_INTERVAL       4000
+
+/** \brief If you reach STEP_PACKING_MIN_INTERVAL the firmware will do 2, 3 or 4... steps with nearly no delay. That can be too fast
 for some printers causing an early stall. */
-#define DOUBLE_STEP_DELAY                   0                                                   // [us] was 1, NIBBELS: Repetier set this to 0 when removing half stepping
+#define MULTI_STEP_DELAY                   0                                                   // [us] was 1, NIBBELS: Repetier set this to 0 when removing half stepping
 
 /** \brief Number of moves we can cache in advance.
 This number of moves can be cached in advance. If you wan't to cache more, increase this. Especially on
@@ -841,8 +845,6 @@ This value must be high enough, that the buffer has time to fill up. The problem
 if you are printing many very short segments at high speed.*/
 #define LOW_TICKS_PER_MOVE                  250000
 
-/** \brief Adds a M3993 / or like "M3993 P300000" to set another or default LOW_TICKS_PER_MOVE and gather statistics about the fill level of the MOVE_CACHE while printing */
-#define FEATURE_DEBUG_MOVE_CACHE_TIMING              0
 
 //For configuration of speed vs. cpu RF_MICRO_STEPS_ @ CONFIGURATION.h as well!
 

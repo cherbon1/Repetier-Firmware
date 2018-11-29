@@ -32,7 +32,6 @@ FSTRINGVALUE( ui_text_output_object, UI_TEXT_OUTPUT_OBJECT )
 FSTRINGVALUE( ui_text_park_heat_bed, UI_TEXT_PARK_HEAT_BED )
 FSTRINGVALUE( ui_text_pause, UI_TEXT_PAUSE )
 FSTRINGVALUE( ui_text_home, UI_TEXT_HOME )
-FSTRINGVALUE( ui_text_delete_file, UI_TEXT_DELETE_FILE )
 FSTRINGVALUE( ui_text_z_compensation, UI_TEXT_Z_COMPENSATION )
 FSTRINGVALUE( ui_text_change_mode, UI_TEXT_CHANGE_MODE )
 FSTRINGVALUE( ui_text_change_z_type, UI_TEXT_CHANGE_Z_TYPE )
@@ -549,7 +548,7 @@ void scanHeatBed( void )
         showError( PSTR(UI_TEXT_HEAT_BED_SCAN_ABORTED) );
 
         // restore the compensation values from the EEPROM
-        if( loadCompensationMatrix( 0 ) )
+        if ( loadCompensationMatrix( (unsigned int)(EEPROM_SECTOR_SIZE * g_nActiveHeatBed) ) )
         {
             // there is no valid compensation matrix available
             initCompensationMatrix();
@@ -559,8 +558,7 @@ void scanHeatBed( void )
         g_nLastZScanZPosition = 0;
         g_retryZScan          = 0;
         g_retryStatus         = 0;
-
-
+		
         return;
     }
 
@@ -568,7 +566,8 @@ void scanHeatBed( void )
     {
 		// show that we are active
 		previousMillisCmd = HAL::timeInMilliseconds(); //prevent inactive shutdown of steppers/temps
-
+		GCode::keepAlive( Calibrating );
+		
         if( g_nHeatBedScanStatus != 15 &&
             g_nHeatBedScanStatus != 20 &&
             g_nHeatBedScanStatus != 22 &&
@@ -943,6 +942,7 @@ void scanHeatBed( void )
                 // home the z-axis in order to find the starting point again
                 Printer::homeAxis( false, false, true ); //Neben Bett: Home Z
                 moveZ( long(Printer::axisStepsPerMM[Z_AXIS] * g_scanStartZLiftMM) ); //spacing for bed
+				g_nLastZScanZPosition = 0; //Reset last scan position to avoid abort due to this limitter
 
                 g_nHeatBedScanStatus = 47;
                 g_lastScanTime       = HAL::timeInMilliseconds();
@@ -956,7 +956,7 @@ void scanHeatBed( void )
             {
                 PrintLine::moveRelativeDistanceInSteps( 0, nY, 0, 0, Printer::homingFeedrate[Y_AXIS], true, true );
 
-                g_nHeatBedScanStatus = 50;
+                g_nHeatBedScanStatus = 48;
                 g_lastScanTime       = HAL::timeInMilliseconds();
 
 #if DEBUG_HEAT_BED_SCAN == 2
@@ -964,6 +964,28 @@ void scanHeatBed( void )
 #endif // DEBUG_HEAT_BED_SCAN == 2
                 break;
             }
+			case 48: // Remeasure inconsistent pressure values to have new clean fence levels
+			{
+				if ((HAL::timeInMilliseconds() - g_lastScanTime) < HEAT_BED_SCAN_DELAY)
+				{
+					// do not check too early
+					break;
+				}
+
+				if (readIdlePressure(&g_nFirstIdlePressure))
+				{
+					// we were unable to determine the idle pressure
+					break;
+				}
+				else
+				{
+					adjustPressureLimits(g_nFirstIdlePressure);
+				}
+				g_nHeatBedScanStatus = 50;
+				g_lastScanTime = HAL::timeInMilliseconds();
+
+				break;
+			}
 //############################################################### /ERROR HANDLING
             case 49:
             {
@@ -1398,6 +1420,7 @@ void scanHeatBed( void )
                 Printer::homeAxis( false, false, true ); //Neben Bett: Home Z
                 // ensure that there is no z endstop hit before we perform the z-axis homing
                 moveZ( long(Printer::axisStepsPerMM[Z_AXIS] * g_scanStartZLiftMM) );  //spacing for bed - wird von moveUpFast() später korrigiert.
+				g_nLastZScanZPosition = 0; //Reset last scan position to avoid abort due to this limitter
 
                 g_nHeatBedScanStatus = 107;
                 g_lastScanTime       = HAL::timeInMilliseconds();
@@ -1410,7 +1433,7 @@ void scanHeatBed( void )
             case 107:
             {
                 PrintLine::moveRelativeDistanceInSteps( 0, long(HEAT_BED_SCAN_Y_CALIBRATION_POINT_MM * Printer::axisStepsPerMM[Y_AXIS]), 0, 0, Printer::homingFeedrate[Y_AXIS], true, true );
-                g_nHeatBedScanStatus = 110;
+                g_nHeatBedScanStatus = 108;
                 g_lastScanTime       = HAL::timeInMilliseconds();
 
 #if DEBUG_HEAT_BED_SCAN == 2
@@ -1418,6 +1441,28 @@ void scanHeatBed( void )
 #endif // DEBUG_HEAT_BED_SCAN == 2
                 break;
             }
+			case 108: // Remeasure inconsistent pressure values to have new clean fence levels
+			{
+				if ((HAL::timeInMilliseconds() - g_lastScanTime) < HEAT_BED_SCAN_DELAY)
+				{
+					// do not check too early
+					break;
+				}
+
+				if (readIdlePressure(&g_nFirstIdlePressure))
+				{
+					// we were unable to determine the idle pressure
+					break;
+				}
+				else
+				{
+					adjustPressureLimits(g_nFirstIdlePressure);
+				}
+				g_nHeatBedScanStatus = 110;
+				g_lastScanTime = HAL::timeInMilliseconds();
+
+				break;
+			}
 //############################################################### /ERROR HANDLING
             case 110:
             {
@@ -1755,6 +1800,7 @@ void scanHeatBed( void )
                 // home the z-axis in order to find the starting point again
                 Printer::homeAxis( false, false, true ); //Neben Bett: Home Z
                 moveZ( long(Printer::axisStepsPerMM[Z_AXIS] * g_scanStartZLiftMM) ); //spacing for bed
+				g_nLastZScanZPosition = 0; //Reset last scan position to avoid abort due to this limitter
 
                 g_nHeatBedScanStatus = 141;
                 g_lastScanTime       = HAL::timeInMilliseconds();
@@ -1768,7 +1814,7 @@ void scanHeatBed( void )
             {
                 PrintLine::moveRelativeDistanceInSteps( 0, long(HEAT_BED_SCAN_Y_CALIBRATION_POINT_MM * Printer::axisStepsPerMM[Y_AXIS]), 0, 0, Printer::homingFeedrate[Y_AXIS], true, true );
 
-                g_nHeatBedScanStatus = 144;
+                g_nHeatBedScanStatus = 142;
                 g_lastScanTime       = HAL::timeInMilliseconds();
 
 #if DEBUG_HEAT_BED_SCAN == 2
@@ -1776,6 +1822,28 @@ void scanHeatBed( void )
 #endif // DEBUG_HEAT_BED_SCAN == 2
                 break;
             }
+			case 142: // Remeasure inconsistent pressure values to have new clean fence levels
+			{
+				if ((HAL::timeInMilliseconds() - g_lastScanTime) < HEAT_BED_SCAN_DELAY)
+				{
+					// do not check too early
+					break;
+				}
+
+				if (readIdlePressure(&g_nFirstIdlePressure))
+				{
+					// we were unable to determine the idle pressure
+					break;
+				}
+				else
+				{
+					adjustPressureLimits(g_nFirstIdlePressure);
+				}
+				g_nHeatBedScanStatus = 144;
+				g_lastScanTime = HAL::timeInMilliseconds();
+
+				break;
+			}
 
 //############################################################### /ERROR HANDLING
             case 144:
@@ -2050,6 +2118,7 @@ void alignExtruders( void )
     {
 		// show that we are active
 		previousMillisCmd = HAL::timeInMilliseconds(); //prevent inactive shutdown of steppers/temps
+		GCode::keepAlive( Calibrating );
 		
         if( g_nAlignExtrudersStatus != 123 &&
             g_nAlignExtrudersStatus != 125 )
@@ -2290,6 +2359,7 @@ void searchZOScan( void )
 
 	if( g_nZOSScanStatus ) {
 		previousMillisCmd = HAL::timeInMilliseconds(); //prevent inactive shutdown of steppers/temps
+		GCode::keepAlive( Calibrating );
 
 		switch ( g_nZOSScanStatus ) {
             case 1:
@@ -2427,7 +2497,6 @@ void searchZOScan( void )
 
                 // move a bit away from the heat bed in order to achieve better measurements in case of hardware configurations where the extruder is very close to the heat bed after the z-homing
                 UI_STATUS_UPD( UI_TEXT_ZCALIB );
-                GCode::keepAlive( Processing );
                 g_nZOSScanStatus = 4;
                 break;
             }
@@ -2479,14 +2548,12 @@ void searchZOScan( void )
                 Com::printFLN( PSTR( ") [(x,y) Steps]" ) );
 #endif // DEBUG_HEAT_BED_SCAN == 2
                 PrintLine::moveRelativeDistanceInSteps( xScanPosition, yScanPosition, 0, 0, RMath::min(Printer::homingFeedrate[X_AXIS],Printer::homingFeedrate[Y_AXIS]), true, true );
-                GCode::keepAlive( Processing );
                 g_nZOSScanStatus = 6;
                 break;
             }
             case 6:
             {
                 g_scanRetries = 20; //für 9, 10, 20
-                GCode::keepAlive( Processing );
                 g_nZOSScanStatus = 9;
                 break;
             }
@@ -2494,7 +2561,6 @@ void searchZOScan( void )
             case 7: //ab hier bei Fehler:
             {
                 HAL::delayMilliseconds( HEAT_BED_SCAN_DELAY );
-                GCode::keepAlive( Processing );
                 moveZPlusDownFast();
                 g_nZOSScanStatus = 9;
                 break;
@@ -2533,7 +2599,6 @@ void searchZOScan( void )
                     Com::printFLN( PSTR( " g_nMinPressureIdle = " ), g_nMinPressureIdle );
                     Com::printFLN( PSTR( " g_nMaxPressureIdle = " ), g_nMaxPressureIdle );
 #endif // DEBUG_HEAT_BED_SCAN == 2
-                GCode::keepAlive( Processing );
                 g_nZOSScanStatus = 10;
                 break;
             }
@@ -2580,7 +2645,6 @@ void searchZOScan( void )
                     g_retryZScan = 0;
                     g_scanRetries--;
                     Com::printFLN( PSTR( "Bettsuchproblem 10 -> 7 :" ), g_scanRetries );
-                    GCode::keepAlive( Processing );
                     g_nZOSScanStatus = 7;
                     break;
                 }
@@ -2593,7 +2657,6 @@ void searchZOScan( void )
                   break;
                 }
 
-                GCode::keepAlive( Processing );
                 g_nZOSScanStatus = 20;
                 break;
             }
@@ -2629,7 +2692,6 @@ void searchZOScan( void )
                         g_retryZScan = 0;
                         g_scanRetries--;
                         Com::printFLN( PSTR( "Suchproblem 20 -> 7:" ), g_scanRetries );
-                        GCode::keepAlive( Processing );
                         g_nZOSScanStatus = 7;
                         prebreak = true; break;
                       }
@@ -2645,7 +2707,6 @@ void searchZOScan( void )
 
                       // show height
                       Com::printFLN( PSTR( "Z = " ), g_nZScanZPosition * Printer::invAxisStepsPerMM[Z_AXIS],4 );
-                      GCode::keepAlive( Processing );
                 }
                 if(prebreak) break;
                 g_nZOSScanStatus = 50;
@@ -3155,8 +3216,10 @@ void startViscosityTest( int maxdigits = 10000, float maxfeedrate = 5.0f, float 
 
     Com::printFLN( PSTR( ";Testing Filament..." ) );
     Com::printFLN( PSTR( ";Temperature [°C];e [mm/s];digits [1]" ) );
-    if(sd.savetosd) sd.file.writeln_P( PSTR( ";Temperature [°C];e [mm/s];digits [1]" ) );
-
+    if(sd.savetosd){
+		sd.writePSTR( PSTR( ";Temperature [°C];e [mm/s];digits [1]" ) );
+        sd.writePSTR( Com::tNewline );
+	}
     for(float T = (float)StartTemp; T <= EndTemp; ){
         //@Init the Temp is reached by preheat!
         for(float e=0.05; e<=maxfeedrate; e+=incrementfeedrate) { //iterate all points
@@ -3178,12 +3241,14 @@ void startViscosityTest( int maxdigits = 10000, float maxfeedrate = 5.0f, float 
 
             if(sd.savetosd){
                 sd.file.write((uint8_t)';');
-                sd.file.writeFloat(Extruder::current->tempControl.currentTemperatureC, 2, true);
+				/* float -> printField(float value, char term, uint8_t prec = 2) */
+                sd.file.printField(Extruder::current->tempControl.currentTemperatureC, 0, 2);
                 sd.file.write((uint8_t)';');
-                sd.file.writeFloat(e, 3, true);
+                sd.file.printField(e, 0, 3);
                 sd.file.write((uint8_t)';');
-                sd.file.writeFloat(extrudedigits, 0, true);
-                sd.file.write_P(Com::tNewline);
+				/* long -> printField(int32_t value, char term) */
+                sd.file.printField(extrudedigits, 0);
+                sd.writePSTR(Com::tNewline);
             }
 
             if(extrudedigits < g_nCurrentIdlePressure - maxdigits || extrudedigits > g_nCurrentIdlePressure + maxdigits || extrudedigits < -maxdigits || extrudedigits > maxdigits) {
@@ -3637,6 +3702,7 @@ void findZOrigin( void )
     {
 		// show that we are active
 		previousMillisCmd = HAL::timeInMilliseconds(); //prevent inactive shutdown of steppers/temps
+		GCode::keepAlive( Calibrating );
 	
         UI_STATUS_UPD( UI_TEXT_FIND_Z_ORIGIN );
 
@@ -3927,8 +3993,7 @@ void scanWorkPart( void )
         BEEP_ABORT_WORK_PART_SCAN
 
         // restore the compensation values from the EEPROM
-        if( loadCompensationMatrix( 0 ) ) // --> Bei Adresse 0 wird in der Funktion ermittelt welche Adresse passt.
-        {
+        if ( loadCompensationMatrix( (EEPROM_SECTOR_SIZE * 9) + (unsigned int)(EEPROM_SECTOR_SIZE * g_nActiveWorkPart) ) ) {
             // there is no valid compensation matrix available
             initCompensationMatrix();
         }
@@ -3946,6 +4011,7 @@ void scanWorkPart( void )
     {
 		// show that we are active
 		previousMillisCmd = HAL::timeInMilliseconds(); //prevent inactive shutdown of steppers/temps
+		GCode::keepAlive( Calibrating );
 		
         UI_STATUS( UI_TEXT_WORK_PART_SCAN );
 
@@ -5005,7 +5071,7 @@ void moveZPlusDownSlow(uint8_t acuteness)
             Com::printFLN( PSTR( "Z = " ), g_nZScanZPosition*Printer::invAxisStepsPerMM[Z_AXIS] );
             error = true;
         }
-        if( g_nLastZScanZPosition && abs(g_nZScanZPosition - g_nLastZScanZPosition) >
+        else if( g_nLastZScanZPosition && abs(g_nZScanZPosition - g_nLastZScanZPosition) >
                 g_nScanHeatBedDownFastSteps*( 2 + /*nach wiederholungen etwas mehr zulassen. krumme keramik braucht wohl mehr ... */
                                             (g_scanRetries < HEAT_BED_SCAN_RETRIES ? /* nur beachten bei wiederholung */
                                                             (HEAT_BED_SCAN_RETRIES - g_scanRetries <= 2 ? HEAT_BED_SCAN_RETRIES - g_scanRetries : 2) /* nie mehr als 0.2 bzw 2x draufschlagen, das reicht sicher - sonst ist es ein anderer fehler. */
@@ -5015,7 +5081,7 @@ void moveZPlusDownSlow(uint8_t acuteness)
             Com::printFLN( PSTR( "dZ_lastpos = " ), abs(g_nZScanZPosition - g_nLastZScanZPosition)*Printer::invAxisStepsPerMM[Z_AXIS] );
             error = true;
         }
-        if( abs(startScanZPosition - g_nZScanZPosition) > g_nScanHeatBedDownFastSteps*2/acuteness ) {
+        else if( abs(startScanZPosition - g_nZScanZPosition) > g_nScanHeatBedDownFastSteps*2/acuteness ) {
             Com::printFLN( PSTR( "dZ_move = " ), g_nZScanZPosition*Printer::invAxisStepsPerMM[Z_AXIS] );
             error = true;
         }
@@ -5626,6 +5692,12 @@ void saveCompensationMatrix( unsigned int uAddress )
     short           x;
     short           y;
 
+	if (uAddress == 0) {
+		Com::printFLN(PSTR("saveMatrix(): valid uAddress - aborted!"));
+
+		return;
+	}
+
     if( g_ZCompensationMatrix[0][0] && g_uZMatrixMax[X_AXIS] && g_uZMatrixMax[Y_AXIS] ) //valid in RAM means writing ok
     {
         // we have valid compensation values
@@ -5727,8 +5799,78 @@ void saveCompensationMatrix( unsigned int uAddress )
 } // saveCompensationMatrix
 
 
+#if FEATURE_HEAT_BED_Z_COMPENSATION
+bool saveActiveHeatBedToExtEEPROM(char newActiveHeatBed) {
+	if (newActiveHeatBed < 1 || newActiveHeatBed > EEPROM_MAX_HEAT_BED_SECTORS) {
+		return false;
+	}
+
+	char oldActiveHeatBed = (char)readWord24C256(I2C_ADDRESS_EXTERNAL_EEPROM, EEPROM_OFFSET_ACTIVE_HEAT_BED_Z_MATRIX);
+	if (oldActiveHeatBed != newActiveHeatBed) {
+		writeWord24C256(I2C_ADDRESS_EXTERNAL_EEPROM, EEPROM_OFFSET_ACTIVE_HEAT_BED_Z_MATRIX, newActiveHeatBed);
+	}
+
+	return true;
+}
+
+bool loadActiveHeatBedFromExtEEPROM() {
+	char uTemp = (char)readWord24C256(I2C_ADDRESS_EXTERNAL_EEPROM, EEPROM_OFFSET_ACTIVE_HEAT_BED_Z_MATRIX);
+
+	if (uTemp < 1 || uTemp > EEPROM_MAX_HEAT_BED_SECTORS) {
+		Com::printFLN(PSTR("Invalid active heat bed within ext. EEPROM detected: "), (int)uTemp);
+		if (g_nActiveHeatBed < 1 || g_nActiveHeatBed > EEPROM_MAX_HEAT_BED_SECTORS) {
+			g_nActiveHeatBed = 1;
+		}
+		saveActiveHeatBedToExtEEPROM(g_nActiveHeatBed);
+
+		return false;
+	}
+
+	g_nActiveHeatBed = uTemp;
+	return true;
+}
+#endif // FEATURE_HEAT_BED_Z_COMPENSATION
+
+#if FEATURE_WORK_PART_Z_COMPENSATION
+bool saveActiveWorkPartToExtEEPROM(char newActiveWorkPart) {
+	if (newActiveWorkPart < 1 || newActiveWorkPart > EEPROM_MAX_HEAT_BED_SECTORS) {
+		return false;
+	}
+
+	char oldActiveWorkPart = (char)readWord24C256(I2C_ADDRESS_EXTERNAL_EEPROM, EEPROM_OFFSET_ACTIVE_WORK_PART_Z_MATRIX);
+	if (oldActiveWorkPart != newActiveWorkPart) {
+		writeWord24C256(I2C_ADDRESS_EXTERNAL_EEPROM, EEPROM_OFFSET_ACTIVE_WORK_PART_Z_MATRIX, newActiveWorkPart);
+	}
+
+	return true;
+}
+
+bool loadActiveWorkPartFromExtEEPROM() {
+	char uTemp = (char)readWord24C256(I2C_ADDRESS_EXTERNAL_EEPROM, EEPROM_OFFSET_ACTIVE_WORK_PART_Z_MATRIX);
+
+	if (uTemp < 1 || uTemp > EEPROM_MAX_HEAT_BED_SECTORS) {
+		Com::printFLN(PSTR("Invalid active work part within ext. EEPROM detected: "), (int)uTemp);
+		if (g_nActiveWorkPart < 1 || g_nActiveWorkPart > EEPROM_MAX_HEAT_BED_SECTORS) {
+			g_nActiveWorkPart = 1;
+		}
+		saveActiveWorkPartToExtEEPROM(g_nActiveWorkPart);
+
+		return false;
+	}
+
+	g_nActiveWorkPart = uTemp;
+	return true;
+}
+#endif //FEATURE_WORK_PART_Z_COMPENSATION
+
 char loadCompensationMatrix( unsigned int uAddress )
 {
+	if (uAddress == 0) {
+		Com::printFLN(PSTR("loadMatrix(): valid uAddress - aborted!"));
+
+		return -1;
+	}
+
     unsigned short  uTemp;
     unsigned short  uDimensionX;
     unsigned short  uDimensionY;
@@ -5738,15 +5880,13 @@ char loadCompensationMatrix( unsigned int uAddress )
     short           x;
     short           y;
     float           fMicroStepCorrection;
-
-
+	
     Printer::disableCMPnow(true); // vorher, nicht nachher ausschalten, sonst arbeitet unter Umständen die alte matrix.
 
     // check the stored header format
     uTemp = readWord24C256( I2C_ADDRESS_EXTERNAL_EEPROM, EEPROM_OFFSET_HEADER_FORMAT );
 
-    if( uTemp != EEPROM_FORMAT )
-    {
+    if ( uTemp != EEPROM_FORMAT ) {
         if( Printer::debugErrors() )
         {
             Com::printF( PSTR( "loadMatrix(): invalid header format: " ), (int)uTemp );
@@ -5754,64 +5894,6 @@ char loadCompensationMatrix( unsigned int uAddress )
             Com::printFLN( PSTR( ")" ) );
         }
         return -1;
-    }
-
-    if( !uAddress )
-    {
-        // we have to detect the to-be-loaded compensation matrix automatically
-#if FEATURE_MILLING_MODE
-        if( Printer::operatingMode == OPERATING_MODE_PRINT )
-        {
-#endif // FEATURE_MILLING_MODE
- #if FEATURE_HEAT_BED_Z_COMPENSATION
-            // load the currently active heat bed compensation matrix
-            uTemp = readWord24C256( I2C_ADDRESS_EXTERNAL_EEPROM, EEPROM_OFFSET_ACTIVE_HEAT_BED_Z_MATRIX );
-
-            if( uTemp < 1 || uTemp > EEPROM_MAX_HEAT_BED_SECTORS )
-            {
-                if( Printer::debugErrors() )
-                {
-                    Com::printFLN( PSTR( "loadMatrix(): invalid active heat bed z matrix: " ), (int)uTemp );
-                }
-                return -1;
-            }
-
-            g_nActiveHeatBed    = (char)uTemp;
-            uAddress            = (unsigned int)(EEPROM_SECTOR_SIZE * uTemp);
-
-            if( Printer::debugErrors() )
-            {
-                Com::printFLN( PSTR( "loadMatrix(): active heat bed z matrix: " ), (int)g_nActiveHeatBed );
-            }
- #else
-            // we do not support the heat bed compensation
-            return -1;
- #endif // FEATURE_HEAT_BED_Z_COMPENSATION
-#if FEATURE_MILLING_MODE
-        }
-        else
-        {
- #if FEATURE_WORK_PART_Z_COMPENSATION
-            // load the currently active work part compensation matrix
-            uTemp = readWord24C256( I2C_ADDRESS_EXTERNAL_EEPROM, EEPROM_OFFSET_ACTIVE_WORK_PART_Z_MATRIX );
-
-            if( uTemp < 1 || uTemp > EEPROM_MAX_WORK_PART_SECTORS )
-            {
-                if( Printer::debugErrors() )
-                {
-                    Com::printFLN( PSTR( "loadMatrix(): invalid active work part: " ), (int)uTemp );
-                }
-                return -1;
-            }
-
-            g_nActiveWorkPart = (char)uTemp;
-            uAddress          = (EEPROM_SECTOR_SIZE *9) + (unsigned int)(EEPROM_SECTOR_SIZE * uTemp);
- #else
-            // we do not support the work part compensation
-            return -1;
- #endif // FEATURE_WORK_PART_Z_COMPENSATION
-        }
-#endif // FEATURE_MILLING_MODE
     }
 
 #if FEATURE_WORK_PART_Z_COMPENSATION && FEATURE_MILLING_MODE
@@ -6338,12 +6420,6 @@ void handleStrainGaugeFeatures(millis_t uTime){
 }
 
 void handlePauseTime(millis_t uTime){
-	if( g_pauseMode != PAUSE_MODE_NONE )
-    {
-        // show that we are paused
-        GCode::keepAlive( Paused ); //keepAlive limitiert seine Ausführzeit selbst: alle 2s, darunter wird geskipped.
-    }
-
     if( g_uPauseTime )
     {
         if( !g_pauseBeepDone )
@@ -6765,6 +6841,7 @@ void loopFeatures() //wird so aufgerufen, dass es ein ~100ms Takt sein sollte.
     static char     nEntered = 0;
     if( nEntered ) return; // do not enter more than once
     nEntered ++;	
+	
 	millis_t uTime = HAL::timeInMilliseconds();
 	handleStopPrint(uTime);
 	handleStartPrint();
@@ -6933,7 +7010,7 @@ void continuePrint( void )
                  Com::printFLN( PSTR( "LCD re-init") );
                  countplays = 1;
                  showInformation( PSTR(UI_TEXT_MANUAL), PSTR(UI_TEXT_Z_CIRCUIT), PSTR(UI_TEXT_RESET) );
-                 initializeLCD();
+                 uid.initializeLCD();
             }
         }
         return;
@@ -7599,15 +7676,12 @@ void processCommand( GCode* pCommand )
                         break;
                     }
 
-                    // switch to the specified z-compensation matrix
-                    g_nActiveHeatBed = (char)nTemp;
-                    writeWord24C256( I2C_ADDRESS_EXTERNAL_EEPROM, EEPROM_OFFSET_ACTIVE_HEAT_BED_Z_MATRIX, g_nActiveHeatBed );
-                    clearCompensationMatrix( (unsigned int)(EEPROM_SECTOR_SIZE * g_nActiveHeatBed) );
-
-                    if( Printer::debugInfo() )
-                    {
-                        Com::printFLN( PSTR( "M3011: cleared heat bed z matrix: " ), nTemp );
-                    }
+                    if (saveActiveHeatBedToExtEEPROM((char)nTemp)) {
+						// switch to the specified z-compensation matrix
+						g_nActiveHeatBed = (char)nTemp;
+						clearCompensationMatrix( (unsigned int)(EEPROM_SECTOR_SIZE * g_nActiveHeatBed) );
+						Com::printFLN( PSTR( "M3011: cleared heat bed z matrix: " ), nTemp );
+					}
                 }
                 break;
             }
@@ -8876,17 +8950,12 @@ void processCommand( GCode* pCommand )
                         break;
                     }
 
-                    // switch to the specified work part
-                    g_nActiveWorkPart = (char)nTemp;
-                    writeWord24C256( I2C_ADDRESS_EXTERNAL_EEPROM, EEPROM_OFFSET_ACTIVE_WORK_PART_Z_MATRIX, g_nActiveWorkPart );
-                    clearCompensationMatrix( (EEPROM_SECTOR_SIZE *9) + (unsigned int)(EEPROM_SECTOR_SIZE * g_nActiveWorkPart) );
-
-                    if( Printer::debugInfo() )
-                    {
-                        Com::printFLN( PSTR( "M3151: cleared z-compensation matrix: " ), nTemp );
-                    }
-
-                    // TODO: in case the z-compensation is active at the moment, this command should not work
+					if (saveActiveWorkPartToExtEEPROM((char)nTemp)) {
+						// switch to the specified work part
+						g_nActiveWorkPart = (char)nTemp;
+						clearCompensationMatrix((EEPROM_SECTOR_SIZE * 9) + (unsigned int)(EEPROM_SECTOR_SIZE * g_nActiveWorkPart));
+						Com::printFLN(PSTR("M3151: cleared z-compensation matrix: "), nTemp);
+					}
                 }
                 break;
             }
@@ -9321,7 +9390,7 @@ void processCommand( GCode* pCommand )
                         case 13:
                         {
                             Com::printFLN( PSTR( "LCD re-initialization") );
-                            initializeLCD();
+                            uid.initializeLCD();
                         }
 
                         case 14:
@@ -10230,9 +10299,14 @@ void processCommand( GCode* pCommand )
                                 Com::printFLN( PSTR( "M3900/M3901: ERROR in Config ### ZOS SKIPPED ###" ) );
                             }
                             else{
-                                //M3900:
-                                startZOScan(pCommand->hasR()); //mit R im GCode macht der Scan ein Auto-Matrix-Leveling, anstatt die anderen Schalter zu bedienen.
-                                Commands::waitUntilEndOfZOS();
+                                // M3900:
+								// mit R im GCode macht der Scan ein Auto-Matrix-Leveling, anstatt die anderen Schalter zu bedienen.
+                                startZOScan(pCommand->hasR());
+								// Warte bis Z-Offset-Scan beendet wurde.
+                                while( g_nZOSScanStatus )
+								{
+									Commands::checkForPeriodicalActions( Calibrating );
+								}
                             }
                         }
                     }
@@ -10902,29 +10976,6 @@ void processCommand( GCode* pCommand )
             }
 #endif //FEATURE_USER_INT3
 
-#if FEATURE_DEBUG_MOVE_CACHE_TIMING
-            case 3993: // M3993 : gather statistics and output them for optimization of the best LOW_TICKS_PER_MOVE for RFx000 Printers || by Nibbels
-            {
-                Com::printFLN( PSTR( "Output cache statistics for LOW_TICKS_PER_MOVE=" ), int32_t(low_ticks_per_move) );
-                Com::printFLN( PSTR( "Moves:" ), move_cache_stats_count );
-                Com::printFLN( PSTR( "Lowered moves:" ), move_cache_stats_count_limited );
-                for(uint8_t cachepos = 0; cachepos < MOVE_CACHE_SIZE; cachepos++){
-                    Com::printF( PSTR( "MOVE_CACHE " ), cachepos );
-                    Com::printFLN( PSTR( "=" ), move_cache_stats[cachepos] );
-                    move_cache_stats[cachepos] = 0; //delete old stats after output.
-                }
-                move_cache_stats_count = 0;         //delete old stats after output.
-                move_cache_stats_count_limited = 0; //delete old stats after output.
-
-                //set new temporary value to low_ticks_per_move using P
-                //output+delete everything collected and set to standard by "M3993 P300000"
-                if ( pCommand->hasP() ){
-                    low_ticks_per_move = float(constrain( static_cast<int32_t>(pCommand->P), 100000, 2000000 ));
-                }
-                break;
-            }
-#endif //FEATURE_DEBUG_MOVE_CACHE_TIMING
-
 /*
             case 3998: // M3998 : this proofs how to write data to sd
             {
@@ -10933,13 +10984,17 @@ void processCommand( GCode* pCommand )
 
                 sd.startWrite(filename);
                 if(sd.savetosd){
-                    sd.file.writeln_P(PSTR( "[um]" ));
-                    sd.file.write_P(Com::tNewline);
-                    sd.file.write_P(Com::tNewline);
-                    sd.file.writeln_P(PSTR( "AM" ));
-                    sd.file.writeFloat(1.98765f, 3, true);
-                    sd.file.write_P(Com::tNewline);
-                    sd.file.writeFloat((float)234000, 0, true);
+                    sd.writePSTR(PSTR( "[um]" ));
+                    sd.writePSTR(Com::tNewline);
+                    sd.writePSTR(Com::tNewline);
+                    sd.writePSTR(PSTR( "AM" ));
+                    sd.file.printField(1.98765f, 0, 3);
+                    sd.writePSTR(Com::tNewline);
+                    sd.file.printField((float)234000, 0, 0);
+					sd.file.write((uint8_t)';');
+					sd.file.write((uint8_t)';');
+					sd.writePSTR( PSTR( ";Temperature [°C];e [mm/s];digits [1]" ) );
+                    sd.writePSTR(Com::tNewline);
                 }else{
                     Com::printFLN( PSTR( "Write Error" ) );
                 }
@@ -10959,9 +11014,6 @@ void processCommand( GCode* pCommand )
 #endif //FEATURE_READ_CALIPER
         }
     }
-
-    return;
-
 } // processCommand
 
 void queueTask( char task )
@@ -12375,22 +12427,19 @@ void switchOperatingMode( char newOperatingMode )
 
 void switchActiveWorkPart( char newActiveWorkPart )
 {
-    if( newActiveWorkPart < 1 || newActiveWorkPart > EEPROM_MAX_WORK_PART_SECTORS )
+    if( !saveActiveWorkPartToExtEEPROM(newActiveWorkPart) )
     {
         // do not allow not-supported z-compensation matrix
         return;
     }
 
     g_nActiveWorkPart = newActiveWorkPart;
-    writeWord24C256( I2C_ADDRESS_EXTERNAL_EEPROM, EEPROM_OFFSET_ACTIVE_WORK_PART_Z_MATRIX, g_nActiveWorkPart );
 
     if( loadCompensationMatrix( (EEPROM_SECTOR_SIZE *9) + (unsigned int)(EEPROM_SECTOR_SIZE * g_nActiveWorkPart) ) )
     {
         // there is no valid z-compensation matrix available
         initCompensationMatrix();
     }
-    return;
-
 } // switchActiveWorkPart
 
 
@@ -12505,22 +12554,19 @@ void setScanXYEnd( void )
 #if FEATURE_HEAT_BED_Z_COMPENSATION
 void switchActiveHeatBed( char newActiveHeatBed )
 {
-    if( newActiveHeatBed < 1 || newActiveHeatBed > EEPROM_MAX_HEAT_BED_SECTORS )
+    if( !saveActiveHeatBedToExtEEPROM(newActiveHeatBed) )
     {
         // do not allow not-supported z-compensation matrix
         return;
     }
 
     g_nActiveHeatBed = newActiveHeatBed;
-    writeWord24C256( I2C_ADDRESS_EXTERNAL_EEPROM, EEPROM_OFFSET_ACTIVE_HEAT_BED_Z_MATRIX, g_nActiveHeatBed );
 
     if( loadCompensationMatrix( (unsigned int)(EEPROM_SECTOR_SIZE * g_nActiveHeatBed) ) )
     {
         // there is no valid z-compensation matrix available
         initCompensationMatrix();
     }
-    return;
-
 } // switchActiveHeatBed
 #endif // FEATURE_HEAT_BED_Z_COMPENSATION
 
@@ -12794,32 +12840,17 @@ void updateRGBLightStatus( void )
 } // updateRGBLightStatus
 #endif // FEATURE_RGB_LIGHT_EFFECTS
 
-
 void setupForPrinting( void )
 {
     Printer::setSomeTempsensorDefect(false);
 
 #if FEATURE_HEAT_BED_Z_COMPENSATION
-
-    g_nActiveHeatBed = (char)readWord24C256( I2C_ADDRESS_EXTERNAL_EEPROM, EEPROM_OFFSET_ACTIVE_HEAT_BED_Z_MATRIX );
-
-    if( g_nActiveHeatBed < 1 || g_nActiveHeatBed > EEPROM_MAX_HEAT_BED_SECTORS )
-    {
-        if( Printer::debugErrors() )
-        {
-            Com::printFLN( PSTR( "setupForPrinting(): invalid active heat bed z matrix detected: " ), (int)g_nActiveHeatBed );
-        }
-
-        // continue with the default heat bed z matrix
-        g_nActiveHeatBed = 1;
-    }
-
+	loadActiveHeatBedFromExtEEPROM();
     if( g_ZCompensationMatrix[0][0] != EEPROM_FORMAT )
     {
         // we load the z compensation matrix before its first usage because this can take some time
         prepareZCompensation();
     }
-
 #endif // FEATURE_HEAT_BED_Z_COMPENSATION
 
 #if EEPROM_MODE
@@ -12864,28 +12895,13 @@ void setupForPrinting( void )
 
 void setupForMilling( void )
 {
-
 #if FEATURE_WORK_PART_Z_COMPENSATION
-
-    g_nActiveWorkPart = (char)readWord24C256( I2C_ADDRESS_EXTERNAL_EEPROM, EEPROM_OFFSET_ACTIVE_WORK_PART_Z_MATRIX );
-
-    if( g_nActiveWorkPart < 1 || g_nActiveWorkPart > EEPROM_MAX_WORK_PART_SECTORS )
-    {
-        if( Printer::debugErrors() )
-        {
-            Com::printFLN( PSTR( "setupForMilling(): invalid active work part detected: " ), (int)g_nActiveWorkPart );
-        }
-
-        // continue with the default work part
-        g_nActiveWorkPart = 1;
-    }
-
+	loadActiveWorkPartFromExtEEPROM();
     if( g_ZCompensationMatrix[0][0] != EEPROM_FORMAT )
     {
         // we load the z compensation matrix before its first usage because this can take some time
         prepareZCompensation();
     }
-
 #endif // FEATURE_WORK_PART_Z_COMPENSATION
 
 #if EEPROM_MODE

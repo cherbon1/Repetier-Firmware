@@ -19,36 +19,6 @@
 #ifndef UI_CONFIG_H
 #define UI_CONFIG_H
 
-
-/** While the ascii chars are all the same, the driver have different charsets
-for special chars used in different countries. The charset allows to fix for
-this problem. If characters look wrong, try a different charset. If nothing
-works, use the ascii charset 0 as fallback. Not the nicest for everything but working!
-
-0 = ASCII fallback
-1 = Default works on most displays. This has some japanese chars in charset
-2 = Alternative charset with more european chars
-
-*/
-//#define UI_DISPLAY_CHARSET 2
-
-/** Select type of beeper
-0 = none
-1 = Piezo connected to pin
-2 = Piezo connected to a pin over I2C
-*/
-#ifndef BEEPER_TYPE
-#define BEEPER_TYPE             1
-#define BEEPER_TYPE_INVERTING   false
-#endif // BEEPER_TYPE
-
-#if BEEPER_TYPE==2
-#define BEEPER_ADDRESS  0x40    // I2C address of the chip with the beeper pin
-#define BEEPER_PIN      _BV(7)  // Bit value for pin 8
-#define COMPILE_I2C_DRIVER      // We need the I2C driver as we are using i2c
-#endif // BEEPER_TYPE==2
-
-
 /* What type of chip is used for I2C communication
 0 : PCF8574 or PCF8574A or compatible chips.
 1 : MCP23017
@@ -73,10 +43,6 @@ works, use the ascii charset 0 as fallback. Not the nicest for everything but wo
 /* How fast should the I2C clock go. The PCF8574 work only with the lowest setting 100000.
 A MCP23017 can run also with 400000 Hz */
 #define UI_I2C_CLOCKSPEED                   100000L
-
-
-/** Uncomment this, if you have keys connected via i2c to a PCF8574 chip. */
-//#define UI_HAS_I2C_KEYS
 
 // Under which address can the key status requested. This is the address of your PCF8574 where the keys are connected.
 // If you use a MCP23017 the address from display is used also for keys.

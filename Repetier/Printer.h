@@ -70,8 +70,8 @@ public:
 #if FEATURE_MILLING_MODE
     static short            max_milling_all_axis_acceleration;
 #endif // FEATURE_MILLING_MODE
-    static unsigned long    maxPrintAccelerationStepsPerSquareSecond[];
-    static unsigned long    maxTravelAccelerationStepsPerSquareSecond[];
+    static uint32_t         maxPrintAccelerationStepsPerSquareSecond[];
+    static uint32_t         maxTravelAccelerationStepsPerSquareSecond[];
     static uint8_t          relativeCoordinateMode;             // Determines absolute (false) or relative Coordinates (true).
     static uint8_t          relativeExtruderCoordinateMode;     // Determines Absolute or Relative E Codes while in Absolute Coordinates mode. E is always relative in Relative Coordinates mode.
     static uint8_t          unitIsInches;
@@ -81,7 +81,7 @@ public:
     static uint8_t          flag2;
     static uint8_t          flag3;
     static uint8_t          stepsPerTimerCall;
-    static uint16_t         stepsDoublerFrequency;
+    static uint16_t         stepsPackingMinInterval;
     static volatile unsigned long interval;                     // Last step duration in ticks.
     static volatile float   v;                                  // Last planned printer speed.
     static unsigned long    timer;                              // used for acceleration/deceleration timing

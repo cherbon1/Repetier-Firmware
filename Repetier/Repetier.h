@@ -121,18 +121,10 @@ extern volatile uint    osAnalogInputValues[ANALOG_INPUTS];
 extern uint8_t          pwm_pos[NUM_EXTRUDER+3]; // 0-NUM_EXTRUDER = Heater 0-NUM_EXTRUDER of extruder, NUM_EXTRUDER = Heated bed, NUM_EXTRUDER+1 Board fan, NUM_EXTRUDER+2 = Fan
 extern uint8_t          fanSpeed; //remember user input fan speed at a 0..255 scale.
 
-#if FEATURE_DEBUG_MOVE_CACHE_TIMING
-extern float            low_ticks_per_move;
-extern uint32_t         move_cache_stats[MOVE_CACHE_SIZE];
-extern uint32_t         move_cache_stats_count;
-extern uint32_t         move_cache_stats_count_limited;
-#endif //FEATURE_DEBUG_MOVE_CACHE_TIMING
-
 #if USE_ADVANCE
 #ifdef ENABLE_QUADRATIC_ADVANCE
 extern int              maxadv;
 #endif // ENABLE_QUADRATIC_ADVANCE
-
 extern int              maxadv2;
 extern float            maxadvspeed;
 #endif // USE_ADVANCE
@@ -152,7 +144,6 @@ extern void drv8711Init();
 #include "Printer.h"
 #include "motion.h"
 
-
 extern long baudrate;
 
 extern volatile uint8_t     execute100msPeriodical;
@@ -164,19 +155,22 @@ extern volatile uint8_t     execute10msPeriodical;
 extern uint8_t fanKickstart;
 #endif // FAN_PIN>-1 && FEATURE_FAN_CONTROL
 
+// Delay filament relax at the end of print, could be a simple timeout
+extern volatile int         waitRelax;
+
+extern void updateStepsParameter(PrintLine *p);
+
+#if SDSUPPORT
 extern char                 tempLongFilename[LONG_FILENAME_LENGTH+1];
 extern char                 fullName[LONG_FILENAME_LENGTH*SD_MAX_FOLDER_DEPTH+SD_MAX_FOLDER_DEPTH+1];
-#if SDSUPPORT
 #include "src/SdFat/SdFat.h"
+
 inline void memcopy2(void *dest,void *source) {
     *((int16_t*)dest) = *((int16_t*)source);
 }
 inline void memcopy4(void *dest,void *source) {
     *((int32_t*)dest) = *((int32_t*)source);
 }
-#define SHORT_FILENAME_LENGTH 14
-
-enum LsAction {LS_SerialPrint,LS_Count,LS_GetFilename};
 
 class SDCard
 {
@@ -213,6 +207,7 @@ public:
     void startWrite(char *filename);
     void deleteFile(char *filename);
     void finishWrite();
+	void writePSTR(FSTRINGPARAM(str));
     char *createFilename(char *buffer,const dir_t &p);
     void makeDirectory(char *filename);
     bool showFilename(const uint8_t *name);
@@ -223,16 +218,7 @@ private:
 };
 
 extern SDCard sd;
-
-extern SDCard sd;
 #endif // SDSUPPORT
-
-extern volatile int waitRelax; // Delay filament relax at the end of print, could be a simple timeout
-
-extern void updateStepsParameter(PrintLine *p);
-
-#define STR(s)      #s
-#define XSTR(s)     STR(s)
 
 #include "Commands.h"
 #include "Eeprom.h"

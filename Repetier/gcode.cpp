@@ -163,6 +163,10 @@ void GCode::keepAlive( enum FirmwareState state )
         {
             Com::printFLN( PSTR( "busy: heating" ) );
         }
+        else if( state == Calibrating )
+        {
+            Com::printFLN( PSTR( "busy: calibration" ) );
+        }
         else
         {
             // processing and uncaught cases
