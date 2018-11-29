@@ -40,7 +40,6 @@
 
 // On board beeper, so define values already here
 #define BEEPER_PIN              23
-#define BEEPER_TYPE              1
 #define SDCARDDETECT            -1
 
 // digital pin mappings
@@ -299,7 +298,6 @@
 // On board beeper, so define values already here
 #define BEEPER_PIN               5
 // PINE.3,  5, BUZ1
-#define BEEPER_TYPE              1
 #define SDCARDDETECT            19
 // PIND.2, 45, CARD
 
@@ -544,7 +542,6 @@
 // On board beeper, so define values already here
 // PINE.3,  5, BUZ1
 #define BEEPER_PIN		 		 5
-#define BEEPER_TYPE			     1
 // PIND.2, 45, CARD
 #define SDCARDDETECT			19
 

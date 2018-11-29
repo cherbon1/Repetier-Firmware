@@ -16,7 +16,7 @@
 */
 
 
-#if !defined(UI_MENU_H) && defined(UI_MAIN)
+#if !defined(UI_MENU_H)
 #define UI_MENU_H
 
 /*
@@ -127,7 +127,7 @@ List of placeholder:
 %Xl : Advance L value
 %Xb : E0 Advance L value
 %Xc : E1 Advance L value
-%Xg : Printer::stepsDoublerFrequency
+%Xg : Printer::stepsPackingMinInterval
 %Xf : Extruder max. start feedrate
 %XF : Extruder max. feedrate
 %XA : Extruder max. acceleration
@@ -289,7 +289,7 @@ for 2 row displays. You can add additional pages or change the default pages lik
                                 )
     #else
         UI_PAGE4(ui_page_mod2,  "Layer Height: %LHmm",
-                                "Speed:    %ovmm/s",
+                                "Speed:%op %ovmm/s",
                                 "zCMP: %Lm..%LM mm",   /*7+5+4*/
                                 "eCMP: %LP%%%@Z:%LC" /*6+LP%5+"@Z:"3+6:*/
                                 )
@@ -742,8 +742,8 @@ UI_MENU_SUBMENU_FILTER(ui_menu_conf_fan, UI_TEXT_FAN_CONF_MENU, ui_menu_settings
   #define UI_MOUNT_CNT 2
   #define UI_MOUNT_CMD ,&ui_menu_sd_mount,&ui_menu_sd_unmount
  #endif // (SDCARDDETECT) && SDCARDDETECT>-1
-//UI_MENU_ACTIONCOMMAND_FILTER(ui_menu_sd_delete,UI_TEXT_DELETE_FILE,UI_ACTION_SD_DELETE,MENU_MODE_SD_MOUNTED, MENU_MODE_SD_PRINTING | MENU_MODE_PAUSED)
- #define UI_MENU_SD {UI_MENU_ADDCONDBACK &ui_menu_sd_print_file,&ui_menu_sd_mill_file,&ui_menu_sd_pause_print,&ui_menu_sd_pause_mill,&ui_menu_sd_stop_print,&ui_menu_sd_stop_mill,&ui_menu_sd_continue_print,&ui_menu_sd_continue_mill /*,&ui_menu_sd_delete*/ UI_MOUNT_CMD}
+
+ #define UI_MENU_SD {UI_MENU_ADDCONDBACK &ui_menu_sd_print_file,&ui_menu_sd_mill_file,&ui_menu_sd_pause_print,&ui_menu_sd_pause_mill,&ui_menu_sd_stop_print,&ui_menu_sd_stop_mill,&ui_menu_sd_continue_print,&ui_menu_sd_continue_mill UI_MOUNT_CMD}
  UI_MENU(ui_menu_sd,UI_MENU_SD,UI_MENU_BACKCNT+8/*+1*/+UI_MOUNT_CNT)
  UI_MENU_SUBMENU_FILTER(ui_menu_sd_sub,UI_TEXT_SD_CARD,ui_menu_sd,0, MENU_MODE_PRINTING)
 
@@ -1056,7 +1056,7 @@ UI_MENU_CHANGEACTION_FILTER(ui_menu_advanceL_e0,  UI_TEXT_EXTR_ADVANCE_L_E0, UI_
  #define UI_MENU_MOTOR_E1_COUNT 0
 #endif //NUM_EXTRUDER>1
 
-UI_MENU_CHANGEACTION(ui_menu_freq_dbl,UI_TEXT_FREQ_DBL,UI_ACTION_FREQ_DBL)
+UI_MENU_CHANGEACTION(ui_menu_freq_dbl,UI_TEXT_FREQ_DBL,UI_ACTION_SHIFT_INTERVAL)
 #define UI_MENU_FREQ_DBL_COND   ,&ui_menu_freq_dbl
 #define UI_MENU_FREQ_DBL_COUNT 1
 

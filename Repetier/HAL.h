@@ -290,7 +290,7 @@ public:
     {
         // r14/r15 remainder
         // r16 counter
-        __asm__ __volatile__ (
+        __asm volatile (
             "clr r14 \n\t"
             "sub r15,r15 \n\t"
             "tst %D0 \n\t"
@@ -374,7 +374,7 @@ public:
         long res;
 
 
-        __asm__ __volatile__ ( // 15 Ticks
+		__asm volatile ( // 15 Ticks
             "mul %A1,%A1 \n\t"
             "movw %A0,r0 \n\t"
             "mul %B1,%B1 \n\t"
@@ -401,7 +401,7 @@ public:
 
 
         // 38 Ticks
-        __asm__ __volatile__ ( // 0 = res, 1 = timer, 2 = accel %D2=0 ,%A1 are unused is free
+        __asm volatile ( // 0 = res, 1 = timer, 2 = accel %D2=0 ,%A1 are unused is free
             // Result LSB first: %A0, %B0, %A1
             "mul %B1,%A2 \n\t"
             "mov %A0,r1 \n\t"
@@ -448,7 +448,7 @@ public:
 
 
         // 18 Ticks = 1.125 us
-        __asm__ __volatile__ ( // 0 = res, 1 = timer, 2 = accel %D2=0 ,%A1 are unused is free
+        __asm volatile ( // 0 = res, 1 = timer, 2 = accel %D2=0 ,%A1 are unused is free
             // Result LSB first: %A0, %B0, %A1
             "clr r18 \n\t"
             "mul %B2,%B1 \n\t" // mul hig bytes
@@ -479,7 +479,7 @@ public:
 
 
         // 18 Ticks = 1.125 us
-        __asm__ __volatile__ ( // 0 = res, 1 = timer, 2 = accel %D2=0 ,%A1 are unused is free
+        __asm volatile ( // 0 = res, 1 = timer, 2 = accel %D2=0 ,%A1 are unused is free
             // Result LSB first: %A0, %B0, %A1
             "clr r18 \n\t"
             "mul %B2,%B1 \n\t" // mul hig bytes
@@ -547,7 +547,7 @@ public:
     static inline void eprSetByte(unsigned int pos,uint8_t value)
     {
         uint8_t oldval = eprGetByte(pos);
-        if(oldval != value) eeprom_write_byte((unsigned char *)(EEPROM_OFFSET+pos), value);
+        if(oldval != value) eeprom_write_byte((uint8_t *)(EEPROM_OFFSET+pos), value);
 
     } // eprSetByte
 
@@ -574,7 +574,7 @@ public:
 
     static inline uint8_t eprGetByte(unsigned int pos)
     {
-        return eeprom_read_byte ((unsigned char *)(EEPROM_OFFSET+pos));
+        return eeprom_read_byte ((uint8_t *)(EEPROM_OFFSET+pos));
 
     } // eprGetByte
 

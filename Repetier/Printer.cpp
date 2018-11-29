@@ -39,9 +39,9 @@ short           Printer::max_milling_all_axis_acceleration = MILLER_ACCELERATION
 #endif // FEATURE_MILLING_MODE
 
 /** Acceleration in steps/s^2 in printing mode.*/
-unsigned long   Printer::maxPrintAccelerationStepsPerSquareSecond[4];
+uint32_t        Printer::maxPrintAccelerationStepsPerSquareSecond[4];
 /** Acceleration in steps/s^2 in movement mode.*/
-unsigned long   Printer::maxTravelAccelerationStepsPerSquareSecond[4];
+uint32_t        Printer::maxTravelAccelerationStepsPerSquareSecond[4];
 
 uint8_t         Printer::relativeCoordinateMode = false;                ///< Determines absolute (false) or relative Coordinates (true).
 uint8_t         Printer::relativeExtruderCoordinateMode = false;        ///< Determines Absolute or Relative E Codes while in Absolute Coordinates mode. E is always relative in Relative Coordinates mode.
@@ -63,7 +63,7 @@ uint8_t         Printer::debugLevel = 6; ///< Bitfield defining debug output. 1 
 #endif // ALLOW_EXTENDED_COMMUNICATION < 2
 
 uint8_t         Printer::stepsPerTimerCall = 1;
-uint16_t        Printer::stepsDoublerFrequency = STEP_DOUBLER_FREQUENCY;
+uint16_t        Printer::stepsPackingMinInterval = STEP_PACKING_MIN_INTERVAL;
 uint8_t         Printer::menuMode = 0;
 
 volatile unsigned long   Printer::interval;                             ///< Last step duration in ticks.
@@ -296,26 +296,26 @@ void Printer::updateDerivedParameter()
     if(backlashZ!=0) backlashDir |= 32;
 #endif // ENABLE_BACKLASH_COMPENSATION
 
-    for(uint8_t i = 0; i < 4; i++)
+    for(uint8_t axis = 0; axis < 4; axis++)
     {
-        invAxisStepsPerMM[i] = 1.0f / axisStepsPerMM[i];
+        invAxisStepsPerMM[axis] = 1.0f / axisStepsPerMM[axis];
 
 #if FEATURE_MILLING_MODE
         if( Printer::operatingMode == OPERATING_MODE_PRINT )
         {
 #endif // FEATURE_MILLING_MODE
             /** Acceleration in steps/s^2 in printing mode.*/
-            maxPrintAccelerationStepsPerSquareSecond[i] = maxAccelerationMMPerSquareSecond[i] * axisStepsPerMM[i];
+            maxPrintAccelerationStepsPerSquareSecond[axis] = uint32_t(maxAccelerationMMPerSquareSecond[axis] * axisStepsPerMM[axis]);
             /** Acceleration in steps/s^2 in movement mode.*/
-            maxTravelAccelerationStepsPerSquareSecond[i] = maxTravelAccelerationMMPerSquareSecond[i] * axisStepsPerMM[i];
+            maxTravelAccelerationStepsPerSquareSecond[axis] = uint32_t(maxTravelAccelerationMMPerSquareSecond[axis] * axisStepsPerMM[axis]);
 #if FEATURE_MILLING_MODE
         }
         else
         {
             /** Acceleration in steps/s^2 in milling mode.*/
-            maxPrintAccelerationStepsPerSquareSecond[i] = MILLER_ACCELERATION * axisStepsPerMM[i];
+            maxPrintAccelerationStepsPerSquareSecond[axis] = uint32_t(MILLER_ACCELERATION * axisStepsPerMM[axis]);
             /** Acceleration in steps/s^2 in milling-movement mode.*/
-            maxTravelAccelerationStepsPerSquareSecond[i] = MILLER_ACCELERATION * axisStepsPerMM[i];
+            maxTravelAccelerationStepsPerSquareSecond[axis] = uint32_t(MILLER_ACCELERATION * axisStepsPerMM[axis]);
         }
 #endif  // FEATURE_MILLING_MODE
     }
@@ -1138,20 +1138,6 @@ void Printer::setup()
     sd.mount(true /* Silent mount because otherwise RF1000 prints errors if no sdcard is present at boottime*/);
 #endif // SDSUPPORT
 
-    g_nActiveHeatBed = (char)readWord24C256( I2C_ADDRESS_EXTERNAL_EEPROM, EEPROM_OFFSET_ACTIVE_HEAT_BED_Z_MATRIX );
-#if FEATURE_MILLING_MODE
-    g_nActiveWorkPart = (char)readWord24C256( I2C_ADDRESS_EXTERNAL_EEPROM, EEPROM_OFFSET_ACTIVE_WORK_PART_Z_MATRIX );
-#endif // FEATURE_MILLING_MODE
-
-    if (Printer::ZMode == Z_VALUE_MODE_SURFACE)
-    {
-        if( g_ZCompensationMatrix[0][0] != EEPROM_FORMAT )
-        {
-            // we load the z compensation matrix
-            prepareZCompensation();
-        }
-    }
-
 #if FEATURE_RGB_LIGHT_EFFECTS
     setRGBLEDs( 0, 0, 0 );
 
@@ -1510,12 +1496,19 @@ int8_t Printer::checkHome(int8_t axis) //X_AXIS 0, Y_AXIS 1, Z_AXIS 2
     //set stepper direction as homing direction
     Printer::changeAxisDirection( axis, nHomeDir );
 
+	//previous motion state:
+	long oldCurrentSteps;
+	if (axis == Z_AXIS) oldCurrentSteps = Printer::currentZSteps; //zählt hoch und runter. alternativ achsen-kosys wie bei x und y, aber wegen zcompensation problematisch, weil verzerrt (??-> noch nicht fertig durchdacht).
+	else                oldCurrentSteps = Printer::queuePositionCurrentSteps[axis] + Printer::directPositionCurrentSteps[axis];
+	//write previous motion state to log
+	Com::printFLN(PSTR("Current position steps="), oldCurrentSteps);
+
     //drive axis towards endstop:
-    long Didsteps = 0;
+    long returnSteps = 0;
     bool finish = false;
     int mmLoops = Printer::axisStepsPerMM[axis]; //fahre in mm-Blöcken.
 
-    while(1){
+    while (1) {
         Commands::checkForPeriodicalActions( Calibrating );
 
         for( int i=0; i < mmLoops; i++ )
@@ -1524,10 +1517,10 @@ int8_t Printer::checkHome(int8_t axis) //X_AXIS 0, Y_AXIS 1, Z_AXIS 2
             if( Printer::anyEndstop(axis) ){
                 finish = true;
             }else{
-                Didsteps += nHomeDir;
+                returnSteps += nHomeDir;
             }
             //verbot unendlich weiterzufahren, wenn endstop kaputt
-            if( abs(Didsteps) > abs(Printer::maxSteps[axis] - Printer::minSteps[axis])*110/100 ) finish = true;
+            if( abs(returnSteps) > abs(Printer::maxSteps[axis] - Printer::minSteps[axis])*110/100 ) finish = true;
 
             if(finish) break;
         }
@@ -1535,10 +1528,9 @@ int8_t Printer::checkHome(int8_t axis) //X_AXIS 0, Y_AXIS 1, Z_AXIS 2
     }
 
     //steps to log
-    Com::printFLN( PSTR( "didsteps=" ), Didsteps );
-    Com::printFLN( PSTR( "wassteps=" ), (Printer::queuePositionCurrentSteps[axis] + Printer::directPositionCurrentSteps[axis]) );
+    Com::printFLN( PSTR("Return steps="), returnSteps );
 
-    Com::printFLN( PSTR( "recheck endstop:" ) );
+    Com::printFLN( PSTR("Recheck endstop:") );
     //check ob endstop da (oder defekt oder nicht erreicht: return)
     if (!Printer::anyEndstop(axis)) return -1;
 
@@ -1552,7 +1544,7 @@ int8_t Printer::checkHome(int8_t axis) //X_AXIS 0, Y_AXIS 1, Z_AXIS 2
         if(!Printer::anyEndstop(axis)){
             finish = true;
         }else{
-            Didsteps += -1*nHomeDir;
+            returnSteps += -1*nHomeDir;
         }
         if(finish) break;
     }
@@ -1561,7 +1553,7 @@ int8_t Printer::checkHome(int8_t axis) //X_AXIS 0, Y_AXIS 1, Z_AXIS 2
     if ( Printer::anyEndstop(axis) ) return -1;
 
     //merke schalter-aus-punkt für hysteresemessung:
-    long hysterese = Didsteps;
+    long hysterese = returnSteps;
 
     //Neu und langsamer in den Schalter fahren:
     //change stepper direction to drive against homing direction
@@ -1573,35 +1565,35 @@ int8_t Printer::checkHome(int8_t axis) //X_AXIS 0, Y_AXIS 1, Z_AXIS 2
         if(Printer::anyEndstop(axis)){
             finish = true;
         }else{
-            Didsteps += nHomeDir;
+            returnSteps += nHomeDir;
         }
         if(finish) break;
     }
     //check ob endstop nach 1mm immernoch nicht gedrückt:
     if ( !Printer::anyEndstop(axis) ) return -1;
 
-    hysterese -= Didsteps;
+    hysterese -= returnSteps;
     Com::printFLN( PSTR( "aus-ein-hysterese=" ), hysterese );
 
     //check ob steps verloren gehen:
     long delta;
     if(axis == Z_AXIS) delta = Printer::currentZSteps; //zählt hoch und runter. alternativ achsen-kosys wie bei x und y, aber wegen zcompensation problematisch, weil verzerrt (??-> noch nicht fertig durchdacht).
-    else               delta = Printer::queuePositionCurrentSteps[axis] + Printer::directPositionCurrentSteps[axis] + Didsteps;
+    else               delta = Printer::queuePositionCurrentSteps[axis] + Printer::directPositionCurrentSteps[axis] + returnSteps;
 
-    Com::printFLN( PSTR( "delta=" ), delta );
+    Com::printFLN( PSTR( "Steps delta=" ), delta );
 
     //fahre zurück an Startpunkt:
     Printer::changeAxisDirection( axis, -1*nHomeDir );
 
-    Didsteps = abs(Didsteps);
-    while(Didsteps > 0){
+    returnSteps = abs(returnSteps);
+    while(returnSteps > 0){
         Commands::checkForPeriodicalActions( Calibrating );
 
-        if(Didsteps >= mmLoops){
-            Didsteps -= mmLoops;
+        if(returnSteps >= mmLoops){
+            returnSteps -= mmLoops;
         }else{
-            mmLoops = Didsteps;
-            Didsteps = 0;
+            mmLoops = returnSteps;
+            returnSteps = 0;
         }
 
         for( int i=0; i < mmLoops; i++ )
@@ -2060,9 +2052,9 @@ void Printer::performZCompensation( void )
         //Insert little wait if next Z step might follow now.
         if( isDirectOrQueueOrCompZMove() )
         {
-#if STEPPER_HIGH_DELAY+DOUBLE_STEP_DELAY>0
-            HAL::delayMicroseconds(STEPPER_HIGH_DELAY+DOUBLE_STEP_DELAY);
-#endif // STEPPER_HIGH_DELAY+DOUBLE_STEP_DELAY>0
+#if STEPPER_HIGH_DELAY+MULTI_STEP_DELAY>0
+            HAL::delayMicroseconds(STEPPER_HIGH_DELAY+MULTI_STEP_DELAY);
+#endif // STEPPER_HIGH_DELAY+MULTI_STEP_DELAY>0
             return;
         }
         else if( compensatedPositionCurrentStepsZ == compensatedPositionTargetStepsZ /* && not isDirectOrQueueOrCompZMove() */ ) stepperDirection[Z_AXIS] = 0; //-> Ich glaube, das brauchen wir hier nicht, wenn der DirectMove sauber abschließt. Hier wird nur reingeschummelt wenn ein DirectMove läuft.
@@ -2183,7 +2175,7 @@ void Printer::stopPrint() //function for aborting USB and SD-Prints
 extern void ui_check_keys(int &action);
 bool Printer::checkAbortKeys( void ){
     int16_t activeKeys = 0;
-    ui_check_keys(activeKeys);
+    uid.ui_check_keys(activeKeys);
     if(activeKeys == UI_ACTION_OK || activeKeys == UI_ACTION_BACK){
         return true;
     }
@@ -2193,7 +2185,7 @@ bool Printer::checkAbortKeys( void ){
 bool Printer::checkPlayKey( void ){
     if(g_pauseMode == PAUSE_MODE_NONE){
         int16_t activeKeys = 0;
-        ui_check_keys(activeKeys);
+		uid.ui_check_keys(activeKeys);
         if(activeKeys == UI_ACTION_RF_CONTINUE){
             return true;
         }

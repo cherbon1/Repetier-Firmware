@@ -1347,14 +1347,14 @@ void Commands::executeGCode(GCode *com)
                 break;
             }
 
-#if BEEPER_TYPE>0
+#if FEATURE_BEEPER
             case 120:   // M120 - Test beeper function
             {
                 if(com->hasS() && com->hasP())
                     beep(com->S,com->P); // Beep test
                 break;
             }
-#endif // BEEPER_TYPE>0
+#endif // FEATURE_BEEPER
 
             case 201:   // M201
             {
