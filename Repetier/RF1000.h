@@ -849,54 +849,8 @@ This value must be high enough, that the buffer has time to fill up. The problem
 if you are printing many very short segments at high speed.*/
 #define LOW_TICKS_PER_MOVE                  250000
 
-
 //For configuration of speed vs. cpu RF_MICRO_STEPS_ @ CONFIGURATION.h as well!
 
-// ##########################################################################################
-// ##   Acceleration settings
-// ##########################################################################################
-
-// RF2000: Tests haben gezeigt, dass x-y-acceleration unter 2000 oder unter 1500 das Teil ziemlich gut aussieht.
-
-/** \brief X, Y, Z max acceleration in mm/s^2 for printing moves or retracts. Make sure your printer can go that high!
- Overridden if EEPROM activated. */
-#define MAX_ACCELERATION_UNITS_PER_SQ_SECOND_X                  1500
-#define MAX_ACCELERATION_UNITS_PER_SQ_SECOND_Y                  1500
-#define MAX_ACCELERATION_UNITS_PER_SQ_SECOND_Z                  100
-
-/** \brief X, Y, Z max acceleration in mm/s^2 for travel moves.  Overridden if EEPROM activated.*/
-#define MAX_TRAVEL_ACCELERATION_UNITS_PER_SQ_SECOND_X           1500
-#define MAX_TRAVEL_ACCELERATION_UNITS_PER_SQ_SECOND_Y           1500
-#define MAX_TRAVEL_ACCELERATION_UNITS_PER_SQ_SECOND_Z           100
-
-/** \brief Maximum allowable jerk.
-Caution: This is no real jerk in a physical meaning.
-The jerk determines your start speed and the maximum speed at the join of two segments.
-Its unit is mm/s. If the printer is standing still, the start speed is jerk/2. At the
-join of two segments, the speed difference is limited to the jerk value.
-
-Examples:
-For all examples jerk is assumed as 40.
-
-Segment 1: vx = 50, vy = 0
-Segment 2: vx = 0, vy = 50
-v_diff = sqrt((50-0)^2+(0-50)^2) = 70.71
-v_diff > jerk => vx_1 = vy_2 = jerk/v_diff*vx_1 = 40/70.71*50 = 28.3 mm/s at the join
-
-Segment 1: vx = 50, vy = 0
-Segment 2: vx = 35.36, vy = 35.36
-v_diff = sqrt((50-35.36)^2+(0-35.36)^2) = 38.27 < jerk
-Corner can be printed with full speed of 50 mm/s
-
-Overridden if EEPROM activated. */
-#define MAX_JERK                            13.5                 //std: 20, aber RFx000 sieht zwischen ca. 7 und 18 am besten aus: Renkforce sagt 10
-#define MAX_ZJERK                           0.3                  //std: 0.3
-
-//that will slowdown if you have sever direction changes in a short distance which is nearly the same as adding several jerks in a short sequence.
-#define REDUCE_ON_SMALL_SEGMENTS            1
-#define MAX_JERK_DISTANCE                   0.6
-//for a more logical jerk computation.
-#define ALTERNATIVE_JERK                    1
 
 // ##########################################################################################
 // ##   Extruder control

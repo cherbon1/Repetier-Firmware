@@ -862,7 +862,7 @@ Speed from 100 to 200
 
 inline void PrintLine::computeMaxJunctionSpeed(PrintLine *previous,PrintLine *current)
 {
-    // if we are here we have to identical move types
+    // if we are here we have two identical move types
     // either pure extrusion -> pure extrusion or
     // move -> move (with or without extrusion)
     // First we compute the normalized jerk for speed 1

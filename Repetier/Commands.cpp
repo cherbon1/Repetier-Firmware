@@ -1362,9 +1362,9 @@ void Commands::executeGCode(GCode *com)
                 if( Printer::operatingMode == OPERATING_MODE_PRINT )
                 {
 #endif // FEATURE_MILLING_MODE
-                    if(com->hasX()) Printer::maxAccelerationMMPerSquareSecond[X_AXIS] = com->X;
-                    if(com->hasY()) Printer::maxAccelerationMMPerSquareSecond[Y_AXIS] = com->Y;
-                    if(com->hasZ()) Printer::maxAccelerationMMPerSquareSecond[Z_AXIS] = com->Z;
+                    if(com->hasX()) Printer::maxAccelerationMMPerSquareSecond[X_AXIS] = constrain(com->X, ACCELERATION_MIN_XY, ACCELERATION_MAX_XY);
+                    if(com->hasY()) Printer::maxAccelerationMMPerSquareSecond[Y_AXIS] = constrain(com->Y, ACCELERATION_MIN_XY, ACCELERATION_MAX_XY);
+                    if(com->hasZ()) Printer::maxAccelerationMMPerSquareSecond[Z_AXIS] = constrain(com->Z, ACCELERATION_MIN_Z, ACCELERATION_MAX_Z);
                     if(com->hasE()) Printer::maxAccelerationMMPerSquareSecond[E_AXIS] = com->E;
                     Printer::updateDerivedParameter();
 #if FEATURE_MILLING_MODE
@@ -1378,9 +1378,9 @@ void Commands::executeGCode(GCode *com)
                 if( Printer::operatingMode == OPERATING_MODE_PRINT )
                 {
 #endif // FEATURE_MILLING_MODE
-                    if(com->hasX()) Printer::maxTravelAccelerationMMPerSquareSecond[X_AXIS] = com->X;
-                    if(com->hasY()) Printer::maxTravelAccelerationMMPerSquareSecond[Y_AXIS] = com->Y;
-                    if(com->hasZ()) Printer::maxTravelAccelerationMMPerSquareSecond[Z_AXIS] = com->Z;
+                    if(com->hasX()) Printer::maxTravelAccelerationMMPerSquareSecond[X_AXIS] = constrain(com->X, ACCELERATION_MIN_XY, ACCELERATION_MAX_XY);
+                    if(com->hasY()) Printer::maxTravelAccelerationMMPerSquareSecond[Y_AXIS] = constrain(com->Y, ACCELERATION_MIN_XY, ACCELERATION_MAX_XY);
+                    if(com->hasZ()) Printer::maxTravelAccelerationMMPerSquareSecond[Z_AXIS] = constrain(com->Z, ACCELERATION_MIN_Z, ACCELERATION_MAX_Z);
                     if(com->hasE()) Printer::maxTravelAccelerationMMPerSquareSecond[E_AXIS] = com->E;
                     Printer::updateDerivedParameter();
 #if FEATURE_MILLING_MODE

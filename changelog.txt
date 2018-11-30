@@ -1,3 +1,9 @@
+V RF.01.43.14.Mod (2018-11-30)
+- Limit definitions for Acceleration and Jerk reworked.
+- Introduced one single place for xy / z acceleration settings in configuration.h instead of 3 places in RFx000.h's
+- Limits for Gcode set acceleration values are now in sync with menu and eeprom limits.
+- FEATURE_CHECK_HOME is now on per default
+
 V RF.01.43.13.Mod (2018-11-29)
 - FEATURE_MILLING_MODE is now switched off by default, because most of the people dont need it.
 
