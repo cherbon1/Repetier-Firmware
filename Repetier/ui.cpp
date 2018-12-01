@@ -3365,7 +3365,7 @@ void UIDisplay::nextPreviousAction(int8_t next)
         }
         case UI_ACTION_PRINT_ACCEL_X:
         {
-            INCREMENT_MIN_MAX(Printer::maxAccelerationMMPerSquareSecond[X_AXIS],100,0,10000);
+            INCREMENT_MIN_MAX(Printer::maxAccelerationMMPerSquareSecond[X_AXIS], ACCELERATION_MENU_CHANGE_XY, ACCELERATION_MIN_XY, ACCELERATION_MAX_XY);
             Printer::updateDerivedParameter();
 
 #if FEATURE_AUTOMATIC_EEPROM_UPDATE
@@ -3377,11 +3377,11 @@ void UIDisplay::nextPreviousAction(int8_t next)
         }
         case UI_ACTION_PRINT_ACCEL_Y:
         {
-            INCREMENT_MIN_MAX(Printer::maxAccelerationMMPerSquareSecond[Y_AXIS],100,0,10000);
+            INCREMENT_MIN_MAX(Printer::maxAccelerationMMPerSquareSecond[Y_AXIS], ACCELERATION_MENU_CHANGE_XY, ACCELERATION_MIN_XY, ACCELERATION_MAX_XY);
             Printer::updateDerivedParameter();
 
 #if FEATURE_AUTOMATIC_EEPROM_UPDATE
-            HAL::eprSetFloat(EPR_Y_MAX_ACCEL,Printer::maxAccelerationMMPerSquareSecond[Y_AXIS]);
+            HAL::eprSetFloat(EPR_Y_MAX_ACCEL, Printer::maxAccelerationMMPerSquareSecond[Y_AXIS]);
             EEPROM::updateChecksum();
 #endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
 
@@ -3389,11 +3389,11 @@ void UIDisplay::nextPreviousAction(int8_t next)
         }
         case UI_ACTION_PRINT_ACCEL_Z:
         {
-            INCREMENT_MIN_MAX(Printer::maxAccelerationMMPerSquareSecond[Z_AXIS],100,0,10000);
+            INCREMENT_MIN_MAX(Printer::maxAccelerationMMPerSquareSecond[Z_AXIS], ACCELERATION_MENU_CHANGE_Z, ACCELERATION_MIN_Z, ACCELERATION_MAX_Z);
             Printer::updateDerivedParameter();
 
 #if FEATURE_AUTOMATIC_EEPROM_UPDATE
-            HAL::eprSetFloat(EPR_Z_MAX_ACCEL,Printer::maxAccelerationMMPerSquareSecond[Z_AXIS]);
+            HAL::eprSetFloat(EPR_Z_MAX_ACCEL, Printer::maxAccelerationMMPerSquareSecond[Z_AXIS]);
             EEPROM::updateChecksum();
 #endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
 
@@ -3401,11 +3401,11 @@ void UIDisplay::nextPreviousAction(int8_t next)
         }
         case UI_ACTION_MOVE_ACCEL_X:
         {
-            INCREMENT_MIN_MAX(Printer::maxTravelAccelerationMMPerSquareSecond[X_AXIS],100,0,10000);
+            INCREMENT_MIN_MAX(Printer::maxTravelAccelerationMMPerSquareSecond[X_AXIS], ACCELERATION_MENU_CHANGE_XY, ACCELERATION_MIN_XY, ACCELERATION_MAX_XY);
             Printer::updateDerivedParameter();
 
 #if FEATURE_AUTOMATIC_EEPROM_UPDATE
-            HAL::eprSetFloat(EPR_X_MAX_TRAVEL_ACCEL,Printer::maxTravelAccelerationMMPerSquareSecond[X_AXIS]);
+            HAL::eprSetFloat(EPR_X_MAX_TRAVEL_ACCEL, Printer::maxTravelAccelerationMMPerSquareSecond[X_AXIS]);
             EEPROM::updateChecksum();
 #endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
 
@@ -3413,11 +3413,11 @@ void UIDisplay::nextPreviousAction(int8_t next)
         }
         case UI_ACTION_MOVE_ACCEL_Y:
         {
-            INCREMENT_MIN_MAX(Printer::maxTravelAccelerationMMPerSquareSecond[Y_AXIS],100,0,10000);
+            INCREMENT_MIN_MAX(Printer::maxTravelAccelerationMMPerSquareSecond[Y_AXIS], ACCELERATION_MENU_CHANGE_XY, ACCELERATION_MIN_XY, ACCELERATION_MAX_XY);
             Printer::updateDerivedParameter();
 
 #if FEATURE_AUTOMATIC_EEPROM_UPDATE
-            HAL::eprSetFloat(EPR_Y_MAX_TRAVEL_ACCEL,Printer::maxTravelAccelerationMMPerSquareSecond[Y_AXIS]);
+            HAL::eprSetFloat(EPR_Y_MAX_TRAVEL_ACCEL, Printer::maxTravelAccelerationMMPerSquareSecond[Y_AXIS]);
             EEPROM::updateChecksum();
 #endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
 
@@ -3425,11 +3425,11 @@ void UIDisplay::nextPreviousAction(int8_t next)
         }
         case UI_ACTION_MOVE_ACCEL_Z:
         {
-            INCREMENT_MIN_MAX(Printer::maxTravelAccelerationMMPerSquareSecond[Z_AXIS],100,0,10000);
+            INCREMENT_MIN_MAX(Printer::maxTravelAccelerationMMPerSquareSecond[Z_AXIS], ACCELERATION_MENU_CHANGE_Z, ACCELERATION_MIN_Z, ACCELERATION_MAX_Z);
             Printer::updateDerivedParameter();
 
 #if FEATURE_AUTOMATIC_EEPROM_UPDATE
-            HAL::eprSetFloat(EPR_Z_MAX_TRAVEL_ACCEL,Printer::maxTravelAccelerationMMPerSquareSecond[Z_AXIS]);
+            HAL::eprSetFloat(EPR_Z_MAX_TRAVEL_ACCEL, Printer::maxTravelAccelerationMMPerSquareSecond[Z_AXIS]);
             EEPROM::updateChecksum();
 #endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
 
@@ -3437,10 +3437,10 @@ void UIDisplay::nextPreviousAction(int8_t next)
         }
         case UI_ACTION_MAX_JERK:
         {
-            INCREMENT_MIN_MAX(Printer::maxJerk,0.1,1,99.9);
+            INCREMENT_MIN_MAX(Printer::maxJerk, 0.1f, 1.0f, 33.3f); //RFx000: Limit 33.3 sind willkürlich grob faktor 3 von normalwert.
 
 #if FEATURE_AUTOMATIC_EEPROM_UPDATE
-            HAL::eprSetFloat(EPR_MAX_JERK,Printer::maxJerk);
+            HAL::eprSetFloat(EPR_MAX_JERK, Printer::maxJerk);
             EEPROM::updateChecksum();
 #endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
 
@@ -3448,10 +3448,10 @@ void UIDisplay::nextPreviousAction(int8_t next)
         }
         case UI_ACTION_MAX_ZJERK:
         {
-            INCREMENT_MIN_MAX(Printer::maxZJerk,0.1,0.1,99.9);
+            INCREMENT_MIN_MAX(Printer::maxZJerk, 0.05f, 0.05f, 2.0f); //RFx000: Limit 2 sind Max XY-Jerk / Stepratenverhältnis XY->Z von ~16.8 gibt etwas unter 2.
 
 #if FEATURE_AUTOMATIC_EEPROM_UPDATE
-            HAL::eprSetFloat(EPR_MAX_ZJERK,Printer::maxZJerk);
+            HAL::eprSetFloat(EPR_MAX_ZJERK, Printer::maxZJerk);
             EEPROM::updateChecksum();
 #endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
 
