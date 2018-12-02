@@ -1,3 +1,8 @@
+V RF.01.43.16.Mod (2018-12-02)
+- merged calculateQueueMove and calculateDirectMove into one clean function calculateMove
+- corrected direct move speed settings to lower values
+- added one digit to zJerk float in menu settings
+
 V RF.01.43.15.Mod (2018-12-02)
 - xyzJerk and eJerk refactoring + cleanup
 - more intelligent limits for setting jerk by gcode

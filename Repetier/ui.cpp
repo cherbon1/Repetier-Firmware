@@ -842,8 +842,8 @@ void UIDisplay::parse(char *txt,bool ram)
                 else if(c2=='X') addFloat(Printer::maxTravelAccelerationMMPerSquareSecond[X_AXIS],5,0); // %aX : X acceleration during travel moves
                 else if(c2=='Y') addFloat(Printer::maxTravelAccelerationMMPerSquareSecond[Y_AXIS],5,0); // %aY : Y acceleration during travel moves
                 else if(c2=='Z') addFloat(Printer::maxTravelAccelerationMMPerSquareSecond[Z_AXIS],5,0); // %aZ : Z acceleration during travel moves
-                else if(c2=='j') addFloat(Printer::maxXYJerk,3,1);                                        // %aj : Max. jerk
-                else if(c2=='J') addFloat(Printer::maxZJerk,3,1);                                       // %aJ : Max. Z-jerk
+                else if(c2=='j') addFloat(Printer::maxXYJerk,3,1);                                      // %aj : Max. jerk
+                else if(c2=='J') addFloat(Printer::maxZJerk,3,2);                                       // %aJ : Max. Z-jerk
                 break;
             }
             case 'd':

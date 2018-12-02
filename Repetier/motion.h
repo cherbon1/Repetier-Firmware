@@ -439,9 +439,8 @@ public:
 
     void updateStepsParameter();
     inline float safeSpeed(fast8_t drivingAxis);
-    void calculateQueueMove(float axis_diff[],uint8_t pathOptimize, fast8_t drivingAxis, float feedrate);
-    void calculateDirectMove(float axis_diff[],uint8_t pathOptimize, fast8_t drivingAxis);
-
+    void calculateMove(float axis_diff[], fast8_t drivingAxis, float feedrate);
+    
     INLINE long getWaitTicks()
     {
         return timeInTicks;
