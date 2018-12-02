@@ -712,9 +712,9 @@ The method is called before linesCount is increased!
 */
 void PrintLine::updateTrapezoids()
 {
-    uint8_t     first = linesWritePos;
-    PrintLine*  firstLine;
-    PrintLine*  act = &lines[linesWritePos];
+	uint8_t     first = linesWritePos;
+	PrintLine   *firstLine;
+	PrintLine   *act = &lines[linesWritePos];
     InterruptProtectedBlock noInts; //BEGIN_INTERRUPT_PROTECTED;
 
     // First we find out how far back we could go with optimization.
@@ -799,7 +799,12 @@ void PrintLine::updateTrapezoids()
 #if USE_ADVANCE
     // if we start/stop extrusion we need to do so with lowest possible end speed
     // or advance would leave a drolling extruder and can not adjust fast enough.
-    } else if(  Printer::isAdvanceActivated() && (previous->isEMove() != act->isEMove() || previous->isEPositiveMove() != act->isEPositiveMove() )  ) {
+    } else if( Printer::isAdvanceActivated() && 
+			(
+				previous->isEMove() != act->isEMove() 
+				|| (previous->isEMove() && act->isEMove() && previous->isEPositiveMove() != act->isEPositiveMove() )
+			)  
+		) {
 
         previous->maxJunctionSpeed = previous->safeSpeed(previous->primaryAxis);
         previous->setEndSpeedFixed(true);
@@ -876,23 +881,23 @@ inline void PrintLine::computeMaxJunctionSpeed(PrintLine *previous,PrintLine *cu
     float maxJoinSpeed = RMath::min(current->fullSpeed, previous->fullSpeed);
 
 #if ALTERNATIVE_JERK
-    float jerk = maxJoinSpeed * lengthFactor * (1.0 - (current->speedX * previous->speedX + current->speedY * previous->speedY + current->speedZ * previous->speedZ) / (current->fullSpeed * previous->fullSpeed));
+    float calculatedJerk = maxJoinSpeed * lengthFactor * (1.0 - (current->speedX * previous->speedX + current->speedY * previous->speedY + current->speedZ * previous->speedZ) / (current->fullSpeed * previous->fullSpeed));
 #else
     float dx = current->speedX - previous->speedX;
     float dy = current->speedY - previous->speedY;
-    float jerk = sqrt(dx * dx + dy * dy) * lengthFactor;
+    float calculatedJerk = sqrt(dx * dx + dy * dy) * lengthFactor;
 #endif // ALTERNATIVE_JERK
 
-    if(jerk > Printer::maxJerk) {
-        factor = Printer::maxJerk / jerk; // always < 1.0!
-        if(factor * maxJoinSpeed * 2.0 < Printer::maxJerk)
-            factor = Printer::maxJerk / (2.0 * maxJoinSpeed);
+    if(calculatedJerk > Printer::maxXYJerk) {
+        factor = Printer::maxXYJerk / calculatedJerk; // always < 1.0!
+        if(factor * maxJoinSpeed * 2.0 < Printer::maxXYJerk)
+            factor = Printer::maxXYJerk / (2.0 * maxJoinSpeed);
     }
 
-    if((previous->dir | current->dir) & 64) {
-        float dz = fabs(current->speedZ - previous->speedZ);
-        if(dz > Printer::maxZJerk)
-            factor = RMath::min(factor, Printer::maxZJerk / dz);
+    if((previous->dir | current->dir) & 64 /* previous zmove oder current zmove */) {
+        float zJerk = fabs(current->speedZ - previous->speedZ);
+        if(zJerk > Printer::maxZJerk)
+            factor = RMath::min(factor, Printer::maxZJerk / zJerk);
     }
 
     float eJerk = fabs(current->speedE - previous->speedE);
@@ -1043,7 +1048,7 @@ void PrintLine::forwardPlanner(uint8_t first)
 
 inline float PrintLine::safeSpeed(fast8_t drivingAxis)
 {
-    float xyMin = Printer::maxJerk * 0.5f;
+    float xyMin = Printer::maxXYJerk * 0.5f;
     float mz = 0;
     float safe(xyMin);
     if(isZMove()) {
@@ -1092,7 +1097,6 @@ uint8_t PrintLine::insertWaitMovesIfNeeded(uint8_t pathOptimize, uint8_t waitExt
         return 1;
     }
     return 0;
-
 } // insertWaitMovesIfNeeded
 
 void PrintLine::waitForXFreeLines(uint8_t b)

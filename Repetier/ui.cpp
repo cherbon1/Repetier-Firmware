@@ -842,7 +842,7 @@ void UIDisplay::parse(char *txt,bool ram)
                 else if(c2=='X') addFloat(Printer::maxTravelAccelerationMMPerSquareSecond[X_AXIS],5,0); // %aX : X acceleration during travel moves
                 else if(c2=='Y') addFloat(Printer::maxTravelAccelerationMMPerSquareSecond[Y_AXIS],5,0); // %aY : Y acceleration during travel moves
                 else if(c2=='Z') addFloat(Printer::maxTravelAccelerationMMPerSquareSecond[Z_AXIS],5,0); // %aZ : Z acceleration during travel moves
-                else if(c2=='j') addFloat(Printer::maxJerk,3,1);                                        // %aj : Max. jerk
+                else if(c2=='j') addFloat(Printer::maxXYJerk,3,1);                                        // %aj : Max. jerk
                 else if(c2=='J') addFloat(Printer::maxZJerk,3,1);                                       // %aJ : Max. Z-jerk
                 break;
             }
@@ -3437,10 +3437,10 @@ void UIDisplay::nextPreviousAction(int8_t next)
         }
         case UI_ACTION_MAX_JERK:
         {
-            INCREMENT_MIN_MAX(Printer::maxJerk, 0.1f, 1.0f, 33.3f); //RFx000: Limit 33.3 sind willkürlich grob faktor 3 von normalwert.
+            INCREMENT_MIN_MAX(Printer::maxXYJerk, 0.1f, 1.0f, 33.3f); //RFx000: Limit 33.3 sind willkürlich grob faktor 3 von normalwert.
 
 #if FEATURE_AUTOMATIC_EEPROM_UPDATE
-            HAL::eprSetFloat(EPR_MAX_JERK, Printer::maxJerk);
+            HAL::eprSetFloat(EPR_MAX_JERK, Printer::maxXYJerk);
             EEPROM::updateChecksum();
 #endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
 
@@ -3757,7 +3757,7 @@ void UIDisplay::nextPreviousAction(int8_t next)
         }
         case UI_ACTION_EXTR_MAX_FEEDRATE:
         {
-            INCREMENT_MIN_MAX(Extruder::current->maxFeedrate,1,1,999);
+            INCREMENT_MIN_MAX(Extruder::current->maxFeedrate, 1, Extruder::current->maxStartFeedrate, 60);
             Extruder::selectExtruderById(Extruder::current->id);
 
 #if FEATURE_AUTOMATIC_EEPROM_UPDATE
@@ -3769,7 +3769,7 @@ void UIDisplay::nextPreviousAction(int8_t next)
         }
         case UI_ACTION_EXTR_START_FEEDRATE:
         {
-            INCREMENT_MIN_MAX(Extruder::current->maxStartFeedrate,1,1,999);
+            INCREMENT_MIN_MAX(Extruder::current->maxStartFeedrate, 1, 1, Extruder::current->maxFeedrate);
             Extruder::selectExtruderById(Extruder::current->id);
 
 #if FEATURE_AUTOMATIC_EEPROM_UPDATE

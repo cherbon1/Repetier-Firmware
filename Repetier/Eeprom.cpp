@@ -106,7 +106,7 @@ void EEPROM::restoreEEPROMSettingsFromConfiguration()
     }
 #endif // FEATURE_MILLING_MODE
 
-    Printer::maxJerk = MAX_JERK;
+    Printer::maxXYJerk = MAX_JERK;
     Printer::maxZJerk = MAX_ZJERK;
 
     Printer::maxAccelerationMMPerSquareSecond[X_AXIS] = MAX_ACCELERATION_UNITS_PER_SQ_SECOND_X;
@@ -375,7 +375,7 @@ void EEPROM::storeDataIntoEEPROM(uint8_t corrupted)
     }
 #endif // FEATURE_MILLING_MODE
 
-    HAL::eprSetFloat(EPR_MAX_JERK,Printer::maxJerk);
+    HAL::eprSetFloat(EPR_MAX_JERK,Printer::maxXYJerk);
     HAL::eprSetFloat(EPR_MAX_ZJERK,Printer::maxZJerk);
 
 #if FEATURE_MILLING_MODE
@@ -690,7 +690,7 @@ void EEPROM::readDataFromEEPROM()
     Printer::moveMode[Y_AXIS] = HAL::eprGetByte(EPR_RF_MOVE_MODE_Y);
     Printer::moveMode[Z_AXIS] = HAL::eprGetByte(EPR_RF_MOVE_MODE_Z);
 
-    Printer::maxJerk = HAL::eprGetFloat(EPR_MAX_JERK);
+    Printer::maxXYJerk = HAL::eprGetFloat(EPR_MAX_JERK);
     Printer::maxZJerk = HAL::eprGetFloat(EPR_MAX_ZJERK);
 
     Printer::maxAccelerationMMPerSquareSecond[X_AXIS] = HAL::eprGetFloat(EPR_X_MAX_ACCEL);

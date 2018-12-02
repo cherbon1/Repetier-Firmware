@@ -1,3 +1,8 @@
+V RF.01.43.15.Mod (2018-12-02)
+- xyzJerk and eJerk refactoring + cleanup
+- more intelligent limits for setting jerk by gcode
+- better limits for setting extruder speeds and ejerk (=maxstartspeed)
+
 V RF.01.43.14.Mod (2018-11-30)
 - Limit definitions for Acceleration and Jerk reworked.
 - Introduced one single place for xy / z acceleration settings in configuration.h instead of 3 places in RFx000.h's

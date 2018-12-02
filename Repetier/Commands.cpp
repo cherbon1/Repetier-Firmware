@@ -1440,18 +1440,18 @@ void Commands::executeGCode(GCode *com)
             case 207:   // M207 - X<XY jerk> Z<Z Jerk>
             {
                 if(com->hasX())
-                    Printer::maxJerk = com->X;
+                    Printer::maxXYJerk = constrain(com->X, 1.0f, 33.3f);
                 if(com->hasE())
                 {
-                    Extruder::current->maxStartFeedrate = com->E;
+                    Extruder::current->maxStartFeedrate = constrain(com->E, 1.0f, Extruder::current->maxFeedrate);
                     Extruder::selectExtruderById(Extruder::current->id);
                 }
                 if(com->hasZ())
-                    Printer::maxZJerk = com->Z;
+                    Printer::maxZJerk = constrain(com->Z, 0.05f, 2.0f);
 
                 if( Printer::debugInfo() )
                 {
-                    Com::printF(Com::tJerkColon,Printer::maxJerk);
+                    Com::printF(Com::tJerkColon,Printer::maxXYJerk);
                     Com::printFLN(Com::tZJerkColon,Printer::maxZJerk);
                 }
                 break;
