@@ -182,7 +182,7 @@ have problems with other modules using the eeprom */
 
 // Acceleration in mm/s^2
 #define EPR_EXTRUDER_MAX_ACCELERATION   12
-//#define EPR_EXTRUDER_HEAT_MANAGER       16
+//old #define EPR_EXTRUDER_HEAT_MANAGER       16
 #define EPR_EXTRUDER_DRIVE_MAX          17
 #define EPR_EXTRUDER_PID_PGAIN          18
 #define EPR_EXTRUDER_PID_IGAIN          22
@@ -190,7 +190,7 @@ have problems with other modules using the eeprom */
 #define EPR_EXTRUDER_PID_MAX            30
 #define EPR_EXTRUDER_X_OFFSET           31
 #define EPR_EXTRUDER_Y_OFFSET           35
-#define EPR_EXTRUDER_WATCH_PERIOD       39
+//old #define EPR_EXTRUDER_WATCH_PERIOD       39
 #define EPR_EXTRUDER_ADVANCE_K          41
 #define EPR_EXTRUDER_DRIVE_MIN          45
 #define EPR_EXTRUDER_ADVANCE_L          46

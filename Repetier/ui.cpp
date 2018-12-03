@@ -1575,10 +1575,6 @@ void UIDisplay::parse(char *txt,bool ram)
                     }
                 }
 
-                else if(c2=='w')                                                                        // %Xw : Extruder watch period in seconds
-                {
-                    addInt(Extruder::current->watchPeriod,4);
-                }
                 else if(c2=='t')                                                                        // %Xt : Description for PID autotune type in menu
                 {
                     col = 0; //reset linemarker -> start at first display char. overwrite things before this %tag -> erstes Zeichen brauchen wir in diesem menü nicht.
@@ -3730,19 +3726,6 @@ void UIDisplay::nextPreviousAction(int8_t next)
         }
 #endif //NUM_EXTRUDER > 1
 #endif //USE_ADVANCE
-        case UI_ACTION_EXTR_STEPS:
-        {
-           if( !Printer::isMenuMode(MENU_MODE_PAUSED) && !Printer::isPrinting()){
-            INCREMENT_MIN_MAX(Extruder::current->stepsPerMM,1,1,5440); //normalerweise <= ~1000
-            Extruder::selectExtruderById(Extruder::current->id); //(setzt auch "printer::stepspermm" richtig.)
-
-#if FEATURE_AUTOMATIC_EEPROM_UPDATE
-            HAL::eprSetFloat(EEPROM::getExtruderOffset(Extruder::current->id)+EPR_EXTRUDER_STEPS_PER_MM,Extruder::current->stepsPerMM);
-            EEPROM::updateChecksum();
-#endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
-           }
-           break;
-        }
         case UI_ACTION_EXTR_ACCELERATION:
         {
             INCREMENT_MIN_MAX(Extruder::current->maxAcceleration,10,10,99999);
@@ -3779,42 +3762,6 @@ void UIDisplay::nextPreviousAction(int8_t next)
 
             break;
         }
-        case UI_ACTION_EXTR_WATCH_PERIOD:
-        {
-            INCREMENT_MIN_MAX(Extruder::current->watchPeriod,1,0,999);
-
-#if FEATURE_AUTOMATIC_EEPROM_UPDATE
-            HAL::eprSetFloat(EEPROM::getExtruderOffset(Extruder::current->id)+EPR_EXTRUDER_WATCH_PERIOD,Extruder::current->watchPeriod);
-            EEPROM::updateChecksum();
-#endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
-
-            break;
-        }
-
-#if RETRACT_DURING_HEATUP
-        case UI_ACTION_EXTR_WAIT_RETRACT_TEMP:
-        {
-            INCREMENT_MIN_MAX(Extruder::current->waitRetractTemperature,1,100,UI_SET_MAX_EXTRUDER_TEMP);
-
-#if FEATURE_AUTOMATIC_EEPROM_UPDATE
-            HAL::eprSetFloat(EEPROM::getExtruderOffset(Extruder::current->id)+EPR_EXTRUDER_WAIT_RETRACT_TEMP,Extruder::current->waitRetractTemperature);
-            EEPROM::updateChecksum();
-#endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
-
-            break;
-        }
-        case UI_ACTION_EXTR_WAIT_RETRACT_UNITS:
-        {
-            INCREMENT_MIN_MAX(Extruder::current->waitRetractUnits,1,0,99);
-
-#if FEATURE_AUTOMATIC_EEPROM_UPDATE
-            HAL::eprSetFloat(EEPROM::getExtruderOffset(Extruder::current->id)+EPR_EXTRUDER_WAIT_RETRACT_UNITS,Extruder::current->waitRetractUnits);
-            EEPROM::updateChecksum();
-#endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
-
-            break;
-        }
-#endif // RETRACT_DURING_HEATUP
 
 #if FEATURE_WORK_PART_Z_COMPENSATION
         case UI_ACTION_RF_SET_Z_MATRIX_WORK_PART:

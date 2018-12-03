@@ -1,3 +1,8 @@
+V RF.01.43.17.Mod (2018-12-04)
+- removed parameter watchperiod and all helper functions from extruder object, set watchperiod to 15s as default.
+- removed unused menu-action for current-extruder feedrate, because we use extruder0-feedrate and extruder1-feedrate non parametric.
+- removed unused menu-actions from feature RETRACT_DURING_HEATUP
+
 V RF.01.43.16.Mod (2018-12-02)
 - merged calculateQueueMove and calculateDirectMove into one clean function calculateMove
 - corrected direct move speed settings to lower values

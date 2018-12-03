@@ -190,7 +190,6 @@ class Extruder   // Size: 12*1 Byte+12*4 Byte+4*2Byte = 68 Byte
     float       maxAcceleration;            ///< Maximum acceleration in mm/s^2.
     float       maxStartFeedrate;           ///< Maximum start feedrate in mm/s.
     int32_t     extrudePosition;            ///< Current extruder position in steps.
-    int16_t     watchPeriod;                ///< Time in seconds, a M109 command will wait to stabalize temperature
     int16_t     waitRetractTemperature;     ///< Temperature to retract the filament when waiting for heatup
     int16_t     waitRetractUnits;           ///< Units to retract the filament when waiting for heatup
     volatile int8_t stepperDirection;

@@ -987,7 +987,7 @@ void Commands::executeGCode(GCode *com)
 
                         if(waituntil == 0 && isTempReached) //waituntil bleibt 0 bis temperatur einmal erreicht.
                             {
-                                waituntil = currentTime+1000UL*(millis_t)actExtruder->watchPeriod; // now wait for temp. to stabalize
+                                waituntil = currentTime+15000UL; // now wait 15s for temp. to stabalize
                             }
                     }
                     while(waituntil==0 || (waituntil!=0 && (millis_t)(waituntil-currentTime)<2000000000UL));

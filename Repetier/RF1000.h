@@ -220,10 +220,6 @@ Overridden if EEPROM activated. */
 Overridden if EEPROM activated. */
 #define EXT0_MAX_ACCELERATION               6000
 
-/** \brief Wait x seconds, after reaching target temperature. Only used for M109.  Overridden if EEPROM activated. */
-#define EXT0_WATCHPERIOD                    20
-
-
 #if EXT0_HOTEND_TYPE == HOTEND_TYPE_V1
 
 /** \brief The maximum value, I-gain can contribute to the output. Overridden if EEPROM activated. */
@@ -395,9 +391,6 @@ Overridden if EEPROM activated. */
 /** \brief Acceleration in mm/s^2
 Overridden if EEPROM activated. */
 #define EXT1_MAX_ACCELERATION               6000
-
-/** \brief Wait x seconds, after reaching target temperature. Only used for M109.  Overridden if EEPROM activated. */
-#define EXT1_WATCHPERIOD                    20
 
 
 #if EXT1_HOTEND_TYPE == HOTEND_TYPE_V1
