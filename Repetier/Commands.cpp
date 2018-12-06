@@ -1443,7 +1443,7 @@ void Commands::executeGCode(GCode *com)
                     Printer::maxXYJerk = constrain(com->X, 1.0f, 33.3f);
                 if(com->hasE())
                 {
-                    Extruder::current->maxStartFeedrate = constrain(com->E, 1.0f, Extruder::current->maxFeedrate);
+                    Extruder::current->maxEJerk = constrain(com->E, 1.0f, Extruder::current->maxFeedrate);
                     Extruder::selectExtruderById(Extruder::current->id);
                 }
                 if(com->hasZ())

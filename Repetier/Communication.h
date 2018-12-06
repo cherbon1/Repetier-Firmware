@@ -247,7 +247,7 @@ public:
     FSTRINGVAR(tEPRBedPISMaxValue)
     FSTRINGVAR(tEPRStepsPerMM)
     FSTRINGVAR(tEPRMaxFeedrate)
-    FSTRINGVAR(tEPRStartFeedrate)
+    FSTRINGVAR(tEPReJerk)
     FSTRINGVAR(tEPRAcceleration)
     FSTRINGVAR(tEPRDriveMax)
     FSTRINGVAR(tEPRDriveMin)

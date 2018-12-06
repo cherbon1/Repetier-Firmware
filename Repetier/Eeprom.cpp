@@ -156,7 +156,7 @@ void EEPROM::restoreEEPROMSettingsFromConfiguration()
     e = &extruder[0];
     e->stepsPerMM = EXT0_STEPS_PER_MM;
     e->maxFeedrate = EXT0_MAX_FEEDRATE;
-    e->maxStartFeedrate = EXT0_MAX_START_FEEDRATE;
+    e->maxEJerk = EXT0_MAX_START_FEEDRATE;
     e->maxAcceleration = EXT0_MAX_ACCELERATION;
 
     e->tempControl.pidDriveMax = EXT0_PID_INTEGRAL_DRIVE_MAX;
@@ -190,7 +190,7 @@ void EEPROM::restoreEEPROMSettingsFromConfiguration()
     e = &extruder[1];
     e->stepsPerMM = EXT1_STEPS_PER_MM;
     e->maxFeedrate = EXT1_MAX_FEEDRATE;
-    e->maxStartFeedrate = EXT1_MAX_START_FEEDRATE;
+    e->maxEJerk = EXT1_MAX_START_FEEDRATE;
     e->maxAcceleration = EXT1_MAX_ACCELERATION;
 
     e->tempControl.pidDriveMax = EXT1_PID_INTEGRAL_DRIVE_MAX;
@@ -448,7 +448,7 @@ void EEPROM::storeDataIntoEEPROM(uint8_t corrupted)
         Extruder *e = &extruder[i];
         HAL::eprSetFloat(o+EPR_EXTRUDER_STEPS_PER_MM,e->stepsPerMM);
         HAL::eprSetFloat(o+EPR_EXTRUDER_MAX_FEEDRATE,e->maxFeedrate);
-        HAL::eprSetFloat(o+EPR_EXTRUDER_MAX_START_FEEDRATE,e->maxStartFeedrate);
+        HAL::eprSetFloat(o+EPR_EXTRUDER_MAX_START_FEEDRATE,e->maxEJerk);
         HAL::eprSetFloat(o+EPR_EXTRUDER_MAX_ACCELERATION,e->maxAcceleration);
 
         HAL::eprSetByte(o+EPR_EXTRUDER_DRIVE_MAX,e->tempControl.pidDriveMax);
@@ -812,11 +812,11 @@ void EEPROM::readDataFromEEPROM()
 
         tmp = HAL::eprGetFloat(o+EPR_EXTRUDER_MAX_START_FEEDRATE);
         if(0 < tmp && tmp <= e->maxFeedrate){
-            e->maxStartFeedrate = tmp;
+            e->maxEJerk = tmp;
         }else{
-            e->maxStartFeedrate = RMath::min(e->maxFeedrate, e->maxStartFeedrate);
+            e->maxEJerk = RMath::min(e->maxFeedrate, e->maxEJerk);
 #if FEATURE_AUTOMATIC_EEPROM_UPDATE
-            HAL::eprSetFloat(o+EPR_EXTRUDER_MAX_START_FEEDRATE, e->maxStartFeedrate);
+            HAL::eprSetFloat(o+EPR_EXTRUDER_MAX_START_FEEDRATE, e->maxEJerk);
             change = true; //update checksum later in this function
 #endif //FEATURE_AUTOMATIC_EEPROM_UPDATE
         }
@@ -1394,7 +1394,7 @@ void EEPROM::writeSettings()
         int o=EEPROM::getExtruderOffset(i);
         writeFloat(o+EPR_EXTRUDER_STEPS_PER_MM,Com::tEPRStepsPerMM);
         writeFloat(o+EPR_EXTRUDER_MAX_FEEDRATE,Com::tEPRMaxFeedrate);
-        writeFloat(o+EPR_EXTRUDER_MAX_START_FEEDRATE,Com::tEPRStartFeedrate);
+        writeFloat(o+EPR_EXTRUDER_MAX_START_FEEDRATE,Com::tEPReJerk);
         writeFloat(o+EPR_EXTRUDER_MAX_ACCELERATION,Com::tEPRAcceleration);
 
         writeByte(o+EPR_EXTRUDER_DRIVE_MAX,Com::tEPRDriveMax);

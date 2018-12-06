@@ -40,7 +40,6 @@ List of placeholder:
 %Eb : Target temperature of heated bed
 %E0-9 : Target temperature of extruder 0..9
 %os : Status message
-%oB : Buffer length
 %om : Speed multiplier
 %ov : active Speed
 %op : Is double or quadstepping?
@@ -93,7 +92,8 @@ List of placeholder:
 %fx : Max. feedrate x direction
 %fy : Max. feedrate y direction
 %fz : Max. feedrate z direction
-%fe : Max. feedrate current extruder
+%fe : Max. feedrate extruder 0
+%fE : Max. feedrate extruder 1
 %fX : Homing feedrate x direction
 %fY : Homing feedrate y direction
 %fZ : Homing feedrate z direction
@@ -112,9 +112,6 @@ List of placeholder:
 %is : Stepper inactive time in seconds
 %ip : Max. inactive time in seconds
 %X0..9 : Extruder selected marker
-%Xi : PID I gain
-%Xp : PID P gain
-%Xd : PID D gain
 %Xm : PID drive min
 %XM : PID drive max
 %XD : PID max
@@ -127,9 +124,8 @@ List of placeholder:
 %Xb : E0 Advance L value
 %Xc : E1 Advance L value
 %Xg : Printer::stepsPackingMinInterval
-%Xf : Extruder max. start feedrate
-%XF : Extruder max. feedrate
-%XA : Extruder max. acceleration
+%Xf : Extruder 0 Acceleration
+%XF : Extruder 1 Acceleration
 %XZ : Milling special max. acceleration
 %XE : Extruder Stepper Microsteps
 %Xx : XY Stepper Microsteps
@@ -765,26 +761,53 @@ UI_MENU(ui_menu_debugging,UI_MENU_DEBUGGING,4+UI_MENU_BACKCNT)
 #endif // SHOW_DEBUGGING_MENU
 
 /** \brief Acceleration settings */
-UI_MENU_CHANGEACTION_FILTER(ui_menu_accel_printx,  UI_TEXT_PRINT_X, UI_ACTION_PRINT_ACCEL_X, 0, MENU_MODE_MILLER)
-UI_MENU_CHANGEACTION_FILTER(ui_menu_accel_printy,  UI_TEXT_PRINT_Y, UI_ACTION_PRINT_ACCEL_Y, 0, MENU_MODE_MILLER)
-UI_MENU_CHANGEACTION_FILTER(ui_menu_accel_printz,  UI_TEXT_PRINT_Z, UI_ACTION_PRINT_ACCEL_Z, 0, MENU_MODE_MILLER)
-UI_MENU_CHANGEACTION(ui_menu_accel_travelx, UI_TEXT_MOVE_X,  UI_ACTION_MOVE_ACCEL_X)
-UI_MENU_CHANGEACTION(ui_menu_accel_travely, UI_TEXT_MOVE_Y,  UI_ACTION_MOVE_ACCEL_Y)
-UI_MENU_CHANGEACTION(ui_menu_accel_travelz, UI_TEXT_MOVE_Z,  UI_ACTION_MOVE_ACCEL_Z)
+UI_MENU_CHANGEACTION(ui_menu_accel_travelx, UI_TEXT_MOVE_ACCEL_X,   UI_ACTION_MOVE_ACCEL_X)
+UI_MENU_CHANGEACTION(ui_menu_accel_travely, UI_TEXT_MOVE_ACCEL_Y,   UI_ACTION_MOVE_ACCEL_Y)
+UI_MENU_CHANGEACTION(ui_menu_accel_travelz, UI_TEXT_MOVE_ACCEL_Z,   UI_ACTION_MOVE_ACCEL_Z)
+UI_MENU_CHANGEACTION_FILTER(ui_menu_accel_printx,  UI_TEXT_PRINT_ACCEL_X, UI_ACTION_PRINT_ACCEL_X, MENU_MODE_PRINTER, 0)
+UI_MENU_CHANGEACTION_FILTER(ui_menu_accel_printy,  UI_TEXT_PRINT_ACCEL_Y, UI_ACTION_PRINT_ACCEL_Y, MENU_MODE_PRINTER, 0)
+UI_MENU_CHANGEACTION_FILTER(ui_menu_accel_printz,  UI_TEXT_PRINT_ACCEL_Z, UI_ACTION_PRINT_ACCEL_Z, MENU_MODE_PRINTER, 0)
+UI_MENU_CHANGEACTION_FILTER(ui_menu_accel_printe0, UI_TEXT_PRINT_ACCEL_E0, UI_ACTION_EXTR_ACCELERATION_E0, MENU_MODE_PRINTER, 0)
+UI_MENU_CHANGEACTION_FILTER(ui_menu_accel_printe1, UI_TEXT_PRINT_ACCEL_E1, UI_ACTION_EXTR_ACCELERATION_E1, MENU_MODE_PRINTER, 0)
 UI_MENU_CHANGEACTION(ui_menu_accel_jerk,    UI_TEXT_JERK,    UI_ACTION_MAX_JERK)
-UI_MENU_CHANGEACTION(ui_menu_accel_zjerk,   UI_TEXT_ZJERK,   UI_ACTION_MAX_ZJERK)
-#define UI_MENU_ACCEL {UI_MENU_ADDCONDBACK &ui_menu_accel_printx, &ui_menu_accel_printy, &ui_menu_accel_printz, &ui_menu_accel_travelx, &ui_menu_accel_travely, &ui_menu_accel_travelz, &ui_menu_accel_jerk, &ui_menu_accel_zjerk}
-UI_MENU(ui_menu_accel,UI_MENU_ACCEL,8+UI_MENU_BACKCNT)
+UI_MENU_CHANGEACTION(ui_menu_accel_zjerk,  UI_TEXT_ZJERK, UI_ACTION_MAX_ZJERK)
+UI_MENU_CHANGEACTION_FILTER(ui_menu_accel_e0jerk, UI_TEXT_E0JERK, UI_ACTION_EXTR_START_FEEDRATE_E0, MENU_MODE_PRINTER, 0)
+UI_MENU_CHANGEACTION_FILTER(ui_menu_accel_e1jerk, UI_TEXT_E1JERK, UI_ACTION_EXTR_START_FEEDRATE_E1, MENU_MODE_PRINTER, 0)
+UI_MENU_CHANGEACTION_FILTER(ui_menu_advanceL_e0, UI_TEXT_EXTR_ADVANCE_L_E0, UI_ACTION_ADVANCE_L_E0, MENU_MODE_PRINTER, 0)
+UI_MENU_CHANGEACTION_FILTER(ui_menu_advanceL_e1, UI_TEXT_EXTR_ADVANCE_L_E1, UI_ACTION_ADVANCE_L_E1, MENU_MODE_PRINTER, 0)
+#if NUM_EXTRUDER>1
+ #define UI_MENU_ACCEL_COND  &ui_menu_accel_printx, &ui_menu_accel_travelx, &ui_menu_accel_printy, &ui_menu_accel_travely, &ui_menu_accel_jerk, &ui_menu_accel_printz, &ui_menu_accel_travelz, &ui_menu_accel_zjerk, &ui_menu_accel_printe0, &ui_menu_accel_e0jerk, &ui_menu_advanceL_e0, &ui_menu_accel_printe1, &ui_menu_accel_e1jerk, &ui_menu_advanceL_e1
+ #define UI_MENU_ACCEL_COUNT (14 + UI_MENU_BACKCNT)
+#else
+ #define UI_MENU_ACCEL_COND   &ui_menu_accel_printx, &ui_menu_accel_printy, &ui_menu_accel_printz, &ui_menu_accel_travelx, &ui_menu_accel_travely, &ui_menu_accel_travelz, &ui_menu_accel_jerk, &ui_menu_accel_zjerk, &ui_menu_accel_printe0, &ui_menu_accel_e0jerk, &ui_menu_advanceL_e0
+ #define UI_MENU_ACCEL_COUNT (11 + UI_MENU_BACKCNT)
+#endif //NUM_EXTRUDER>1
+#define UI_MENU_ACCEL {UI_MENU_ADDCONDBACK UI_MENU_ACCEL_COND}
+UI_MENU(ui_menu_accel, UI_MENU_ACCEL, UI_MENU_ACCEL_COUNT)
 
+/** \brief Feedrate Interrupt Shift */
+UI_MENU_CHANGEACTION(ui_menu_freq_dbl, UI_TEXT_FREQ_DBL, UI_ACTION_SHIFT_INTERVAL)
+#define UI_MENU_FREQ_DBL_COND   ,&ui_menu_freq_dbl
+#define UI_MENU_FREQ_DBL_COUNT 1
 /** \brief Feedrates */
-UI_MENU_CHANGEACTION(ui_menu_feedrate_maxx,  UI_TEXT_FEED_MAX_X,  UI_ACTION_MAX_FEEDRATE_X)
-UI_MENU_CHANGEACTION(ui_menu_feedrate_maxy,  UI_TEXT_FEED_MAX_Y,  UI_ACTION_MAX_FEEDRATE_Y)
-UI_MENU_CHANGEACTION(ui_menu_feedrate_maxz,  UI_TEXT_FEED_MAX_Z,  UI_ACTION_MAX_FEEDRATE_Z)
 UI_MENU_CHANGEACTION(ui_menu_feedrate_homex, UI_TEXT_FEED_HOME_X, UI_ACTION_HOMING_FEEDRATE_X)
 UI_MENU_CHANGEACTION(ui_menu_feedrate_homey, UI_TEXT_FEED_HOME_Y, UI_ACTION_HOMING_FEEDRATE_Y)
 UI_MENU_CHANGEACTION(ui_menu_feedrate_homez, UI_TEXT_FEED_HOME_Z, UI_ACTION_HOMING_FEEDRATE_Z)
-#define UI_MENU_FEEDRATE {UI_MENU_ADDCONDBACK &ui_menu_quick_speedmultiply, &ui_menu_feedrate_maxx, &ui_menu_feedrate_maxy, &ui_menu_feedrate_maxz, &ui_menu_feedrate_homex, &ui_menu_feedrate_homey, &ui_menu_feedrate_homez}
-UI_MENU(ui_menu_feedrate,UI_MENU_FEEDRATE,6+1+UI_MENU_BACKCNT)
+UI_MENU_CHANGEACTION(ui_menu_feedrate_maxx,  UI_TEXT_FEED_MAX_X,  UI_ACTION_MAX_FEEDRATE_X)
+UI_MENU_CHANGEACTION(ui_menu_feedrate_maxy,  UI_TEXT_FEED_MAX_Y,  UI_ACTION_MAX_FEEDRATE_Y)
+UI_MENU_CHANGEACTION(ui_menu_feedrate_maxz,  UI_TEXT_FEED_MAX_Z,  UI_ACTION_MAX_FEEDRATE_Z)
+UI_MENU_CHANGEACTION_FILTER(ui_menu_feedrate_maxe0, UI_TEXT_FEED_MAX_E0, UI_ACTION_EXTR_MAX_FEEDRATE_E0, MENU_MODE_PRINTER, 0)
+UI_MENU_CHANGEACTION_FILTER(ui_menu_feedrate_maxe1, UI_TEXT_FEED_MAX_E1, UI_ACTION_EXTR_MAX_FEEDRATE_E1, MENU_MODE_PRINTER, 0)
+
+#if NUM_EXTRUDER>1
+ #define UI_MENU_FEEDRATE_COND UI_MENU_ADDCONDBACK &ui_menu_feedrate_maxx, &ui_menu_feedrate_homex, &ui_menu_feedrate_maxy, &ui_menu_feedrate_homey, &ui_menu_feedrate_maxz, &ui_menu_feedrate_homez, &ui_menu_feedrate_maxe0, &ui_menu_feedrate_maxe1 UI_MENU_FREQ_DBL_COND
+ #define UI_MENU_FEEDRATE_COUNT (8 + UI_MENU_FREQ_DBL_COUNT + UI_MENU_BACKCNT)
+#else
+ #define UI_MENU_FEEDRATE_COND UI_MENU_ADDCONDBACK &ui_menu_feedrate_maxx, &ui_menu_feedrate_homex, &ui_menu_feedrate_maxy, &ui_menu_feedrate_homey, &ui_menu_feedrate_maxz, &ui_menu_feedrate_homez, &ui_menu_feedrate_maxe0 UI_MENU_FREQ_DBL_COND
+ #define UI_MENU_FEEDRATE_COUNT (7 + UI_MENU_FREQ_DBL_COUNT + UI_MENU_BACKCNT)
+#endif //NUM_EXTRUDER>1
+#define UI_MENU_FEEDRATE {UI_MENU_FEEDRATE_COND}
+UI_MENU(ui_menu_feedrate, UI_MENU_FEEDRATE, UI_MENU_FEEDRATE_COUNT)
 
 /** \brief General configuration settings */
 /** \brief Configuration->General menu */
@@ -1040,24 +1063,18 @@ UI_MENU_CHANGEACTION(ui_menu_motor_z,UI_TEXT_MOTOR_Z,UI_ACTION_CHOOSE_MOTOR_Z)
 #define UI_MENU_MOTOR_Z_COUNT 1
 UI_MENU_CHANGEACTION_FILTER(ui_menu_motor_e0,     UI_TEXT_MOTOR_E0,          UI_ACTION_CHOOSE_MOTOR_E0, MENU_MODE_PRINTER,0) //extruder nur bei printermode
 UI_MENU_CHANGEACTION_FILTER(ui_menu_motorsteps_e0,UI_TEXT_EXTR_STEPS0,       UI_ACTION_EXTR_STEPS_E0,   MENU_MODE_PRINTER,0)
-UI_MENU_CHANGEACTION_FILTER(ui_menu_advanceL_e0,  UI_TEXT_EXTR_ADVANCE_L_E0, UI_ACTION_ADVANCE_L_E0,    MENU_MODE_PRINTER,0)
-#define UI_MENU_MOTOR_E0_COND   ,&ui_menu_motor_e0, &ui_menu_motorsteps_e0, &ui_menu_advanceL_e0
-#define UI_MENU_MOTOR_E0_COUNT 3
+#define UI_MENU_MOTOR_E0_COND   ,&ui_menu_motor_e0, &ui_menu_motorsteps_e0
+#define UI_MENU_MOTOR_E0_COUNT 2
 
 #if NUM_EXTRUDER>1
  UI_MENU_CHANGEACTION_FILTER(ui_menu_motor_e1,     UI_TEXT_MOTOR_E1,          UI_ACTION_CHOOSE_MOTOR_E1, MENU_MODE_PRINTER,0) //extruder nur bei printermode
  UI_MENU_CHANGEACTION_FILTER(ui_menu_motorsteps_e1,UI_TEXT_EXTR_STEPS1,       UI_ACTION_EXTR_STEPS_E1,   MENU_MODE_PRINTER,0)
- UI_MENU_CHANGEACTION_FILTER(ui_menu_advanceL_e1,  UI_TEXT_EXTR_ADVANCE_L_E1, UI_ACTION_ADVANCE_L_E1,    MENU_MODE_PRINTER,0)
- #define UI_MENU_MOTOR_E1_COND   ,&ui_menu_motor_e1, &ui_menu_motorsteps_e1, &ui_menu_advanceL_e1
- #define UI_MENU_MOTOR_E1_COUNT 3
+ #define UI_MENU_MOTOR_E1_COND   ,&ui_menu_motor_e1, &ui_menu_motorsteps_e1
+ #define UI_MENU_MOTOR_E1_COUNT 2
 #else
  #define UI_MENU_MOTOR_E1_COND
  #define UI_MENU_MOTOR_E1_COUNT 0
 #endif //NUM_EXTRUDER>1
-
-UI_MENU_CHANGEACTION(ui_menu_freq_dbl,UI_TEXT_FREQ_DBL,UI_ACTION_SHIFT_INTERVAL)
-#define UI_MENU_FREQ_DBL_COND   ,&ui_menu_freq_dbl
-#define UI_MENU_FREQ_DBL_COUNT 1
 
 #if FEATURE_ADJUSTABLE_MICROSTEPS
 UI_MENU_CHANGEACTION_FILTER(ui_menu_microsteps_xy, UI_TEXT_MICRO_STEPS_XY, UI_ACTION_MICROSTEPS_XY, MENU_MODE_PRINTER, MENU_MODE_PRINTING | MENU_MODE_SD_PRINTING | MENU_MODE_PAUSED)
@@ -1070,8 +1087,8 @@ UI_MENU_CHANGEACTION_FILTER(ui_menu_microsteps_e,  UI_TEXT_MICRO_STEPS_E , UI_AC
     #define UI_MENU_ADJUSTABLE_MICROSTEPS_COUNT  0
 #endif //FEATURE_ADJUSTABLE_MICROSTEPS
 
-#define UI_MENU_MOTOR_COND   {UI_MENU_ADDCONDBACK UI_MENU_MOTOR_X_COND UI_MENU_MOTOR_Y_COND UI_MENU_MOTOR_Z_COND UI_MENU_MOTOR_E0_COND UI_MENU_MOTOR_E1_COND UI_MENU_FREQ_DBL_COND UI_MENU_ADJUSTABLE_MICROSTEPS_COND}
-#define UI_MENU_MOTOR_COUNT   UI_MENU_BACKCNT + UI_MENU_MOTOR_X_COUNT + UI_MENU_MOTOR_Y_COUNT + UI_MENU_MOTOR_Z_COUNT + UI_MENU_MOTOR_E0_COUNT + UI_MENU_MOTOR_E1_COUNT + UI_MENU_FREQ_DBL_COUNT + UI_MENU_ADJUSTABLE_MICROSTEPS_COUNT
+#define UI_MENU_MOTOR_COND   {UI_MENU_ADDCONDBACK UI_MENU_MOTOR_X_COND UI_MENU_MOTOR_Y_COND UI_MENU_MOTOR_Z_COND UI_MENU_MOTOR_E0_COND UI_MENU_MOTOR_E1_COND UI_MENU_ADJUSTABLE_MICROSTEPS_COND}
+#define UI_MENU_MOTOR_COUNT   UI_MENU_BACKCNT + UI_MENU_MOTOR_X_COUNT + UI_MENU_MOTOR_Y_COUNT + UI_MENU_MOTOR_Z_COUNT + UI_MENU_MOTOR_E0_COUNT + UI_MENU_MOTOR_E1_COUNT + UI_MENU_ADJUSTABLE_MICROSTEPS_COUNT
 UI_MENU(ui_menu_motor,UI_MENU_MOTOR_COND,UI_MENU_MOTOR_COUNT)
 //############################################################### MOTOR MENU
 

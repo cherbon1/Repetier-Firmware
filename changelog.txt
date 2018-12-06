@@ -1,3 +1,16 @@
+V RF.01.43.18.Mod (2018-12-05)
+- moved menu point "shift frequency" to menu "Feedrate"
+- moved menu point "extruder advance L" from "Stepper" to menu "Acceleration"
+- added extruder max speed to menu "Feedrate"
+- added extruder jerks to menu "Acceleration"
+- added extruder acceleration to menu "Acceleration"
+- sort feedrate and acceleration menu items according to axis to prevent confusion
+- removed speedmultiply menu point from menu->configuration->feedrate because this is not a persistent feedrate setting
+- improved some action-case code blocks to avoid dual extruder code duplication
+- some refactoring for better variable naming
+- tiny feedrate limitation fix for extrusion feature ViscositySense
+- removed a lot of old/unused text definitions
+
 V RF.01.43.17.Mod (2018-12-04)
 - removed parameter watchperiod and all helper functions from extruder object, set watchperiod to 15s as default.
 - removed unused menu-action for current-extruder feedrate, because we use extruder0-feedrate and extruder1-feedrate non parametric.

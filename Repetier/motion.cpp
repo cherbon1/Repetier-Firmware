@@ -737,8 +737,8 @@ inline void PrintLine::computeMaxJunctionSpeed(PrintLine *previous,PrintLine *cu
     }
 
     float eJerk = fabs(current->speedE - previous->speedE);
-    if(eJerk > Extruder::current->maxStartFeedrate) {
-        factor = RMath::min(factor, Extruder::current->maxStartFeedrate / eJerk);
+    if(eJerk > Extruder::current->maxEJerk) {
+        factor = RMath::min(factor, Extruder::current->maxEJerk / eJerk);
     }
     previous->maxJunctionSpeed = maxJoinSpeed * factor; // set speed limit
 
@@ -898,9 +898,9 @@ inline float PrintLine::safeSpeed(fast8_t drivingAxis)
     }
     if(isEMove()) {
         if(isXYZMove())
-            safe = RMath::min(safe, 0.5f * Extruder::current->maxStartFeedrate * fullSpeed / fabs(speedE));
+            safe = RMath::min(safe, 0.5f * Extruder::current->maxEJerk * fullSpeed / fabs(speedE));
         else
-            safe = 0.5f * Extruder::current->maxStartFeedrate; // This is a retraction move
+            safe = 0.5f * Extruder::current->maxEJerk; // This is a retraction move
     }
 
     // enforce minimum speed for numerical stability of explicit speed integration
