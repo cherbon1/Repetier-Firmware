@@ -3098,7 +3098,7 @@ void startViscosityTest( int maxdigits = 10000, float maxfeedrate = 5.0f, float 
     if(maxdigits < 1000) maxdigits = 1000;
     Com::printFLN( PSTR( "Test DigitsMax = " ) , maxdigits );
 
-    if(maxfeedrate > Extruder::current->maxStartFeedrate) maxfeedrate = Extruder::current->maxStartFeedrate;
+    if(maxfeedrate > Extruder::current->maxFeedrate) maxfeedrate = Extruder::current->maxFeedrate;
     if(maxfeedrate < 0.05) maxfeedrate = 0.05;
     Com::printFLN( PSTR( "Test FeedrateMax = " ) , maxfeedrate , 1);
 

@@ -106,7 +106,7 @@ void EEPROM::restoreEEPROMSettingsFromConfiguration()
     }
 #endif // FEATURE_MILLING_MODE
 
-    Printer::maxJerk = MAX_JERK;
+    Printer::maxXYJerk = MAX_JERK;
     Printer::maxZJerk = MAX_ZJERK;
 
     Printer::maxAccelerationMMPerSquareSecond[X_AXIS] = MAX_ACCELERATION_UNITS_PER_SQ_SECOND_X;
@@ -156,7 +156,7 @@ void EEPROM::restoreEEPROMSettingsFromConfiguration()
     e = &extruder[0];
     e->stepsPerMM = EXT0_STEPS_PER_MM;
     e->maxFeedrate = EXT0_MAX_FEEDRATE;
-    e->maxStartFeedrate = EXT0_MAX_START_FEEDRATE;
+    e->maxEJerk = EXT0_MAX_START_FEEDRATE;
     e->maxAcceleration = EXT0_MAX_ACCELERATION;
 
     e->tempControl.pidDriveMax = EXT0_PID_INTEGRAL_DRIVE_MAX;
@@ -170,7 +170,6 @@ void EEPROM::restoreEEPROMSettingsFromConfiguration()
     e->zOffset = int32_t(EXT0_Z_OFFSET_MM * Printer::axisStepsPerMM[Z_AXIS]);
     e->yOffset = int32_t(EXT0_Y_OFFSET_MM * Printer::axisStepsPerMM[Y_AXIS]);
     e->xOffset = int32_t(EXT0_X_OFFSET_MM * Printer::axisStepsPerMM[X_AXIS]);
-    e->watchPeriod = EXT0_WATCHPERIOD;
 
 #if RETRACT_DURING_HEATUP
     e->waitRetractTemperature = EXT0_WAIT_RETRACT_TEMP;
@@ -191,7 +190,7 @@ void EEPROM::restoreEEPROMSettingsFromConfiguration()
     e = &extruder[1];
     e->stepsPerMM = EXT1_STEPS_PER_MM;
     e->maxFeedrate = EXT1_MAX_FEEDRATE;
-    e->maxStartFeedrate = EXT1_MAX_START_FEEDRATE;
+    e->maxEJerk = EXT1_MAX_START_FEEDRATE;
     e->maxAcceleration = EXT1_MAX_ACCELERATION;
 
     e->tempControl.pidDriveMax = EXT1_PID_INTEGRAL_DRIVE_MAX;
@@ -205,7 +204,6 @@ void EEPROM::restoreEEPROMSettingsFromConfiguration()
     e->zOffset = int32_t(EXT1_Z_OFFSET_MM * Printer::axisStepsPerMM[Z_AXIS]);
     e->yOffset = int32_t(EXT1_Y_OFFSET_MM * Printer::axisStepsPerMM[Y_AXIS]);
     e->xOffset = int32_t(EXT1_X_OFFSET_MM * Printer::axisStepsPerMM[X_AXIS]);
-    e->watchPeriod = EXT1_WATCHPERIOD;
 
 #if RETRACT_DURING_HEATUP
     e->waitRetractTemperature = EXT1_WAIT_RETRACT_TEMP;
@@ -375,7 +373,7 @@ void EEPROM::storeDataIntoEEPROM(uint8_t corrupted)
     }
 #endif // FEATURE_MILLING_MODE
 
-    HAL::eprSetFloat(EPR_MAX_JERK,Printer::maxJerk);
+    HAL::eprSetFloat(EPR_MAX_JERK,Printer::maxXYJerk);
     HAL::eprSetFloat(EPR_MAX_ZJERK,Printer::maxZJerk);
 
 #if FEATURE_MILLING_MODE
@@ -450,7 +448,7 @@ void EEPROM::storeDataIntoEEPROM(uint8_t corrupted)
         Extruder *e = &extruder[i];
         HAL::eprSetFloat(o+EPR_EXTRUDER_STEPS_PER_MM,e->stepsPerMM);
         HAL::eprSetFloat(o+EPR_EXTRUDER_MAX_FEEDRATE,e->maxFeedrate);
-        HAL::eprSetFloat(o+EPR_EXTRUDER_MAX_START_FEEDRATE,e->maxStartFeedrate);
+        HAL::eprSetFloat(o+EPR_EXTRUDER_MAX_START_FEEDRATE,e->maxEJerk);
         HAL::eprSetFloat(o+EPR_EXTRUDER_MAX_ACCELERATION,e->maxAcceleration);
 
         HAL::eprSetByte(o+EPR_EXTRUDER_DRIVE_MAX,e->tempControl.pidDriveMax);
@@ -464,9 +462,7 @@ void EEPROM::storeDataIntoEEPROM(uint8_t corrupted)
         HAL::eprSetFloat(o+EPR_EXTRUDER_X_OFFSET,e->xOffset*Printer::invAxisStepsPerMM[X_AXIS]);
         HAL::eprSetFloat(o+EPR_EXTRUDER_Y_OFFSET,e->yOffset*Printer::invAxisStepsPerMM[Y_AXIS]);
         HAL::eprSetFloat(o+EPR_EXTRUDER_Z_OFFSET,e->zOffset*Printer::invAxisStepsPerMM[Z_AXIS]);   //e->zOffset  Nibbels
-
-        HAL::eprSetInt16(o+EPR_EXTRUDER_WATCH_PERIOD,e->watchPeriod);
-
+		
 #if RETRACT_DURING_HEATUP
         HAL::eprSetInt16(o+EPR_EXTRUDER_WAIT_RETRACT_TEMP,e->waitRetractTemperature);
         HAL::eprSetInt16(o+EPR_EXTRUDER_WAIT_RETRACT_UNITS,e->waitRetractUnits);
@@ -690,7 +686,7 @@ void EEPROM::readDataFromEEPROM()
     Printer::moveMode[Y_AXIS] = HAL::eprGetByte(EPR_RF_MOVE_MODE_Y);
     Printer::moveMode[Z_AXIS] = HAL::eprGetByte(EPR_RF_MOVE_MODE_Z);
 
-    Printer::maxJerk = HAL::eprGetFloat(EPR_MAX_JERK);
+    Printer::maxXYJerk = HAL::eprGetFloat(EPR_MAX_JERK);
     Printer::maxZJerk = HAL::eprGetFloat(EPR_MAX_ZJERK);
 
     Printer::maxAccelerationMMPerSquareSecond[X_AXIS] = HAL::eprGetFloat(EPR_X_MAX_ACCEL);
@@ -816,11 +812,11 @@ void EEPROM::readDataFromEEPROM()
 
         tmp = HAL::eprGetFloat(o+EPR_EXTRUDER_MAX_START_FEEDRATE);
         if(0 < tmp && tmp <= e->maxFeedrate){
-            e->maxStartFeedrate = tmp;
+            e->maxEJerk = tmp;
         }else{
-            e->maxStartFeedrate = RMath::min(e->maxFeedrate, e->maxStartFeedrate);
+            e->maxEJerk = RMath::min(e->maxFeedrate, e->maxEJerk);
 #if FEATURE_AUTOMATIC_EEPROM_UPDATE
-            HAL::eprSetFloat(o+EPR_EXTRUDER_MAX_START_FEEDRATE, e->maxStartFeedrate);
+            HAL::eprSetFloat(o+EPR_EXTRUDER_MAX_START_FEEDRATE, e->maxEJerk);
             change = true; //update checksum later in this function
 #endif //FEATURE_AUTOMATIC_EEPROM_UPDATE
         }
@@ -885,7 +881,6 @@ void EEPROM::readDataFromEEPROM()
             change = true; //update checksum later in this function
 #endif //FEATURE_AUTOMATIC_EEPROM_UPDATE
         }
-        e->watchPeriod = HAL::eprGetInt16(o+EPR_EXTRUDER_WATCH_PERIOD);
 
 #if RETRACT_DURING_HEATUP
         e->waitRetractTemperature = HAL::eprGetInt16(o+EPR_EXTRUDER_WAIT_RETRACT_TEMP);
@@ -1399,7 +1394,7 @@ void EEPROM::writeSettings()
         int o=EEPROM::getExtruderOffset(i);
         writeFloat(o+EPR_EXTRUDER_STEPS_PER_MM,Com::tEPRStepsPerMM);
         writeFloat(o+EPR_EXTRUDER_MAX_FEEDRATE,Com::tEPRMaxFeedrate);
-        writeFloat(o+EPR_EXTRUDER_MAX_START_FEEDRATE,Com::tEPRStartFeedrate);
+        writeFloat(o+EPR_EXTRUDER_MAX_START_FEEDRATE,Com::tEPReJerk);
         writeFloat(o+EPR_EXTRUDER_MAX_ACCELERATION,Com::tEPRAcceleration);
 
         writeByte(o+EPR_EXTRUDER_DRIVE_MAX,Com::tEPRDriveMax);
@@ -1413,9 +1408,7 @@ void EEPROM::writeSettings()
         writeFloat(o+EPR_EXTRUDER_X_OFFSET,Com::tEPRXOffset);
         writeFloat(o+EPR_EXTRUDER_Y_OFFSET,Com::tEPRYOffset);
         writeFloat(o+EPR_EXTRUDER_Z_OFFSET,Com::tEPRZOffsetmm);
-
-        writeInt(o+EPR_EXTRUDER_WATCH_PERIOD,Com::tEPRStabilizeTime);
-
+		
 #if RETRACT_DURING_HEATUP
         writeInt(o+EPR_EXTRUDER_WAIT_RETRACT_TEMP,Com::tEPRRetractionWhenHeating);
         writeInt(o+EPR_EXTRUDER_WAIT_RETRACT_UNITS,Com::tEPRDistanceRetractHeating);

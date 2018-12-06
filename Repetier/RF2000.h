@@ -207,9 +207,6 @@ Overridden if EEPROM activated. */
 Overridden if EEPROM activated. */
 #define EXT0_MAX_ACCELERATION               6000
 
-/** \brief Wait x seconds, after reaching target temperature. Only used for M109.  Overridden if EEPROM activated. */
-#define EXT0_WATCHPERIOD                    20
-
 
 #if EXT0_HOTEND_TYPE == HOTEND_TYPE_V1
 
@@ -382,9 +379,6 @@ Overridden if EEPROM activated. */
 /** \brief Acceleration in mm/s^2
 Overridden if EEPROM activated. */
 #define EXT1_MAX_ACCELERATION               6000
-
-/** \brief Wait x seconds, after reaching target temperature. Only used for M109.  Overridden if EEPROM activated. */
-#define EXT1_WATCHPERIOD                    20
 
 
 #if EXT1_HOTEND_TYPE == HOTEND_TYPE_V1
@@ -788,8 +782,8 @@ Only values which are a factor of 10ms or 0==OFF will work precisely */
 #define HOMING_FEEDRATE_Z_MILL              7
 
 /** \brief Speed for direct movements in mm/s. Overridden if EEPROM activated. */
-#define DIRECT_FEEDRATE_XY                  100
-#define DIRECT_FEEDRATE_Z                   10
+#define DIRECT_FEEDRATE_XY                  80
+#define DIRECT_FEEDRATE_Z                   7
 #define DIRECT_FEEDRATE_E                   25
 
 /** \brief Set order of axis homing. Use HOME_ORDER_XYZ and replace XYZ with your order. */

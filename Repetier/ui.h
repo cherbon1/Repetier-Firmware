@@ -84,13 +84,7 @@
 #define UI_ACTION_STEPPER_INACTIVE          1056
 #define UI_ACTION_X_OFFSET                  1063
 #define UI_ACTION_Y_OFFSET                  1064
-#define UI_ACTION_EXTR_STEPS                1065
-#define UI_ACTION_EXTR_ACCELERATION         1066
-#define UI_ACTION_EXTR_MAX_FEEDRATE         1067
-#define UI_ACTION_EXTR_START_FEEDRATE       1068
-//#define UI_ACTION_EXTR_HEATMANAGER          1069
 #define UI_ACTION_EXTR_WATCH_PERIOD         1070
-//#define UI_ACTION_ADVANCE_K                 1072
 #define UI_ACTION_DEBUG_ECHO                1074
 #define UI_ACTION_DEBUG_INFO                1075
 #define UI_ACTION_DEBUG_ERROR               1076
@@ -114,8 +108,6 @@
 
 #define UI_ACTION_PREHEAT_ABS               1095
 #define UI_ACTION_FLOWRATE_MULTIPLY         1096
-#define UI_ACTION_EXTR_WAIT_RETRACT_TEMP    1100
-#define UI_ACTION_EXTR_WAIT_RETRACT_UNITS   1101
 
 #define UI_ACTION_FANSPEED                  1106
 #define UI_ACTION_LIGHTS_ONOFF              1107
@@ -146,6 +138,14 @@
 #define UI_ACTION_ZMODE                     1130
 
 #define UI_ACTION_EXTRUDER_OFFSET_Z         1136
+
+#define UI_ACTION_EXTR_ACCELERATION_E0      1137
+#define UI_ACTION_EXTR_MAX_FEEDRATE_E0      1138
+#define UI_ACTION_EXTR_START_FEEDRATE_E0    1139
+
+#define UI_ACTION_EXTR_ACCELERATION_E1      1140
+#define UI_ACTION_EXTR_MAX_FEEDRATE_E1      1141
+#define UI_ACTION_EXTR_START_FEEDRATE_E1    1142
 
 //Nibbels : nicht in processbutton sondern in executeaction!
 #define UI_ACTION_RF_DO_MHIER_BED_SCAN      1666

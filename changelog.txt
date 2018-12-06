@@ -1,3 +1,31 @@
+V RF.01.43.18.Mod (2018-12-05)
+- moved menu point "shift frequency" to menu "Feedrate"
+- moved menu point "extruder advance L" from "Stepper" to menu "Acceleration"
+- added extruder max speed to menu "Feedrate"
+- added extruder jerks to menu "Acceleration"
+- added extruder acceleration to menu "Acceleration"
+- sort feedrate and acceleration menu items according to axis to prevent confusion
+- removed speedmultiply menu point from menu->configuration->feedrate because this is not a persistent feedrate setting
+- improved some action-case code blocks to avoid dual extruder code duplication
+- some refactoring for better variable naming
+- tiny feedrate limitation fix for extrusion feature ViscositySense
+- removed a lot of old/unused text definitions
+
+V RF.01.43.17.Mod (2018-12-04)
+- removed parameter watchperiod and all helper functions from extruder object, set watchperiod to 15s as default.
+- removed unused menu-action for current-extruder feedrate, because we use extruder0-feedrate and extruder1-feedrate non parametric.
+- removed unused menu-actions from feature RETRACT_DURING_HEATUP
+
+V RF.01.43.16.Mod (2018-12-02)
+- merged calculateQueueMove and calculateDirectMove into one clean function calculateMove
+- corrected direct move speed settings to lower values
+- added one digit to zJerk float in menu settings
+
+V RF.01.43.15.Mod (2018-12-02)
+- xyzJerk and eJerk refactoring + cleanup
+- more intelligent limits for setting jerk by gcode
+- better limits for setting extruder speeds and ejerk (=maxstartspeed)
+
 V RF.01.43.14.Mod (2018-11-30)
 - Limit definitions for Acceleration and Jerk reworked.
 - Introduced one single place for xy / z acceleration settings in configuration.h instead of 3 places in RFx000.h's
