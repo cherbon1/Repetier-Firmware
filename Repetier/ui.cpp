@@ -3432,7 +3432,7 @@ void UIDisplay::nextPreviousAction(int8_t next)
             INCREMENT_MIN_MAX(Printer::maxXYJerk, 0.1f, 1.0f, 33.3f); //RFx000: Limit 33.3 sind willkürlich grob faktor 3 von normalwert.
 
 #if FEATURE_AUTOMATIC_EEPROM_UPDATE
-            HAL::eprSetFloat(EPR_MAX_JERK, Printer::maxXYJerk);
+            HAL::eprSetFloat(EPR_MAX_XYJERK, Printer::maxXYJerk);
             EEPROM::updateChecksum();
 #endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
 

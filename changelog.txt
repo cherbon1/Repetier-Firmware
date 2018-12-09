@@ -1,3 +1,11 @@
+V RF.01.43.19.Mod (2018-12-09)
+- cleanup of EEPROM-Settings
+   fixed old naming
+   better descriptive names
+   better order
+   added port descriptions to mosfet default options
+- removed some unused string constants
+
 V RF.01.43.18.Mod (2018-12-05)
 - moved menu point "shift frequency" to menu "Feedrate"
 - moved menu point "extruder advance L" from "Stepper" to menu "Acceleration"

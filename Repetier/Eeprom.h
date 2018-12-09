@@ -37,7 +37,7 @@ have problems with other modules using the eeprom */
 #define EPR_X_HOMING_FEEDRATE_PRINT     27
 #define EPR_Y_HOMING_FEEDRATE_PRINT     31
 #define EPR_Z_HOMING_FEEDRATE_PRINT     35
-#define EPR_MAX_JERK                    39
+#define EPR_MAX_XYJERK                  39
 #define EPR_MAX_ZJERK                   47
 #define EPR_X_MAX_ACCEL                 51
 #define EPR_Y_MAX_ACCEL                 55
