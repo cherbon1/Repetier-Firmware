@@ -42,45 +42,45 @@ void Commands::commandLoop()
         }
         else
 #endif //SDSUPPORT
-		{
+        {
             Commands::executeGCode(code);
-		}
+        }
         code->popCurrentCommand();
-		Commands::checkForPeriodicalActions(Processing);  //check heater and other stuff every n milliseconds
+        Commands::checkForPeriodicalActions(Processing);  //check heater and other stuff every n milliseconds
     } else {
-		enum FirmwareState state = NotBusy;
-		if( g_pauseMode != PAUSE_MODE_NONE )
-		{
-			state = Paused;
-		}
-	
-		Commands::checkForPeriodicalActions(state);  //check heater and other stuff every n milliseconds
-	}
+        enum FirmwareState state = NotBusy;
+        if( g_pauseMode != PAUSE_MODE_NONE )
+        {
+            state = Paused;
+        }
+    
+        Commands::checkForPeriodicalActions(state);  //check heater and other stuff every n milliseconds
+    }
 } // commandLoop
 
 
 void Commands::checkForPeriodicalActions(enum FirmwareState state)
 {
-	/* 
-	 * The execute variables are set by PWM-Timer. This timer ticks with about 3910 Hz and the ms clocks are made with software counter dividors.
-	 * Except this 16ms execute variable which is set by internal watchdog timer.
-	 */
+    /* 
+     * The execute variables are set by PWM-Timer. This timer ticks with about 3910 Hz and the ms clocks are made with software counter dividors.
+     * Except this 16ms execute variable which is set by internal watchdog timer.
+     */
     if (state != NotBusy) {
         GCode::keepAlive( state );
     }
 
     if (execute10msPeriodical) {
       execute10msPeriodical = 0;
-	  // Dieses freigabesignal sollte aus dem PWM-Timer kommen, denn dann ist klar, dass auch der noch läuft.
-	  // Dann laufen für den Watchdogreset der Timer und checkForPeriodicalActions().
+      // Dieses freigabesignal sollte aus dem PWM-Timer kommen, denn dann ist klar, dass auch der noch läuft.
+      // Dann laufen für den Watchdogreset der Timer und checkForPeriodicalActions().
       HAL::tellWatchdogOk();	  
     }
 
     if (execute16msPeriodical) {
       execute16msPeriodical = 0;
-	  bool buttonSpeedBoost = (!execute100msPeriodical && HAL::timeInMilliseconds() - uid.lastButtonStart < 20000);
+      bool buttonSpeedBoost = (!execute100msPeriodical && HAL::timeInMilliseconds() - uid.lastButtonStart < 20000);
       if(buttonSpeedBoost) UI_SLOW;
-	  doZCompensation();
+      doZCompensation();
     }
 
     if (execute100msPeriodical) {
@@ -90,7 +90,7 @@ void Commands::checkForPeriodicalActions(enum FirmwareState state)
 #if defined(SDCARDDETECT) && SDCARDDETECT>-1 && defined(SDSUPPORT) && SDSUPPORT
       sd.automount();
 #endif // defined(SDCARDDETECT) && SDCARDDETECT>-1 && defined(SDSUPPORT) && SDSUPPORT
-	  UI_SLOW;
+      UI_SLOW;
     }
 
     if (execute50msPeriodical) {
@@ -98,7 +98,7 @@ void Commands::checkForPeriodicalActions(enum FirmwareState state)
       loopFeatures();
     }
 
-	DEBUG_MEMORY;
+    DEBUG_MEMORY;
 } // checkForPeriodicalActions
 
 
@@ -868,9 +868,9 @@ void Commands::executeGCode(GCode *com)
                 {
 #if NUM_EXTRUDER>0
                     if(Printer::isAnyTempsensorDefect()){
-						reportTempsensorAndHeaterErrors();
-						break;
-					}
+                        reportTempsensorAndHeaterErrors();
+                        break;
+                    }
                     previousMillisCmd = HAL::timeInMilliseconds(); //prevent inactive shutdown of steppers/temps
                     if(Printer::debugDryrun()) break;
 
@@ -899,9 +899,9 @@ void Commands::executeGCode(GCode *com)
                 if( isSupportedMCommand( com->M, OPERATING_MODE_PRINT ) )
                 {
                     if(Printer::isAnyTempsensorDefect()){
-						reportTempsensorAndHeaterErrors();
-						break;
-					}
+                        reportTempsensorAndHeaterErrors();
+                        break;
+                    }
                     previousMillisCmd = HAL::timeInMilliseconds(); //prevent inactive shutdown of steppers/temps
                     if(Printer::debugDryrun()) break;
                     if (com->hasS()) Extruder::setHeatedBedTemperature(com->S,com->hasF() && com->F>0);
@@ -914,9 +914,9 @@ void Commands::executeGCode(GCode *com)
                 {
 #if NUM_EXTRUDER>0
                     if(Printer::isAnyTempsensorDefect()){
-						reportTempsensorAndHeaterErrors();
-						break;
-					}
+                        reportTempsensorAndHeaterErrors();
+                        break;
+                    }
                     previousMillisCmd = HAL::timeInMilliseconds(); //prevent inactive shutdown of steppers/temps
                     if(Printer::debugDryrun()) break;
                     Printer::waitMove = 1; //brauche ich das, wenn ich sowieso warte bis der movecache leer ist?
@@ -1010,11 +1010,11 @@ void Commands::executeGCode(GCode *com)
                 if( isSupportedMCommand( com->M, OPERATING_MODE_PRINT ) )
                 {
 #if HAVE_HEATED_BED
-					previousMillisCmd = HAL::timeInMilliseconds(); //prevent inactive shutdown of steppers/temps
+                    previousMillisCmd = HAL::timeInMilliseconds(); //prevent inactive shutdown of steppers/temps
                     if(Printer::isAnyTempsensorDefect()){
-						reportTempsensorAndHeaterErrors();
-						break;
-					}
+                        reportTempsensorAndHeaterErrors();
+                        break;
+                    }
                     if(Printer::debugDryrun()) break;
                     Printer::waitMove = 1; //brauche ich das, wenn ich sowieso warte bis der movecache leer ist?
                     g_uStartOfIdle = 0; //M190
@@ -1178,7 +1178,7 @@ void Commands::executeGCode(GCode *com)
                 else
                 {
                     Commands::waitUntilEndOfAllMoves(); //M84
-					Printer::disableAllSteppersNow();
+                    Printer::disableAllSteppersNow();
                 }
                 break;
             }
@@ -1456,41 +1456,41 @@ void Commands::executeGCode(GCode *com)
                 }
                 break;
             }
-			case 218:
-			{
-				// New MCode with https://github.com/repetier/Repetier-Firmware/commit/e5db16080d0c98776ae82f543e2bc6ef643a63c7
-				// I added this MCode for compatibility-Reasons with Repetier and Marlin.
-				
-				int extId = 0;
-				if (com->hasT()) {
-					extId = com->T;
-				}
-				if (extId >= 0 && extId < NUM_EXTRUDER) {
-					if (com->hasX()) {
-						extruder[extId].xOffset = com->X * Printer::axisStepsPerMM[X_AXIS];
-					}
-					if (com->hasY()) {
-						 extruder[extId].yOffset = com->Y * Printer::axisStepsPerMM[Y_AXIS];
-					}
-					// Special RFx000-Constraint: This Mod doesnt support Extruder-Z-Offset here because it might be mixed up with Bed Z-Offset.
-					// Change Extruder Z-Offset via Menu. You have to activate UI_SHOW_TIPDOWN_IN_ZCONFIGURATION to see the menu entry to do so for the right extruder.
-					// Or change the Extruder Z-Offset via EEPROM.
-					/*if (com->hasZ() && com->Z < 0 && com->Z > -2) {
-						extruder[extId].zOffset = com->Z * Printer::axisStepsPerMM[Z_AXIS];
-					} else if (com->hasZ()) {
-						Com::printFLN(PSTR("M218 Error Z limited to -2..0"));
-					}*/	
+            case 218:
+            {
+                // New MCode with https://github.com/repetier/Repetier-Firmware/commit/e5db16080d0c98776ae82f543e2bc6ef643a63c7
+                // I added this MCode for compatibility-Reasons with Repetier and Marlin.
+                
+                int extId = 0;
+                if (com->hasT()) {
+                    extId = com->T;
+                }
+                if (extId >= 0 && extId < NUM_EXTRUDER) {
+                    if (com->hasX()) {
+                        extruder[extId].xOffset = com->X * Printer::axisStepsPerMM[X_AXIS];
+                    }
+                    if (com->hasY()) {
+                         extruder[extId].yOffset = com->Y * Printer::axisStepsPerMM[Y_AXIS];
+                    }
+                    // Special RFx000-Constraint: This Mod doesnt support Extruder-Z-Offset here because it might be mixed up with Bed Z-Offset.
+                    // Change Extruder Z-Offset via Menu. You have to activate UI_SHOW_TIPDOWN_IN_ZCONFIGURATION to see the menu entry to do so for the right extruder.
+                    // Or change the Extruder Z-Offset via EEPROM.
+                    /*if (com->hasZ() && com->Z < 0 && com->Z > -2) {
+                        extruder[extId].zOffset = com->Z * Printer::axisStepsPerMM[Z_AXIS];
+                    } else if (com->hasZ()) {
+                        Com::printFLN(PSTR("M218 Error Z limited to -2..0"));
+                    }*/	
 #if FEATURE_AUTOMATIC_EEPROM_UPDATE
-					if(com->hasS() && com->S > 0) {
-						if (com->hasX()) HAL::eprSetFloat(EEPROM::getExtruderOffset(extId)+EPR_EXTRUDER_X_OFFSET, com->X);
-						if (com->hasY()) HAL::eprSetFloat(EEPROM::getExtruderOffset(extId)+EPR_EXTRUDER_Y_OFFSET, com->Y);
-						//if (com->hasZ() && com->Z < 0 && com->Z > -2) HAL::eprSetFloat(EEPROM::getExtruderOffset(extId)+EPR_EXTRUDER_Z_OFFSET, com->Z);
-						EEPROM::updateChecksum();
-					}
+                    if(com->hasS() && com->S > 0) {
+                        if (com->hasX()) HAL::eprSetFloat(EEPROM::getExtruderOffset(extId)+EPR_EXTRUDER_X_OFFSET, com->X);
+                        if (com->hasY()) HAL::eprSetFloat(EEPROM::getExtruderOffset(extId)+EPR_EXTRUDER_Y_OFFSET, com->Y);
+                        //if (com->hasZ() && com->Z < 0 && com->Z > -2) HAL::eprSetFloat(EEPROM::getExtruderOffset(extId)+EPR_EXTRUDER_Z_OFFSET, com->Z);
+                        EEPROM::updateChecksum();
+                    }
 #endif //FEATURE_AUTOMATIC_EEPROM_UPDATE
-				}
-				break;
-			}
+                }
+                break;
+            }
             case 220:   // M220 - S<Feedrate multiplier in percent>
             {
                 changeFeedrateMultiply(com->getS(100));
@@ -1550,9 +1550,9 @@ void Commands::executeGCode(GCode *com)
 #endif // USE_ADVANCE
 #if FEATURE_CASE_LIGHT
             case 355: // M355  - Turn case light on/off / Turn X19 on and off.
-			{
-				// Idee und Teilcode und Vorarbeit von WESSIX
-				// Code schaltet X19, das ist nicht zwingend das Licht!
+            {
+                // Idee und Teilcode und Vorarbeit von WESSIX
+                // Code schaltet X19, das ist nicht zwingend das Licht!
                 if (com->hasS()) {
                     if(com->S == 1 || com->S == 0){
                         Printer::enableCaseLight = com->S;
@@ -1560,13 +1560,13 @@ void Commands::executeGCode(GCode *com)
                         Com::printFLN(PSTR("M355 Error S=0||1"));
                     }
                 } else {
-					if(Printer::enableCaseLight) Printer::enableCaseLight = 0;
-					else Printer::enableCaseLight = 1;
+                    if(Printer::enableCaseLight) Printer::enableCaseLight = 0;
+                    else Printer::enableCaseLight = 1;
                 }
                 WRITE(CASE_LIGHT_PIN, Printer::enableCaseLight);
                 Com::printFLN(PSTR("M355: X19 set to "), Printer::enableCaseLight);
                 break;
-			}
+            }
 // Ende Idee und Teilcode von WESSIX
 #endif // FEATURE_CASE_LIGHT
             case 400:   // M400 - Finish all moves
