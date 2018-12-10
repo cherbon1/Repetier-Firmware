@@ -1,3 +1,6 @@
+V 01.43.20.Mod (2018-12-10)
+- fixed Octoprint > 1.3.7 throws a security warning because of wrong firmware version parsing
+
 V RF.01.43.19.Mod (2018-12-09)
 - cleanup of EEPROM-Settings
    fixed old naming
