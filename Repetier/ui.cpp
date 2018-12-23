@@ -842,8 +842,8 @@ void UIDisplay::parse(char *txt,bool ram)
                 else if(c2=='X') addFloat(Printer::maxTravelAccelerationMMPerSquareSecond[X_AXIS],5,0); // %aX : X acceleration during travel moves
                 else if(c2=='Y') addFloat(Printer::maxTravelAccelerationMMPerSquareSecond[Y_AXIS],5,0); // %aY : Y acceleration during travel moves
                 else if(c2=='Z') addFloat(Printer::maxTravelAccelerationMMPerSquareSecond[Z_AXIS],5,0); // %aZ : Z acceleration during travel moves
-                else if(c2=='j') addFloat(Printer::maxJerk,3,1);                                        // %aj : Max. jerk
-                else if(c2=='J') addFloat(Printer::maxZJerk,3,1);                                       // %aJ : Max. Z-jerk
+                else if(c2=='j') addFloat(Printer::maxXYJerk,3,1);                                      // %aj : Max. jerk
+                else if(c2=='J') addFloat(Printer::maxZJerk,3,2);                                       // %aJ : Max. Z-jerk
                 break;
             }
             case 'd':
@@ -1025,10 +1025,15 @@ void UIDisplay::parse(char *txt,bool ram)
             {
                 if(c2=='x') addFloat(Printer::maxFeedrate[X_AXIS],5,0);                                 // %fx : Max. feedrate x direction
                 else if(c2=='y') addFloat(Printer::maxFeedrate[Y_AXIS],5,0);                            // %fy : Max. feedrate y direction
-                else if(c2=='z') addFloat(Printer::maxFeedrate[Z_AXIS],5,0);                            // %fz : Max. feedrate z direction
+				else if (c2 == 'z') addFloat(Printer::maxFeedrate[Z_AXIS], 5, 0);                       // %fz : Max. feedrate z direction
+				else if (c2 == 'e') addFloat(extruder[0].maxFeedrate, 5, 0);                            // %fe : Max. feedrate extruder 0
+#if NUM_EXTRUDER>1
+				else if (c2 == 'E') addFloat(extruder[1].maxFeedrate, 5, 0);                            // %fE : Max. feedrate extruder 1
+#endif // NUM_EXTRUDER>1
                 else if(c2=='X') addFloat(Printer::homingFeedrate[X_AXIS],5,0);                         // %fX : Homing feedrate x direction
                 else if(c2=='Y') addFloat(Printer::homingFeedrate[Y_AXIS],5,0);                         // %fY : Homing feedrate y direction
                 else if(c2=='Z') addFloat(Printer::homingFeedrate[Z_AXIS],5,0);                         // %fZ : Homing feedrate z direction
+				
                 break;
             }
             case 'i':
@@ -1300,11 +1305,6 @@ void UIDisplay::parse(char *txt,bool ram)
                     addLong(baudrate,6);
                     break;
                 }
-                if(c2=='B')                                                                             // %oB : Buffer length
-                {
-                    addInt((int)PrintLine::linesCount,2);
-                    break;
-                }
                 if(c2=='f')                                                                             // %of : flow multiplier
                 {
                     addInt(Printer::extrudeMultiply
@@ -1507,19 +1507,6 @@ void UIDisplay::parse(char *txt,bool ram)
                 {
                     addStringP(Extruder::current->id==c2-'0'?ui_selected:ui_unselected);
                 }
-
-                else if(c2=='i')                                                                        // %Xi : PID I gain
-                {
-                    addFloat(Extruder::current->tempControl.pidIGain,4,2);
-                }
-                else if(c2=='p')                                                                        // %Xp : PID P gain
-                {
-                    addFloat(Extruder::current->tempControl.pidPGain,4,2);
-                }
-                else if(c2=='d')                                                                        // %Xd : PID D gain
-                {
-                    addFloat(Extruder::current->tempControl.pidDGain,4,2);
-                }
                 else if(c2=='m')                                                                        // %Xm : PID drive min
                 {
                     if(menuLevel == 4 && menuPos[menuLevel-1] < NUM_TEMPERATURE_LOOPS){
@@ -1575,10 +1562,6 @@ void UIDisplay::parse(char *txt,bool ram)
                     }
                 }
 
-                else if(c2=='w')                                                                        // %Xw : Extruder watch period in seconds
-                {
-                    addInt(Extruder::current->watchPeriod,4);
-                }
                 else if(c2=='t')                                                                        // %Xt : Description for PID autotune type in menu
                 {
                     col = 0; //reset linemarker -> start at first display char. overwrite things before this %tag -> erstes Zeichen brauchen wir in diesem menü nicht.
@@ -1634,18 +1617,27 @@ void UIDisplay::parse(char *txt,bool ram)
                 }
 #endif // USE_ADVANCE
 
-                else if(c2=='f')                                                                        // %Xf : Extruder max. start feedrate
-                {
-                    addFloat(Extruder::current->maxStartFeedrate,5,0);
+                else if(c2=='f')                                                                        // %Xf : Extruder 0 Acceleration
+				{
+                    addFloat(extruder[0].maxAcceleration,5,0);
                 }
-                else if(c2=='F')                                                                        // %XF : Extruder max. feedrate
+#if NUM_EXTRUDER>1
+                else if(c2=='F')                                                                        // %XF : Extruder 1 Acceleration
                 {
-                    addFloat(Extruder::current->maxFeedrate,5,0);
+                    addFloat(extruder[1].maxAcceleration,5,0);
                 }
-                else if(c2=='A')                                                                        // %XA : Extruder max. acceleration
-                {
-                    addFloat(Extruder::current->maxAcceleration,5,0);
-                }
+#endif //NUM_EXTRUDER>1
+				else if (c2 == 'h')                                                                        // %Xh : Extruder 0 maxEJerk
+				{
+					addFloat(extruder[0].maxEJerk, 5, 0);
+				}
+#if NUM_EXTRUDER>1
+				else if (c2 == 'H')                                                                        // %XH : Extruder 1 maxEJerk
+				{
+					addFloat(extruder[1].maxEJerk, 5, 0);
+				}
+#endif //NUM_EXTRUDER>1
+
  #if FEATURE_ADJUSTABLE_MICROSTEPS
                 else if(c2 == 'E')                                                                      // %XE : Extruder Stepper Microsteps
                 {
@@ -3365,11 +3357,11 @@ void UIDisplay::nextPreviousAction(int8_t next)
         }
         case UI_ACTION_PRINT_ACCEL_X:
         {
-            INCREMENT_MIN_MAX(Printer::maxAccelerationMMPerSquareSecond[X_AXIS],100,0,10000);
+            INCREMENT_MIN_MAX(Printer::maxAccelerationMMPerSquareSecond[X_AXIS], ACCELERATION_MENU_CHANGE_XY, ACCELERATION_MIN_XY, ACCELERATION_MAX_XY);
             Printer::updateDerivedParameter();
 
 #if FEATURE_AUTOMATIC_EEPROM_UPDATE
-            HAL::eprSetFloat(EPR_X_MAX_ACCEL,Printer::maxAccelerationMMPerSquareSecond[X_AXIS]);
+            HAL::eprSetFloat(EPR_X_MAX_ACCEL, Printer::maxAccelerationMMPerSquareSecond[X_AXIS]);
             EEPROM::updateChecksum();
 #endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
 
@@ -3377,11 +3369,11 @@ void UIDisplay::nextPreviousAction(int8_t next)
         }
         case UI_ACTION_PRINT_ACCEL_Y:
         {
-            INCREMENT_MIN_MAX(Printer::maxAccelerationMMPerSquareSecond[Y_AXIS],100,0,10000);
+            INCREMENT_MIN_MAX(Printer::maxAccelerationMMPerSquareSecond[Y_AXIS], ACCELERATION_MENU_CHANGE_XY, ACCELERATION_MIN_XY, ACCELERATION_MAX_XY);
             Printer::updateDerivedParameter();
 
 #if FEATURE_AUTOMATIC_EEPROM_UPDATE
-            HAL::eprSetFloat(EPR_Y_MAX_ACCEL,Printer::maxAccelerationMMPerSquareSecond[Y_AXIS]);
+            HAL::eprSetFloat(EPR_Y_MAX_ACCEL, Printer::maxAccelerationMMPerSquareSecond[Y_AXIS]);
             EEPROM::updateChecksum();
 #endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
 
@@ -3389,11 +3381,11 @@ void UIDisplay::nextPreviousAction(int8_t next)
         }
         case UI_ACTION_PRINT_ACCEL_Z:
         {
-            INCREMENT_MIN_MAX(Printer::maxAccelerationMMPerSquareSecond[Z_AXIS],100,0,10000);
+            INCREMENT_MIN_MAX(Printer::maxAccelerationMMPerSquareSecond[Z_AXIS], ACCELERATION_MENU_CHANGE_Z, ACCELERATION_MIN_Z, ACCELERATION_MAX_Z);
             Printer::updateDerivedParameter();
 
 #if FEATURE_AUTOMATIC_EEPROM_UPDATE
-            HAL::eprSetFloat(EPR_Z_MAX_ACCEL,Printer::maxAccelerationMMPerSquareSecond[Z_AXIS]);
+            HAL::eprSetFloat(EPR_Z_MAX_ACCEL, Printer::maxAccelerationMMPerSquareSecond[Z_AXIS]);
             EEPROM::updateChecksum();
 #endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
 
@@ -3401,11 +3393,11 @@ void UIDisplay::nextPreviousAction(int8_t next)
         }
         case UI_ACTION_MOVE_ACCEL_X:
         {
-            INCREMENT_MIN_MAX(Printer::maxTravelAccelerationMMPerSquareSecond[X_AXIS],100,0,10000);
+            INCREMENT_MIN_MAX(Printer::maxTravelAccelerationMMPerSquareSecond[X_AXIS], ACCELERATION_MENU_CHANGE_XY, ACCELERATION_MIN_XY, ACCELERATION_MAX_XY);
             Printer::updateDerivedParameter();
 
 #if FEATURE_AUTOMATIC_EEPROM_UPDATE
-            HAL::eprSetFloat(EPR_X_MAX_TRAVEL_ACCEL,Printer::maxTravelAccelerationMMPerSquareSecond[X_AXIS]);
+            HAL::eprSetFloat(EPR_X_MAX_TRAVEL_ACCEL, Printer::maxTravelAccelerationMMPerSquareSecond[X_AXIS]);
             EEPROM::updateChecksum();
 #endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
 
@@ -3413,11 +3405,11 @@ void UIDisplay::nextPreviousAction(int8_t next)
         }
         case UI_ACTION_MOVE_ACCEL_Y:
         {
-            INCREMENT_MIN_MAX(Printer::maxTravelAccelerationMMPerSquareSecond[Y_AXIS],100,0,10000);
+            INCREMENT_MIN_MAX(Printer::maxTravelAccelerationMMPerSquareSecond[Y_AXIS], ACCELERATION_MENU_CHANGE_XY, ACCELERATION_MIN_XY, ACCELERATION_MAX_XY);
             Printer::updateDerivedParameter();
 
 #if FEATURE_AUTOMATIC_EEPROM_UPDATE
-            HAL::eprSetFloat(EPR_Y_MAX_TRAVEL_ACCEL,Printer::maxTravelAccelerationMMPerSquareSecond[Y_AXIS]);
+            HAL::eprSetFloat(EPR_Y_MAX_TRAVEL_ACCEL, Printer::maxTravelAccelerationMMPerSquareSecond[Y_AXIS]);
             EEPROM::updateChecksum();
 #endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
 
@@ -3425,11 +3417,11 @@ void UIDisplay::nextPreviousAction(int8_t next)
         }
         case UI_ACTION_MOVE_ACCEL_Z:
         {
-            INCREMENT_MIN_MAX(Printer::maxTravelAccelerationMMPerSquareSecond[Z_AXIS],100,0,10000);
+            INCREMENT_MIN_MAX(Printer::maxTravelAccelerationMMPerSquareSecond[Z_AXIS], ACCELERATION_MENU_CHANGE_Z, ACCELERATION_MIN_Z, ACCELERATION_MAX_Z);
             Printer::updateDerivedParameter();
 
 #if FEATURE_AUTOMATIC_EEPROM_UPDATE
-            HAL::eprSetFloat(EPR_Z_MAX_TRAVEL_ACCEL,Printer::maxTravelAccelerationMMPerSquareSecond[Z_AXIS]);
+            HAL::eprSetFloat(EPR_Z_MAX_TRAVEL_ACCEL, Printer::maxTravelAccelerationMMPerSquareSecond[Z_AXIS]);
             EEPROM::updateChecksum();
 #endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
 
@@ -3437,10 +3429,10 @@ void UIDisplay::nextPreviousAction(int8_t next)
         }
         case UI_ACTION_MAX_JERK:
         {
-            INCREMENT_MIN_MAX(Printer::maxJerk,0.1,1,99.9);
+            INCREMENT_MIN_MAX(Printer::maxXYJerk, 0.1f, 1.0f, 33.3f); //RFx000: Limit 33.3 sind willkürlich grob faktor 3 von normalwert.
 
 #if FEATURE_AUTOMATIC_EEPROM_UPDATE
-            HAL::eprSetFloat(EPR_MAX_JERK,Printer::maxJerk);
+            HAL::eprSetFloat(EPR_MAX_XYJERK, Printer::maxXYJerk);
             EEPROM::updateChecksum();
 #endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
 
@@ -3448,10 +3440,10 @@ void UIDisplay::nextPreviousAction(int8_t next)
         }
         case UI_ACTION_MAX_ZJERK:
         {
-            INCREMENT_MIN_MAX(Printer::maxZJerk,0.1,0.1,99.9);
+            INCREMENT_MIN_MAX(Printer::maxZJerk, 0.05f, 0.05f, 2.0f); //RFx000: Limit 2 sind Max XY-Jerk / Stepratenverhältnis XY->Z von ~16.8 gibt etwas unter 2.
 
 #if FEATURE_AUTOMATIC_EEPROM_UPDATE
-            HAL::eprSetFloat(EPR_MAX_ZJERK,Printer::maxZJerk);
+            HAL::eprSetFloat(EPR_MAX_ZJERK, Printer::maxZJerk);
             EEPROM::updateChecksum();
 #endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
 
@@ -3676,146 +3668,107 @@ void UIDisplay::nextPreviousAction(int8_t next)
             break;
         }
 #endif // FEATURE_RGB_LIGHT_EFFECTS
+
         case UI_ACTION_EXTR_STEPS_E0:
+		case UI_ACTION_EXTR_STEPS_E1:
         {
            if( !Printer::isMenuMode(MENU_MODE_PAUSED) && !Printer::isPrinting() ){
-            INCREMENT_MIN_MAX(extruder[0].stepsPerMM,1,1,9999);
-            if(0 == Extruder::current->id) Extruder::selectExtruderById(Extruder::current->id); //übernehmen der werte
-
-#if FEATURE_AUTOMATIC_EEPROM_UPDATE
-            HAL::eprSetFloat(EEPROM::getExtruderOffset(0)+EPR_EXTRUDER_STEPS_PER_MM,extruder[0].stepsPerMM);
-            EEPROM::updateChecksum();
-#endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
-           }
-           break;
-        }
 #if NUM_EXTRUDER > 1
-        case UI_ACTION_EXTR_STEPS_E1:
-        {
-           if( !Printer::isMenuMode(MENU_MODE_PAUSED) && !Printer::isPrinting()){
-            INCREMENT_MIN_MAX(extruder[1].stepsPerMM,1,1,9999);
-            if(1 == Extruder::current->id) Extruder::selectExtruderById(Extruder::current->id); //übernehmen der werte
+			uint8_t eNr = (UI_ACTION_EXTR_STEPS_E1 == action) ? 1 : 0;
+#else
+			uint8_t eNr = 0;
+#endif //NUM_EXTRUDER > 1
+            INCREMENT_MIN_MAX(extruder[eNr].stepsPerMM, 1, 1, 9999);
+            if(eNr == Extruder::current->id) Extruder::selectExtruderById(eNr); //übernehmen der werte
 
 #if FEATURE_AUTOMATIC_EEPROM_UPDATE
-            HAL::eprSetFloat(EEPROM::getExtruderOffset(1)+EPR_EXTRUDER_STEPS_PER_MM,extruder[1].stepsPerMM);
+            HAL::eprSetFloat(EEPROM::getExtruderOffset(eNr)+EPR_EXTRUDER_STEPS_PER_MM, extruder[eNr].stepsPerMM);
             EEPROM::updateChecksum();
 #endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
            }
+
            break;
         }
-#endif //NUM_EXTRUDER > 1
+
 #if USE_ADVANCE
         case UI_ACTION_ADVANCE_L_E0:
+		case UI_ACTION_ADVANCE_L_E1:
         {
-            float step = (extruder[0].advanceL < 20.0f) ? 1.0f : ((extruder[0].advanceL < 50.0f) ? 5.0f : 10.0f);
-            INCREMENT_MIN_MAX(extruder[0].advanceL,step,0.0f,250.0f); //Nibbels TODO gute Werte zulassen? Ist Step 1 ok? -> 60 war zu wenig.
-             Printer::updateAdvanceFlags();
-#if FEATURE_AUTOMATIC_EEPROM_UPDATE
-            HAL::eprSetFloat(EEPROM::getExtruderOffset(0)+EPR_EXTRUDER_ADVANCE_L,extruder[0].advanceL);
-            EEPROM::updateChecksum();
-#endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
-            break;
-        }
 #if NUM_EXTRUDER > 1
-        case UI_ACTION_ADVANCE_L_E1:
-        {
-            float step = (extruder[1].advanceL < 20.0f) ? 1.0f : ((extruder[1].advanceL < 50.0f) ? 5.0f : 10.0f);
-            INCREMENT_MIN_MAX(extruder[1].advanceL,step,0.0f,250.0f); //Nibbels TODO gute Werte zulassen? Ist Step 1 ok? -> 60 war zu wenig.
-             Printer::updateAdvanceFlags();
-#if FEATURE_AUTOMATIC_EEPROM_UPDATE
-            HAL::eprSetFloat(EEPROM::getExtruderOffset(1)+EPR_EXTRUDER_ADVANCE_L,extruder[1].advanceL);
-            EEPROM::updateChecksum();
-#endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
-            break;
-        }
+			uint8_t eNr = (UI_ACTION_ADVANCE_L_E1 == action) ? 1 : 0;
+#else
+			uint8_t eNr = 0;
 #endif //NUM_EXTRUDER > 1
+            float step = (extruder[eNr].advanceL < 20.0f) ? 1.0f : ((extruder[eNr].advanceL < 50.0f) ? 5.0f : 10.0f);
+            INCREMENT_MIN_MAX(extruder[eNr].advanceL, step, 0.0f, 250.0f); //Nibbels TODO gute Werte zulassen? Ist Step 1 ok? -> 60 war zu wenig.
+            Printer::updateAdvanceFlags();
+
+#if FEATURE_AUTOMATIC_EEPROM_UPDATE
+            HAL::eprSetFloat(EEPROM::getExtruderOffset(eNr)+EPR_EXTRUDER_ADVANCE_L, extruder[eNr].advanceL);
+            EEPROM::updateChecksum();
+#endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
+
+            break;
+        }
 #endif //USE_ADVANCE
-        case UI_ACTION_EXTR_STEPS:
+		
+		case UI_ACTION_EXTR_ACCELERATION_E0:
+		case UI_ACTION_EXTR_ACCELERATION_E1:
         {
-           if( !Printer::isMenuMode(MENU_MODE_PAUSED) && !Printer::isPrinting()){
-            INCREMENT_MIN_MAX(Extruder::current->stepsPerMM,1,1,5440); //normalerweise <= ~1000
-            Extruder::selectExtruderById(Extruder::current->id); //(setzt auch "printer::stepspermm" richtig.)
+#if NUM_EXTRUDER > 1
+			uint8_t eNr = (UI_ACTION_EXTR_ACCELERATION_E1 == action) ? 1 : 0;
+#else
+			uint8_t eNr = 0;
+#endif //NUM_EXTRUDER > 1
+            INCREMENT_MIN_MAX(extruder[eNr].maxAcceleration, 200, 200, 10000);
+			if (eNr == Extruder::current->id) Extruder::selectExtruderById(eNr);
 
 #if FEATURE_AUTOMATIC_EEPROM_UPDATE
-            HAL::eprSetFloat(EEPROM::getExtruderOffset(Extruder::current->id)+EPR_EXTRUDER_STEPS_PER_MM,Extruder::current->stepsPerMM);
-            EEPROM::updateChecksum();
-#endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
-           }
-           break;
-        }
-        case UI_ACTION_EXTR_ACCELERATION:
-        {
-            INCREMENT_MIN_MAX(Extruder::current->maxAcceleration,10,10,99999);
-            Extruder::selectExtruderById(Extruder::current->id);
-
-#if FEATURE_AUTOMATIC_EEPROM_UPDATE
-            HAL::eprSetFloat(EEPROM::getExtruderOffset(Extruder::current->id)+EPR_EXTRUDER_MAX_ACCELERATION,Extruder::current->maxAcceleration);
-            EEPROM::updateChecksum();
-#endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
-
-            break;
-        }
-        case UI_ACTION_EXTR_MAX_FEEDRATE:
-        {
-            INCREMENT_MIN_MAX(Extruder::current->maxFeedrate,1,1,999);
-            Extruder::selectExtruderById(Extruder::current->id);
-
-#if FEATURE_AUTOMATIC_EEPROM_UPDATE
-            HAL::eprSetFloat(EEPROM::getExtruderOffset(Extruder::current->id)+EPR_EXTRUDER_MAX_FEEDRATE,Extruder::current->maxFeedrate);
-            EEPROM::updateChecksum();
-#endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
-
-            break;
-        }
-        case UI_ACTION_EXTR_START_FEEDRATE:
-        {
-            INCREMENT_MIN_MAX(Extruder::current->maxStartFeedrate,1,1,999);
-            Extruder::selectExtruderById(Extruder::current->id);
-
-#if FEATURE_AUTOMATIC_EEPROM_UPDATE
-            HAL::eprSetFloat(EEPROM::getExtruderOffset(Extruder::current->id)+EPR_EXTRUDER_MAX_START_FEEDRATE,Extruder::current->maxStartFeedrate);
-            EEPROM::updateChecksum();
-#endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
-
-            break;
-        }
-        case UI_ACTION_EXTR_WATCH_PERIOD:
-        {
-            INCREMENT_MIN_MAX(Extruder::current->watchPeriod,1,0,999);
-
-#if FEATURE_AUTOMATIC_EEPROM_UPDATE
-            HAL::eprSetFloat(EEPROM::getExtruderOffset(Extruder::current->id)+EPR_EXTRUDER_WATCH_PERIOD,Extruder::current->watchPeriod);
+            HAL::eprSetFloat(EEPROM::getExtruderOffset(eNr)+EPR_EXTRUDER_MAX_ACCELERATION, extruder[eNr].maxAcceleration);
             EEPROM::updateChecksum();
 #endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
 
             break;
         }
 
-#if RETRACT_DURING_HEATUP
-        case UI_ACTION_EXTR_WAIT_RETRACT_TEMP:
+		case UI_ACTION_EXTR_MAX_FEEDRATE_E0:
+		case UI_ACTION_EXTR_MAX_FEEDRATE_E1:
         {
-            INCREMENT_MIN_MAX(Extruder::current->waitRetractTemperature,1,100,UI_SET_MAX_EXTRUDER_TEMP);
+#if NUM_EXTRUDER > 1
+			uint8_t eNr = (UI_ACTION_EXTR_MAX_FEEDRATE_E1 == action) ? 1 : 0;
+#else
+			uint8_t eNr = 0;
+#endif //NUM_EXTRUDER > 1
+            INCREMENT_MIN_MAX(extruder[eNr].maxFeedrate, 1, extruder[eNr].maxEJerk, 60);
+			if (eNr == Extruder::current->id) Extruder::selectExtruderById(eNr);
 
 #if FEATURE_AUTOMATIC_EEPROM_UPDATE
-            HAL::eprSetFloat(EEPROM::getExtruderOffset(Extruder::current->id)+EPR_EXTRUDER_WAIT_RETRACT_TEMP,Extruder::current->waitRetractTemperature);
+            HAL::eprSetFloat(EEPROM::getExtruderOffset(eNr)+EPR_EXTRUDER_MAX_FEEDRATE, extruder[eNr].maxFeedrate);
             EEPROM::updateChecksum();
 #endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
 
             break;
         }
-        case UI_ACTION_EXTR_WAIT_RETRACT_UNITS:
+
+		case UI_ACTION_EXTR_START_FEEDRATE_E0:
+		case UI_ACTION_EXTR_START_FEEDRATE_E1:
         {
-            INCREMENT_MIN_MAX(Extruder::current->waitRetractUnits,1,0,99);
+#if NUM_EXTRUDER > 1
+			uint8_t eNr = (UI_ACTION_EXTR_START_FEEDRATE_E1 == action) ? 1 : 0;
+#else
+			uint8_t eNr = 0;
+#endif //NUM_EXTRUDER > 1
+            INCREMENT_MIN_MAX(extruder[eNr].maxEJerk, 1, 1, extruder[eNr].maxFeedrate);
+			if (eNr == Extruder::current->id) Extruder::selectExtruderById(eNr);
 
 #if FEATURE_AUTOMATIC_EEPROM_UPDATE
-            HAL::eprSetFloat(EEPROM::getExtruderOffset(Extruder::current->id)+EPR_EXTRUDER_WAIT_RETRACT_UNITS,Extruder::current->waitRetractUnits);
+            HAL::eprSetFloat(EEPROM::getExtruderOffset(eNr)+EPR_EXTRUDER_MAX_START_FEEDRATE, extruder[eNr].maxEJerk);
             EEPROM::updateChecksum();
 #endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
 
             break;
         }
-#endif // RETRACT_DURING_HEATUP
-
+		
 #if FEATURE_WORK_PART_Z_COMPENSATION
         case UI_ACTION_RF_SET_Z_MATRIX_WORK_PART:
         {

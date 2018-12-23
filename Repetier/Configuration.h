@@ -242,6 +242,88 @@
 /** \brief Enables/disables that you can switch the micro step setting within Menu->Configuration->Stepper and it is saved in hidden EEPROM */
 #define FEATURE_ADJUSTABLE_MICROSTEPS       1
 
+
+// ##########################################################################################
+// ##   Acceleration settings
+// ##########################################################################################
+
+// RF2000: Tests haben gezeigt, dass x-y-acceleration unter 2000 oder unter 1500 das Teil ziemlich gut aussieht.
+
+/** \brief X, Y, Z max acceleration in mm/s^2 for printing moves or retracts. Make sure your printer can go that high!
+Overridden if EEPROM activated. */
+#define MAX_ACCELERATION_UNITS_PER_SQ_SECOND_X                  1500
+#define MAX_ACCELERATION_UNITS_PER_SQ_SECOND_Y                  1500
+#define MAX_ACCELERATION_UNITS_PER_SQ_SECOND_Z                  100
+
+/** \brief X, Y, Z max acceleration in mm/s^2 for travel moves.  Overridden if EEPROM activated. */
+#define MAX_TRAVEL_ACCELERATION_UNITS_PER_SQ_SECOND_X           1500
+#define MAX_TRAVEL_ACCELERATION_UNITS_PER_SQ_SECOND_Y           1500
+#define MAX_TRAVEL_ACCELERATION_UNITS_PER_SQ_SECOND_Z           100
+
+/** \brief X, Y, Z acceleration limits */
+#define ACCELERATION_MAX_XY										6000
+#define ACCELERATION_MIN_XY										100
+#define ACCELERATION_MAX_Z                                      100
+#define ACCELERATION_MIN_Z                                      5
+
+/** \brief X, Y, Z acceleration menu change step size */
+#define ACCELERATION_MENU_CHANGE_XY								100
+#define ACCELERATION_MENU_CHANGE_Z                              5
+
+#if ACCELERATION_MAX_XY < MAX_ACCELERATION_UNITS_PER_SQ_SECOND_X || MAX_ACCELERATION_UNITS_PER_SQ_SECOND_X < ACCELERATION_MIN_XY
+#error Please respect the given acceleration limits or change them according your needs within Configuration.h
+#endif // NUM_EXTRUDER > 2 || NUM_EXTRUDER < 0
+#if ACCELERATION_MAX_XY < MAX_ACCELERATION_UNITS_PER_SQ_SECOND_Y || MAX_ACCELERATION_UNITS_PER_SQ_SECOND_Y < ACCELERATION_MIN_XY
+#error Please respect the given acceleration limits or change them according your needs within Configuration.h
+#endif // NUM_EXTRUDER > 2 || NUM_EXTRUDER < 0
+#if ACCELERATION_MAX_Z < MAX_ACCELERATION_UNITS_PER_SQ_SECOND_Z || MAX_ACCELERATION_UNITS_PER_SQ_SECOND_Z < ACCELERATION_MAX_Z
+#error Please respect the given acceleration limits or change them according your needs within Configuration.h
+#endif // NUM_EXTRUDER > 2 || NUM_EXTRUDER < 0
+#if ACCELERATION_MAX_XY < MAX_TRAVEL_ACCELERATION_UNITS_PER_SQ_SECOND_X || MAX_TRAVEL_ACCELERATION_UNITS_PER_SQ_SECOND_X < ACCELERATION_MIN_XY
+#error Please respect the given x travel acceleration limits or change them according your needs within Configuration.h
+#endif // NUM_EXTRUDER > 2 || NUM_EXTRUDER < 0
+#if ACCELERATION_MAX_XY < MAX_TRAVEL_ACCELERATION_UNITS_PER_SQ_SECOND_Y || MAX_TRAVEL_ACCELERATION_UNITS_PER_SQ_SECOND_Y < ACCELERATION_MIN_XY
+#error Please respect the given y travel acceleration limits or change them according your needs within Configuration.h
+#endif // NUM_EXTRUDER > 2 || NUM_EXTRUDER < 0
+#if ACCELERATION_MAX_Z < MAX_TRAVEL_ACCELERATION_UNITS_PER_SQ_SECOND_Z || MAX_TRAVEL_ACCELERATION_UNITS_PER_SQ_SECOND_Z < ACCELERATION_MAX_Z
+#error Please respect the given z travel acceleration limits or change them according your needs within Configuration.h
+#endif // NUM_EXTRUDER > 2 || NUM_EXTRUDER < 0
+
+// E-ACCELERATION is extruder configuration and has no strict limits rightnow.
+
+// ##########################################################################################
+// ##   Jerk settings
+// ##########################################################################################
+
+/** \brief Maximum allowable jerk.
+Caution: This is no real jerk in a physical meaning.
+The jerk determines your start speed and the maximum speed at the join of two segments.
+Its unit is mm/s. If the printer is standing still, the start speed is jerk/2. At the
+join of two segments, the speed difference is limited to the jerk value.
+
+Examples:
+For all examples jerk is assumed as 40.
+
+Segment 1: vx = 50, vy = 0
+Segment 2: vx = 0, vy = 50
+v_diff = sqrt((50-0)^2+(0-50)^2) = 70.71
+v_diff > jerk => vx_1 = vy_2 = jerk/v_diff*vx_1 = 40/70.71*50 = 28.3 mm/s at the join
+
+Segment 1: vx = 50, vy = 0
+Segment 2: vx = 35.36, vy = 35.36
+v_diff = sqrt((50-35.36)^2+(0-35.36)^2) = 38.27 < jerk
+Corner can be printed with full speed of 50 mm/s
+
+Overridden if EEPROM activated. */
+#define MAX_JERK                            13.0                 //std: 20, aber RFx000 sieht zwischen ca. 7 und 18 am besten aus: Renkforce sagt 10
+#define MAX_ZJERK                           0.3                  //std: 0.3
+
+//that will slowdown if you have sever direction changes in a short distance which is nearly the same as adding several jerks in a short sequence.
+#define REDUCE_ON_SMALL_SEGMENTS            1
+#define MAX_JERK_DISTANCE                   0.6
+//for a more logical jerk computation.
+#define ALTERNATIVE_JERK                    1
+
 // ##########################################################################################
 // ##   debugging
 // ##########################################################################################
@@ -975,8 +1057,8 @@ we use blocks of 2 kByte size for the structure of our EEPROM
  #error You cannot use FEATURE_READ_CALIPER and FEATURE_USER_INT3 at the same time with stock programming. Please change pins/etc. and remove this errorcheck
 #endif
 
-/** \brief Nibbels/PeterKA Testfeature: It can check if you lost steps and test your buttons hysteresis */
-#define FEATURE_CHECK_HOME                  0
+/** \brief Nibbels/PeterKA Testfeature: It can check if you lost steps and test your buttons hysteresis and give a good hint if your printer lost steps by hardware fault */
+#define FEATURE_CHECK_HOME                  1
 
 /** \brief This adds some GCode M3029 to simulate Key-Press by GCode and to read whats inside the printers Display rightnow. */
 #define FEATURE_SEE_DISPLAY                 1

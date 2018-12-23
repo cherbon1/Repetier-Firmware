@@ -1318,7 +1318,7 @@ Extruder extruder[NUM_EXTRUDER] =
 #if NUM_EXTRUDER>0
     {
         0,(int32_t)(EXT0_X_OFFSET_MM * XAXIS_STEPS_PER_MM),(int32_t)(EXT0_Y_OFFSET_MM * YAXIS_STEPS_PER_MM),(int32_t)(EXT0_Z_OFFSET_MM * ZAXIS_STEPS_PER_MM),EXT0_STEPS_PER_MM,EXT0_ENABLE_PIN,EXT0_ENABLE_ON,
-        EXT0_MAX_FEEDRATE,EXT0_MAX_ACCELERATION,EXT0_MAX_START_FEEDRATE,0,EXT0_WATCHPERIOD
+        EXT0_MAX_FEEDRATE,EXT0_MAX_ACCELERATION,EXT0_MAX_START_FEEDRATE,0
         ,EXT0_WAIT_RETRACT_TEMP,EXT0_WAIT_RETRACT_UNITS,0
 
 #if USE_ADVANCE
@@ -1342,7 +1342,7 @@ Extruder extruder[NUM_EXTRUDER] =
         }
         ,ext0_select_cmd,ext0_deselect_cmd,EXT0_EXTRUDER_COOLER_SPEED,0
 #if STEPPER_ON_DELAY
-        , '\x0'
+        , 0
 #endif // STEPPER_ON_DELAY by Nibbels gegen xtruder.cpp:1620:1: warning: missing initializer for member 'Extruder::enabled'
     }
 #endif // NUM_EXTRUDER>0
@@ -1350,7 +1350,7 @@ Extruder extruder[NUM_EXTRUDER] =
 #if NUM_EXTRUDER>1
     ,{
         1,(int32_t)(EXT1_X_OFFSET_MM * XAXIS_STEPS_PER_MM),(int32_t)(EXT1_Y_OFFSET_MM * YAXIS_STEPS_PER_MM),(int32_t)(EXT1_Z_OFFSET_MM * ZAXIS_STEPS_PER_MM),EXT1_STEPS_PER_MM,EXT1_ENABLE_PIN,EXT1_ENABLE_ON,
-        EXT1_MAX_FEEDRATE,EXT1_MAX_ACCELERATION,EXT1_MAX_START_FEEDRATE,0,EXT1_WATCHPERIOD
+        EXT1_MAX_FEEDRATE,EXT1_MAX_ACCELERATION,EXT1_MAX_START_FEEDRATE,0
         ,EXT1_WAIT_RETRACT_TEMP,EXT1_WAIT_RETRACT_UNITS,0
 
 #if USE_ADVANCE
@@ -1374,7 +1374,7 @@ Extruder extruder[NUM_EXTRUDER] =
         }
         ,ext1_select_cmd,ext1_deselect_cmd,EXT1_EXTRUDER_COOLER_SPEED,0
 #if STEPPER_ON_DELAY
-        , '\x0'
+        , 0
 #endif // STEPPER_ON_DELAY by Nibbels gegen xtruder.cpp:1620:1: warning: missing initializer for member 'Extruder::enabled'
     }
 #endif // NUM_EXTRUDER>1

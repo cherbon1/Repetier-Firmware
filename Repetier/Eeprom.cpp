@@ -106,7 +106,7 @@ void EEPROM::restoreEEPROMSettingsFromConfiguration()
     }
 #endif // FEATURE_MILLING_MODE
 
-    Printer::maxJerk = MAX_JERK;
+    Printer::maxXYJerk = MAX_JERK;
     Printer::maxZJerk = MAX_ZJERK;
 
     Printer::maxAccelerationMMPerSquareSecond[X_AXIS] = MAX_ACCELERATION_UNITS_PER_SQ_SECOND_X;
@@ -156,7 +156,7 @@ void EEPROM::restoreEEPROMSettingsFromConfiguration()
     e = &extruder[0];
     e->stepsPerMM = EXT0_STEPS_PER_MM;
     e->maxFeedrate = EXT0_MAX_FEEDRATE;
-    e->maxStartFeedrate = EXT0_MAX_START_FEEDRATE;
+    e->maxEJerk = EXT0_MAX_START_FEEDRATE;
     e->maxAcceleration = EXT0_MAX_ACCELERATION;
 
     e->tempControl.pidDriveMax = EXT0_PID_INTEGRAL_DRIVE_MAX;
@@ -170,7 +170,6 @@ void EEPROM::restoreEEPROMSettingsFromConfiguration()
     e->zOffset = int32_t(EXT0_Z_OFFSET_MM * Printer::axisStepsPerMM[Z_AXIS]);
     e->yOffset = int32_t(EXT0_Y_OFFSET_MM * Printer::axisStepsPerMM[Y_AXIS]);
     e->xOffset = int32_t(EXT0_X_OFFSET_MM * Printer::axisStepsPerMM[X_AXIS]);
-    e->watchPeriod = EXT0_WATCHPERIOD;
 
 #if RETRACT_DURING_HEATUP
     e->waitRetractTemperature = EXT0_WAIT_RETRACT_TEMP;
@@ -191,7 +190,7 @@ void EEPROM::restoreEEPROMSettingsFromConfiguration()
     e = &extruder[1];
     e->stepsPerMM = EXT1_STEPS_PER_MM;
     e->maxFeedrate = EXT1_MAX_FEEDRATE;
-    e->maxStartFeedrate = EXT1_MAX_START_FEEDRATE;
+    e->maxEJerk = EXT1_MAX_START_FEEDRATE;
     e->maxAcceleration = EXT1_MAX_ACCELERATION;
 
     e->tempControl.pidDriveMax = EXT1_PID_INTEGRAL_DRIVE_MAX;
@@ -205,7 +204,6 @@ void EEPROM::restoreEEPROMSettingsFromConfiguration()
     e->zOffset = int32_t(EXT1_Z_OFFSET_MM * Printer::axisStepsPerMM[Z_AXIS]);
     e->yOffset = int32_t(EXT1_Y_OFFSET_MM * Printer::axisStepsPerMM[Y_AXIS]);
     e->xOffset = int32_t(EXT1_X_OFFSET_MM * Printer::axisStepsPerMM[X_AXIS]);
-    e->watchPeriod = EXT1_WATCHPERIOD;
 
 #if RETRACT_DURING_HEATUP
     e->waitRetractTemperature = EXT1_WAIT_RETRACT_TEMP;
@@ -375,7 +373,7 @@ void EEPROM::storeDataIntoEEPROM(uint8_t corrupted)
     }
 #endif // FEATURE_MILLING_MODE
 
-    HAL::eprSetFloat(EPR_MAX_JERK,Printer::maxJerk);
+    HAL::eprSetFloat(EPR_MAX_XYJERK,Printer::maxXYJerk);
     HAL::eprSetFloat(EPR_MAX_ZJERK,Printer::maxZJerk);
 
 #if FEATURE_MILLING_MODE
@@ -450,7 +448,7 @@ void EEPROM::storeDataIntoEEPROM(uint8_t corrupted)
         Extruder *e = &extruder[i];
         HAL::eprSetFloat(o+EPR_EXTRUDER_STEPS_PER_MM,e->stepsPerMM);
         HAL::eprSetFloat(o+EPR_EXTRUDER_MAX_FEEDRATE,e->maxFeedrate);
-        HAL::eprSetFloat(o+EPR_EXTRUDER_MAX_START_FEEDRATE,e->maxStartFeedrate);
+        HAL::eprSetFloat(o+EPR_EXTRUDER_MAX_START_FEEDRATE,e->maxEJerk);
         HAL::eprSetFloat(o+EPR_EXTRUDER_MAX_ACCELERATION,e->maxAcceleration);
 
         HAL::eprSetByte(o+EPR_EXTRUDER_DRIVE_MAX,e->tempControl.pidDriveMax);
@@ -464,9 +462,7 @@ void EEPROM::storeDataIntoEEPROM(uint8_t corrupted)
         HAL::eprSetFloat(o+EPR_EXTRUDER_X_OFFSET,e->xOffset*Printer::invAxisStepsPerMM[X_AXIS]);
         HAL::eprSetFloat(o+EPR_EXTRUDER_Y_OFFSET,e->yOffset*Printer::invAxisStepsPerMM[Y_AXIS]);
         HAL::eprSetFloat(o+EPR_EXTRUDER_Z_OFFSET,e->zOffset*Printer::invAxisStepsPerMM[Z_AXIS]);   //e->zOffset  Nibbels
-
-        HAL::eprSetInt16(o+EPR_EXTRUDER_WATCH_PERIOD,e->watchPeriod);
-
+		
 #if RETRACT_DURING_HEATUP
         HAL::eprSetInt16(o+EPR_EXTRUDER_WAIT_RETRACT_TEMP,e->waitRetractTemperature);
         HAL::eprSetInt16(o+EPR_EXTRUDER_WAIT_RETRACT_UNITS,e->waitRetractUnits);
@@ -690,27 +686,27 @@ void EEPROM::readDataFromEEPROM()
     Printer::moveMode[Y_AXIS] = HAL::eprGetByte(EPR_RF_MOVE_MODE_Y);
     Printer::moveMode[Z_AXIS] = HAL::eprGetByte(EPR_RF_MOVE_MODE_Z);
 
-    Printer::maxJerk = HAL::eprGetFloat(EPR_MAX_JERK);
+    Printer::maxXYJerk = HAL::eprGetFloat(EPR_MAX_XYJERK);
     Printer::maxZJerk = HAL::eprGetFloat(EPR_MAX_ZJERK);
 
     Printer::maxAccelerationMMPerSquareSecond[X_AXIS] = HAL::eprGetFloat(EPR_X_MAX_ACCEL);
     Printer::maxAccelerationMMPerSquareSecond[Y_AXIS] = HAL::eprGetFloat(EPR_Y_MAX_ACCEL);
     Printer::maxAccelerationMMPerSquareSecond[Z_AXIS] = HAL::eprGetFloat(EPR_Z_MAX_ACCEL);
-	if (Printer::maxAccelerationMMPerSquareSecond[X_AXIS] < 5.0f || Printer::maxAccelerationMMPerSquareSecond[X_AXIS] > 6000.0f) {
+	if (Printer::maxAccelerationMMPerSquareSecond[X_AXIS] < ACCELERATION_MIN_XY || Printer::maxAccelerationMMPerSquareSecond[X_AXIS] > ACCELERATION_MAX_XY) {
 		Printer::maxAccelerationMMPerSquareSecond[X_AXIS] = MAX_ACCELERATION_UNITS_PER_SQ_SECOND_X;
 #if FEATURE_AUTOMATIC_EEPROM_UPDATE
 		HAL::eprSetFloat(EPR_X_MAX_ACCEL, MAX_ACCELERATION_UNITS_PER_SQ_SECOND_X);
 		change = true; //update checksum later in this function
 #endif //FEATURE_AUTOMATIC_EEPROM_UPDATE
 	}
-	if (Printer::maxAccelerationMMPerSquareSecond[Y_AXIS] < 5.0f || Printer::maxAccelerationMMPerSquareSecond[Y_AXIS] > 6000.0f) {
+	if (Printer::maxAccelerationMMPerSquareSecond[Y_AXIS] < ACCELERATION_MIN_XY || Printer::maxAccelerationMMPerSquareSecond[Y_AXIS] > ACCELERATION_MAX_XY) {
 		Printer::maxAccelerationMMPerSquareSecond[Y_AXIS] = MAX_ACCELERATION_UNITS_PER_SQ_SECOND_Y;
 #if FEATURE_AUTOMATIC_EEPROM_UPDATE
 		HAL::eprSetFloat(EPR_Y_MAX_ACCEL, MAX_ACCELERATION_UNITS_PER_SQ_SECOND_Y);
 		change = true; //update checksum later in this function
 #endif //FEATURE_AUTOMATIC_EEPROM_UPDATE
 	}
-	if (Printer::maxAccelerationMMPerSquareSecond[Z_AXIS] < 5.0f || Printer::maxAccelerationMMPerSquareSecond[Z_AXIS] > 6000.0f) {
+	if (Printer::maxAccelerationMMPerSquareSecond[Z_AXIS] < ACCELERATION_MIN_Z || Printer::maxAccelerationMMPerSquareSecond[Z_AXIS] > ACCELERATION_MAX_Z) {
 		Printer::maxAccelerationMMPerSquareSecond[Z_AXIS] = MAX_ACCELERATION_UNITS_PER_SQ_SECOND_Z;
 #if FEATURE_AUTOMATIC_EEPROM_UPDATE
 		HAL::eprSetFloat(EPR_Z_MAX_ACCEL, MAX_ACCELERATION_UNITS_PER_SQ_SECOND_Z);
@@ -721,21 +717,21 @@ void EEPROM::readDataFromEEPROM()
     Printer::maxTravelAccelerationMMPerSquareSecond[X_AXIS] = HAL::eprGetFloat(EPR_X_MAX_TRAVEL_ACCEL);
     Printer::maxTravelAccelerationMMPerSquareSecond[Y_AXIS] = HAL::eprGetFloat(EPR_Y_MAX_TRAVEL_ACCEL);
     Printer::maxTravelAccelerationMMPerSquareSecond[Z_AXIS] = HAL::eprGetFloat(EPR_Z_MAX_TRAVEL_ACCEL);
-	if (Printer::maxTravelAccelerationMMPerSquareSecond[X_AXIS] < 5.0f || Printer::maxTravelAccelerationMMPerSquareSecond[X_AXIS] > 6000.0f) {
+	if (Printer::maxTravelAccelerationMMPerSquareSecond[X_AXIS] < ACCELERATION_MIN_XY || Printer::maxTravelAccelerationMMPerSquareSecond[X_AXIS] > ACCELERATION_MAX_XY) {
 		Printer::maxTravelAccelerationMMPerSquareSecond[X_AXIS] = MAX_TRAVEL_ACCELERATION_UNITS_PER_SQ_SECOND_X;
 #if FEATURE_AUTOMATIC_EEPROM_UPDATE
 		HAL::eprSetFloat(EPR_X_MAX_TRAVEL_ACCEL, MAX_TRAVEL_ACCELERATION_UNITS_PER_SQ_SECOND_X);
 		change = true; //update checksum later in this function
 #endif //FEATURE_AUTOMATIC_EEPROM_UPDATE
 	}
-	if (Printer::maxTravelAccelerationMMPerSquareSecond[Y_AXIS] < 5.0f || Printer::maxTravelAccelerationMMPerSquareSecond[Y_AXIS] > 6000.0f) {
+	if (Printer::maxTravelAccelerationMMPerSquareSecond[Y_AXIS] < ACCELERATION_MIN_XY || Printer::maxTravelAccelerationMMPerSquareSecond[Y_AXIS] > ACCELERATION_MAX_XY) {
 		Printer::maxTravelAccelerationMMPerSquareSecond[Y_AXIS] = MAX_TRAVEL_ACCELERATION_UNITS_PER_SQ_SECOND_Y;
 #if FEATURE_AUTOMATIC_EEPROM_UPDATE
 		HAL::eprSetFloat(EPR_Y_MAX_TRAVEL_ACCEL, MAX_TRAVEL_ACCELERATION_UNITS_PER_SQ_SECOND_Y);
 		change = true; //update checksum later in this function
 #endif //FEATURE_AUTOMATIC_EEPROM_UPDATE
 	}
-	if (Printer::maxTravelAccelerationMMPerSquareSecond[Z_AXIS] < 5.0f || Printer::maxTravelAccelerationMMPerSquareSecond[Z_AXIS] > 6000.0f) {
+	if (Printer::maxTravelAccelerationMMPerSquareSecond[Z_AXIS] < ACCELERATION_MIN_Z || Printer::maxTravelAccelerationMMPerSquareSecond[Z_AXIS] > ACCELERATION_MAX_Z) {
 		Printer::maxTravelAccelerationMMPerSquareSecond[Z_AXIS] = MAX_TRAVEL_ACCELERATION_UNITS_PER_SQ_SECOND_Z;
 #if FEATURE_AUTOMATIC_EEPROM_UPDATE
 		HAL::eprSetFloat(EPR_Z_MAX_TRAVEL_ACCEL, MAX_TRAVEL_ACCELERATION_UNITS_PER_SQ_SECOND_Z);
@@ -816,11 +812,11 @@ void EEPROM::readDataFromEEPROM()
 
         tmp = HAL::eprGetFloat(o+EPR_EXTRUDER_MAX_START_FEEDRATE);
         if(0 < tmp && tmp <= e->maxFeedrate){
-            e->maxStartFeedrate = tmp;
+            e->maxEJerk = tmp;
         }else{
-            e->maxStartFeedrate = RMath::min(e->maxFeedrate, e->maxStartFeedrate);
+            e->maxEJerk = RMath::min(e->maxFeedrate, e->maxEJerk);
 #if FEATURE_AUTOMATIC_EEPROM_UPDATE
-            HAL::eprSetFloat(o+EPR_EXTRUDER_MAX_START_FEEDRATE, e->maxStartFeedrate);
+            HAL::eprSetFloat(o+EPR_EXTRUDER_MAX_START_FEEDRATE, e->maxEJerk);
             change = true; //update checksum later in this function
 #endif //FEATURE_AUTOMATIC_EEPROM_UPDATE
         }
@@ -885,7 +881,6 @@ void EEPROM::readDataFromEEPROM()
             change = true; //update checksum later in this function
 #endif //FEATURE_AUTOMATIC_EEPROM_UPDATE
         }
-        e->watchPeriod = HAL::eprGetInt16(o+EPR_EXTRUDER_WATCH_PERIOD);
 
 #if RETRACT_DURING_HEATUP
         e->waitRetractTemperature = HAL::eprGetInt16(o+EPR_EXTRUDER_WAIT_RETRACT_TEMP);
@@ -1259,7 +1254,6 @@ void EEPROM::updatePrinterUsage()
 int EEPROM::getExtruderOffset(uint8_t extruder)
 {
     return extruder * EEPROM_EXTRUDER_LENGTH + EEPROM_EXTRUDER_OFFSET;
-
 } // getExtruderOffset
 
 
@@ -1277,233 +1271,237 @@ With
 void EEPROM::writeSettings()
 {
 #if EEPROM_MODE!=0
-    writeLong(EPR_BAUDRATE,Com::tEPRBaudrate);
-    writeLong(EPR_MAX_INACTIVE_TIME,Com::tEPRMaxInactiveTime);
-    writeLong(EPR_STEPPER_INACTIVE_TIME,Com::tEPRStopAfterInactivty);
-    writeFloat(EPR_XAXIS_STEPS_PER_MM,Com::tEPRXStepsPerMM,4);
-    writeFloat(EPR_YAXIS_STEPS_PER_MM,Com::tEPRYStepsPerMM,4);
-    writeFloat(EPR_ZAXIS_STEPS_PER_MM,Com::tEPRZStepsPerMM,4);
-    writeFloat(EPR_X_MAX_FEEDRATE,Com::tEPRXMaxFeedrate);
-    writeFloat(EPR_Y_MAX_FEEDRATE,Com::tEPRYMaxFeedrate);
-    writeFloat(EPR_Z_MAX_FEEDRATE,Com::tEPRZMaxFeedrate);
-    writeLong(EPR_RF_Z_OFFSET,Com::tEPRZOffset);
-    writeByte(EPR_RF_Z_MODE,Com::tEPRZMode);
 
 #if FEATURE_MILLING_MODE
-    if( Printer::operatingMode == OPERATING_MODE_PRINT )
-    {
+	if (Printer::operatingMode == OPERATING_MODE_PRINT)
+	{
 #endif // FEATURE_MILLING_MODE
-        writeFloat(EPR_PRINTING_DISTANCE,Com::tEPRFilamentPrinted);
-        writeLong(EPR_PRINTING_TIME,Com::tEPRPrinterActive);
- #if FEATURE_SERVICE_INTERVAL
-        writeFloat(EPR_PRINTING_DISTANCE_SERVICE,Com::tEPRFilamentPrintedService);
-        writeLong(EPR_PRINTING_TIME_SERVICE,Com::tEPRPrinterActiveService);
- #endif // FEATURE_SERVICE_INTERVAL
+		writeFloat(EPR_X_MAX_FEEDRATE, Com::tEPRXMaxFeedrate);
+		writeFloat(EPR_X_HOMING_FEEDRATE_PRINT, Com::tEPRXHomingFeedrate);
+		writeFloat(EPR_Y_MAX_FEEDRATE, Com::tEPRYMaxFeedrate);
+		writeFloat(EPR_Y_HOMING_FEEDRATE_PRINT, Com::tEPRYHomingFeedrate);
+		writeFloat(EPR_Z_MAX_FEEDRATE, Com::tEPRZMaxFeedrate);
+		writeFloat(EPR_Z_HOMING_FEEDRATE_PRINT, Com::tEPRZHomingFeedrate);
 #if FEATURE_MILLING_MODE
-    }
-    else
-    {
-        writeLong(EPR_MILLING_TIME,Com::tEPRMillerActive);
- #if FEATURE_SERVICE_INTERVAL
-        writeLong(EPR_MILLING_TIME_SERVICE,Com::tEPRMillerActiveService);
- #endif // FEATURE_SERVICE_INTERVAL
-    }
+	}
+	else
+	{
+		writeFloat(EPR_X_MAX_FEEDRATE, Com::tEPRXMaxFeedrate);
+		writeFloat(EPR_X_HOMING_FEEDRATE_MILL, Com::tEPRXHomingFeedrate);
+		writeFloat(EPR_Y_MAX_FEEDRATE, Com::tEPRYMaxFeedrate);
+		writeFloat(EPR_Y_HOMING_FEEDRATE_MILL, Com::tEPRYHomingFeedrate);
+		writeFloat(EPR_Z_MAX_FEEDRATE, Com::tEPRZMaxFeedrate);
+		writeFloat(EPR_Z_HOMING_FEEDRATE_MILL, Com::tEPRZHomingFeedrate);
+	}
 #endif // FEATURE_MILLING_MODE
 
 #if FEATURE_MILLING_MODE
-    if( Printer::operatingMode == OPERATING_MODE_PRINT )
-    {
+	if (Printer::operatingMode == OPERATING_MODE_PRINT)
+	{
 #endif // FEATURE_MILLING_MODE
-        writeFloat(EPR_X_HOMING_FEEDRATE_PRINT,Com::tEPRXHomingFeedrate);
-        writeFloat(EPR_Y_HOMING_FEEDRATE_PRINT,Com::tEPRYHomingFeedrate);
-        writeFloat(EPR_Z_HOMING_FEEDRATE_PRINT,Com::tEPRZHomingFeedrate);
+		writeFloat(EPR_X_MAX_ACCEL, Com::tEPRXAcceleration);
+		writeFloat(EPR_X_MAX_TRAVEL_ACCEL, Com::tEPRXTravelAcceleration);
+		writeFloat(EPR_Y_MAX_ACCEL, Com::tEPRYAcceleration);
+		writeFloat(EPR_Y_MAX_TRAVEL_ACCEL, Com::tEPRYTravelAcceleration);
+		writeFloat(EPR_Z_MAX_ACCEL, Com::tEPRZAcceleration);
+		writeFloat(EPR_Z_MAX_TRAVEL_ACCEL, Com::tEPRZTravelAcceleration);
 #if FEATURE_MILLING_MODE
-    }
-    else
-    {
-        writeFloat(EPR_X_HOMING_FEEDRATE_MILL,Com::tEPRXHomingFeedrate);
-        writeFloat(EPR_Y_HOMING_FEEDRATE_MILL,Com::tEPRYHomingFeedrate);
-        writeFloat(EPR_Z_HOMING_FEEDRATE_MILL,Com::tEPRZHomingFeedrate);
-    }
+	}
+	else {
+		writeInt(EPR_RF_MILL_ACCELERATION, Com::tEPRZMillingAcceleration);
+	}
 #endif // FEATURE_MILLING_MODE
 
-    writeFloat(EPR_MAX_JERK,Com::tEPRMaxJerk);
-    writeFloat(EPR_MAX_ZJERK,Com::tEPRMaxZJerk);
-    writeFloat(EPR_X_HOME_OFFSET,Com::tEPRXHomePos);
-    writeFloat(EPR_Y_HOME_OFFSET,Com::tEPRYHomePos);
+	writeFloat(EPR_MAX_XYJERK, Com::tEPRMaxXYJerk);
+	writeFloat(EPR_MAX_ZJERK, Com::tEPRMaxZJerk);
 
-#if FEATURE_MILLING_MODE
-    if( Printer::operatingMode == OPERATING_MODE_PRINT )
-    {
-#endif // FEATURE_MILLING_MODE
-      writeFloat(EPR_X_LENGTH,Com::tEPRXMaxLength);
-#if FEATURE_MILLING_MODE
-    }else{
-      writeFloat(EPR_X_LENGTH_MILLING,Com::tEPRXMaxLengthMilling);
-    }
-#endif  // FEATURE_MILLING_MODE
-    writeFloat(EPR_Y_LENGTH,Com::tEPRYMaxLength);
-    writeFloat(EPR_Z_LENGTH,Com::tEPRZMaxLength);
+
+	writeByte(EPR_RF_MOTOR_CURRENT + X_AXIS, Com::tEPRPrinter_STEPPER_X);
+	writeByte(EPR_RF_MOTOR_CURRENT + Y_AXIS, Com::tEPRPrinter_STEPPER_Y);
+	writeByte(EPR_RF_MOTOR_CURRENT + Z_AXIS, Com::tEPRPrinter_STEPPER_Z);
+	writeByte(EPR_RF_MOTOR_CURRENT + E_AXIS + 0, Com::tEPRPrinter_STEPPER_E0);
+#if NUM_EXTRUDER > 1
+	writeByte(EPR_RF_MOTOR_CURRENT + E_AXIS + 1, Com::tEPRPrinter_STEPPER_E1);
+#endif //NUM_EXTRUDER > 1
+
+	writeFloat(EPR_XAXIS_STEPS_PER_MM, Com::tEPRXStepsPerMM, 4);
+	writeFloat(EPR_YAXIS_STEPS_PER_MM, Com::tEPRYStepsPerMM, 4);
+	writeFloat(EPR_ZAXIS_STEPS_PER_MM, Com::tEPRZStepsPerMM, 4);
+	writeInt(EPR_RF_STEP_PACKING_MIN_INTERVAL, Com::tEPRInterruptSpacingInterval);
 
 #if ENABLE_BACKLASH_COMPENSATION
-    writeFloat(EPR_BACKLASH_X,Com::tEPRXBacklash);
-    writeFloat(EPR_BACKLASH_Y,Com::tEPRYBacklash);
-    writeFloat(EPR_BACKLASH_Z,Com::tEPRZBacklash);
+	writeFloat(EPR_BACKLASH_X, Com::tEPRXBacklash);
+	writeFloat(EPR_BACKLASH_Y, Com::tEPRYBacklash);
+	writeFloat(EPR_BACKLASH_Z, Com::tEPRZBacklash);
 #endif // ENABLE_BACKLASH_COMPENSATION
 
 #if FEATURE_MILLING_MODE
-    if( Printer::operatingMode == OPERATING_MODE_PRINT )
-    {
+	if (Printer::operatingMode == OPERATING_MODE_PRINT)
+	{
 #endif // FEATURE_MILLING_MODE
-    writeFloat(EPR_X_MAX_ACCEL,Com::tEPRXAcceleration);
-    writeFloat(EPR_Y_MAX_ACCEL,Com::tEPRYAcceleration);
-    writeFloat(EPR_Z_MAX_ACCEL,Com::tEPRZAcceleration);
-    writeFloat(EPR_X_MAX_TRAVEL_ACCEL,Com::tEPRXTravelAcceleration);
-    writeFloat(EPR_Y_MAX_TRAVEL_ACCEL,Com::tEPRYTravelAcceleration);
-    writeFloat(EPR_Z_MAX_TRAVEL_ACCEL,Com::tEPRZTravelAcceleration);
+		writeFloat(EPR_X_LENGTH, Com::tEPRXMaxLength);
 #if FEATURE_MILLING_MODE
-    }else{
-      writeInt(EPR_RF_MILL_ACCELERATION,Com::tEPRZMillingAcceleration);
-    }
-#endif // FEATURE_MILLING_MODE
+	}
+	else {
+		writeFloat(EPR_X_LENGTH_MILLING, Com::tEPRXMaxLengthMilling);
+	}
+#endif  // FEATURE_MILLING_MODE
+	writeFloat(EPR_Y_LENGTH, Com::tEPRYMaxLength);
+	writeFloat(EPR_Z_LENGTH, Com::tEPRZMaxLength);
 
-#if FEATURE_WORK_PART_Z_COMPENSATION || FEATURE_HEAT_BED_Z_COMPENSATION
-    writeFloat(EPR_ZSCAN_START_MM,Com::tEPRZScanStartLift);
-#endif // FEATURE_WORK_PART_Z_COMPENSATION || FEATURE_HEAT_BED_Z_COMPENSATION
+	writeFloat(EPR_X_HOME_OFFSET, Com::tEPRXHomePos);
+	writeFloat(EPR_Y_HOME_OFFSET, Com::tEPRYHomePos);
 
-#if FEATURE_READ_CALIPER
-    writeInt( EPR_RF_CAL_STANDARD, Com::tEPRZCallStandard );
-    writeByte( EPR_RF_CAL_ADJUST, Com::tEPRZCallAdjust );
-#endif //FEATURE_READ_CALIPER
+	writeLong(EPR_RF_Z_OFFSET, Com::tEPRZOffset);
+	writeByte(EPR_RF_Z_MODE, Com::tEPRZMode);
+	
+	writeLong(EPR_RF_MOD_Z_STEP_SIZE, Com::tEPRPrinterZ_STEP_SIZE);
 
 #if FEATURE_ZERO_DIGITS
-    writeByte( EPR_RF_ZERO_DIGIT_STATE, Com::tEPRZERO_DIGIT_STATE );
+	writeByte(EPR_RF_ZERO_DIGIT_STATE, Com::tEPRZERO_DIGIT_STATE);
 #endif // FEATURE_ZERO_DIGITS
 #if FEATURE_DIGIT_Z_COMPENSATION
-    writeByte( EPR_RF_DIGIT_CMP_STATE, Com::tEPRZDIGIT_CMP_STATE );
+	writeByte(EPR_RF_DIGIT_CMP_STATE, Com::tEPRZDIGIT_CMP_STATE);
 #endif // FEATURE_DIGIT_Z_COMPENSATION
 
-#if HAVE_HEATED_BED
-    writeByte(EPR_BED_DRIVE_MAX,Com::tEPRBedPIDDriveMax);
-    writeByte(EPR_BED_DRIVE_MIN,Com::tEPRBedPIDDriveMin);
-    writeFloat(EPR_BED_PID_PGAIN,Com::tEPRBedPGain);
-    writeFloat(EPR_BED_PID_IGAIN,Com::tEPRBedIGain);
-    writeFloat(EPR_BED_PID_DGAIN,Com::tEPRBedDGain);
-    writeByte(EPR_BED_PID_MAX,Com::tEPRBedPISMaxValue);
-    writeByte(EPR_RF_HEATED_BED_SENSOR_TYPE,Com::tEPRBedsensorType);
-#endif // HAVE_HEATED_BED
-
-    // now the extruder
-    for(uint8_t i=0; i<NUM_EXTRUDER; i++)
-    {
-        int o=EEPROM::getExtruderOffset(i);
-        writeFloat(o+EPR_EXTRUDER_STEPS_PER_MM,Com::tEPRStepsPerMM);
-        writeFloat(o+EPR_EXTRUDER_MAX_FEEDRATE,Com::tEPRMaxFeedrate);
-        writeFloat(o+EPR_EXTRUDER_MAX_START_FEEDRATE,Com::tEPRStartFeedrate);
-        writeFloat(o+EPR_EXTRUDER_MAX_ACCELERATION,Com::tEPRAcceleration);
-
-        writeByte(o+EPR_EXTRUDER_DRIVE_MAX,Com::tEPRDriveMax);
-        writeByte(o+EPR_EXTRUDER_DRIVE_MIN,Com::tEPRDriveMin);
-        writeFloat(o+EPR_EXTRUDER_PID_PGAIN,Com::tEPRPGain,4);
-        writeFloat(o+EPR_EXTRUDER_PID_IGAIN,Com::tEPRIGain,4);
-        writeFloat(o+EPR_EXTRUDER_PID_DGAIN,Com::tEPRDGain,4);
-        writeByte(o+EPR_EXTRUDER_PID_MAX,Com::tEPRPIDMaxValue);
-        writeByte(o+EPR_EXTRUDER_SENSOR_TYPE,Com::tEPRsensorType);
-
-        writeFloat(o+EPR_EXTRUDER_X_OFFSET,Com::tEPRXOffset);
-        writeFloat(o+EPR_EXTRUDER_Y_OFFSET,Com::tEPRYOffset);
-        writeFloat(o+EPR_EXTRUDER_Z_OFFSET,Com::tEPRZOffsetmm);
-
-        writeInt(o+EPR_EXTRUDER_WATCH_PERIOD,Com::tEPRStabilizeTime);
-
-#if RETRACT_DURING_HEATUP
-        writeInt(o+EPR_EXTRUDER_WAIT_RETRACT_TEMP,Com::tEPRRetractionWhenHeating);
-        writeInt(o+EPR_EXTRUDER_WAIT_RETRACT_UNITS,Com::tEPRDistanceRetractHeating);
-#endif // RETRACT_DURING_HEATUP
-
-        writeByte(o+EPR_EXTRUDER_COOLER_SPEED,Com::tEPRExtruderCoolerSpeed);
-#if USE_ADVANCE
-#ifdef ENABLE_QUADRATIC_ADVANCE
-        writeFloat(o+EPR_EXTRUDER_ADVANCE_K,Com::tEPRAdvanceK);
-#endif // ENABLE_QUADRATIC_ADVANCE
-        writeFloat(o+EPR_EXTRUDER_ADVANCE_L,Com::tEPRAdvanceL);
-#endif // USE_ADVANCE
-    }
-
-    // RF specific
-#if FEATURE_BEEPER
-    writeByte(EPR_RF_BEEPER_MODE,Com::tEPRBeeperMode);
-#endif // FEATURE_BEEPER
-
-#if FEATURE_CASE_LIGHT
-    writeByte(EPR_RF_CASE_LIGHT_MODE,Com::tEPRCaseLightsMode);
-#endif // FEATURE_CASE_LIGHT
-
-#if FEATURE_MILLING_MODE
-    writeByte(EPR_RF_OPERATING_MODE,Com::tEPROperatingMode);
-#endif // FEATURE_MILLING_MODE
-
-#if FEATURE_CONFIGURABLE_Z_ENDSTOPS
-    writeByte(EPR_RF_Z_ENDSTOP_TYPE,Com::tEPRZEndstopType);
-#endif // FEATURE_CONFIGURABLE_Z_ENDSTOPS
-
-#if FEATURE_RGB_LIGHT_EFFECTS
-    writeByte(EPR_RF_RGB_LIGHT_MODE,Com::tEPRRGBLightMode);
-#endif // FEATURE_RGB_LIGHT_EFFECTS
-
-#if FEATURE_24V_FET_OUTPUTS
-    writeByte(EPR_RF_FET1_MODE,Com::tEPRFET1Mode);
-    writeByte(EPR_RF_FET2_MODE,Com::tEPRFET2Mode);
-    writeByte(EPR_RF_FET3_MODE,Com::tEPRFET3Mode);
-#endif // FEATURE_24V_FET_OUTPUTS
-
-#if FEATURE_CONFIGURABLE_MILLER_TYPE
-    writeByte(EPR_RF_MILLER_TYPE,Com::tEPRMillerType);
-#endif // FEATURE_CONFIGURABLE_MILLER_TYPE
-
-    writeLong(EPR_RF_MOD_Z_STEP_SIZE,Com::tEPRPrinterZ_STEP_SIZE);
-#if FEATURE_HEAT_BED_Z_COMPENSATION
-    writeByte(EPR_RF_MOD_ZOS_SCAN_POINT_X,Com::tEPRPrinterMOD_ZOS_SCAN_POINT_X);
-    writeByte(EPR_RF_MOD_ZOS_SCAN_POINT_Y,Com::tEPRPrinterMOD_ZOS_SCAN_POINT_Y);
-#endif //FEATURE_HEAT_BED_Z_COMPENSATION
 #if FEATURE_SENSIBLE_PRESSURE
-    writeInt(EPR_RF_MOD_SENSEOFFSET_OFFSET_MAX,Com::tEPRPrinterMOD_SENSEOFFSET_OFFSET_MAX);
-    writeInt(EPR_RF_MOD_SENSEOFFSET_DIGITS,Com::tEPRPrinterEPR_RF_MOD_SENSEOFFSET_DIGITS);
+	writeInt(EPR_RF_MOD_SENSEOFFSET_DIGITS, Com::tEPRPrinterEPR_RF_MOD_SENSEOFFSET_DIGITS);
+	writeInt(EPR_RF_MOD_SENSEOFFSET_OFFSET_MAX, Com::tEPRPrinterMOD_SENSEOFFSET_OFFSET_MAX);
 #endif //FEATURE_SENSIBLE_PRESSURE
 
 #if FEATURE_EMERGENCY_PAUSE
-    writeLong(EPR_RF_EMERGENCYPAUSEDIGITSMIN,Com::tEPRPrinterEPR_RF_EmergencyPauseDigitsMin);
-    writeLong(EPR_RF_EMERGENCYPAUSEDIGITSMAX,Com::tEPRPrinterEPR_RF_EmergencyPauseDigitsMax);
+	writeLong(EPR_RF_EMERGENCYPAUSEDIGITSMIN, Com::tEPRPrinterEPR_RF_EmergencyPauseDigitsMin);
+	writeLong(EPR_RF_EMERGENCYPAUSEDIGITSMAX, Com::tEPRPrinterEPR_RF_EmergencyPauseDigitsMax);
 #endif //FEATURE_EMERGENCY_PAUSE
 
 #if FEATURE_EMERGENCY_STOP_ALL
-    writeInt(EPR_RF_EMERGENCYZSTOPDIGITSMIN,Com::tEPRPrinterEPR_RF_EmergencyStopAllMin);
-    writeInt(EPR_RF_EMERGENCYZSTOPDIGITSMAX,Com::tEPRPrinterEPR_RF_EmergencyStopAllMax);
+	writeInt(EPR_RF_EMERGENCYZSTOPDIGITSMIN, Com::tEPRPrinterEPR_RF_EmergencyStopAllMin);
+	writeInt(EPR_RF_EMERGENCYZSTOPDIGITSMAX, Com::tEPRPrinterEPR_RF_EmergencyStopAllMax);
 #endif //FEATURE_EMERGENCY_STOP_ALL
 
-    writeByte(EPR_RF_MOTOR_CURRENT+X_AXIS,Com::tEPRPrinter_STEPPER_X);
-    writeByte(EPR_RF_MOTOR_CURRENT+Y_AXIS,Com::tEPRPrinter_STEPPER_Y);
-    writeByte(EPR_RF_MOTOR_CURRENT+Z_AXIS,Com::tEPRPrinter_STEPPER_Z);
-    writeByte(EPR_RF_MOTOR_CURRENT+E_AXIS+0,Com::tEPRPrinter_STEPPER_E0);
-#if NUM_EXTRUDER > 1
-    writeByte(EPR_RF_MOTOR_CURRENT+E_AXIS+1,Com::tEPRPrinter_STEPPER_E1);
-#endif //NUM_EXTRUDER > 1
-    writeInt(EPR_RF_STEP_PACKING_MIN_INTERVAL,Com::tEPRPrinter_FREQ_DBL);
+#if FEATURE_HEAT_BED_Z_COMPENSATION
+	writeByte(EPR_RF_MOD_ZOS_SCAN_POINT_X, Com::tEPRPrinterMOD_ZOS_SCAN_POINT_X);
+	writeByte(EPR_RF_MOD_ZOS_SCAN_POINT_Y, Com::tEPRPrinterMOD_ZOS_SCAN_POINT_Y);
+#endif //FEATURE_HEAT_BED_Z_COMPENSATION
+#if FEATURE_WORK_PART_Z_COMPENSATION || FEATURE_HEAT_BED_Z_COMPENSATION
+	writeFloat(EPR_ZSCAN_START_MM, Com::tEPRZScanStartLift);
+#endif // FEATURE_WORK_PART_Z_COMPENSATION || FEATURE_HEAT_BED_Z_COMPENSATION
+
+#if HAVE_HEATED_BED
+	writeByte(EPR_RF_HEATED_BED_SENSOR_TYPE, Com::tEPRBedsensorType);
+	writeFloat(EPR_BED_PID_PGAIN, Com::tEPRBedPGain);
+	writeFloat(EPR_BED_PID_IGAIN, Com::tEPRBedIGain);
+	writeFloat(EPR_BED_PID_DGAIN, Com::tEPRBedDGain);
+	writeByte(EPR_BED_PID_MAX, Com::tEPRBedPIDMaxValue);
+	writeByte(EPR_BED_DRIVE_MIN, Com::tEPRBedPIDDriveMin);
+	writeByte(EPR_BED_DRIVE_MAX, Com::tEPRBedPIDDriveMax);
+#endif // HAVE_HEATED_BED
+
+	// now the extruder
+	for (uint8_t i = 0; i < NUM_EXTRUDER; i++)
+	{
+		int o = EEPROM::getExtruderOffset(i);
+		writeFloat(o + EPR_EXTRUDER_STEPS_PER_MM, Com::tEPRStepsPerMM);
+		writeFloat(o + EPR_EXTRUDER_MAX_FEEDRATE, Com::tEPRMaxFeedrate);
+		writeFloat(o + EPR_EXTRUDER_MAX_ACCELERATION, Com::tEPRAcceleration);
+		writeFloat(o + EPR_EXTRUDER_MAX_START_FEEDRATE, Com::tEPReJerk);
+#if USE_ADVANCE
+#ifdef ENABLE_QUADRATIC_ADVANCE
+		writeFloat(o + EPR_EXTRUDER_ADVANCE_K, Com::tEPRAdvanceK);
+#endif // ENABLE_QUADRATIC_ADVANCE
+		writeFloat(o + EPR_EXTRUDER_ADVANCE_L, Com::tEPRAdvanceL);
+#endif // USE_ADVANCE
+
+		writeByte(o + EPR_EXTRUDER_SENSOR_TYPE, Com::tEPRsensorType);
+		writeFloat(o + EPR_EXTRUDER_PID_PGAIN, Com::tEPRPGain, 4);
+		writeFloat(o + EPR_EXTRUDER_PID_IGAIN, Com::tEPRIGain, 4);
+		writeFloat(o + EPR_EXTRUDER_PID_DGAIN, Com::tEPRDGain, 4);
+		writeByte(o + EPR_EXTRUDER_PID_MAX, Com::tEPRPIDMaxValue);
+		writeByte(o + EPR_EXTRUDER_DRIVE_MIN, Com::tEPRDriveMin);
+		writeByte(o + EPR_EXTRUDER_DRIVE_MAX, Com::tEPRDriveMax);
+
+		writeFloat(o + EPR_EXTRUDER_X_OFFSET, Com::tEPRXOffset);
+		writeFloat(o + EPR_EXTRUDER_Y_OFFSET, Com::tEPRYOffset);
+		writeFloat(o + EPR_EXTRUDER_Z_OFFSET, Com::tEPRZOffsetmm);
+
+#if RETRACT_DURING_HEATUP
+		writeInt(o + EPR_EXTRUDER_WAIT_RETRACT_TEMP, Com::tEPRRetractionWhenHeating);
+		writeInt(o + EPR_EXTRUDER_WAIT_RETRACT_UNITS, Com::tEPRDistanceRetractHeating);
+#endif // RETRACT_DURING_HEATUP
+
+		writeByte(o + EPR_EXTRUDER_COOLER_SPEED, Com::tEPRExtruderCoolerSpeed);
+	}
 
 #if FAN_PIN>-1 && FEATURE_FAN_CONTROL
-    writeByte(EPR_RF_FAN_MODE,Com::tEPRPrinter_FAN_MODE);
-    writeByte(EPR_RF_PART_FAN_SPEED,Com::tEPRPrinter_FAN_SPEED);
-    writeByte(EPR_RF_PART_FAN_PWM_MIN,Com::tEPRPrinter_FAN_PART_FAN_PWM_MIN);
-    writeByte(EPR_RF_PART_FAN_PWM_MAX,Com::tEPRPrinter_FAN_PART_FAN_PWM_MAX);
+	writeByte(EPR_RF_FAN_MODE, Com::tEPRPrinter_FAN_MODE);
+	writeByte(EPR_RF_PART_FAN_SPEED, Com::tEPRPrinter_FAN_SPEED);
+	writeByte(EPR_RF_PART_FAN_PWM_MIN, Com::tEPRPrinter_FAN_PART_FAN_PWM_MIN);
+	writeByte(EPR_RF_PART_FAN_PWM_MAX, Com::tEPRPrinter_FAN_PART_FAN_PWM_MAX);
 #endif // FAN_PIN>-1 && FEATURE_FAN_CONTROL
 
-#else
-    if( Printer::debugErrors() )
-    {
-        Com::printErrorF(Com::tNoEEPROMSupport);
-    }
-#endif // EEPROM_MODE!=0
 
+
+#if FEATURE_24V_FET_OUTPUTS
+	writeByte(EPR_RF_FET1_MODE, Com::tEPRFET1Mode);
+	writeByte(EPR_RF_FET2_MODE, Com::tEPRFET2Mode);
+	writeByte(EPR_RF_FET3_MODE, Com::tEPRFET3Mode);
+#endif // FEATURE_24V_FET_OUTPUTS
+#if FEATURE_CASE_LIGHT
+	writeByte(EPR_RF_CASE_LIGHT_MODE, Com::tEPRCaseLightsMode);
+#endif // FEATURE_CASE_LIGHT
+#if FEATURE_RGB_LIGHT_EFFECTS
+	writeByte(EPR_RF_RGB_LIGHT_MODE, Com::tEPRRGBLightMode);
+#endif // FEATURE_RGB_LIGHT_EFFECTS
+	
+	writeLong(EPR_BAUDRATE, Com::tEPRBaudrate);
+	writeLong(EPR_MAX_INACTIVE_TIME, Com::tEPRMaxInactiveTime);
+	writeLong(EPR_STEPPER_INACTIVE_TIME, Com::tEPRStopAfterInactivty);
+	// RF specific
+#if FEATURE_BEEPER
+	writeByte(EPR_RF_BEEPER_MODE, Com::tEPRBeeperMode);
+#endif // FEATURE_BEEPER
+#if FEATURE_MILLING_MODE
+	writeByte(EPR_RF_OPERATING_MODE, Com::tEPROperatingMode);
+#endif // FEATURE_MILLING_MODE
+#if FEATURE_CONFIGURABLE_MILLER_TYPE
+	writeByte(EPR_RF_MILLER_TYPE, Com::tEPRMillerType);
+#endif // FEATURE_CONFIGURABLE_MILLER_TYPE
+#if FEATURE_CONFIGURABLE_Z_ENDSTOPS
+	writeByte(EPR_RF_Z_ENDSTOP_TYPE, Com::tEPRZEndstopType);
+#endif // FEATURE_CONFIGURABLE_Z_ENDSTOPS
+
+#if FEATURE_READ_CALIPER
+	writeInt(EPR_RF_CAL_STANDARD, Com::tEPRZCallStandard);
+	writeByte(EPR_RF_CAL_ADJUST, Com::tEPRZCallAdjust);
+#endif //FEATURE_READ_CALIPER
+
+#if FEATURE_MILLING_MODE
+	if (Printer::operatingMode == OPERATING_MODE_PRINT)
+	{
+#endif // FEATURE_MILLING_MODE
+		writeFloat(EPR_PRINTING_DISTANCE, Com::tEPRFilamentPrinted);
+		writeLong(EPR_PRINTING_TIME, Com::tEPRPrinterActive);
+#if FEATURE_SERVICE_INTERVAL
+		writeFloat(EPR_PRINTING_DISTANCE_SERVICE, Com::tEPRFilamentPrintedService);
+		writeLong(EPR_PRINTING_TIME_SERVICE, Com::tEPRPrinterActiveService);
+#endif // FEATURE_SERVICE_INTERVAL
+#if FEATURE_MILLING_MODE
+	}
+	else
+	{
+		writeLong(EPR_MILLING_TIME, Com::tEPRMillerActive);
+#if FEATURE_SERVICE_INTERVAL
+		writeLong(EPR_MILLING_TIME_SERVICE, Com::tEPRMillerActiveService);
+#endif // FEATURE_SERVICE_INTERVAL
+	}
+#endif // FEATURE_MILLING_MODE
+
+#else
+	if (Printer::debugErrors())
+	{
+		Com::printErrorF(Com::tNoEEPROMSupport);
+	}
+#endif // EEPROM_MODE!=0
 } // writeSettings
 
 

@@ -3098,7 +3098,7 @@ void startViscosityTest( int maxdigits = 10000, float maxfeedrate = 5.0f, float 
     if(maxdigits < 1000) maxdigits = 1000;
     Com::printFLN( PSTR( "Test DigitsMax = " ) , maxdigits );
 
-    if(maxfeedrate > Extruder::current->maxStartFeedrate) maxfeedrate = Extruder::current->maxStartFeedrate;
+    if(maxfeedrate > Extruder::current->maxFeedrate) maxfeedrate = Extruder::current->maxFeedrate;
     if(maxfeedrate < 0.05) maxfeedrate = 0.05;
     Com::printFLN( PSTR( "Test FeedrateMax = " ) , maxfeedrate , 1);
 
@@ -9498,13 +9498,13 @@ void processCommand( GCode* pCommand )
                                 {
                                     Printer::enableFET1 = 0;
                                     WRITE(FET1, Printer::enableFET1);
-                                    Com::printFLN( PSTR( " 24V FET1-output = off ") );
+                                    Com::printFLN( PSTR( "24V X42 FET1-output = off") );
                                 }
                                 else
                                 {
                                     Printer::enableFET1 = 1;
                                     WRITE(FET1, Printer::enableFET1);
-                                    Com::printFLN( PSTR( " 24V FET1-output = on ") );
+                                    Com::printFLN( PSTR( "24V X42 FET1-output = on") );
                                 }
 
 #if FEATURE_AUTOMATIC_EEPROM_UPDATE
@@ -9522,13 +9522,13 @@ void processCommand( GCode* pCommand )
                                 {
                                     Printer::enableFET2 = 0;
                                     WRITE(FET2, Printer::enableFET2);
-                                    Com::printFLN( PSTR( " 24V FET2-output = off ") );
+                                    Com::printFLN( PSTR( "24V X44 FET2-output = off") );
                                 }
                                 else
                                 {
                                     Printer::enableFET2 = 1;
                                     WRITE(FET2, Printer::enableFET2);
-                                    Com::printFLN( PSTR( " 24V FET2-output = on ") );
+                                    Com::printFLN( PSTR( "24V X44 FET2-output = on") );
                                 }
 
 #if FEATURE_AUTOMATIC_EEPROM_UPDATE
@@ -9546,13 +9546,13 @@ void processCommand( GCode* pCommand )
                                 {
                                     Printer::enableFET3 = 0;
                                     WRITE(FET3, Printer::enableFET3);
-                                    Com::printFLN( PSTR( " 24V FET3-output = off ") );
+                                    Com::printFLN( PSTR( "24V X45/BoardFan FET3-output = off") );
                                 }
                                 else
                                 {
                                     Printer::enableFET3 = 1;
                                     WRITE(FET3, Printer::enableFET3);
-                                    Com::printFLN( PSTR( " 24V FET3-output = on ") );
+                                    Com::printFLN( PSTR( "24V X45/BoardFan FET3-output = on") );
                                 }
 
 #if FEATURE_AUTOMATIC_EEPROM_UPDATE

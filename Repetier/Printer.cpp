@@ -91,7 +91,7 @@ int             Printer::feedrateMultiply = 1;                          ///< Mul
 int             Printer::extrudeMultiply = 1;                           ///< Flow multiplier in percdent (factor 1 = 100)
 float           Printer::extrudeMultiplyError = 0;
 float           Printer::extrusionFactor = 1.0;
-float           Printer::maxJerk;                                       ///< Maximum allowed jerk in mm/s
+float           Printer::maxXYJerk;                                       ///< Maximum allowed jerk in mm/s
 float           Printer::maxZJerk;                                      ///< Maximum allowed jerk in z direction in mm/s
 float           Printer::extruderOffset[3] = {0};                       ///< offset for different extruder positions.
 unsigned int    Printer::vMaxReached;                                   ///< Maximum reached speed
@@ -357,9 +357,9 @@ void Printer::updateDerivedParameter()
             minimumSpeed = minimumSpeed2;
         }
 
-    if(maxJerk < 2 * minimumSpeed) {// Enforce minimum start speed if target is faster and jerk too low
-        maxJerk = 2 * minimumSpeed;
-        Com::printFLN(PSTR("XY jerk was too low, setting to "), maxJerk);
+    if(maxXYJerk < 2 * minimumSpeed) {// Enforce minimum start speed if target is faster and jerk too low
+        maxXYJerk = 2 * minimumSpeed;
+        Com::printFLN(PSTR("XY jerk was too low, setting to "), maxXYJerk);
     }
 
 #if FEATURE_MILLING_MODE
@@ -954,7 +954,7 @@ void Printer::setup()
     directPositionLastSteps[X_AXIS]    = directPositionLastSteps[Y_AXIS]    = directPositionLastSteps[Z_AXIS]    = directPositionLastSteps[E_AXIS]    = 0;
     waitMove                           = 0;
 
-    maxJerk = MAX_JERK;
+    maxXYJerk = MAX_JERK;
     maxZJerk = MAX_ZJERK;
     extruderOffset[X_AXIS] = extruderOffset[Y_AXIS] = extruderOffset[Z_AXIS] = 0;
 
