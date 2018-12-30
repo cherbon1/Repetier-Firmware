@@ -513,7 +513,7 @@ void PrintLine::calculateMove(float axisDistanceMM[], fast8_t drivingAxis, float
     else
     {
         float advlin = fabs(speedE) * Extruder::current->advanceL * 0.001 * Printer::axisStepsPerMM[E_AXIS];
-        advanceL = (uint16_t)((65536L * advlin) / vMax); //advanceLscaled = (65536*vE*k2)/vMax
+        advanceL = ((65536L * advlin) / vMax); //advanceLscaled = (65536*vE*k2)/vMax
   #if ENABLE_QUADRATIC_ADVANCE
         advanceFull = 65536 * Extruder::current->advanceK * speedE * speedE; // Steps*65536 at full speed
         long steps = (HAL::U16SquaredToU32(vMax)) / (accelerationPrim << 1); // v^2/(2*a) = steps needed to accelerate from 0-vMax
@@ -761,8 +761,19 @@ void PrintLine::updateStepsParameter()
     vEnd   = vMax * endFactor;
 
     uint32_t vmax2 = HAL::U16SquaredToU32(vMax);
-    accelSteps = ((vmax2 - HAL::U16SquaredToU32(vStart)) / (accelerationPrim << 1)) + 1; // Always add 1 for missing precision
-    decelSteps = ((vmax2 - HAL::U16SquaredToU32(vEnd))  /(accelerationPrim << 1)) + 1;
+
+	if (vStart == vMax) {
+		accelSteps = 0;
+	}
+	else {
+		accelSteps = ((vmax2 - HAL::U16SquaredToU32(vStart)) / (accelerationPrim << 1)) + 1; // Always add 1 for missing precision
+	}
+	if (vEnd == vMax) {
+		decelSteps = 0;
+	}
+	else {
+		decelSteps = ((vmax2 - HAL::U16SquaredToU32(vEnd)) / (accelerationPrim << 1)) + 1;
+	}
 
 #if USE_ADVANCE
 #ifdef ENABLE_QUADRATIC_ADVANCE
@@ -771,7 +782,7 @@ void PrintLine::updateStepsParameter()
 #endif // ENABLE_QUADRATIC_ADVANCE
 #endif // USE_ADVANCE
 
-    if(static_cast<int32_t>(accelSteps + decelSteps) >= stepsRemaining)     // can't reach limit speed
+    if(static_cast<int32_t>(accelSteps + decelSteps) > stepsRemaining)     // can't reach limit speed
     {
         uint32_t red = (accelSteps + decelSteps - stepsRemaining) >> 1;
         accelSteps = accelSteps - RMath::min(static_cast<int32_t>(accelSteps), static_cast<int32_t>(red));
@@ -1745,10 +1756,12 @@ long PrintLine::performMove(PrintLine* move, char forQueue)
 #if USE_ADVANCE
                 if(Printer::isAdvanceActivated()) // Use interrupt for movement
                 {
-                    if(move->isEPositiveMove())
+                    if(move->isEPositiveMove()) {
                         Printer::extruderStepsNeeded++;
-                    else
+					}
+					else {
                         Printer::extruderStepsNeeded--;
+					}
                 }
                 else
 #endif // USE_ADVANCE

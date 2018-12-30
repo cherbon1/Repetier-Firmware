@@ -1,3 +1,6 @@
+V 01.43.21.Mod (2018-12-30)
+- Calculate AdvanceL using 32bit. See Repetier 535b994ceda17b6f4bb3b9b9eaa4959112023b7c
+
 V 01.43.20.Mod (2018-12-10)
 - fixed Octoprint > 1.3.7 throws a security warning because of wrong firmware version parsing
 
