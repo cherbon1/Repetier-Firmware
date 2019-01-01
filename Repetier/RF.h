@@ -441,6 +441,10 @@ The following variables are used for movements in x/y/z direction:
   - unit is [mm]
   - the rest is identical to queuePositionLastSteps
 
+- Printer::queuePositionCommandMM[x/y/z]
+  - unit is [mm]
+  - in most cases, the value of queuePositionCommandMM is identical to the value of queuePositionLastMM, the values of these variables are different only while a new command is processed
+
 - Printer::queuePositionCurrentSteps[x/y/z]
   - unit is [steps]
   - holds the position which has been reached through the movements from the queue
@@ -448,10 +452,6 @@ The following variables are used for movements in x/y/z direction:
 
 - Printer::stepperDirection[x/y/z]
   - holds the direction of the axes as it is requested by the currently processed movement from the queue
-
-- Printer::queuePositionCommandMM[x/y/z]
-  - unit is [mm]
-  - in most cases, the value of queuePositionCommandMM is identical to the value of queuePositionLastMM, the values of these variables are different only while a new command is processed
 
 - Printer::directPositionTargetSteps[x/y/z]
   - unit is [steps]

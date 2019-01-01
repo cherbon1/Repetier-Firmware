@@ -86,40 +86,6 @@ uint8_t             PrintLine::linesWritePos    = 0;    // Position where we wri
 volatile uint8_t    PrintLine::linesCount       = 0;    // Number of lines cached 0 = nothing to do.
 uint8_t             PrintLine::linesPos         = 0;    // Position for executing line movement.
 
-/** \brief Move printer the given number of steps. Puts the move into the queue. Used by e.g. homing commands. */
-void PrintLine::moveRelativeDistanceInSteps(long x,long y,long z,long e,float feedrate,bool waitEnd,bool checkEndstop)
-{
-    Printer::queuePositionTargetSteps[X_AXIS] = Printer::queuePositionLastSteps[X_AXIS] + x;
-    Printer::queuePositionTargetSteps[Y_AXIS] = Printer::queuePositionLastSteps[Y_AXIS] + y;
-    Printer::queuePositionTargetSteps[Z_AXIS] = Printer::queuePositionLastSteps[Z_AXIS] + z;
-    Printer::queuePositionTargetSteps[E_AXIS] = Printer::queuePositionLastSteps[E_AXIS] + e;
-
-    prepareQueueMove(checkEndstop, false, feedrate);
-
-    Printer::updateCurrentPosition();
-    if(waitEnd)
-        Commands::waitUntilEndOfAllMoves(); //moveRelativeDistanceInSteps + wait
-
-    previousMillisCmd = HAL::timeInMilliseconds(); //prevent inactive shutdown of steppers/temps
-} // moveRelativeDistanceInSteps
-
-
-void PrintLine::moveRelativeDistanceInStepsReal(long x,long y,long z,long e,float feedrate,bool waitEnd)
-{
-    Printer::queuePositionCommandMM[X_AXIS] = Printer::queuePositionCommandMM[X_AXIS] + x * Printer::invAxisStepsPerMM[X_AXIS];
-    Printer::queuePositionCommandMM[Y_AXIS] = Printer::queuePositionCommandMM[Y_AXIS] + y * Printer::invAxisStepsPerMM[Y_AXIS];
-    Printer::queuePositionCommandMM[Z_AXIS] = Printer::queuePositionCommandMM[Z_AXIS] + z * Printer::invAxisStepsPerMM[Z_AXIS];
-
-    Printer::moveToReal(Printer::queuePositionCommandMM[X_AXIS],Printer::queuePositionCommandMM[Y_AXIS],Printer::queuePositionCommandMM[Z_AXIS],
-                        (Printer::queuePositionLastSteps[E_AXIS] + e) * Printer::invAxisStepsPerMM[E_AXIS],feedrate);
-    Printer::updateCurrentPosition();
-    if(waitEnd)
-        Commands::waitUntilEndOfAllMoves(); //moveRelativeDistanceInStepsReal + wait
-
-    previousMillisCmd = HAL::timeInMilliseconds(); //prevent inactive shutdown of steppers/temps
-} // moveRelativeDistanceInStepsReal
-
-
 /** \brief Put a move to the current destination coordinates into the movement cache.
   If the cache is full, the method will wait, until a place gets free. During
   wait communication and temperature control is enabled.
@@ -152,7 +118,7 @@ void PrintLine::prepareQueueMove(uint8_t check_endstops,uint8_t pathOptimize, fl
 #if FEATURE_HEAT_BED_Z_COMPENSATION
         //find highest Z layer with extrusion beneath g_maxZCompensationSteps for calculating the bordercrossing infill additions
         if(axis == Z_AXIS){
-            if(p->delta[axis] != 0){ //z achsen aufstieg/abstieg -> wir müssen durch erkennung von extrusion mögliche zlifts filtern!
+            if(p->delta[Z_AXIS] != 0){ //z achsen aufstieg/abstieg -> wir müssen durch erkennung von extrusion mögliche zlifts filtern!
                 InterruptProtectedBlock noInts;
                 Printer::queuePositionZLayerCurrent_cand = Printer::queuePositionTargetSteps[Z_AXIS] + Extruder::current->zOffset;
                 Printer::queuePositionZLayerCurrent_cand += Printer::directPositionCurrentSteps[Z_AXIS];
@@ -169,13 +135,13 @@ void PrintLine::prepareQueueMove(uint8_t check_endstops,uint8_t pathOptimize, fl
                             * g_nDigitFlowCompensation_flowmulti
  #endif // FEATURE_DIGIT_FLOW_COMPENSATION
                );
-            p->delta[E_AXIS] = static_cast<int32_t>(Printer::extrudeMultiplyError);
+            p->delta[E_AXIS] = lroundf(Printer::extrudeMultiplyError);
             Printer::extrudeMultiplyError -= p->delta[E_AXIS];
-            Printer::filamentPrinted += p->delta[E_AXIS] * Printer::invAxisStepsPerMM[axis];
+            Printer::filamentPrinted += p->delta[E_AXIS] * Printer::invAxisStepsPerMM[E_AXIS];
 #if FEATURE_HEAT_BED_Z_COMPENSATION
             //prüfe ob in der letzten angefahrenen Z layerhöhe extrudiert wird: dann kein zlift!
             if(Printer::queuePositionZLayerCurrent_cand){
-                if(p->delta[axis] > 0){
+                if(p->delta[E_AXIS] > 0){
                     InterruptProtectedBlock noInts;
                     long nCurrentPositionStepsZ = Printer::queuePositionTargetSteps[Z_AXIS] + Extruder::current->zOffset;
                     nCurrentPositionStepsZ += Printer::directPositionCurrentSteps[Z_AXIS];
@@ -204,12 +170,15 @@ void PrintLine::prepareQueueMove(uint8_t check_endstops,uint8_t pathOptimize, fl
                 }
             }
 #endif // FEATURE_HEAT_BED_Z_COMPENSATION
+			axisDistanceMM[E_AXIS] = p->delta[E_AXIS] * Printer::invAxisStepsPerMM[E_AXIS];
         }
+		else {
+			axisDistanceMM[axis] = p->delta[axis] * Printer::invAxisStepsPerMM[axis];
+		}
         if(p->delta[axis] >= 0)
             p->setPositiveDirectionForAxis(axis);
         else
             p->delta[axis] = -p->delta[axis];
-        axisDistanceMM[axis] = p->delta[axis] * Printer::invAxisStepsPerMM[axis];
         if(p->delta[axis]) p->setMoveOfAxis(axis);
         Printer::queuePositionLastSteps[axis] = Printer::queuePositionTargetSteps[axis];
     }
@@ -1097,11 +1066,11 @@ void PrintLine::arc(float *position, float *target, float *offset, float radius,
         //arc_target[axis_linear] += linear_per_segment;
         arc_target[3] += extruder_per_segment;
 
-        Printer::moveToReal(arc_target[0],arc_target[1],IGNORE_COORDINATE,arc_target[3],IGNORE_COORDINATE);
+        Printer::moveToCoordinateMM(arc_target[0],arc_target[1],IGNORE_COORDINATE,arc_target[3],IGNORE_COORDINATE);
     }
     // Ensure last segment arrives at target location.
 
-    Printer::moveToReal(target[0],target[1],IGNORE_COORDINATE,target[3],IGNORE_COORDINATE);
+    Printer::moveToCoordinateMM(target[0],target[1],IGNORE_COORDINATE,target[3],IGNORE_COORDINATE);
 
 } // arc
 #endif // FEATURE_ARC_SUPPORT

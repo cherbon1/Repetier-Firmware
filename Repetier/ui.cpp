@@ -3195,33 +3195,15 @@ void UIDisplay::nextPreviousAction(int8_t next)
 #endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
             break;
         }
-        case UI_ACTION_XPOSITION_FAST:
-        {
-            PrintLine::moveRelativeDistanceInStepsReal(Printer::axisStepsPerMM[X_AXIS]*increment,0,0,0,Printer::homingFeedrate[X_AXIS],true);
-            Commands::printCurrentPosition();
-            break;
-        }
-        case UI_ACTION_YPOSITION_FAST:
-        {
-            PrintLine::moveRelativeDistanceInStepsReal(0,Printer::axisStepsPerMM[Y_AXIS]*increment,0,0,Printer::homingFeedrate[Y_AXIS],true);
-            Commands::printCurrentPosition();
-            break;
-        }
-        case UI_ACTION_ZPOSITION_FAST:
-        {
-            PrintLine::moveRelativeDistanceInStepsReal(0,0,Printer::axisStepsPerMM[Z_AXIS]*increment,0,Printer::homingFeedrate[Z_AXIS],true);
-            Commands::printCurrentPosition();
-            break;
-        }
         case UI_ACTION_EPOSITION:
         {
 #if EXTRUDER_ALLOW_COLD_MOVE
-            PrintLine::moveRelativeDistanceInSteps(0,0,0, Printer::axisStepsPerMM[E_AXIS]*increment / Printer::extrusionFactor, UI_SET_EXTRUDER_FEEDRATE, true, false); //klappt nicht in Pause!!
+			Printer::moveRelativeDistanceInSteps(0,0,0, Printer::axisStepsPerMM[E_AXIS]*increment / Printer::extrusionFactor, UI_SET_EXTRUDER_FEEDRATE, true, false); //klappt nicht in Pause!!
             Commands::printCurrentPosition();
 #else
             if( Extruder::current->tempControl.targetTemperatureC > UI_SET_MIN_EXTRUDER_TEMP )
             {
-                PrintLine::moveRelativeDistanceInSteps(0,0,0, Printer::axisStepsPerMM[E_AXIS]*increment / Printer::extrusionFactor, UI_SET_EXTRUDER_FEEDRATE, true, false);
+				Printer::moveRelativeDistanceInSteps(0,0,0, Printer::axisStepsPerMM[E_AXIS]*increment / Printer::extrusionFactor, UI_SET_EXTRUDER_FEEDRATE, true, false);
                 Commands::printCurrentPosition();
             }
             else
@@ -3311,7 +3293,7 @@ void UIDisplay::nextPreviousAction(int8_t next)
 
             if(extruder[1].id == Extruder::current->id){
                 Printer::extruderOffset[Z_AXIS] = -Extruder::current->zOffset*Printer::invAxisStepsPerMM[Z_AXIS]; //+mm positiv
-                if(Printer::areAxisHomed()) Printer::moveToReal(IGNORE_COORDINATE,IGNORE_COORDINATE,IGNORE_COORDINATE,IGNORE_COORDINATE,IGNORE_COORDINATE);
+                if(Printer::areAxisHomed()) Printer::moveToCoordinateMM(IGNORE_COORDINATE,IGNORE_COORDINATE,IGNORE_COORDINATE,IGNORE_COORDINATE,IGNORE_COORDINATE);
             }
             break;
         }
@@ -5094,21 +5076,6 @@ void UIDisplay::executeAction(int action)
             case UI_ACTION_MENU_ZPOS:
             {
                 pushMenu((void*)&ui_menu_zpos,false);
-                break;
-            }
-            case UI_ACTION_MENU_XPOSFAST:
-            {
-                pushMenu((void*)&ui_menu_xpos_fast,false);
-                break;
-            }
-            case UI_ACTION_MENU_YPOSFAST:
-            {
-                pushMenu((void*)&ui_menu_ypos_fast,false);
-                break;
-            }
-            case UI_ACTION_MENU_ZPOSFAST:
-            {
-                pushMenu((void*)&ui_menu_zpos_fast,false);
                 break;
             }
             case UI_ACTION_MENU_QUICKSETTINGS:

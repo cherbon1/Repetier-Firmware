@@ -693,14 +693,6 @@ Honeywell 100K Thermistor (135-104LAG-J01)  : R0 = 100000  T0 = 25  Beta = 3974
  */
 #define UI_ENCODER_SPEED                    1
 
-/** 
- * \brief There are 2 ways to change positions. You can move by increments of 1/0.1 mm resulting in more menu entries
- * and requiring many turns on your encode. The alternative is to enable speed dependent positioning. It will change
- * the move distance depending on the speed you turn the encoder. That way you can move very fast and very slow in the
- * same setting.
- */
-#define UI_SPEEDDEPENDENT_POSITIONING       true
-
 /** \brief bounce time of keys in milliseconds */
 #define UI_KEY_BOUNCETIME                   10
 

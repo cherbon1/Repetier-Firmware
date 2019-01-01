@@ -972,7 +972,7 @@ void Commands::executeGCode(GCode *com)
                                 && actExtruder->waitRetractUnits > 0
                                 && actExtruder->tempControl.currentTemperatureC >= actExtruder->waitRetractTemperature)
                             {
-                                PrintLine::moveRelativeDistanceInSteps(0,0,0,-actExtruder->waitRetractUnits * Printer::axisStepsPerMM[E_AXIS],actExtruder->maxFeedrate,false,false);
+                                Printer::moveRelativeDistanceInSteps(0,0,0,-actExtruder->waitRetractUnits * Printer::axisStepsPerMM[E_AXIS],actExtruder->maxFeedrate,false,false);
                                 retracted = 1;
                             }
                         }
@@ -995,7 +995,7 @@ void Commands::executeGCode(GCode *com)
 #if RETRACT_DURING_HEATUP
                     if (retracted && actExtruder==Extruder::current)
                     {
-                        PrintLine::moveRelativeDistanceInSteps(0,0,0,actExtruder->waitRetractUnits * Printer::axisStepsPerMM[E_AXIS],actExtruder->maxFeedrate,false,false);
+						Printer::moveRelativeDistanceInSteps(0,0,0,actExtruder->waitRetractUnits * Printer::axisStepsPerMM[E_AXIS],actExtruder->maxFeedrate,false,false);
                     }
 #endif // RETRACT_DURING_HEATUP
 #endif // NUM_EXTRUDER>0

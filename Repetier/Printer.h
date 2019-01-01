@@ -93,7 +93,7 @@ public:
     static float            originOffsetMM[3];
     static volatile long    queuePositionTargetSteps[4];        // Target position in steps.
     static volatile long    queuePositionLastSteps[4];          // Position in steps from origin.
-    static volatile float   queuePositionLastMM[3];             // Position in mm from origin.
+    static volatile float   queuePositionLastMM[4];             // Position in mm from origin.
     static volatile float   queuePositionCommandMM[3];          // Last coordinates send by gcodes
 
     static long             maxSteps[3];                        // For software endstops, limit of move in positive direction.
@@ -1126,8 +1126,8 @@ public:
     static void updateAdvanceFlags();
     static void setup();
     static uint8_t setDestinationStepsFromGCode(GCode *com);
-    static uint8_t setDestinationStepsFromMenu( float relativeX, float relativeY, float relativeZ );
-    static void moveToReal(float x,float y,float z,float e,float feedrate);
+    static void moveToCoordinateMM(float x,float y,float z,float e,float feedrate);
+	static void moveRelativeDistanceInSteps(long x, long y, long z, long e, float feedrate, bool waitEnd, bool check_endstop);
     static void homeDigits();
     static void homeAxis(bool xaxis,bool yaxis,bool zaxis); /// Home axis
     static void setOrigin(float xOff,float yOff,float zOff);

@@ -398,13 +398,7 @@ void Extruder::selectExtruderById(uint8_t extruderId)
     Extruder::current->enabled = 0;
 #endif // STEPPER_ON_DELAY
 
-    Extruder::current->extrudePosition = Printer::queuePositionLastSteps[E_AXIS];
     Extruder::current = &extruder[extruderId];
-
-#ifdef SEPERATE_EXTRUDER_POSITIONS
-    // Use seperate extruder positions only if beeing told. Slic3r e.g. creates a continuous extruder position increment
-    Printer::queuePositionLastSteps[E_AXIS] = Extruder::current->extrudePosition;
-#endif // SEPERATE_EXTRUDER_POSITIONS
 
     Printer::queuePositionTargetSteps[E_AXIS] = Printer::queuePositionLastSteps[E_AXIS];
     Printer::axisStepsPerMM[E_AXIS] = Extruder::current->stepsPerMM;
@@ -432,7 +426,7 @@ void Extruder::selectExtruderById(uint8_t extruderId)
 
     if(Printer::areAxisHomed())
     {
-        Printer::moveToReal(IGNORE_COORDINATE,IGNORE_COORDINATE,IGNORE_COORDINATE,IGNORE_COORDINATE,Printer::homingFeedrate[X_AXIS]);
+        Printer::moveToCoordinateMM(IGNORE_COORDINATE,IGNORE_COORDINATE,IGNORE_COORDINATE,IGNORE_COORDINATE,Printer::homingFeedrate[X_AXIS]);
     }
     Printer::updateCurrentPosition();
 #if USE_ADVANCE
@@ -1318,7 +1312,7 @@ Extruder extruder[NUM_EXTRUDER] =
 #if NUM_EXTRUDER>0
     {
         0,(int32_t)(EXT0_X_OFFSET_MM * XAXIS_STEPS_PER_MM),(int32_t)(EXT0_Y_OFFSET_MM * YAXIS_STEPS_PER_MM),(int32_t)(EXT0_Z_OFFSET_MM * ZAXIS_STEPS_PER_MM),EXT0_STEPS_PER_MM,EXT0_ENABLE_PIN,EXT0_ENABLE_ON,
-        EXT0_MAX_FEEDRATE,EXT0_MAX_ACCELERATION,EXT0_MAX_START_FEEDRATE,0
+        EXT0_MAX_FEEDRATE,EXT0_MAX_ACCELERATION,EXT0_MAX_START_FEEDRATE
         ,EXT0_WAIT_RETRACT_TEMP,EXT0_WAIT_RETRACT_UNITS,0
 
 #if USE_ADVANCE
@@ -1350,7 +1344,7 @@ Extruder extruder[NUM_EXTRUDER] =
 #if NUM_EXTRUDER>1
     ,{
         1,(int32_t)(EXT1_X_OFFSET_MM * XAXIS_STEPS_PER_MM),(int32_t)(EXT1_Y_OFFSET_MM * YAXIS_STEPS_PER_MM),(int32_t)(EXT1_Z_OFFSET_MM * ZAXIS_STEPS_PER_MM),EXT1_STEPS_PER_MM,EXT1_ENABLE_PIN,EXT1_ENABLE_ON,
-        EXT1_MAX_FEEDRATE,EXT1_MAX_ACCELERATION,EXT1_MAX_START_FEEDRATE,0
+        EXT1_MAX_FEEDRATE,EXT1_MAX_ACCELERATION,EXT1_MAX_START_FEEDRATE
         ,EXT1_WAIT_RETRACT_TEMP,EXT1_WAIT_RETRACT_UNITS,0
 
 #if USE_ADVANCE

@@ -224,9 +224,6 @@
 #define UI_ACTION_MENU_XPOS                 4000
 #define UI_ACTION_MENU_YPOS                 4001
 #define UI_ACTION_MENU_ZPOS                 4002
-#define UI_ACTION_MENU_XPOSFAST             4003
-#define UI_ACTION_MENU_YPOSFAST             4004
-#define UI_ACTION_MENU_ZPOSFAST             4005
 #define UI_ACTION_MENU_QUICKSETTINGS        4007
 #define UI_ACTION_MENU_EXTRUDER             4008
 #define UI_ACTION_MENU_POSITIONS            4009

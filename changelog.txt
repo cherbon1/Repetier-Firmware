@@ -1,3 +1,14 @@
+V 01.43.22.Mod (2018-12-30)
+- Cleanup for implementing more precise advance
+- removed SEPERATE_EXTRUDER_POSITIONS
+- removed UI_SPEEDDEPENDENT_POSITIONING, removed function moveRelativeDistanceInStepsReal
+- some cleanup in position menu definition
+- moved PrintLine::moveRelativeDistanceInSteps to class Printer
+- removed function setDestinationStepsFromMenu replaced this code duplication by function moveRelativeDistanceInSteps
+- replaced some casted rouding using lroundf
+- prepared Printer::queuePositionLastMM[3] -> [4]
+- some other minor refactoring
+
 V 01.43.21.Mod (2018-12-30)
 - Calculate AdvanceL using 32bit. See Repetier 535b994ceda17b6f4bb3b9b9eaa4959112023b7c
 

@@ -763,8 +763,8 @@ void scanHeatBed( void )
             case 25:
             {
                 // move to the first position
-                PrintLine::moveRelativeDistanceInSteps( g_nScanXStartSteps, 0, 0, 0, Printer::homingFeedrate[X_AXIS] , true, true );
-                PrintLine::moveRelativeDistanceInSteps( 0, g_nScanYStartSteps, 0, 0, Printer::homingFeedrate[Y_AXIS] , true, true );
+				Printer::moveRelativeDistanceInSteps( g_nScanXStartSteps, 0, 0, 0, Printer::homingFeedrate[X_AXIS] , false, true );
+				Printer::moveRelativeDistanceInSteps( 0, g_nScanYStartSteps, 0, 0, Printer::homingFeedrate[Y_AXIS] , true, true );
 
                 g_nHeatBedScanStatus = 30;
                 g_lastScanTime       = HAL::timeInMilliseconds();
@@ -848,7 +848,7 @@ void scanHeatBed( void )
                 }
 
                 // move to the next x-position
-                PrintLine::moveRelativeDistanceInSteps( g_nScanXStepSizeSteps, 0, 0, 0, Printer::homingFeedrate[X_AXIS], true, true );
+				Printer::moveRelativeDistanceInSteps( g_nScanXStepSizeSteps, 0, 0, 0, Printer::homingFeedrate[X_AXIS], true, true );
                 nX += g_nScanXStepSizeSteps;
                 nIndexX ++;
 
@@ -954,7 +954,7 @@ void scanHeatBed( void )
             }
             case 47:
             {
-                PrintLine::moveRelativeDistanceInSteps( 0, nY, 0, 0, Printer::homingFeedrate[Y_AXIS], true, true );
+				Printer::moveRelativeDistanceInSteps( 0, nY, 0, 0, Printer::homingFeedrate[Y_AXIS], true, true );
 
                 g_nHeatBedScanStatus = 48;
                 g_lastScanTime       = HAL::timeInMilliseconds();
@@ -1182,7 +1182,7 @@ void scanHeatBed( void )
                 }
 
                 // move to the next y-position
-                PrintLine::moveRelativeDistanceInSteps( 0, nYDirection, 0, 0, Printer::homingFeedrate[Y_AXIS], true, true );
+				Printer::moveRelativeDistanceInSteps( 0, nYDirection, 0, 0, Printer::homingFeedrate[Y_AXIS], true, true );
                 nY      += nYDirection;
                 nIndexY += nIndexYDirection;
 
@@ -1378,7 +1378,7 @@ void scanHeatBed( void )
             case 100:
             {
                 // we are homed at the moment - move to the position where both extruders shall be aligned to the same z position
-                PrintLine::moveRelativeDistanceInSteps( long(HEAT_BED_SCAN_X_CALIBRATION_POINT_MM * Printer::axisStepsPerMM[X_AXIS]), long(HEAT_BED_SCAN_Y_CALIBRATION_POINT_MM * Printer::axisStepsPerMM[Y_AXIS]), 0, 0,
+				Printer::moveRelativeDistanceInSteps( long(HEAT_BED_SCAN_X_CALIBRATION_POINT_MM * Printer::axisStepsPerMM[X_AXIS]), long(HEAT_BED_SCAN_Y_CALIBRATION_POINT_MM * Printer::axisStepsPerMM[Y_AXIS]), 0, 0,
                                                         RMath::min(Printer::homingFeedrate[X_AXIS],Printer::homingFeedrate[Y_AXIS]), true, true );
 
                 g_lastScanTime       = HAL::timeInMilliseconds();
@@ -1432,7 +1432,7 @@ void scanHeatBed( void )
             }
             case 107:
             {
-                PrintLine::moveRelativeDistanceInSteps( 0, long(HEAT_BED_SCAN_Y_CALIBRATION_POINT_MM * Printer::axisStepsPerMM[Y_AXIS]), 0, 0, Printer::homingFeedrate[Y_AXIS], true, true );
+				Printer::moveRelativeDistanceInSteps( 0, long(HEAT_BED_SCAN_Y_CALIBRATION_POINT_MM * Printer::axisStepsPerMM[Y_AXIS]), 0, 0, Printer::homingFeedrate[Y_AXIS], true, true );
                 g_nHeatBedScanStatus = 108;
                 g_lastScanTime       = HAL::timeInMilliseconds();
 
@@ -1621,7 +1621,7 @@ void scanHeatBed( void )
             case 130:
             {
                 // we are homed at the moment - move to the position where we shall determine the length offset which is caused by the heated up extruder
-                PrintLine::moveRelativeDistanceInSteps( long(HEAT_BED_SCAN_X_CALIBRATION_POINT_MM * Printer::axisStepsPerMM[X_AXIS]), long(HEAT_BED_SCAN_Y_CALIBRATION_POINT_MM * Printer::axisStepsPerMM[Y_AXIS]), 0, 0, RMath::min(Printer::homingFeedrate[X_AXIS],Printer::homingFeedrate[Y_AXIS]), true, true );
+				Printer::moveRelativeDistanceInSteps( long(HEAT_BED_SCAN_X_CALIBRATION_POINT_MM * Printer::axisStepsPerMM[X_AXIS]), long(HEAT_BED_SCAN_Y_CALIBRATION_POINT_MM * Printer::axisStepsPerMM[Y_AXIS]), 0, 0, RMath::min(Printer::homingFeedrate[X_AXIS],Printer::homingFeedrate[Y_AXIS]), true, true );
 
                 g_lastScanTime       = HAL::timeInMilliseconds();
                 g_nHeatBedScanStatus = 133;
@@ -1812,7 +1812,7 @@ void scanHeatBed( void )
             }
             case 141:
             {
-                PrintLine::moveRelativeDistanceInSteps( 0, long(HEAT_BED_SCAN_Y_CALIBRATION_POINT_MM * Printer::axisStepsPerMM[Y_AXIS]), 0, 0, Printer::homingFeedrate[Y_AXIS], true, true );
+				Printer::moveRelativeDistanceInSteps( 0, long(HEAT_BED_SCAN_Y_CALIBRATION_POINT_MM * Printer::axisStepsPerMM[Y_AXIS]), 0, 0, Printer::homingFeedrate[Y_AXIS], true, true );
 
                 g_nHeatBedScanStatus = 142;
                 g_lastScanTime       = HAL::timeInMilliseconds();
@@ -2070,7 +2070,7 @@ void startAlignExtruders( void )
             || Printer::currentZPositionSteps() )
         {
             Printer::homeAxis( true, true, true );
-            PrintLine::moveRelativeDistanceInSteps( long(HEAT_BED_SCAN_X_CALIBRATION_POINT_MM * Printer::axisStepsPerMM[X_AXIS]), long(HEAT_BED_SCAN_Y_CALIBRATION_POINT_MM * Printer::axisStepsPerMM[Y_AXIS]), 0, 0, RMath::min(Printer::homingFeedrate[X_AXIS],Printer::homingFeedrate[Y_AXIS]), true, true );
+			Printer::moveRelativeDistanceInSteps( long(HEAT_BED_SCAN_X_CALIBRATION_POINT_MM * Printer::axisStepsPerMM[X_AXIS]), long(HEAT_BED_SCAN_Y_CALIBRATION_POINT_MM * Printer::axisStepsPerMM[Y_AXIS]), 0, 0, RMath::min(Printer::homingFeedrate[X_AXIS],Printer::homingFeedrate[Y_AXIS]), true, true );
         }
 
         // we are ready to align the extruders at the current x and y position with the current temperature
@@ -2547,7 +2547,7 @@ void searchZOScan( void )
                 Com::printF( PSTR( ", " ), yScanPosition );
                 Com::printFLN( PSTR( ") [(x,y) Steps]" ) );
 #endif // DEBUG_HEAT_BED_SCAN == 2
-                PrintLine::moveRelativeDistanceInSteps( xScanPosition, yScanPosition, 0, 0, RMath::min(Printer::homingFeedrate[X_AXIS],Printer::homingFeedrate[Y_AXIS]), true, true );
+				Printer::moveRelativeDistanceInSteps( xScanPosition, yScanPosition, 0, 0, RMath::min(Printer::homingFeedrate[X_AXIS],Printer::homingFeedrate[Y_AXIS]), true, true );
                 g_nZOSScanStatus = 6;
                 break;
             }
@@ -2852,7 +2852,7 @@ void abortSearchHeatBedZOffset( bool reloadMatrix )
     Com::printFLN( PSTR( "ZOS aborted" ) );
 
     // move the heatbed 5mm down to avoid collisions, then home all axes
-    PrintLine::moveRelativeDistanceInSteps( 0, 0, 5*Printer::axisStepsPerMM[Z_AXIS], 0, Printer::homingFeedrate[Z_AXIS], true, true );
+	Printer::moveRelativeDistanceInSteps( 0, 0, 5*Printer::axisStepsPerMM[Z_AXIS], 0, Printer::homingFeedrate[Z_AXIS], true, true );
     Printer::homeAxis( true, true, true );
 
     // turn off all steppers and extruders
@@ -3154,8 +3154,8 @@ void startViscosityTest( int maxdigits = 10000, float maxfeedrate = 5.0f, float 
     }
 
     //drive up the Bed 100mm -> if to low then filament will pile up to fast on the z-plattform
-    Printer::moveToReal( IGNORE_COORDINATE, IGNORE_COORDINATE, 100 , IGNORE_COORDINATE, Printer::homingFeedrate[Z_AXIS]);
-    Printer::moveToReal( 0, 0, IGNORE_COORDINATE , IGNORE_COORDINATE, Printer::homingFeedrate[Z_AXIS]);
+    Printer::moveToCoordinateMM( IGNORE_COORDINATE, IGNORE_COORDINATE, 100 , IGNORE_COORDINATE, Printer::homingFeedrate[Z_AXIS]);
+    Printer::moveToCoordinateMM( 0, 0, IGNORE_COORDINATE , IGNORE_COORDINATE, Printer::homingFeedrate[Z_AXIS]);
     Commands::waitUntilEndOfAllMoves(); //startViscosityTest
 
     //wait and test idle pressure
@@ -3178,9 +3178,9 @@ void startViscosityTest( int maxdigits = 10000, float maxfeedrate = 5.0f, float 
     //REFILL EXTRUDER
     Com::printFLN( PSTR( "Replenish Hotend..." ), extrudedigits );
     for(float e=0.1; e<=maxfeedrate; e+=0.05) { //iterate to fill extruder with filament.
-        PrintLine::moveRelativeDistanceInSteps( 0, 0, 0 , (long)( 1.0f * Printer::axisStepsPerMM[E_AXIS] )* e , e, true, true ); //extrude slow until reaction.
+		Printer::moveRelativeDistanceInSteps( 0, 0, 0 , (long)( 1.0f * Printer::axisStepsPerMM[E_AXIS] )* e , e, true, true ); //extrude slow until reaction.
         extrudedigits = (int)readStrainGauge( ACTIVE_STRAIN_GAUGE );
-        PrintLine::moveRelativeDistanceInSteps( 0, 0, 0 , (long)( 1.0f * Printer::axisStepsPerMM[E_AXIS] )* e , e, true, true ); //extrude slow until reaction.
+		Printer::moveRelativeDistanceInSteps( 0, 0, 0 , (long)( 1.0f * Printer::axisStepsPerMM[E_AXIS] )* e , e, true, true ); //extrude slow until reaction.
         extrudedigits = (int)readStrainGauge( ACTIVE_STRAIN_GAUGE );
         extrudedigits *= 0.5;
 
@@ -3225,13 +3225,13 @@ void startViscosityTest( int maxdigits = 10000, float maxfeedrate = 5.0f, float 
         for(float e=0.05; e<=maxfeedrate; e+=incrementfeedrate) { //iterate all points
 			Commands::checkForPeriodicalActions( Processing );
             //test extrusion speed and get average digits:
-            PrintLine::moveRelativeDistanceInSteps( 0, 0, 0 , (long)( 1.0f * Printer::axisStepsPerMM[E_AXIS] )* e , e, true, true ); //extrude only. time should be constant!
+			Printer::moveRelativeDistanceInSteps( 0, 0, 0 , (long)( 1.0f * Printer::axisStepsPerMM[E_AXIS] )* e , e, true, true ); //extrude only. time should be constant!
             extrudedigits = (int)readStrainGauge( ACTIVE_STRAIN_GAUGE );
-            PrintLine::moveRelativeDistanceInSteps( 0, 0, 0 , (long)( 1.0f * Printer::axisStepsPerMM[E_AXIS] )* e , e, true, true ); //extrude only. time should be constant!
+			Printer::moveRelativeDistanceInSteps( 0, 0, 0 , (long)( 1.0f * Printer::axisStepsPerMM[E_AXIS] )* e , e, true, true ); //extrude only. time should be constant!
             extrudedigits += (int)readStrainGauge( ACTIVE_STRAIN_GAUGE );
-            PrintLine::moveRelativeDistanceInSteps( 0, 0, 0 , (long)( 1.0f * Printer::axisStepsPerMM[E_AXIS] )* e , e, true, true ); //extrude only. time should be constant!
+			Printer::moveRelativeDistanceInSteps( 0, 0, 0 , (long)( 1.0f * Printer::axisStepsPerMM[E_AXIS] )* e , e, true, true ); //extrude only. time should be constant!
             extrudedigits += (int)readStrainGauge( ACTIVE_STRAIN_GAUGE );
-            PrintLine::moveRelativeDistanceInSteps( 0, 0, 0 , (long)( 1.0f * Printer::axisStepsPerMM[E_AXIS] )* e , e, true, true ); //extrude only. time should be constant!
+			Printer::moveRelativeDistanceInSteps( 0, 0, 0 , (long)( 1.0f * Printer::axisStepsPerMM[E_AXIS] )* e , e, true, true ); //extrude only. time should be constant!
             extrudedigits += (int)readStrainGauge( ACTIVE_STRAIN_GAUGE );
             extrudedigits *= 0.25;
 
@@ -3252,7 +3252,7 @@ void startViscosityTest( int maxdigits = 10000, float maxfeedrate = 5.0f, float 
             }
 
             if(extrudedigits < g_nCurrentIdlePressure - maxdigits || extrudedigits > g_nCurrentIdlePressure + maxdigits || extrudedigits < -maxdigits || extrudedigits > maxdigits) {
-                PrintLine::moveRelativeDistanceInSteps( 0, 0, 0 , (long)( -0.5 * Printer::axisStepsPerMM[E_AXIS] ), 10, true, true ); //loose some force on dms
+				Printer::moveRelativeDistanceInSteps( 0, 0, 0 , (long)( -0.5 * Printer::axisStepsPerMM[E_AXIS] ), 10, true, true ); //loose some force on dms
                 break;
             }
         }
@@ -3976,7 +3976,7 @@ void scanWorkPart( void )
         else
         {
             // the z-axis shall not be homed - in this case we must ensure that the tool does not crash against the limit stops at the front/left of the bed
-            PrintLine::moveRelativeDistanceInSteps( 0, 0, long(Printer::axisStepsPerMM[Z_AXIS] * WORK_PART_SCAN_Z_START_MM), 0, Printer::homingFeedrate[Z_AXIS], true, true );
+			Printer::moveRelativeDistanceInSteps( 0, 0, long(Printer::axisStepsPerMM[Z_AXIS] * WORK_PART_SCAN_Z_START_MM), 0, Printer::homingFeedrate[Z_AXIS], true, true );
             Printer::homeAxis( true, true, false );
         }
 
@@ -4068,7 +4068,7 @@ void scanWorkPart( void )
                 else
                 {
                     // the z-axis shall not be homed - in this case we must ensure that the tool does not crash against the limit stops at the front/left of the bed
-                    PrintLine::moveRelativeDistanceInSteps( 0, 0, long(Printer::axisStepsPerMM[Z_AXIS] * WORK_PART_SCAN_Z_START_MM), 0, Printer::homingFeedrate[Z_AXIS], true, true );
+					Printer::moveRelativeDistanceInSteps( 0, 0, long(Printer::axisStepsPerMM[Z_AXIS] * WORK_PART_SCAN_Z_START_MM), 0, Printer::homingFeedrate[Z_AXIS], true, true );
                     Printer::homeAxis( true, true, false );
                 }
 
@@ -4087,8 +4087,8 @@ void scanWorkPart( void )
             case 25:
             {
                 // move to the first position
-                PrintLine::moveRelativeDistanceInSteps( g_nScanXStartSteps, 0, 0, 0, Printer::homingFeedrate[X_AXIS], true, true );
-                PrintLine::moveRelativeDistanceInSteps( 0, g_nScanYStartSteps, 0, 0, Printer::homingFeedrate[Y_AXIS], true, true );
+				Printer::moveRelativeDistanceInSteps( g_nScanXStartSteps, 0, 0, 0, Printer::homingFeedrate[X_AXIS], false, true );
+				Printer::moveRelativeDistanceInSteps( 0, g_nScanYStartSteps, 0, 0, Printer::homingFeedrate[Y_AXIS], true, true );
 
                 g_nWorkPartScanStatus = 30;
                 g_lastScanTime        = HAL::timeInMilliseconds();
@@ -4294,7 +4294,7 @@ void scanWorkPart( void )
                 }
 
                 // move to the next x-position
-                PrintLine::moveRelativeDistanceInSteps( g_nScanXStepSizeSteps, 0, 0, 0, Printer::homingFeedrate[X_AXIS], true, true );
+				Printer::moveRelativeDistanceInSteps( g_nScanXStepSizeSteps, 0, 0, 0, Printer::homingFeedrate[X_AXIS], true, true );
                 nX += g_nScanXStepSizeSteps;
                 nIndexX ++;
 
@@ -4600,7 +4600,7 @@ void scanWorkPart( void )
                 }
 
                 // move to the next y-position
-                PrintLine::moveRelativeDistanceInSteps( 0, nYDirection, 0, 0, Printer::homingFeedrate[Y_AXIS], true, true );
+				Printer::moveRelativeDistanceInSteps( 0, nYDirection, 0, 0, Printer::homingFeedrate[Y_AXIS], true, true );
                 nY      += nYDirection;
                 nIndexY += nIndexYDirection;
 
@@ -4638,7 +4638,7 @@ void scanWorkPart( void )
                 else
                 {
                     // the z-axis shall not be homed - in this case we must ensure that the tool does not crash against the limit stops at the front/left of the bed
-                    PrintLine::moveRelativeDistanceInSteps( 0, 0, long(Printer::axisStepsPerMM[Z_AXIS] * WORK_PART_SCAN_Z_START_MM), 0, Printer::homingFeedrate[Z_AXIS], true, true );
+					Printer::moveRelativeDistanceInSteps( 0, 0, long(Printer::axisStepsPerMM[Z_AXIS] * WORK_PART_SCAN_Z_START_MM), 0, Printer::homingFeedrate[Z_AXIS], true, true );
                     Printer::homeAxis( true, true, false );
                 }
 
@@ -6889,7 +6889,7 @@ void parkPrinter( void )
 
     Printer::homeAxis( true, true, true );
 
-    Printer::moveToReal( g_nParkPosition[X_AXIS], g_nParkPosition[Y_AXIS], g_nParkPosition[Z_AXIS], IGNORE_COORDINATE, Printer::homingFeedrate[X_AXIS]);
+    Printer::moveToCoordinateMM( g_nParkPosition[X_AXIS], g_nParkPosition[Y_AXIS], g_nParkPosition[Z_AXIS], IGNORE_COORDINATE, Printer::homingFeedrate[X_AXIS]);
 
 } // parkPrinter
 #endif // FEATURE_PARK
@@ -10675,7 +10675,7 @@ void processCommand( GCode* pCommand )
 
                     bool skip_by_keys = false;
 
-                    Printer::moveToReal(x, y, AUTOADJUST_STARTMADEN_AUSSCHLUSS, IGNORE_COORDINATE, RMath::min(Printer::homingFeedrate[X_AXIS], Printer::homingFeedrate[Y_AXIS]) );
+                    Printer::moveToCoordinateMM(x, y, AUTOADJUST_STARTMADEN_AUSSCHLUSS, IGNORE_COORDINATE, RMath::min(Printer::homingFeedrate[X_AXIS], Printer::homingFeedrate[Y_AXIS]) );
 
                     for(uint8_t i = 1; i <= Lines; i++){
                         float x_0 = x;
@@ -10693,7 +10693,7 @@ void processCommand( GCode* pCommand )
                         for(float i = 0.0025f; i <= 1.0f; i+=0.0025f){
 							Commands::checkForPeriodicalActions( Processing );
                             //split full line into 100 small pieces so that we can adjust flow like speed.
-                            Printer::moveToReal( x_0 + (x - x_0)*i,
+                            Printer::moveToCoordinateMM( x_0 + (x - x_0)*i,
                                                  y_0 + (y - y_0)*i,
                                                  IGNORE_COORDINATE,
                                                  e_0 + (e - e_0)*i, lineFeedrate);
@@ -10712,7 +10712,7 @@ void processCommand( GCode* pCommand )
                         //if you use T1 then dont make the start line ontop of the startline of T0
                         y += float(NUM_EXTRUDER-1); /* +1mm spacing for each extruder involved */;
 #endif //NUM_EXTRUDER > 0
-                        Printer::moveToReal(IGNORE_COORDINATE, y, IGNORE_COORDINATE, IGNORE_COORDINATE, Printer::homingFeedrate[Y_AXIS] );
+                        Printer::moveToCoordinateMM(IGNORE_COORDINATE, y, IGNORE_COORDINATE, IGNORE_COORDINATE, Printer::homingFeedrate[Y_AXIS] );
                         if(skip_by_keys) break; //mache die Startmade überspringbar -> weiter zum Druck.
                     }
                     Commands::waitUntilEndOfAllMoves(); //feature startline
@@ -10765,7 +10765,7 @@ void processCommand( GCode* pCommand )
                         break;
                     }
                     e += 0.02; //kleine schritte
-                    Printer::moveToReal( IGNORE_COORDINATE, IGNORE_COORDINATE, IGNORE_COORDINATE, e, eFeedrate);
+                    Printer::moveToCoordinateMM( IGNORE_COORDINATE, IGNORE_COORDINATE, IGNORE_COORDINATE, e, eFeedrate);
                 }
 
                 Printer::queuePositionTargetSteps[E_AXIS] = Printer::queuePositionLastSteps[E_AXIS] = 0; //G92 E0:
@@ -10838,7 +10838,7 @@ void processCommand( GCode* pCommand )
                             eFeedrate += 0.01f; // mm/s
                             if(de <= 0.02f) de += 0.0001f;
                         }
-                        Printer::moveToReal( IGNORE_COORDINATE, IGNORE_COORDINATE, IGNORE_COORDINATE, e, eFeedrate);
+                        Printer::moveToCoordinateMM( IGNORE_COORDINATE, IGNORE_COORDINATE, IGNORE_COORDINATE, e, eFeedrate);
                     }
                     if( g_uBlockCommands ) break;
                     if( t > Extruder::current->tempControl.targetTemperatureC && fabs(e) < 10.0f /*mm*/ ){
@@ -11376,7 +11376,7 @@ void nextPreviousXAction( int8_t increment )
             long Temp = Printer::directPositionTargetSteps[X_AXIS];
             Temp += Printer::queuePositionCurrentSteps[X_AXIS]; //homed oder nicht homed, das ist hier egal, nicht gehomed kann ich das sowieso nicht prüfen.
             Temp += (long)(increment * 1 * Printer::axisStepsPerMM[X_AXIS]);
-            if(Temp <= long(Printer::lengthMM[X_AXIS] * Printer::axisStepsPerMM[X_AXIS])) Printer::setDestinationStepsFromMenu( 1 * increment, 0, 0 );
+            if(Temp <= long(Printer::lengthMM[X_AXIS] * Printer::axisStepsPerMM[X_AXIS])) Printer::moveRelativeDistanceInSteps(lroundf(1 * Printer::axisStepsPerMM[X_AXIS]), 0, 0, 0, Printer::feedrate, false, ALWAYS_CHECK_ENDSTOPS);
             else showInformation( (void*)ui_text_x_axis, (void*)ui_text_max_reached );
             break;
         }
@@ -11385,7 +11385,7 @@ void nextPreviousXAction( int8_t increment )
             long Temp = Printer::directPositionTargetSteps[X_AXIS];
             Temp += Printer::queuePositionCurrentSteps[X_AXIS]; //homed oder nicht homed, das ist hier egal, nicht gehomed kann ich das sowieso nicht prüfen.
             Temp += (long)(increment * 10 * Printer::axisStepsPerMM[X_AXIS]);
-            if(Temp <= long(Printer::lengthMM[X_AXIS] * Printer::axisStepsPerMM[X_AXIS])) Printer::setDestinationStepsFromMenu( 10 * increment, 0, 0 );
+            if(Temp <= long(Printer::lengthMM[X_AXIS] * Printer::axisStepsPerMM[X_AXIS])) Printer::moveRelativeDistanceInSteps(lroundf(10 * Printer::axisStepsPerMM[X_AXIS]), 0, 0, 0, Printer::feedrate, false, ALWAYS_CHECK_ENDSTOPS);
             else showInformation( (void*)ui_text_x_axis, (void*)ui_text_max_reached );
             break;
         }
@@ -11394,14 +11394,11 @@ void nextPreviousXAction( int8_t increment )
             long Temp = Printer::directPositionTargetSteps[X_AXIS];
             Temp += Printer::queuePositionCurrentSteps[X_AXIS]; //homed oder nicht homed, das ist hier egal, nicht gehomed kann ich das sowieso nicht prüfen.
             Temp += (long)(increment * 50 * Printer::axisStepsPerMM[X_AXIS]);
-            if(Temp <= long(Printer::lengthMM[X_AXIS] * Printer::axisStepsPerMM[X_AXIS])) Printer::setDestinationStepsFromMenu( 50 * increment, 0, 0 );
+            if(Temp <= long(Printer::lengthMM[X_AXIS] * Printer::axisStepsPerMM[X_AXIS])) Printer::moveRelativeDistanceInSteps(lroundf(50 * Printer::axisStepsPerMM[X_AXIS]), 0, 0, 0, Printer::feedrate, false, ALWAYS_CHECK_ENDSTOPS);
             else showInformation( (void*)ui_text_x_axis, (void*)ui_text_max_reached );
             break;
         }
     }
-
-    return;
-
 } // nextPreviousXAction
 
 
@@ -11508,7 +11505,7 @@ void nextPreviousYAction( int8_t increment )
             long Temp = Printer::directPositionTargetSteps[Y_AXIS];
             Temp += Printer::queuePositionCurrentSteps[Y_AXIS]; //homed oder nicht homed, das ist hier egal, nicht gehomed kann ich das sowieso nicht prüfen.
             Temp += (long)(increment * 1 * Printer::axisStepsPerMM[Y_AXIS]);
-            if(Temp <= long(Printer::lengthMM[Y_AXIS] * Printer::axisStepsPerMM[Y_AXIS])) Printer::setDestinationStepsFromMenu( 0, 1 * increment, 0 );
+            if(Temp <= long(Printer::lengthMM[Y_AXIS] * Printer::axisStepsPerMM[Y_AXIS])) Printer::moveRelativeDistanceInSteps(0, lroundf(1 * Printer::axisStepsPerMM[Y_AXIS]), 0, 0, Printer::feedrate, false, ALWAYS_CHECK_ENDSTOPS);
             else showInformation( (void*)ui_text_y_axis, (void*)ui_text_max_reached );
             break;
         }
@@ -11517,7 +11514,7 @@ void nextPreviousYAction( int8_t increment )
             long Temp = Printer::directPositionTargetSteps[Y_AXIS];
             Temp += Printer::queuePositionCurrentSteps[Y_AXIS]; //homed oder nicht homed, das ist hier egal, nicht gehomed kann ich das sowieso nicht prüfen.
             Temp += (long)(increment * 10 * Printer::axisStepsPerMM[Y_AXIS]);
-            if(Temp <= long(Printer::lengthMM[Y_AXIS] * Printer::axisStepsPerMM[Y_AXIS])) Printer::setDestinationStepsFromMenu( 0, 10 * increment, 0 );
+            if(Temp <= long(Printer::lengthMM[Y_AXIS] * Printer::axisStepsPerMM[Y_AXIS])) Printer::moveRelativeDistanceInSteps(0, lroundf(10 * Printer::axisStepsPerMM[Y_AXIS]), 0, 0, Printer::feedrate, false, ALWAYS_CHECK_ENDSTOPS);
             else showInformation( (void*)ui_text_y_axis, (void*)ui_text_max_reached );
             break;
         }
@@ -11526,14 +11523,11 @@ void nextPreviousYAction( int8_t increment )
             long Temp = Printer::directPositionTargetSteps[Y_AXIS];
             Temp += Printer::queuePositionCurrentSteps[Y_AXIS]; //homed oder nicht homed, das ist hier egal, nicht gehomed kann ich das sowieso nicht prüfen.
             Temp += (long)(increment * 50 * Printer::axisStepsPerMM[Y_AXIS]);
-            if(Temp <= long(Printer::lengthMM[Y_AXIS] * Printer::axisStepsPerMM[Y_AXIS])) Printer::setDestinationStepsFromMenu( 0, 50 * increment, 0 );
+            if(Temp <= long(Printer::lengthMM[Y_AXIS] * Printer::axisStepsPerMM[Y_AXIS])) Printer::moveRelativeDistanceInSteps(0, lroundf(50 * Printer::axisStepsPerMM[Y_AXIS]), 0, 0, Printer::feedrate, false, ALWAYS_CHECK_ENDSTOPS);
             else showInformation( (void*)ui_text_y_axis, (void*)ui_text_max_reached );
             break;
         }
     }
-
-    return;
-
 } // nextPreviousYAction
 
 
@@ -11715,18 +11709,18 @@ void nextPreviousZAction( int8_t increment )
                 {
 #endif // FEATURE_MILLING_MODE
                     //Nur so weit runterfahren, wie man über 0 ist. Denn da ist beim Printermode homed der Endschalter.
-                    if(currentZmm > 0) Printer::setDestinationStepsFromMenu( 0, 0, currentZmm * increment );
-                    else Printer::setDestinationStepsFromMenu( 0, 0, g_nManualSteps[Z_AXIS]*Printer::invAxisStepsPerMM[Z_AXIS] * increment );
+                    if(currentZmm > 0) Printer::moveRelativeDistanceInSteps(0, 0, lroundf(-currentZmm * Printer::axisStepsPerMM[Z_AXIS]), 0, Printer::feedrate, false, ALWAYS_CHECK_ENDSTOPS);
+                    else Printer::moveRelativeDistanceInSteps(0, 0, -1 * g_nManualSteps[Z_AXIS], 0, Printer::feedrate, false, ALWAYS_CHECK_ENDSTOPS);
 #if FEATURE_MILLING_MODE
                 }
                 else
                 {
                     //Beim Milling ist Z=0 das obere des Bauteils. Dann geht Z - ins Bauteil rein. Daher ist überfahren ok.
-                    Printer::setDestinationStepsFromMenu( 0, 0, 1 * increment );
+					Printer::moveRelativeDistanceInSteps(0, 0, lroundf(increment * Printer::axisStepsPerMM[Z_AXIS]), 0, Printer::feedrate, false, ALWAYS_CHECK_ENDSTOPS);
                 }
 #endif // FEATURE_MILLING_MODE
-            }else{
-                Printer::setDestinationStepsFromMenu( 0, 0, 1 * increment );
+            } else {
+				Printer::moveRelativeDistanceInSteps(0, 0, lroundf(increment * Printer::axisStepsPerMM[Z_AXIS]), 0, Printer::feedrate, false, ALWAYS_CHECK_ENDSTOPS);
             }
 
             break;
@@ -11751,18 +11745,18 @@ void nextPreviousZAction( int8_t increment )
                 {
 #endif // FEATURE_MILLING_MODE
                     //Nur so weit runterfahren, wie man über 0 ist. Denn da ist beim Printermode homed der Endschalter.
-                    if(currentZmm > 0) Printer::setDestinationStepsFromMenu( 0, 0, currentZmm * increment );
-                    else Printer::setDestinationStepsFromMenu( 0, 0, g_nManualSteps[Z_AXIS]*Printer::invAxisStepsPerMM[Z_AXIS] * increment );
+					if (currentZmm > 0) Printer::moveRelativeDistanceInSteps(0, 0, lroundf(-currentZmm * Printer::axisStepsPerMM[Z_AXIS]), 0, Printer::feedrate, false, ALWAYS_CHECK_ENDSTOPS);
+					else Printer::moveRelativeDistanceInSteps(0, 0, -1 * g_nManualSteps[Z_AXIS], 0, Printer::feedrate, false, ALWAYS_CHECK_ENDSTOPS);
 #if FEATURE_MILLING_MODE
                 }
                 else
                 {
                     //Beim Milling ist Z=0 das obere des Bauteils. Dann geht Z - ins Bauteil rein. Daher ist überfahren ok.
-                    Printer::setDestinationStepsFromMenu( 0, 0, 10 * increment );
+					Printer::moveRelativeDistanceInSteps(0, 0, 10 * lroundf(increment * Printer::axisStepsPerMM[Z_AXIS]), 0, Printer::feedrate, false, ALWAYS_CHECK_ENDSTOPS);
                 }
 #endif // FEATURE_MILLING_MODE
-            }else{
-                Printer::setDestinationStepsFromMenu( 0, 0, 10 * increment );
+            } else {
+				Printer::moveRelativeDistanceInSteps(0, 0, 10 * lroundf(increment * Printer::axisStepsPerMM[Z_AXIS]), 0, Printer::feedrate, false, ALWAYS_CHECK_ENDSTOPS);
             }
             break;
         }
@@ -11786,23 +11780,22 @@ void nextPreviousZAction( int8_t increment )
                 {
 #endif // FEATURE_MILLING_MODE
                     //Nur so weit runterfahren, wie man über 0 ist. Denn da ist beim Printermode homed der Endschalter.
-                    if(currentZmm > 0) Printer::setDestinationStepsFromMenu( 0, 0, currentZmm * increment );
-                    else Printer::setDestinationStepsFromMenu( 0, 0, g_nManualSteps[Z_AXIS]*Printer::invAxisStepsPerMM[Z_AXIS] * increment );
+					if (currentZmm > 0) Printer::moveRelativeDistanceInSteps(0, 0, lroundf(-currentZmm * Printer::axisStepsPerMM[Z_AXIS]), 0, Printer::feedrate, false, ALWAYS_CHECK_ENDSTOPS);
+					else Printer::moveRelativeDistanceInSteps(0, 0, -1 * g_nManualSteps[Z_AXIS], 0, Printer::feedrate, false, ALWAYS_CHECK_ENDSTOPS);
 #if FEATURE_MILLING_MODE
                 }
                 else
                 {
                     //Beim Milling ist Z=0 das obere des Bauteils. Dann geht Z - ins Bauteil rein. Daher ist überfahren ok.
-                    Printer::setDestinationStepsFromMenu( 0, 0, 50 * increment );
+					Printer::moveRelativeDistanceInSteps(0, 0, 50 * lroundf(increment * Printer::axisStepsPerMM[Z_AXIS]), 0, Printer::feedrate, false, ALWAYS_CHECK_ENDSTOPS);
                 }
 #endif // FEATURE_MILLING_MODE
-            }else{
-                Printer::setDestinationStepsFromMenu( 0, 0, 50 * increment );
+            } else {
+				Printer::moveRelativeDistanceInSteps(0, 0, 50 * lroundf(increment * Printer::axisStepsPerMM[Z_AXIS]), 0, Printer::feedrate, false, ALWAYS_CHECK_ENDSTOPS);
             }
             break;
         }
     }
-
 } // nextPreviousZAction
 
 

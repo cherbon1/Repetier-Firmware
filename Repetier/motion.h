@@ -489,8 +489,6 @@ public:
     static void prepareQueueMove(uint8_t check_endstops, uint8_t pathOptimize, float feedrate);
     static void prepareDirectMove( void );
     static void stopDirectMove( void );
-    static void moveRelativeDistanceInSteps(long x,long y,long z,long e,float feedrate,bool waitEnd,bool check_endstop);
-    static void moveRelativeDistanceInStepsReal(long x,long y,long z,long e,float feedrate,bool waitEnd);
 
 #if FEATURE_ARC_SUPPORT
     static void arc(float *position, float *target, float *offset, float radius, uint8_t isclockwise);
