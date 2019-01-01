@@ -22,15 +22,13 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
  */
-#if defined(__STM32F1__) || defined(__STM32F4__)
+#if defined(PLATFORM_ID)
 #include "SdSpiDriver.h"
-#if defined(__STM32F1__)
-#define USE_STM32_DMA 1
-#elif defined(__STM32F4__)
-#define USE_STM32_DMA 1
-#else  // defined(__STM32F1__)
-#error Unknown STM32 type
-#endif  // defined(__STM32F1__)
+static volatile bool SPI_DMA_TransferCompleted = false;
+//-----------------------------------------------------------------------------
+static void SD_SPI_DMA_TransferComplete_Callback(void) {
+    SPI_DMA_TransferCompleted = true;
+}
 //------------------------------------------------------------------------------
 /** Set SPI options for access to SD/SDHC cards.
  *
@@ -46,9 +44,10 @@ void SdSpiAltDriver::activate() {
  */
 void SdSpiAltDriver::begin(uint8_t csPin) {
   m_csPin = csPin;
+  m_spi->begin(m_csPin);
+  // Next line is redundant - begin(m_csPin) sets csPin to output mode.
   pinMode(m_csPin, OUTPUT);
   digitalWrite(m_csPin, HIGH);
-  m_spi->begin();
 }
 //------------------------------------------------------------------------------
 /**
@@ -74,12 +73,10 @@ uint8_t SdSpiAltDriver::receive() {
  * \return Zero for no error or nonzero error code.
  */
 uint8_t SdSpiAltDriver::receive(uint8_t* buf, size_t n) {
-#if USE_STM32_DMA
-  return m_spi->dmaTransfer(nullptr, buf, n);
-#else  // USE_STM32_DMA
-  m_spi->read(buf, n);
+  SPI_DMA_TransferCompleted = false;
+  m_spi->transfer(nullptr, buf, n, SD_SPI_DMA_TransferComplete_Callback);
+  while (!SPI_DMA_TransferCompleted) {}
   return 0;
-#endif  // USE_STM32_DMA
 }
 //------------------------------------------------------------------------------
 /** Send a byte.
@@ -96,10 +93,11 @@ void SdSpiAltDriver::send(uint8_t b) {
  * \param[in] n Number of bytes to send.
  */
 void SdSpiAltDriver::send(const uint8_t* buf , size_t n) {
-#if USE_STM32_DMA
-  m_spi->dmaTransfer(const_cast<uint8*>(buf), nullptr, n);
-#else  // USE_STM32_DMA
-  m_spi->write(const_cast<uint8*>(buf), n);
-#endif  // USE_STM32_DMA
+  SPI_DMA_TransferCompleted = false;
+
+  m_spi->transfer(const_cast<uint8_t*>(buf), nullptr, n,
+                            SD_SPI_DMA_TransferComplete_Callback);
+
+  while (!SPI_DMA_TransferCompleted) {}
 }
-#endif  // defined(__STM32F1__) || defined(__STM32F4__)
+#endif  // defined(PLATFORM_ID)

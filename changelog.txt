@@ -1,3 +1,6 @@
+V 01.43.24.Mod (2019-01-01)
+- udpate SdFat Library to 1.0.11 https://github.com/greiman/SdFat/commit/7417ee943ccebbaf27f51042e2b3ae41e9defa45
+
 V 01.43.23.Mod (2019-01-01)
 - udpate SdFat Library to 1.0.8 https://github.com/greiman/SdFat/commit/f0c65da00060fcc8c4ac9667d29b2d46557de42e
 

@@ -154,6 +154,7 @@
     <ClInclude Include="src\SdFat\FatLib\StdioStream.h" />
     <ClInclude Include="src\SdFat\FreeStack.h" />
     <ClInclude Include="src\SdFat\MinimumSerial.h" />
+    <ClInclude Include="src\SdFat\SdCard\SdInfo.h" />
     <ClInclude Include="src\SdFat\SdCard\SdSpiCard.h" />
     <ClInclude Include="src\SdFat\SdFat.h" />
     <ClInclude Include="src\SdFat\SdFatConfig.h" />
