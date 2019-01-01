@@ -1,3 +1,6 @@
+V 01.43.23.Mod (2019-01-01)
+- udpate SdFat Library to 1.0.8 https://github.com/greiman/SdFat/commit/f0c65da00060fcc8c4ac9667d29b2d46557de42e
+
 V 01.43.22.Mod (2018-12-30)
 - Cleanup for implementing more precise advance
 - removed SEPERATE_EXTRUDER_POSITIONS
