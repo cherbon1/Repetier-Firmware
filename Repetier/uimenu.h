@@ -352,6 +352,7 @@ UI_MENU_ACTION2C(ui_menu_epos,UI_ACTION_EPOSITION,UI_TEXT_ACTION_EPOSITION_FAST2
 /* Next step is to define submenus leading to the action. */
 
 /** \brief Positionening menu */
+// This is a milling mode option
 #if FEATURE_SET_TO_XY_ORIGIN
 UI_MENU_ACTIONCOMMAND_FILTER(ui_menu_quick_xy_origin,UI_TEXT_SET_XY_ORIGIN,UI_ACTION_SET_XY_ORIGIN,0,MENU_MODE_PRINTER)
 #define SET_TO_XY_ORIGIN_ENTRY &ui_menu_quick_xy_origin,

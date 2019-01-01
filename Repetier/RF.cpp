@@ -11375,8 +11375,8 @@ void nextPreviousXAction( int8_t increment )
         {
             long Temp = Printer::directPositionTargetSteps[X_AXIS];
             Temp += Printer::queuePositionCurrentSteps[X_AXIS]; //homed oder nicht homed, das ist hier egal, nicht gehomed kann ich das sowieso nicht prüfen.
-            Temp += (long)(increment * 1 * Printer::axisStepsPerMM[X_AXIS]);
-            if(Temp <= long(Printer::lengthMM[X_AXIS] * Printer::axisStepsPerMM[X_AXIS])) Printer::moveRelativeDistanceInSteps(lroundf(1 * Printer::axisStepsPerMM[X_AXIS]), 0, 0, 0, Printer::feedrate, false, ALWAYS_CHECK_ENDSTOPS);
+            Temp += (long)(1 * increment * Printer::axisStepsPerMM[X_AXIS]);
+            if(Temp <= long(Printer::lengthMM[X_AXIS] * Printer::axisStepsPerMM[X_AXIS])) Printer::moveRelativeDistanceInSteps(lroundf(1 * increment * Printer::axisStepsPerMM[X_AXIS]), 0, 0, 0, Printer::feedrate, false, ALWAYS_CHECK_ENDSTOPS);
             else showInformation( (void*)ui_text_x_axis, (void*)ui_text_max_reached );
             break;
         }
@@ -11384,8 +11384,8 @@ void nextPreviousXAction( int8_t increment )
         {
             long Temp = Printer::directPositionTargetSteps[X_AXIS];
             Temp += Printer::queuePositionCurrentSteps[X_AXIS]; //homed oder nicht homed, das ist hier egal, nicht gehomed kann ich das sowieso nicht prüfen.
-            Temp += (long)(increment * 10 * Printer::axisStepsPerMM[X_AXIS]);
-            if(Temp <= long(Printer::lengthMM[X_AXIS] * Printer::axisStepsPerMM[X_AXIS])) Printer::moveRelativeDistanceInSteps(lroundf(10 * Printer::axisStepsPerMM[X_AXIS]), 0, 0, 0, Printer::feedrate, false, ALWAYS_CHECK_ENDSTOPS);
+            Temp += (long)(10 * increment * Printer::axisStepsPerMM[X_AXIS]);
+            if(Temp <= long(Printer::lengthMM[X_AXIS] * Printer::axisStepsPerMM[X_AXIS])) Printer::moveRelativeDistanceInSteps(lroundf(10 * increment * Printer::axisStepsPerMM[X_AXIS]), 0, 0, 0, Printer::feedrate, false, ALWAYS_CHECK_ENDSTOPS);
             else showInformation( (void*)ui_text_x_axis, (void*)ui_text_max_reached );
             break;
         }
@@ -11393,8 +11393,8 @@ void nextPreviousXAction( int8_t increment )
         {
             long Temp = Printer::directPositionTargetSteps[X_AXIS];
             Temp += Printer::queuePositionCurrentSteps[X_AXIS]; //homed oder nicht homed, das ist hier egal, nicht gehomed kann ich das sowieso nicht prüfen.
-            Temp += (long)(increment * 50 * Printer::axisStepsPerMM[X_AXIS]);
-            if(Temp <= long(Printer::lengthMM[X_AXIS] * Printer::axisStepsPerMM[X_AXIS])) Printer::moveRelativeDistanceInSteps(lroundf(50 * Printer::axisStepsPerMM[X_AXIS]), 0, 0, 0, Printer::feedrate, false, ALWAYS_CHECK_ENDSTOPS);
+            Temp += (long)(50 * increment * Printer::axisStepsPerMM[X_AXIS]);
+            if(Temp <= long(Printer::lengthMM[X_AXIS] * Printer::axisStepsPerMM[X_AXIS])) Printer::moveRelativeDistanceInSteps(lroundf(50 * increment * Printer::axisStepsPerMM[X_AXIS]), 0, 0, 0, Printer::feedrate, false, ALWAYS_CHECK_ENDSTOPS);
             else showInformation( (void*)ui_text_x_axis, (void*)ui_text_max_reached );
             break;
         }
@@ -11505,7 +11505,7 @@ void nextPreviousYAction( int8_t increment )
             long Temp = Printer::directPositionTargetSteps[Y_AXIS];
             Temp += Printer::queuePositionCurrentSteps[Y_AXIS]; //homed oder nicht homed, das ist hier egal, nicht gehomed kann ich das sowieso nicht prüfen.
             Temp += (long)(increment * 1 * Printer::axisStepsPerMM[Y_AXIS]);
-            if(Temp <= long(Printer::lengthMM[Y_AXIS] * Printer::axisStepsPerMM[Y_AXIS])) Printer::moveRelativeDistanceInSteps(0, lroundf(1 * Printer::axisStepsPerMM[Y_AXIS]), 0, 0, Printer::feedrate, false, ALWAYS_CHECK_ENDSTOPS);
+            if(Temp <= long(Printer::lengthMM[Y_AXIS] * Printer::axisStepsPerMM[Y_AXIS])) Printer::moveRelativeDistanceInSteps(0, lroundf(1 * increment * Printer::axisStepsPerMM[Y_AXIS]), 0, 0, Printer::feedrate, false, ALWAYS_CHECK_ENDSTOPS);
             else showInformation( (void*)ui_text_y_axis, (void*)ui_text_max_reached );
             break;
         }
@@ -11514,7 +11514,7 @@ void nextPreviousYAction( int8_t increment )
             long Temp = Printer::directPositionTargetSteps[Y_AXIS];
             Temp += Printer::queuePositionCurrentSteps[Y_AXIS]; //homed oder nicht homed, das ist hier egal, nicht gehomed kann ich das sowieso nicht prüfen.
             Temp += (long)(increment * 10 * Printer::axisStepsPerMM[Y_AXIS]);
-            if(Temp <= long(Printer::lengthMM[Y_AXIS] * Printer::axisStepsPerMM[Y_AXIS])) Printer::moveRelativeDistanceInSteps(0, lroundf(10 * Printer::axisStepsPerMM[Y_AXIS]), 0, 0, Printer::feedrate, false, ALWAYS_CHECK_ENDSTOPS);
+            if(Temp <= long(Printer::lengthMM[Y_AXIS] * Printer::axisStepsPerMM[Y_AXIS])) Printer::moveRelativeDistanceInSteps(0, lroundf(10 * increment * Printer::axisStepsPerMM[Y_AXIS]), 0, 0, Printer::feedrate, false, ALWAYS_CHECK_ENDSTOPS);
             else showInformation( (void*)ui_text_y_axis, (void*)ui_text_max_reached );
             break;
         }
@@ -11523,7 +11523,7 @@ void nextPreviousYAction( int8_t increment )
             long Temp = Printer::directPositionTargetSteps[Y_AXIS];
             Temp += Printer::queuePositionCurrentSteps[Y_AXIS]; //homed oder nicht homed, das ist hier egal, nicht gehomed kann ich das sowieso nicht prüfen.
             Temp += (long)(increment * 50 * Printer::axisStepsPerMM[Y_AXIS]);
-            if(Temp <= long(Printer::lengthMM[Y_AXIS] * Printer::axisStepsPerMM[Y_AXIS])) Printer::moveRelativeDistanceInSteps(0, lroundf(50 * Printer::axisStepsPerMM[Y_AXIS]), 0, 0, Printer::feedrate, false, ALWAYS_CHECK_ENDSTOPS);
+            if(Temp <= long(Printer::lengthMM[Y_AXIS] * Printer::axisStepsPerMM[Y_AXIS])) Printer::moveRelativeDistanceInSteps(0, lroundf(50 * increment * Printer::axisStepsPerMM[Y_AXIS]), 0, 0, Printer::feedrate, false, ALWAYS_CHECK_ENDSTOPS);
             else showInformation( (void*)ui_text_y_axis, (void*)ui_text_max_reached );
             break;
         }
@@ -11807,12 +11807,9 @@ void nextPreviousZAction( int8_t increment )
 
 void drv8711Transmit( unsigned short command )
 {
-    char    i;
-
-
     // transfer the command (= direction, address and data)
     InterruptProtectedBlock noInts; //HAL::forbidInterrupts();
-    for( i=15; i>=0; i-- )
+    for(char i = 15; i >= 0; i--)
     {
         WRITE( DRV_SDATI, command & (0x01 << i));
         HAL::delayMicroseconds( 1 );
@@ -11839,7 +11836,7 @@ unsigned short drv8711Receive( unsigned char address )
 
     // transfer the read request plus the register address (4 bits)
     InterruptProtectedBlock noInts; //HAL::forbidInterrupts();
-    for( i=15; i>=12; i-- )
+    for(i = 15; i >= 12; i--)
     {
         WRITE( DRV_SDATI, acknowledge & (0x01 << i));
         HAL::delayMicroseconds( 1 );
@@ -11851,7 +11848,7 @@ unsigned short drv8711Receive( unsigned char address )
     HAL::delayMicroseconds( 20 );
 
     // read the acknowledge (12 bits)
-    for( i=11; i>=0; i-- )
+    for(i = 11; i >= 0; i--)
     {
         temp = READ( DRV_SDATO );
         acknowledge = acknowledge | (temp << i);

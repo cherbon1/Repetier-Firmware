@@ -1,3 +1,10 @@
+V 01.43.26.Mod (2019-01-01)
+- fix broken positioning for XY
+- moved feedrate limits to Configuration.h
+- fixed feedrate limitation for negative moves
+- change in JunctionSpeed strategy for advance vs. nonadvance retract/extrusion startstop
+- fix copy paste bug (from 1.43.22 refactoring)
+
 V 01.43.25.Mod (2019-01-01)
 - udpate SdFat Library to 1.0.12 https://github.com/greiman/SdFat/commit/356c5e417c2a06e7853dedef2580857dcd3d2ae0
 - fix include path twice (SdFatConfig.h) because we dont use the arduino standard library

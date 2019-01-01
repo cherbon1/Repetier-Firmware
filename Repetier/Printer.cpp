@@ -426,7 +426,7 @@ void Printer::moveToCoordinateMM(float x, float y, float z, float e, float feedr
 	queuePositionLastMM[X_AXIS] = x;
 	queuePositionLastMM[Y_AXIS] = y;
 	queuePositionLastMM[Z_AXIS] = z;
-	queuePositionLastMM[E_AXIS] = z;
+	queuePositionLastMM[E_AXIS] = e;
 
     x += Printer::extruderOffset[X_AXIS];
     y += Printer::extruderOffset[Y_AXIS];
@@ -453,8 +453,7 @@ void Printer::moveRelativeDistanceInSteps(long x, long y, long z, long e, float 
 	PrintLine::prepareQueueMove(checkEndstop, !waitEnd, feedrate);
 
 	Printer::updateCurrentPosition();
-	if (waitEnd)
-		Commands::waitUntilEndOfAllMoves(); //moveRelativeDistanceInSteps + wait
+	if (waitEnd) Commands::waitUntilEndOfAllMoves(); //moveRelativeDistanceInSteps + wait
 
 	previousMillisCmd = HAL::timeInMilliseconds(); //prevent inactive shutdown of steppers/temps
 } // moveRelativeDistanceInSteps

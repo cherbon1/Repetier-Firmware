@@ -170,10 +170,10 @@ void PrintLine::prepareQueueMove(uint8_t check_endstops,uint8_t pathOptimize, fl
                 }
             }
 #endif // FEATURE_HEAT_BED_Z_COMPENSATION
-			axisDistanceMM[E_AXIS] = p->delta[E_AXIS] * Printer::invAxisStepsPerMM[E_AXIS];
+			axisDistanceMM[E_AXIS] = fabs(p->delta[E_AXIS] * Printer::invAxisStepsPerMM[E_AXIS]);
         }
 		else {
-			axisDistanceMM[axis] = p->delta[axis] * Printer::invAxisStepsPerMM[axis];
+			axisDistanceMM[axis] = fabs(p->delta[axis] * Printer::invAxisStepsPerMM[axis]);
 		}
         if(p->delta[axis] >= 0)
             p->setPositiveDirectionForAxis(axis);
@@ -595,7 +595,6 @@ void PrintLine::updateTrapezoids()
     //Retract:
     if( previous->isEOnlyMove() != act->isEOnlyMove() )
     {
-        previous->maxJunctionSpeed = previous->safeSpeed(previous->primaryAxis);
         previous->setEndSpeedFixed(true);
         act->setStartSpeedFixed(true);
         act->updateStepsParameter();
@@ -606,12 +605,15 @@ void PrintLine::updateTrapezoids()
     // or advance would leave a drolling extruder and can not adjust fast enough.
     } else if( Printer::isAdvanceActivated() && 
 			(
-				previous->isEMove() != act->isEMove() 
-				|| (previous->isEMove() && act->isEMove() && previous->isEPositiveMove() != act->isEPositiveMove() )
+				previous->isEMove() != act->isEMove()  // If e-move changes to non-e-move
+				|| (previous->isEMove() && act->isEMove() && previous->isEPositiveMove() != act->isEPositiveMove() ) // If e-move changes direction
 			)  
-		) {
-
-        previous->maxJunctionSpeed = previous->safeSpeed(previous->primaryAxis);
+	)
+	{
+		previous->endSpeed = act->startSpeed = previous->maxJunctionSpeed = RMath::min(
+			RMath::min(previous->safeSpeed(previous->primaryAxis), act->safeSpeed(act->primaryAxis)),
+			RMath::min(previous->endSpeed, act->startSpeed)
+		);
         previous->setEndSpeedFixed(true);
         act->setStartSpeedFixed(true);
         act->updateStepsParameter();
