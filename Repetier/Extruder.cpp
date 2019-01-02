@@ -400,7 +400,6 @@ void Extruder::selectExtruderById(uint8_t extruderId)
 
     Extruder::current = &extruder[extruderId];
 
-    Printer::queuePositionTargetSteps[E_AXIS] = Printer::queuePositionLastSteps[E_AXIS];
     Printer::axisStepsPerMM[E_AXIS] = Extruder::current->stepsPerMM;
     Printer::invAxisStepsPerMM[E_AXIS] = 1.0f/Printer::axisStepsPerMM[E_AXIS];
     Printer::maxFeedrate[E_AXIS] = Extruder::current->maxFeedrate;
@@ -424,11 +423,9 @@ void Extruder::selectExtruderById(uint8_t extruderId)
 
     //uncomment when inserting diameter for hotend x // Commands::changeFlowrateMultiply(static_cast<float>(Printer::extrudeMultiply)); // needed to adjust extrusionFactor to possibly different diameter
 
-    if(Printer::areAxisHomed())
-    {
-        Printer::moveToCoordinateMM(IGNORE_COORDINATE,IGNORE_COORDINATE,IGNORE_COORDINATE,IGNORE_COORDINATE,Printer::homingFeedrate[X_AXIS]);
-    }
-    Printer::updateCurrentPosition();
+	//update position
+    Printer::queueFloatCoordinates(IGNORE_COORDINATE,IGNORE_COORDINATE,IGNORE_COORDINATE,IGNORE_COORDINATE,Printer::homingFeedrate[X_AXIS]);
+
 #if USE_ADVANCE
     HAL::resetExtruderDirection();
 #endif // USE_ADVANCE

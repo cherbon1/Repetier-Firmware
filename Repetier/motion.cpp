@@ -113,15 +113,15 @@ void PrintLine::prepareQueueMove(uint8_t check_endstops,uint8_t pathOptimize, fl
     // Find direction
     for(uint8_t axis=0; axis < 4; axis++)
     {
-        p->delta[axis] = Printer::queuePositionTargetSteps[axis] - Printer::queuePositionLastSteps[axis];
+		p->delta[axis] = Printer::destinationSteps[axis] - Printer::destinationStepsLast[axis];
 
 #if FEATURE_HEAT_BED_Z_COMPENSATION
         //find highest Z layer with extrusion beneath g_maxZCompensationSteps for calculating the bordercrossing infill additions
         if(axis == Z_AXIS){
             if(p->delta[Z_AXIS] != 0){ //z achsen aufstieg/abstieg -> wir müssen durch erkennung von extrusion mögliche zlifts filtern!
                 InterruptProtectedBlock noInts;
-                Printer::queuePositionZLayerCurrent_cand = Printer::queuePositionTargetSteps[Z_AXIS] + Extruder::current->zOffset;
-                Printer::queuePositionZLayerCurrent_cand += Printer::directPositionCurrentSteps[Z_AXIS];
+                Printer::queuePositionZLayerCurrent_cand = Printer::destinationSteps[Z_AXIS] + Extruder::current->zOffset;
+                Printer::queuePositionZLayerCurrent_cand += Printer::directCurrentSteps[Z_AXIS];
                 noInts.unprotect();
                 if(Printer::queuePositionZLayerCurrent_cand == Printer::queuePositionZLayerCurrent) Printer::queuePositionZLayerCurrent_cand = 0; //nach zlift nicht neu bestimmen.
             }
@@ -130,21 +130,23 @@ void PrintLine::prepareQueueMove(uint8_t check_endstops,uint8_t pathOptimize, fl
 
         if(axis == E_AXIS)
         {
-            Printer::extrudeMultiplyError += (static_cast<float>(p->delta[E_AXIS]) * Printer::extrusionFactor
+			axisDistanceMM[E_AXIS] = (Printer::destinationMM[E_AXIS] - Printer::destinationMMLast[E_AXIS]) * Printer::extrusionFactor
  #if FEATURE_DIGIT_FLOW_COMPENSATION
                             * g_nDigitFlowCompensation_flowmulti
  #endif // FEATURE_DIGIT_FLOW_COMPENSATION
-               );
+            ;
+            Printer::extrudeMultiplyError += axisDistanceMM[E_AXIS] * Printer::axisStepsPerMM[E_AXIS];
             p->delta[E_AXIS] = lroundf(Printer::extrudeMultiplyError);
             Printer::extrudeMultiplyError -= p->delta[E_AXIS];
-            Printer::filamentPrinted += p->delta[E_AXIS] * Printer::invAxisStepsPerMM[E_AXIS];
+
+            Printer::filamentPrinted += axisDistanceMM[E_AXIS];
 #if FEATURE_HEAT_BED_Z_COMPENSATION
             //prüfe ob in der letzten angefahrenen Z layerhöhe extrudiert wird: dann kein zlift!
             if(Printer::queuePositionZLayerCurrent_cand){
                 if(p->delta[E_AXIS] > 0){
                     InterruptProtectedBlock noInts;
-                    long nCurrentPositionStepsZ = Printer::queuePositionTargetSteps[Z_AXIS] + Extruder::current->zOffset;
-                    nCurrentPositionStepsZ += Printer::directPositionCurrentSteps[Z_AXIS];
+                    long nCurrentPositionStepsZ = Printer::destinationSteps[Z_AXIS] + Extruder::current->zOffset;
+                    nCurrentPositionStepsZ += Printer::directCurrentSteps[Z_AXIS];
                     noInts.unprotect();
                     if(Printer::queuePositionZLayerCurrent_cand == nCurrentPositionStepsZ){
                         Printer::queuePositionZLayerLast = Printer::queuePositionZLayerCurrent;
@@ -170,17 +172,20 @@ void PrintLine::prepareQueueMove(uint8_t check_endstops,uint8_t pathOptimize, fl
                 }
             }
 #endif // FEATURE_HEAT_BED_Z_COMPENSATION
-			axisDistanceMM[E_AXIS] = fabs(p->delta[E_AXIS] * Printer::invAxisStepsPerMM[E_AXIS]);
+			axisDistanceMM[E_AXIS] = fabs(axisDistanceMM[E_AXIS]);
         }
 		else {
-			axisDistanceMM[axis] = fabs(p->delta[axis] * Printer::invAxisStepsPerMM[axis]);
+			axisDistanceMM[axis] = fabs(Printer::destinationMM[axis] - Printer::destinationMMLast[axis]);
 		}
         if(p->delta[axis] >= 0)
             p->setPositiveDirectionForAxis(axis);
         else
             p->delta[axis] = -p->delta[axis];
         if(p->delta[axis]) p->setMoveOfAxis(axis);
-        Printer::queuePositionLastSteps[axis] = Printer::queuePositionTargetSteps[axis];
+
+		//Update calculated coordinate.
+        Printer::destinationStepsLast[axis] = Printer::destinationSteps[axis];
+		Printer::destinationMMLast[axis] = Printer::destinationMM[axis];
     }
     if(p->isNoMove())
     {
@@ -289,7 +294,7 @@ void PrintLine::prepareDirectMove(void)
     // Find direction
     for(uint8_t axis=0; axis < 4; axis++)
     {
-        p->delta[axis] = Printer::directPositionTargetSteps[axis] - Printer::directPositionCurrentSteps[axis];
+        p->delta[axis] = Printer::directDestinationSteps[axis] - Printer::directCurrentSteps[axis];
         if(axis == E_AXIS)
         {
             Printer::extrudeMultiplyError += (static_cast<float>(p->delta[E_AXIS]) * Printer::extrusionFactor
@@ -307,7 +312,7 @@ void PrintLine::prepareDirectMove(void)
             p->delta[axis] = -p->delta[axis];
         axisDistanceMM[axis] = p->delta[axis] * Printer::invAxisStepsPerMM[axis];
         if(p->delta[axis]) p->setMoveOfAxis(axis);
-        Printer::directPositionLastSteps[axis] = Printer::directPositionTargetSteps[axis];
+        Printer::directDestinationStepsLast[axis] = Printer::directDestinationSteps[axis];
     }
     if(p->isNoMove())
     {
@@ -952,15 +957,11 @@ void PrintLine::arc(float *position, float *target, float *offset, float radius,
     float center_axis0 = position[0] + offset[0];
     float center_axis1 = position[1] + offset[1];
     //float linear_travel = 0;              // target[axis_linear] - position[axis_linear];
-    float extruder_travel = (Printer::queuePositionTargetSteps[E_AXIS]-Printer::queuePositionLastSteps[E_AXIS])*Printer::invAxisStepsPerMM[E_AXIS];
+    float extruder_travel = (Printer::destinationSteps[E_AXIS] - Printer::destinationStepsLast[E_AXIS]) * Printer::invAxisStepsPerMM[E_AXIS];
     float r_axis0 = -offset[0];             // Radius vector from center to current location
     float r_axis1 = -offset[1];
     float rt_axis0 = target[0] - center_axis0;
     float rt_axis1 = target[1] - center_axis1;
-    //long xtarget = Printer::queuePositionTargetSteps[X_AXIS];
-    //long ytarget = Printer::queuePositionTargetSteps[Y_AXIS];
-    //long ztarget = Printer::queuePositionTargetSteps[Z_AXIS];
-    //long etarget = Printer::queuePositionTargetSteps[E_AXIS];
 
     // CCW angle between position and target from circle center. Only one atan2() trig computation required.
     float angular_travel = atan2(r_axis0*rt_axis1-r_axis1*rt_axis0, r_axis0*rt_axis0+r_axis1*rt_axis1);
@@ -1034,7 +1035,7 @@ void PrintLine::arc(float *position, float *target, float *offset, float radius,
     //arc_target[axis_linear] = position[axis_linear];
 
     // Initialize the extruder axis
-    arc_target[3] = Printer::queuePositionLastSteps[E_AXIS]*Printer::invAxisStepsPerMM[E_AXIS];
+    arc_target[3] = Printer::destinationStepsLast[E_AXIS] * Printer::invAxisStepsPerMM[E_AXIS];
 
     for (i = 1; i<segments; i++)
     {
@@ -1068,11 +1069,11 @@ void PrintLine::arc(float *position, float *target, float *offset, float radius,
         //arc_target[axis_linear] += linear_per_segment;
         arc_target[3] += extruder_per_segment;
 
-        Printer::moveToCoordinateMM(arc_target[0],arc_target[1],IGNORE_COORDINATE,arc_target[3],IGNORE_COORDINATE);
+        Printer::queueFloatCoordinates(arc_target[0],arc_target[1],IGNORE_COORDINATE,arc_target[3],IGNORE_COORDINATE);
     }
     // Ensure last segment arrives at target location.
 
-    Printer::moveToCoordinateMM(target[0],target[1],IGNORE_COORDINATE,target[3],IGNORE_COORDINATE);
+    Printer::queueFloatCoordinates(target[0],target[1],IGNORE_COORDINATE,target[3],IGNORE_COORDINATE);
 
 } // arc
 #endif // FEATURE_ARC_SUPPORT
@@ -1093,7 +1094,7 @@ long PrintLine::performPauseCheck(){
 #endif // FEATURE_MILLING_MODE
                        if( g_nPauseSteps[E_AXIS] )
                        {
-                           Printer::directPositionTargetSteps[E_AXIS] -= g_nPauseSteps[E_AXIS];
+                           Printer::directDestinationSteps[E_AXIS] -= g_nPauseSteps[E_AXIS];
                            g_nContinueSteps[E_AXIS] =                    g_nPauseSteps[E_AXIS];
                            PrintLine::prepareDirectMove();
                        }
@@ -1115,7 +1116,7 @@ long PrintLine::performPauseCheck(){
                 {
                     if( g_nContinueSteps[E_AXIS] )
                     {
-                        Printer::directPositionTargetSteps[E_AXIS] += g_nContinueSteps[E_AXIS];
+                        Printer::directDestinationSteps[E_AXIS] += g_nContinueSteps[E_AXIS];
                         PrintLine::prepareDirectMove();
                     }
                     g_pauseStatus = PAUSE_STATUS_PAUSED;
@@ -1127,17 +1128,17 @@ long PrintLine::performPauseCheck(){
                     if( Printer::operatingMode == OPERATING_MODE_PRINT )
                     {
 #endif // FEATURE_MILLING_MODE
-                        Printer::directPositionTargetSteps[X_AXIS] += g_nContinueSteps[X_AXIS];
-                        Printer::directPositionTargetSteps[Y_AXIS] += g_nContinueSteps[Y_AXIS];
-                        Printer::directPositionTargetSteps[Z_AXIS] += g_nContinueSteps[Z_AXIS];
-                        Printer::directPositionTargetSteps[E_AXIS] += g_nContinueSteps[E_AXIS];
+                        Printer::directDestinationSteps[X_AXIS] += g_nContinueSteps[X_AXIS];
+                        Printer::directDestinationSteps[Y_AXIS] += g_nContinueSteps[Y_AXIS];
+                        Printer::directDestinationSteps[Z_AXIS] += g_nContinueSteps[Z_AXIS];
+                        Printer::directDestinationSteps[E_AXIS] += g_nContinueSteps[E_AXIS];
 #if FEATURE_MILLING_MODE
                     }
                     else
                     {
                         // in operating mode mill, we have 2 continue positions because we have to move into x/y direction before we shall enter the work part
-                        Printer::directPositionTargetSteps[X_AXIS] += g_nContinueSteps[X_AXIS];
-                        Printer::directPositionTargetSteps[Y_AXIS] += g_nContinueSteps[Y_AXIS];
+                        Printer::directDestinationSteps[X_AXIS] += g_nContinueSteps[X_AXIS];
+                        Printer::directDestinationSteps[Y_AXIS] += g_nContinueSteps[Y_AXIS];
                     }
 #endif // FEATURE_MILLING_MODE
                     PrintLine::prepareDirectMove();
@@ -1148,7 +1149,7 @@ long PrintLine::performPauseCheck(){
                 {
                     if( g_nContinueSteps[Z_AXIS] )
                     {
-                        Printer::directPositionTargetSteps[Z_AXIS] += g_nContinueSteps[Z_AXIS];
+                        Printer::directDestinationSteps[Z_AXIS] += g_nContinueSteps[Z_AXIS];
                         PrintLine::prepareDirectMove();
                     }
                     g_pauseStatus = PAUSE_STATUS_PAUSED;
@@ -1223,7 +1224,7 @@ long PrintLine::performQueueMove()
 #endif // FEATURE_MILLING_MODE
                             if( g_nPauseSteps[E_AXIS] )
                             {
-                                Printer::directPositionTargetSteps[E_AXIS] -= g_nPauseSteps[E_AXIS];
+                                Printer::directDestinationSteps[E_AXIS] -= g_nPauseSteps[E_AXIS];
                                 g_nContinueSteps[E_AXIS]                   =  g_nPauseSteps[E_AXIS];
                                 prepareDirectMove();
                             }
@@ -1262,7 +1263,7 @@ long PrintLine::performQueueMove()
                                 // move the extruder only in case we are not in pause position 1 already
                                 if( g_nPauseSteps[E_AXIS] )
                                 {
-                                    Printer::directPositionTargetSteps[E_AXIS] -= g_nPauseSteps[E_AXIS];
+                                    Printer::directDestinationSteps[E_AXIS] -= g_nPauseSteps[E_AXIS];
                                     g_nContinueSteps[E_AXIS]                   =  g_nPauseSteps[E_AXIS];
                                 }
 #if FEATURE_MILLING_MODE
@@ -1408,10 +1409,10 @@ void PrintLine::performDirectSteps( void )
     uint16_t moveinterval = 1000; //ns default.
 
     //fix that microstepping and steps/mm settings are not constraining speed of buttons/.. extrusion.
-    bool x_needed = Printer::directPositionCurrentSteps[X_AXIS] != Printer::directPositionTargetSteps[X_AXIS];
-    bool y_needed = Printer::directPositionCurrentSteps[Y_AXIS] != Printer::directPositionTargetSteps[Y_AXIS];
-    bool z_needed = Printer::directPositionCurrentSteps[Z_AXIS] != Printer::directPositionTargetSteps[Z_AXIS];
-    bool e_needed = Printer::directPositionCurrentSteps[E_AXIS] != Printer::directPositionTargetSteps[E_AXIS];
+    bool x_needed = Printer::directCurrentSteps[X_AXIS] != Printer::directDestinationSteps[X_AXIS];
+    bool y_needed = Printer::directCurrentSteps[Y_AXIS] != Printer::directDestinationSteps[Y_AXIS];
+    bool z_needed = Printer::directCurrentSteps[Z_AXIS] != Printer::directDestinationSteps[Z_AXIS];
+    bool e_needed = Printer::directCurrentSteps[E_AXIS] != Printer::directDestinationSteps[E_AXIS];
     bool some_needed = x_needed || y_needed || z_needed || e_needed;
 
     if(some_needed){
@@ -1456,7 +1457,7 @@ void PrintLine::performDirectSteps( void )
         bool bDone = false;
         g_uLastDirectStepTime = HAL::timeInMicroseconds();
 
-        if( Printer::directPositionCurrentSteps[E_AXIS] > Printer::directPositionTargetSteps[E_AXIS] )
+        if( Printer::directCurrentSteps[E_AXIS] > Printer::directDestinationSteps[E_AXIS] )
         {
             bDone = true;
 #if USE_ADVANCE
@@ -1464,7 +1465,7 @@ void PrintLine::performDirectSteps( void )
             if( Printer::isAdvanceActivated() && abs(Printer::extruderStepsNeeded) < 500 ) // Use interrupt for movement but dont just sum up the advance too fast.
             {
                 Printer::extruderStepsNeeded--;
-                Printer::directPositionCurrentSteps[E_AXIS] --;
+                Printer::directCurrentSteps[E_AXIS] --;
             }
             else
 #endif // USE_ADVANCE
@@ -1483,9 +1484,9 @@ void PrintLine::performDirectSteps( void )
                 Extruder::step();
                 Printer::insertStepperHighDelay();
                 Extruder::unstep();
-                Printer::directPositionCurrentSteps[E_AXIS] --;
+                Printer::directCurrentSteps[E_AXIS] --;
 
-                if( Printer::directPositionCurrentSteps[E_AXIS] == Printer::directPositionTargetSteps[E_AXIS] )
+                if( Printer::directCurrentSteps[E_AXIS] == Printer::directDestinationSteps[E_AXIS] )
                 {
                     // we have reached the target position
                     if( !isQueueEMove() ) Extruder::current->stepperDirection = 0;
@@ -1508,15 +1509,15 @@ void PrintLine::performDirectSteps( void )
             if( Printer::operatingMode == OPERATING_MODE_MILL )
             {
                 // in operating mode "mill", we must move only the z-axis while we leave the work part and when we enter the work part
-                if( Printer::directPositionCurrentSteps[Z_AXIS] < Printer::directPositionTargetSteps[Z_AXIS] )
+                if( Printer::directCurrentSteps[Z_AXIS] < Printer::directDestinationSteps[Z_AXIS] )
                 {
                     // we shall move downwards - do this before any x/y movement
                     zFirst = 1;
                 }
                 else
                 {
-                    if( Printer::directPositionCurrentSteps[X_AXIS] != Printer::directPositionTargetSteps[X_AXIS] ||
-                        Printer::directPositionCurrentSteps[Y_AXIS] != Printer::directPositionTargetSteps[Y_AXIS] )
+                    if( Printer::directCurrentSteps[X_AXIS] != Printer::directDestinationSteps[X_AXIS] ||
+                        Printer::directCurrentSteps[Y_AXIS] != Printer::directDestinationSteps[Y_AXIS] )
                     {
                         // we shall move in x and/or y direction - do not move the heat bed upwards during this time
                         zLast = 1;
@@ -1527,7 +1528,7 @@ void PrintLine::performDirectSteps( void )
 
             if( !zFirst )
             {
-                if( Printer::directPositionCurrentSteps[X_AXIS] < Printer::directPositionTargetSteps[X_AXIS] )
+                if( Printer::directCurrentSteps[X_AXIS] < Printer::directDestinationSteps[X_AXIS] )
                 {
                     // move the extruder to the right
                     if( !Printer::stepperDirection[X_AXIS] ) Printer::setXDirection(true);
@@ -1537,7 +1538,7 @@ void PrintLine::performDirectSteps( void )
                         bDone       = true;
                     }
                 }
-                else if( Printer::directPositionCurrentSteps[X_AXIS] > Printer::directPositionTargetSteps[X_AXIS] )
+                else if( Printer::directCurrentSteps[X_AXIS] > Printer::directDestinationSteps[X_AXIS] )
                 {
                     // move the extruder to the left
                     if( !Printer::stepperDirection[X_AXIS] ) Printer::setXDirection(false);
@@ -1550,7 +1551,7 @@ void PrintLine::performDirectSteps( void )
                     if( !isQueueXMove() ) Printer::stepperDirection[X_AXIS] = 0; //setXMoveFinished() für einzel-directsteps
                 }
 
-                if( Printer::directPositionCurrentSteps[Y_AXIS] < Printer::directPositionTargetSteps[Y_AXIS] )
+                if( Printer::directCurrentSteps[Y_AXIS] < Printer::directDestinationSteps[Y_AXIS] )
                 {
                     // move the heat bed to the front
                     if( !Printer::stepperDirection[Y_AXIS] ) Printer::setYDirection(true);
@@ -1561,7 +1562,7 @@ void PrintLine::performDirectSteps( void )
                         bDone       = true;
                     }
                 }
-                else if( Printer::directPositionCurrentSteps[Y_AXIS] > Printer::directPositionTargetSteps[Y_AXIS] )
+                else if( Printer::directCurrentSteps[Y_AXIS] > Printer::directDestinationSteps[Y_AXIS] )
                 {
                     // move the heat bed to the back
                     if( !Printer::stepperDirection[Y_AXIS] ) Printer::setYDirection(false);
@@ -1578,7 +1579,7 @@ void PrintLine::performDirectSteps( void )
             if( !Printer::blockAll && !zLast )
             {
                 // we have to move into z-direction
-                if( Printer::directPositionCurrentSteps[Z_AXIS] < Printer::directPositionTargetSteps[Z_AXIS] )
+                if( Printer::directCurrentSteps[Z_AXIS] < Printer::directDestinationSteps[Z_AXIS] )
                 {
                     // move the heat bed to the bottom
                     if( !Printer::stepperDirection[Z_AXIS] ) Printer::setZDirection(true);
@@ -1589,7 +1590,7 @@ void PrintLine::performDirectSteps( void )
                         bDone       = true;
                     }
                 }
-                else if( Printer::directPositionCurrentSteps[Z_AXIS] > Printer::directPositionTargetSteps[Z_AXIS] )
+                else if( Printer::directCurrentSteps[Z_AXIS] > Printer::directDestinationSteps[Z_AXIS] )
                 {
                     // move the heat bed to the top
                     if( !Printer::stepperDirection[Z_AXIS] ) Printer::setZDirection(false);
@@ -1618,8 +1619,8 @@ void PrintLine::performDirectSteps( void )
                 if( nDirectionX )
                 {
                     Printer::endXStep();
-                    Printer::directPositionCurrentSteps[X_AXIS] += nDirectionX;
-                    if( Printer::directPositionCurrentSteps[X_AXIS] == Printer::directPositionTargetSteps[X_AXIS] )
+                    Printer::directCurrentSteps[X_AXIS] += nDirectionX;
+                    if( Printer::directCurrentSteps[X_AXIS] == Printer::directDestinationSteps[X_AXIS] )
                     {
                         // we have finished to move in x-direction
                         nDirectionX = 0;
@@ -1629,8 +1630,8 @@ void PrintLine::performDirectSteps( void )
                 if( nDirectionY )
                 {
                     Printer::endYStep();
-                    Printer::directPositionCurrentSteps[Y_AXIS] += nDirectionY;
-                    if( Printer::directPositionCurrentSteps[Y_AXIS] == Printer::directPositionTargetSteps[Y_AXIS] )
+                    Printer::directCurrentSteps[Y_AXIS] += nDirectionY;
+                    if( Printer::directCurrentSteps[Y_AXIS] == Printer::directDestinationSteps[Y_AXIS] )
                     {
                         // we have finished to move in y-direction
                         nDirectionY = 0;
@@ -1640,8 +1641,8 @@ void PrintLine::performDirectSteps( void )
                 if( nDirectionZ )
                 {
                     Printer::endZStep();
-                    Printer::directPositionCurrentSteps[Z_AXIS] += nDirectionZ;
-                    if( Printer::directPositionCurrentSteps[Z_AXIS] == Printer::directPositionTargetSteps[Z_AXIS] )
+                    Printer::directCurrentSteps[Z_AXIS] += nDirectionZ;
+                    if( Printer::directCurrentSteps[Z_AXIS] == Printer::directDestinationSteps[Z_AXIS] )
                     {
                         // we have finished to move in z-direction
                         nDirectionZ = 0;
@@ -1660,13 +1661,13 @@ void PrintLine::performDirectSteps( void )
 
         if( !bDone )
         {
-            if( Printer::directPositionCurrentSteps[E_AXIS] < Printer::directPositionTargetSteps[E_AXIS] )
+            if( Printer::directCurrentSteps[E_AXIS] < Printer::directDestinationSteps[E_AXIS] )
             {
 #if USE_ADVANCE
                 if( Printer::isAdvanceActivated() && abs(Printer::extruderStepsNeeded) < 500 ) // Use interrupt for movement but dont just sum up the advance too fast.
                 {
                     Printer::extruderStepsNeeded++;
-                    Printer::directPositionCurrentSteps[E_AXIS] ++;
+                    Printer::directCurrentSteps[E_AXIS] ++;
                 }
                 else
 #endif // USE_ADVANCE
@@ -1684,9 +1685,9 @@ void PrintLine::performDirectSteps( void )
                         Extruder::step();
                         Printer::insertStepperHighDelay();
                         Extruder::unstep();
-                        Printer::directPositionCurrentSteps[E_AXIS] ++;
+                        Printer::directCurrentSteps[E_AXIS] ++;
 
-                        if( Printer::directPositionCurrentSteps[E_AXIS] == Printer::directPositionTargetSteps[E_AXIS] )
+                        if( Printer::directCurrentSteps[E_AXIS] == Printer::directDestinationSteps[E_AXIS] )
                         {
                             // we have reached the target position
                             if( !isQueueEMove() ) Extruder::current->stepperDirection = 0;
@@ -1775,12 +1776,12 @@ long PrintLine::performMove(PrintLine* move, char forQueue)
                 if( forQueue )
                 {
                     move->error[X_AXIS] += queueError;
-                    Printer::queuePositionCurrentSteps[X_AXIS] += (Printer::getXDirectionIsPos() ? 1 : -1);
+                    Printer::currentSteps[X_AXIS] += (Printer::getXDirectionIsPos() ? 1 : -1);
                 }
                 else
                 {
                     move->error[X_AXIS] += directError;
-                    Printer::directPositionCurrentSteps[X_AXIS] += (Printer::getXDirectionIsPos() ? 1 : -1);
+                    Printer::directCurrentSteps[X_AXIS] += (Printer::getXDirectionIsPos() ? 1 : -1);
                 }
             }
         }
@@ -1793,12 +1794,12 @@ long PrintLine::performMove(PrintLine* move, char forQueue)
                 if( forQueue )
                 {
                     move->error[Y_AXIS] += queueError;
-                    Printer::queuePositionCurrentSteps[Y_AXIS] += (Printer::getYDirectionIsPos() ? 1 : -1);
+                    Printer::currentSteps[Y_AXIS] += (Printer::getYDirectionIsPos() ? 1 : -1);
                 }
                 else
                 {
                     move->error[Y_AXIS] += directError;
-                    Printer::directPositionCurrentSteps[Y_AXIS] += (Printer::getYDirectionIsPos() ? 1 : -1);
+                    Printer::directCurrentSteps[Y_AXIS] += (Printer::getYDirectionIsPos() ? 1 : -1);
                 }
             }
         }
@@ -1845,12 +1846,12 @@ long PrintLine::performMove(PrintLine* move, char forQueue)
                     if( forQueue )
                     {
                         move->error[Z_AXIS] += queueError;
-                        Printer::queuePositionCurrentSteps[Z_AXIS] += dir;
+                        Printer::currentSteps[Z_AXIS] += dir;
                     }
                     else
                     {
                         move->error[Z_AXIS] += directError;
-                        Printer::directPositionCurrentSteps[Z_AXIS] += dir;
+                        Printer::directCurrentSteps[Z_AXIS] += dir;
                     }
                     // Note: There is no need to check whether we are past the z-min endstop here because G-Codes typically are not able to go past the z-min endstop anyways.
                 }
@@ -1958,10 +1959,10 @@ long PrintLine::performMove(PrintLine* move, char forQueue)
         } else { //forDirect:
             move->stepsRemaining = 0;
             move->task           = TASK_NO_TASK;
-            Printer::directPositionTargetSteps[X_AXIS] = Printer::directPositionLastSteps[X_AXIS] = Printer::directPositionCurrentSteps[X_AXIS];
-            Printer::directPositionTargetSteps[Y_AXIS] = Printer::directPositionLastSteps[Y_AXIS] = Printer::directPositionCurrentSteps[Y_AXIS];
-            Printer::directPositionTargetSteps[Z_AXIS] = Printer::directPositionLastSteps[Z_AXIS] = Printer::directPositionCurrentSteps[Z_AXIS];
-            Printer::directPositionTargetSteps[E_AXIS] = Printer::directPositionLastSteps[E_AXIS] = Printer::directPositionCurrentSteps[E_AXIS];
+            Printer::directDestinationSteps[X_AXIS] = Printer::directDestinationStepsLast[X_AXIS] = Printer::directCurrentSteps[X_AXIS];
+            Printer::directDestinationSteps[Y_AXIS] = Printer::directDestinationStepsLast[Y_AXIS] = Printer::directCurrentSteps[Y_AXIS];
+            Printer::directDestinationSteps[Z_AXIS] = Printer::directDestinationStepsLast[Z_AXIS] = Printer::directCurrentSteps[Z_AXIS];
+            Printer::directDestinationSteps[E_AXIS] = Printer::directDestinationStepsLast[E_AXIS] = Printer::directCurrentSteps[E_AXIS];
             Commands::printCurrentPosition();
         }
 

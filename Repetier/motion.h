@@ -200,30 +200,27 @@ public:
             if(isXPositiveMove() && Printer::isXMaxEndstopHit()){
                 setXMoveFinished();
                 if(forQueue){
-                  Printer::queuePositionLastSteps[X_AXIS] = Printer::queuePositionTargetSteps[X_AXIS] = Printer::queuePositionCurrentSteps[X_AXIS];
+					Printer::setXAxisSteps(Printer::currentSteps[X_AXIS]);
                 }else{
-                  Printer::directPositionLastSteps[X_AXIS] = Printer::directPositionTargetSteps[X_AXIS] = Printer::directPositionCurrentSteps[X_AXIS]; //Wenn man G28 und G1 Z200 macht, er vorher gestoppt wird und man zurückfährt, landet er im Minus. Weil der Drucker denkt, er wäre von 200 gestartet.
+					Printer::directDestinationStepsLast[X_AXIS] = Printer::directDestinationSteps[X_AXIS] = Printer::directCurrentSteps[X_AXIS]; //Wenn man G28 und G1 Z200 macht, er vorher gestoppt wird und man zurückfährt, landet er im Minus. Weil der Drucker denkt, er wäre von 200 gestartet.
                 }
-                Printer::updateCurrentPosition(true);
             }
             if(isYPositiveMove() && Printer::isYMaxEndstopHit()){
                 setYMoveFinished();
                 if(forQueue){
-                  Printer::queuePositionLastSteps[Y_AXIS] = Printer::queuePositionTargetSteps[Y_AXIS] = Printer::queuePositionCurrentSteps[Y_AXIS];
+					Printer::setYAxisSteps(Printer::currentSteps[Y_AXIS]);
                 }else{
-                  Printer::directPositionLastSteps[Y_AXIS] = Printer::directPositionTargetSteps[Y_AXIS] = Printer::directPositionCurrentSteps[Y_AXIS]; //Wenn man G28 und G1 Z200 macht, er vorher gestoppt wird und man zurückfährt, landet er im Minus. Weil der Drucker denkt, er wäre von 200 gestartet.
+					Printer::directDestinationStepsLast[Y_AXIS] = Printer::directDestinationSteps[Y_AXIS] = Printer::directCurrentSteps[Y_AXIS]; //Wenn man G28 und G1 Z200 macht, er vorher gestoppt wird und man zurückfährt, landet er im Minus. Weil der Drucker denkt, er wäre von 200 gestartet.
                 }
-                Printer::updateCurrentPosition(true);
             }
             if(isZPositiveMove() && (Printer::isZMaxEndstopHit() || Printer::currentZSteps > (Printer::maxSteps[Z_AXIS] /*- Printer::minSteps[Z_AXIS]*/) + abs(long(Printer::ZOverrideMax) * 2) ))
             {
                 setZMoveFinished();
                 if(forQueue){
-                  Printer::queuePositionLastSteps[Z_AXIS] = Printer::queuePositionTargetSteps[Z_AXIS] = Printer::queuePositionCurrentSteps[Z_AXIS]; //Wenn man G28 und G1 Z200 macht, er vorher gestoppt wird und man zurückfährt, landet er im Minus. Weil der Drucker denkt, er wäre von 200 gestartet.
+					Printer::setZAxisSteps(Printer::currentSteps[Z_AXIS]);
                 }else{
-                  Printer::directPositionLastSteps[Z_AXIS] = Printer::directPositionTargetSteps[Z_AXIS] = Printer::directPositionCurrentSteps[Z_AXIS]; //Wenn man G28 und G1 Z200 macht, er vorher gestoppt wird und man zurückfährt, landet er im Minus. Weil der Drucker denkt, er wäre von 200 gestartet.
+					Printer::directDestinationStepsLast[Z_AXIS] = Printer::directDestinationSteps[Z_AXIS] = Printer::directCurrentSteps[Z_AXIS]; //Wenn man G28 und G1 Z200 macht, er vorher gestoppt wird und man zurückfährt, landet er im Minus. Weil der Drucker denkt, er wäre von 200 gestartet.
                 }
-                Printer::updateCurrentPosition(true);
             }
         }
 
@@ -572,7 +569,7 @@ inline bool isQueueEMove(){
 
 inline bool isDirectOrQueueOrCompZMove(){
     if( PrintLine::cur ) if( PrintLine::cur->isZMove() ) return true;
-    if( Printer::directPositionCurrentSteps[Z_AXIS] != Printer::directPositionTargetSteps[Z_AXIS] ) return true;
+    if( Printer::directCurrentSteps[Z_AXIS] != Printer::directDestinationSteps[Z_AXIS] ) return true;
     // davor version conrad 1.39, auskommentiert version nibbels: if( PrintLine::direct.isZMove() ) return true;
     if( Printer::endZCompensationStep ) return true;
     return false;

@@ -242,6 +242,58 @@
 /** \brief Enables/disables that you can switch the micro step setting within Menu->Configuration->Stepper and it is saved in hidden EEPROM */
 #define FEATURE_ADJUSTABLE_MICROSTEPS       1
 
+// ##########################################################################################
+// ##   Feedrate and Movement settings
+// ##########################################################################################
+
+/** \brief After x seconds of inactivity, the stepper motors are disabled.
+Set to 0 to leave them enabled.
+This helps cooling the Stepper motors between two print jobs.
+Overridden if EEPROM activated. */
+#define STEPPER_INACTIVE_TIME               600
+
+/** \brief After x seconds of inactivity, the system will go down as far it can.
+It will at least disable all stepper motors and heaters. If the board has
+a power pin, it will be disabled, too.
+Set value to 0 for disabled.
+Overridden if EEPROM activated. */
+#define MAX_INACTIVE_TIME                   0L
+
+/** \brief Maximum feedrate, the system allows. Higher feedrates are reduced to these values.
+The axis order in all axis related arrays is X, Y, Z
+Overridden if EEPROM activated. */
+#define MAX_FEEDRATE_X                      150
+#define MAX_FEEDRATE_Y                      150
+#define MAX_FEEDRATE_Z                      9
+
+/** \brief Home position speed in mm/s. Overridden if EEPROM activated. These values can be overridden by EEPROM but are considered as maximum allowed values */
+#define HOMING_FEEDRATE_X_PRINT             80
+#define HOMING_FEEDRATE_Y_PRINT             80
+#define HOMING_FEEDRATE_Z_PRINT             9
+
+#define HOMING_FEEDRATE_X_MILL              70
+#define HOMING_FEEDRATE_Y_MILL              70
+#define HOMING_FEEDRATE_Z_MILL              7
+
+/** \brief Speed for direct movements in mm/s. Overridden if EEPROM activated. */
+#define DIRECT_FEEDRATE_XY                  80
+#define DIRECT_FEEDRATE_Z                   7
+#define DIRECT_FEEDRATE_E                   25
+
+/** \brief Set order of axis homing. Use HOME_ORDER_XYZ and replace XYZ with your order. */
+#if FEATURE_MILLING_MODE
+#define HOMING_ORDER_PRINT              HOME_ORDER_XYZ           //if you work with springloaded hotend or positive Z-Matrix home Z last! You might otherwise hit the surface.
+#define HOMING_ORDER_MILL               HOME_ORDER_ZXY
+#else
+#define HOMING_ORDER_PRINT              HOME_ORDER_XYZ           //if you work with springloaded hotend or positive Z-Matrix home Z last!! You might otherwise hit the surface.
+#endif // FEATURE_MILLING_MODE
+
+/** \brief If you have a backlash in both z-directions, you can use this. For most printer, the bed will be pushed down by it's
+own weight, so this is nearly never needed. */
+#define ENABLE_BACKLASH_COMPENSATION        false
+#define Z_BACKLASH                          0
+#define X_BACKLASH                          0
+#define Y_BACKLASH                          0
 
 // ##########################################################################################
 // ##   Acceleration settings
@@ -355,7 +407,7 @@ Overridden if EEPROM activated. */
 // ##########################################################################################
 
 /** \brief The following script allows to configure the exact behavior of the automatic object output */
-#define OUTPUT_OBJECT_SCRIPT_PRINT          "G21\nG92 E0\nG1 E-" xstr(SCRIPT_RETRACT_MM) "\nG92 E0\nG90\nG1 Z200 F720\nG1 Y245 F4800"
+#define OUTPUT_OBJECT_SCRIPT_PRINT          "G21\nG92 E0\nG1 E-" xstr(SCRIPT_RETRACT_MM) "\nG92 E0\nG90\nG1 Z200 F540\nG1 Y245 F4800"
 #define OUTPUT_OBJECT_SCRIPT_MILL           "G28 Z0\nG21\nG91\nG1 Y245 F4800"
 
 // ##########################################################################################

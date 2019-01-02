@@ -91,10 +91,10 @@ public:
 #endif // FEATURE_DIGIT_FLOW_COMPENSATION
 
     static float            originOffsetMM[3];
-    static volatile long    queuePositionTargetSteps[4];        // Target position in steps.
-    static volatile long    queuePositionLastSteps[4];          // Position in steps from origin.
-    static volatile float   queuePositionLastMM[4];             // Position in mm from origin.
-    static volatile float   queuePositionCommandMM[3];          // Last coordinates send by gcodes
+    static volatile long    destinationSteps[4];        // Target position in steps.
+    static volatile long    destinationStepsLast[4];          // Position in steps from origin.
+	static volatile float   destinationMM[4];           // Target in mm from origin.
+    static volatile float   destinationMMLast[4];             // Position in mm from origin.
 
     static long             maxSteps[3];                        // For software endstops, limit of move in positive direction.
     static long             minSteps[3];                        // For software endstops, limit of move in negative direction.
@@ -138,7 +138,7 @@ public:
     static volatile long    staticCompensationZ;                // this is the z-delta which can occur in case the x/y position of the z-origin from the work part scan is different to the x/y position of the z-origin from the moment of the start of the milling
 #endif // FEATURE_WORK_PART_Z_COMPENSATION
 
-    static volatile long    queuePositionCurrentSteps[3];
+    static volatile long    currentSteps[3];
     static volatile char    stepperDirection[3];              // this is the current x/y/z-direction from the processing of G-Codes
     static volatile char    blockAll;
 
@@ -158,9 +158,9 @@ public:
     static volatile char    endZCompensationStep;
 #endif // FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
 
-    static volatile long    directPositionTargetSteps[4];
-    static volatile long    directPositionCurrentSteps[4];
-    static long             directPositionLastSteps[4];
+    static volatile long    directDestinationSteps[4];
+    static volatile long    directCurrentSteps[4];
+    static long             directDestinationStepsLast[4];
     static char             waitMove;
 
 #if FEATURE_MILLING_MODE
@@ -588,7 +588,7 @@ public:
         bool problematisch = false;
         if( Extruder::current->zOffset ) problematisch = true; //wenn rechtes gefedertes Hotend tiefer, dann evtl. kollision
         if( g_offsetZCompensationSteps > 0 ) problematisch = true; //wenn matrix positiv, dann evtl. problem
-        if( isAxisHomed(Y_AXIS) && Printer::queuePositionCurrentSteps[Y_AXIS] + Printer::directPositionCurrentSteps[Y_AXIS] <= 5*YAXIS_STEPS_PER_MM ) problematisch = false; //vorherige Probleme egal, wenn bett nach hinten gefahren
+        if( isAxisHomed(Y_AXIS) && Printer::currentSteps[Y_AXIS] + Printer::directCurrentSteps[Y_AXIS] <= 5*YAXIS_STEPS_PER_MM ) problematisch = false; //vorherige Probleme egal, wenn bett nach hinten gefahren
 #if FEATURE_ALIGN_EXTRUDERS
         if( g_nAlignExtrudersStatus ) problematisch = false; //das homing passiert in Z einzeln, liegt aber neben dem Bett.
 #endif // FEATURE_ALIGN_EXTRUDERS
@@ -977,76 +977,51 @@ public:
         flag0 = (on ? flag0 | PRINTER_FLAG0_MANUAL_MOVE_MODE : flag0 & ~PRINTER_FLAG0_MANUAL_MOVE_MODE);
     } // setManualMoveMode
 
-    static INLINE void lastCalculatedPosition(float &xp,float &yp,float &zp)
-    {
-        // return all values in [mm]
-        xp = queuePositionLastMM[X_AXIS];
-        yp = queuePositionLastMM[Y_AXIS];
-        zp = queuePositionLastMM[Z_AXIS];
-    } // lastCalculatedPosition
-
     static INLINE float targetXPosition()
     {
         // return all values in [mm]
-        return ((float)queuePositionTargetSteps[X_AXIS] + (float)directPositionTargetSteps[X_AXIS]) * invAxisStepsPerMM[X_AXIS];
+        return (float)(destinationSteps[X_AXIS] + directDestinationSteps[X_AXIS]) * invAxisStepsPerMM[X_AXIS];
     } // targetXPosition
 
     static INLINE float targetYPosition()
     {
         // return all values in [mm]
-        return ((float)queuePositionTargetSteps[Y_AXIS] + (float)directPositionTargetSteps[Y_AXIS]) * invAxisStepsPerMM[Y_AXIS];
+        return (float)(destinationSteps[Y_AXIS] + directDestinationSteps[Y_AXIS]) * invAxisStepsPerMM[Y_AXIS];
     } // targetYPosition
 
     static inline float targetZPosition()
     {
         // return all values in [mm]
-        float   fvalue = (float)queuePositionTargetSteps[Z_AXIS];
-
-
+        float   fvalue = (float)(destinationSteps[Z_AXIS] + Printer::directDestinationSteps[Z_AXIS]);
 #if FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
         // add the current z-compensation
         fvalue += (float)Printer::compensatedPositionCurrentStepsZ;
         fvalue += (float)g_nZScanZPosition;
 #endif // FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
-
 #if FEATURE_FIND_Z_ORIGIN
         fvalue += (float)g_nZOriginPosition[Z_AXIS];
 #endif // FEATURE_FIND_Z_ORIGIN
-
-        // add the current manual z-steps
-        fvalue += (float)Printer::directPositionTargetSteps[Z_AXIS];
-
         fvalue *= Printer::invAxisStepsPerMM[Z_AXIS];
-        return fvalue;
 
+        return fvalue;
     } // targetZPosition
 
-    static inline void targetPosition(float &xp,float &yp,float &zp)
+    static inline float currentXPositionMM()
     {
         // return all values in [mm]
-        xp = targetXPosition();
-        yp = targetYPosition();
-        zp = targetZPosition();
+        return (currentSteps[X_AXIS] + directCurrentSteps[X_AXIS]) * invAxisStepsPerMM[X_AXIS];
+    } // currentXPositionMM
 
-    } // targetPosition
-
-    static inline float currentXPosition()
+    static INLINE float currentYPositionMM()
     {
         // return all values in [mm]
-        return ((float)queuePositionCurrentSteps[X_AXIS] + (float)directPositionCurrentSteps[X_AXIS]) * invAxisStepsPerMM[X_AXIS];
-    } // currentXPosition
-
-    static INLINE float currentYPosition()
-    {
-        // return all values in [mm]
-        return ((float)queuePositionCurrentSteps[Y_AXIS] + (float)directPositionCurrentSteps[Y_AXIS]) * invAxisStepsPerMM[Y_AXIS];
-    } // currentYPosition
+        return (currentSteps[Y_AXIS] + directCurrentSteps[Y_AXIS]) * invAxisStepsPerMM[Y_AXIS];
+    } // currentYPositionMM
 
     static inline long currentZPositionSteps()
     {
         // return all values in [steps]
-        long    value = queuePositionCurrentSteps[Z_AXIS] + Extruder::current->zOffset; //offset negativ, das ist normalerweise zu kompensieren/für den Betrachter uninteressant. also rausrechnen.
-
+        long    value = currentSteps[Z_AXIS] + Extruder::current->zOffset; //offset negativ, das ist normalerweise zu kompensieren/für den Betrachter uninteressant. also rausrechnen.
 
 #if FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
         // add the current z-compensation
@@ -1059,18 +1034,17 @@ public:
 #endif // FEATURE_FIND_Z_ORIGIN
 
         // add the current manual z-steps
-        value += Printer::directPositionCurrentSteps[Z_AXIS];
+        value += Printer::directCurrentSteps[Z_AXIS];
 
         return value;
-
     } // currentZPositionSteps
 
-    static inline float currentZPosition()
+    static inline float currentZPositionMM()
     {
         if (Printer::ZMode == Z_VALUE_MODE_LAYER)
         {
             // show the G-Code Commanded Z //offset negativ, das ist hier uninteressant.
-            return (queuePositionCurrentSteps[Z_AXIS] + Extruder::current->zOffset) * Printer::invAxisStepsPerMM[Z_AXIS];
+            return (currentSteps[Z_AXIS] + Extruder::current->zOffset) * Printer::invAxisStepsPerMM[Z_AXIS];
         }
 
         // return all values in [mm]
@@ -1082,7 +1056,6 @@ public:
 
             // When we see Z-Min the Extruder::current->zOffset (negative number) is not what we want to see. We want to see the diff with sensor-zeroing.
             fvalue -= (float)Extruder::current->zOffset; //adds z-Offset for T1 again to really show the axis-scale towards z-min hardware switch.
-
         }
 
         else if (Printer::ZMode == Z_VALUE_MODE_SURFACE)
@@ -1098,18 +1071,9 @@ public:
         }
 
         fvalue *= Printer::invAxisStepsPerMM[Z_AXIS];
+
         return fvalue;
-
-    } // currentZPosition
-
-    static inline void currentPosition(float &xp,float &yp,float &zp)
-    {
-        // return all values in [mm]
-        xp = currentXPosition();
-        yp = currentYPosition();
-        zp = currentZPosition();
-
-    } // currentPosition
+    } // currentZPositionMM
 
     static INLINE void insertStepperHighDelay()
     {
@@ -1121,13 +1085,16 @@ public:
     static void constrainQueueDestinationCoords();
     static void constrainDirectDestinationCoords();
     static void updateDerivedParameter();
-    static void updateCurrentPosition(bool copyLastCmd = false);
     static void switchEverythingOff();
     static void updateAdvanceFlags();
+	static void setXAxisSteps(int32_t x);
+	static void setYAxisSteps(int32_t y);
+	static void setZAxisSteps(int32_t z);
+	static void setEAxisSteps(int32_t e);
     static void setup();
-    static uint8_t setDestinationStepsFromGCode(GCode *com);
-    static void moveToCoordinateMM(float x,float y,float z,float e,float feedrate);
-	static void moveRelativeDistanceInSteps(long x, long y, long z, long e, float feedrate, bool waitEnd, bool check_endstop);
+    static bool queueGCodeCoordinates(GCode *com);
+    static void queueFloatCoordinates(float x, float y, float z, float e, float feedrate);
+	static void queueRelativeStepsCoordinates(long x, long y, long z, long e, float feedrate, bool waitEnd, bool check_endstop);
     static void homeDigits();
     static void homeAxis(bool xaxis,bool yaxis,bool zaxis); /// Home axis
     static void setOrigin(float xOff,float yOff,float zOff);
@@ -1169,7 +1136,6 @@ private:
     static void homeXAxis();
     static void homeYAxis();
     static void homeZAxis();
-
 };
 
 #endif // PRINTER_H

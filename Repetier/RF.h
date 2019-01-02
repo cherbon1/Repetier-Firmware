@@ -427,42 +427,38 @@
 /*
 The following variables are used for movements in x/y/z direction:
 
-- Printer::queuePositionTargetSteps[x/y/z]
+- Printer::destinationSteps[x/y/z]
   - unit is [steps]
   - holds the position which shall be reached through the g-codes which are currently within the queue
   - this is not the position to which the printer is heading at the moment, because the printer is heading always to one position (from one g-code) and the queue can contain several g-codes
 
-- Printer::queuePositionLastSteps[x/y/z]
+- Printer::destinationStepsLast[x/y/z]
   - unit is [steps]
-  - holds the last position which has been calculated as queuePositionTargetSteps
-  - in most cases, the value of queuePositionLastSteps is identical to the value of queuePositionTargetSteps, the values of these variables are different only while a new position is calculated
+  - holds the last position which has been calculated as destinationSteps
+  - in most cases, the value of destinationStepsLast is identical to the value of destinationSteps, the values of these variables are different only while a new position is calculated
 
-- Printer::queuePositionLastMM[x/y/z]
+- Printer::destinationMMLast[x/y/z]
   - unit is [mm]
-  - the rest is identical to queuePositionLastSteps
+  - the rest is identical to destinationStepsLast
 
-- Printer::queuePositionCommandMM[x/y/z]
-  - unit is [mm]
-  - in most cases, the value of queuePositionCommandMM is identical to the value of queuePositionLastMM, the values of these variables are different only while a new command is processed
-
-- Printer::queuePositionCurrentSteps[x/y/z]
+- Printer::currentSteps[x/y/z]
   - unit is [steps]
   - holds the position which has been reached through the movements from the queue
-  - the value of queuePositionCurrentSteps represents the current position of the printer in x, y and z direction
+  - the value of currentSteps represents the current position of the printer in x, y and z direction
 
 - Printer::stepperDirection[x/y/z]
   - holds the direction of the axes as it is requested by the currently processed movement from the queue
 
-- Printer::directPositionTargetSteps[x/y/z]
+- Printer::directDestinationSteps[x/y/z]
   - unit is [steps]
   - holds the position which shall be reached through direct movements, e.g. from the manual buttons or from the direct pause/continue functionality
 
-- Printer::directPositionLastSteps[x/y/z]
+- Printer::directDestinationStepsLast[x/y/z]
   - unit is [steps]
-  - holds the last position which has been calculated as directPositionTargetSteps
-  - in most cases, the value of directPositionLastSteps is identical to the value of directPositionTargetSteps, the values of these variables are different only while a new position is calculated
+  - holds the last position which has been calculated as directDestinationSteps
+  - in most cases, the value of directDestinationStepsLast is identical to the value of directDestinationSteps, the values of these variables are different only while a new position is calculated
 
-- Printer::directPositionCurrentSteps[x/y/z]
+- Printer::directCurrentSteps[x/y/z]
   - unit is [steps]
   - holds the position which has been reached through direct movements, e.g. from the manual buttons or from the direct pause/continue functionality
 
@@ -485,16 +481,16 @@ The following variables are used for movements in x/y/z direction:
   - holds the position which has been reached through the z-compensation
 
 - the current x/y position of the printer in [steps] is:
-  - Printer::queuePositionCurrentSteps[x/y] + directPositionCurrentSteps[x/y]
+  - Printer::currentSteps[x/y] + directCurrentSteps[x/y]
   - note that an additional, extruder-dependent origin can be used/set
   - see also:
-    - Printer::currentXPosition()
-    - Printer::currentYPosition()
+    - Printer::currentXPositionMM()
+    - Printer::currentYPositionMM()
 
 - the current z position of the printer in [steps] is:
-  - Printer::queuePositionCurrentSteps[z] + directPositionCurrentSteps[z] + compensatedPositionCurrentStepsZ
+  - Printer::currentSteps[z] + directCurrentSteps[z] + compensatedPositionCurrentStepsZ
   - see also:
-    - Printer::currentZPosition()
+    - Printer::currentZPositionMM()
 
 */
 

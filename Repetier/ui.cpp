@@ -1404,7 +1404,7 @@ void UIDisplay::parse(char *txt,bool ram)
                         }
                         else
                         {
-                            fvalue = Printer::currentXPosition();
+                            fvalue = Printer::currentXPositionMM();
                         }
                     }
                     else if(c2=='1')                                                                    // %x1 : Y position
@@ -1416,7 +1416,7 @@ void UIDisplay::parse(char *txt,bool ram)
                         }
                         else
                         {
-                            fvalue = Printer::currentYPosition();
+                            fvalue = Printer::currentYPositionMM();
                         }
                     }
                     else if(c2=='2')                                                                    // %x2 : Z position
@@ -1428,7 +1428,7 @@ void UIDisplay::parse(char *txt,bool ram)
                         }
                         else
                         {
-                            fvalue = Printer::currentZPosition();
+                            fvalue = Printer::currentZPositionMM();
                         }
                     }
                     else                                                                                // %x3 : Current extruder position
@@ -1440,7 +1440,7 @@ void UIDisplay::parse(char *txt,bool ram)
                         }
                         else
                         {
-                            fvalue = (float)Printer::queuePositionLastSteps[E_AXIS]*Printer::invAxisStepsPerMM[E_AXIS];
+                            fvalue = (float)Printer::destinationStepsLast[E_AXIS]*Printer::invAxisStepsPerMM[E_AXIS];
                         }
                     }
 
@@ -3198,12 +3198,12 @@ void UIDisplay::nextPreviousAction(int8_t next)
         case UI_ACTION_EPOSITION:
         {
 #if EXTRUDER_ALLOW_COLD_MOVE
-			Printer::moveRelativeDistanceInSteps(0,0,0, Printer::axisStepsPerMM[E_AXIS]*increment / Printer::extrusionFactor, UI_SET_EXTRUDER_FEEDRATE, true, false); //klappt nicht in Pause!!
+			Printer::queueRelativeStepsCoordinates(0,0,0, Printer::axisStepsPerMM[E_AXIS]*increment / Printer::extrusionFactor, UI_SET_EXTRUDER_FEEDRATE, true, false); //klappt nicht in Pause!!
             Commands::printCurrentPosition();
 #else
             if( Extruder::current->tempControl.targetTemperatureC > UI_SET_MIN_EXTRUDER_TEMP )
             {
-				Printer::moveRelativeDistanceInSteps(0,0,0, Printer::axisStepsPerMM[E_AXIS]*increment / Printer::extrusionFactor, UI_SET_EXTRUDER_FEEDRATE, true, false);
+				Printer::queueRelativeStepsCoordinates(0,0,0, Printer::axisStepsPerMM[E_AXIS]*increment / Printer::extrusionFactor, UI_SET_EXTRUDER_FEEDRATE, true, false);
                 Commands::printCurrentPosition();
             }
             else
@@ -3293,7 +3293,7 @@ void UIDisplay::nextPreviousAction(int8_t next)
 
             if(extruder[1].id == Extruder::current->id){
                 Printer::extruderOffset[Z_AXIS] = -Extruder::current->zOffset*Printer::invAxisStepsPerMM[Z_AXIS]; //+mm positiv
-                if(Printer::areAxisHomed()) Printer::moveToCoordinateMM(IGNORE_COORDINATE,IGNORE_COORDINATE,IGNORE_COORDINATE,IGNORE_COORDINATE,IGNORE_COORDINATE);
+                if(Printer::areAxisHomed()) Printer::queueFloatCoordinates(IGNORE_COORDINATE,IGNORE_COORDINATE,IGNORE_COORDINATE,IGNORE_COORDINATE,IGNORE_COORDINATE);
             }
             break;
         }
@@ -4574,7 +4574,7 @@ void UIDisplay::executeAction(int action)
             }
             case UI_ACTION_SET_XY_ORIGIN:
             {
-                Printer::setOrigin(-Printer::queuePositionLastMM[X_AXIS],-Printer::queuePositionLastMM[Y_AXIS],Printer::originOffsetMM[Z_AXIS]);
+                Printer::setOrigin(-Printer::destinationMMLast[X_AXIS],-Printer::destinationMMLast[Y_AXIS],Printer::originOffsetMM[Z_AXIS]);
                 BEEP_ACCEPT_SET_POSITION
                 break;
             }
@@ -4925,7 +4925,7 @@ void UIDisplay::executeAction(int action)
             }
             case UI_ACTION_SET_E_ORIGIN:
             {
-                Printer::queuePositionLastSteps[E_AXIS] = 0;
+				Printer::setEAxisSteps(0); //G92 E0
                 break;
             }
             case UI_ACTION_EXTRUDER_RELATIVE:

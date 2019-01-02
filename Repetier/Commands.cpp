@@ -139,15 +139,18 @@ void Commands::waitUntilEndOfAllMoves()
 
 void Commands::printCurrentPosition()
 {
-    float x,y,z;
-    Printer::currentPosition(x,y,z);
+	float x = Printer::currentXPositionMM();
+	float y = Printer::currentYPositionMM();
+	float z = Printer::currentZPositionMM();
+
     x += Printer::originOffsetMM[X_AXIS];
     y += Printer::originOffsetMM[Y_AXIS];
     z += Printer::originOffsetMM[Z_AXIS];
+
     Com::printF(Com::tXColon,x*(Printer::unitIsInches?0.03937:1),2);
     Com::printF(Com::tSpaceYColon,y*(Printer::unitIsInches?0.03937:1),2);
     Com::printF(Com::tSpaceZColon,z*(Printer::unitIsInches?0.03937:1),2);
-    Com::printFLN(Com::tSpaceEColon,Printer::queuePositionLastSteps[E_AXIS]*Printer::invAxisStepsPerMM[E_AXIS]*(Printer::unitIsInches?0.03937:1),2);
+    Com::printFLN(Com::tSpaceEColon, Printer::destinationStepsLast[E_AXIS] * Printer::invAxisStepsPerMM[E_AXIS] * (Printer::unitIsInches ? 0.03937 : 1),2);
 } // printCurrentPosition
 
 
@@ -431,9 +434,9 @@ void Commands::executeGCode(GCode *com)
             {
                 Printer::setNoDestinationCheck(com->S!=0);
             }
-            if(Printer::setDestinationStepsFromGCode(com)) // For X Y Z E F
+            if(Printer::queueGCodeCoordinates(com)) // For X Y Z E F
             {
-                PrintLine::prepareQueueMove(ALWAYS_CHECK_ENDSTOPS,true, Printer::feedrate);
+                PrintLine::prepareQueueMove(ALWAYS_CHECK_ENDSTOPS, true, Printer::feedrate);
             }
             break;
         }
@@ -456,11 +459,14 @@ void Commands::executeGCode(GCode *com)
             }
 
             float position[3];
-            Printer::lastCalculatedPosition(position[X_AXIS],position[Y_AXIS],position[Z_AXIS]); //fill with queuePositionLastMM[]
-            if(!Printer::setDestinationStepsFromGCode(com)) break; // For X Y Z E F
+			position[X_AXIS] = Printer::destinationMMLast[X_AXIS];
+			position[Y_AXIS] = Printer::destinationMMLast[Y_AXIS];
+			position[Z_AXIS] = Printer::destinationMMLast[Z_AXIS];
+
+            if(!Printer::queueGCodeCoordinates(com)) break; // For X Y Z E F
 
             float offset[2] = {Printer::convertToMM(com->hasI()?com->I:0),Printer::convertToMM(com->hasJ()?com->J:0)};
-            float target[4] = {Printer::queuePositionLastMM[X_AXIS],Printer::queuePositionLastMM[Y_AXIS],Printer::queuePositionLastMM[Z_AXIS],Printer::queuePositionTargetSteps[E_AXIS]*Printer::invAxisStepsPerMM[E_AXIS]};
+            float target[4] = {Printer::destinationMMLast[X_AXIS],Printer::destinationMMLast[Y_AXIS],Printer::destinationMMLast[Z_AXIS],Printer::destinationSteps[E_AXIS]*Printer::invAxisStepsPerMM[E_AXIS]};
             float r;
             if (com->hasR())
             {
@@ -612,11 +618,10 @@ void Commands::executeGCode(GCode *com)
             uint8_t home_all_axis = (com->hasNoXYZ() && !com->hasE());
             if(com->hasE())
             {
-                Printer::queuePositionLastSteps[E_AXIS] = 0;
+				Printer::setEAxisSteps(0); // Wie G92 E0
             }
             if(home_all_axis || !com->hasNoXYZ())
                 Printer::homeAxis(home_all_axis || com->hasX(),home_all_axis || com->hasY(),home_all_axis || com->hasZ());
-            Printer::updateCurrentPosition();
         }
         break;
 
@@ -709,7 +714,7 @@ void Commands::executeGCode(GCode *com)
                     GCode::executeString( szTemp );
 
                     // in order to leave the hole, we must return to our start position
-                    exitZ = Printer::queuePositionLastMM[Z_AXIS];
+                    exitZ = Printer::destinationMMLast[Z_AXIS];
                 }
 
                 // drill the hole
@@ -758,20 +763,14 @@ void Commands::executeGCode(GCode *com)
                 float yOff = Printer::originOffsetMM[Y_AXIS];
                 float zOff = Printer::originOffsetMM[Z_AXIS];
 
-                if(com->hasX()) xOff = Printer::convertToMM(com->X)-Printer::queuePositionLastMM[X_AXIS];
-                if(com->hasY()) yOff = Printer::convertToMM(com->Y)-Printer::queuePositionLastMM[Y_AXIS];
-                if(com->hasZ()) zOff = Printer::convertToMM(com->Z)-Printer::queuePositionLastMM[Z_AXIS];
+                if(com->hasX()) xOff = Printer::convertToMM(com->X) - Printer::destinationMMLast[X_AXIS];
+                if(com->hasY()) yOff = Printer::convertToMM(com->Y) - Printer::destinationMMLast[Y_AXIS];
+                if(com->hasZ()) zOff = Printer::convertToMM(com->Z) - Printer::destinationMMLast[Z_AXIS];
                 Printer::setOrigin(xOff,yOff,zOff);
             }
             if(com->hasE())
             {
-                Printer::queuePositionTargetSteps[E_AXIS] = Printer::queuePositionLastSteps[E_AXIS] = Printer::convertToMM(com->E) * Printer::axisStepsPerMM[E_AXIS];
-                /* Repetier: https://github.com/repetier/Repetier-Firmware/commit/a63c660289b760faf033fdfd86bbc69c1050cfc9 ?
-                  Printer::destinationSteps[E_AXIS] = Printer::currentPositionSteps[E_AXIS] = Printer::convertToMM(com->E) * Printer::axisStepsPerMM[E_AXIS];
-                wissen:
-                Printer::queuePositionTargetSteps[axis] <---> Printer::destinationSteps[axis]
-                Printer::queuePositionCurrentSteps[axis] <---> Printer::currentPositionSteps[axis]
-                */
+				Printer::setEAxisSteps(Printer::convertToMM(com->E) * Printer::axisStepsPerMM[E_AXIS]);
             }
             break;
         }
@@ -972,7 +971,7 @@ void Commands::executeGCode(GCode *com)
                                 && actExtruder->waitRetractUnits > 0
                                 && actExtruder->tempControl.currentTemperatureC >= actExtruder->waitRetractTemperature)
                             {
-                                Printer::moveRelativeDistanceInSteps(0,0,0,-actExtruder->waitRetractUnits * Printer::axisStepsPerMM[E_AXIS],actExtruder->maxFeedrate,false,false);
+                                Printer::queueRelativeStepsCoordinates(0,0,0,-actExtruder->waitRetractUnits * Printer::axisStepsPerMM[E_AXIS],actExtruder->maxFeedrate,false,false);
                                 retracted = 1;
                             }
                         }
@@ -995,7 +994,7 @@ void Commands::executeGCode(GCode *com)
 #if RETRACT_DURING_HEATUP
                     if (retracted && actExtruder==Extruder::current)
                     {
-						Printer::moveRelativeDistanceInSteps(0,0,0,actExtruder->waitRetractUnits * Printer::axisStepsPerMM[E_AXIS],actExtruder->maxFeedrate,false,false);
+						Printer::queueRelativeStepsCoordinates(0,0,0,actExtruder->waitRetractUnits * Printer::axisStepsPerMM[E_AXIS],actExtruder->maxFeedrate,false,false);
                     }
 #endif // RETRACT_DURING_HEATUP
 #endif // NUM_EXTRUDER>0
