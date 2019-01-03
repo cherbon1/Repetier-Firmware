@@ -866,7 +866,7 @@ void UIDisplay::parse(char *txt,bool ram)
             case 'H':
             {
                 if(c2=='B')         addLong(g_nActiveHeatBed,1);                                        // %HB : active heat bed z matrix
-                else if(c2=='O')    addFloat((float)g_offsetZCompensationSteps * Printer::invAxisStepsPerMM[Z_AXIS] * 1000.0f,3,0); // %HO : active heat bed min z offset in um
+                else if(c2=='O')    addFloat((float)g_offsetZCompensationSteps * Printer::axisMMPerSteps[Z_AXIS] * 1000.0f,3,0); // %HO : active heat bed min z offset in um
                 break;
             }
 #endif // FEATURE_HEAT_BED_Z_COMPENSATION
@@ -1392,7 +1392,6 @@ void UIDisplay::parse(char *txt,bool ram)
             {
                 char    bDefect = false;
 
-
                 if(c2>='0' && c2<='3')
                 {
                     if(c2=='0')                                                                         // %x0 : X position
@@ -1440,7 +1439,7 @@ void UIDisplay::parse(char *txt,bool ram)
                         }
                         else
                         {
-                            fvalue = (float)Printer::destinationStepsLast[E_AXIS]*Printer::invAxisStepsPerMM[E_AXIS];
+                            fvalue = Printer::destinationMM[E_AXIS];
                         }
                     }
 
@@ -1813,7 +1812,7 @@ void UIDisplay::parse(char *txt,bool ram)
                 if(c2=='0')      addFloat(extruder[0].stepsPerMM,3,0);                                                // %S0 : Steps per mm extruder0
                 else if(c2=='1') addFloat(extruder[1].stepsPerMM,3,0);                                                // %S1 : Steps per mm extruder1
                 else if(c2=='e') addFloat(Extruder::current->stepsPerMM,3,0);                                         // %Se : Steps per mm current extruder
-                else if(c2=='z') addFloat(g_nManualSteps[Z_AXIS] * Printer::invAxisStepsPerMM[Z_AXIS] * 1000,4,0);    // %Sz : Mikrometer per Z-Single_Step (Z_Axis)
+                else if(c2=='z') addFloat(g_nManualSteps[Z_AXIS] * Printer::axisMMPerSteps[Z_AXIS] * 1000,4,0);    // %Sz : Mikrometer per Z-Single_Step (Z_Axis)
                 else if(c2=='M' && col<MAX_COLS){ if(g_ZMatrixChangedInRam) printCols[col++]='*'; }                   // %SM : Matrix has changed in Ram and is ready to Save. -> *)
 #if FEATURE_WORK_PART_Z_COMPENSATION || FEATURE_HEAT_BED_Z_COMPENSATION
                 else if(c2=='s') addFloat(g_scanStartZLiftMM,1,1);                                                    // %Ss : active current value of HEAT_BED_SCAN_Z_START_MM
@@ -2036,17 +2035,17 @@ void UIDisplay::parse(char *txt,bool ram)
             {
                 if(c2=='L')                                                                             // %LL : Last Layer (Direct + Queue + Extr. Zoffset)
                 {
-                    addFloat(float(Printer::queuePositionZLayerLast*Printer::invAxisStepsPerMM[Z_AXIS]),3,2);
+                    addFloat(float(Printer::queuePositionZLayerLast*Printer::axisMMPerSteps[Z_AXIS]),3,2);
                     break;
                 }
                 else if(c2=='C')                                                                        // %LC : Current Layer (Direct + Queue + Extr. Zoffset)
                 {
-                    addFloat(float(Printer::queuePositionZLayerCurrent*Printer::invAxisStepsPerMM[Z_AXIS]),3,2);
+                    addFloat(float(Printer::queuePositionZLayerCurrent*Printer::axisMMPerSteps[Z_AXIS]),3,2);
                     break;
                 }
                 else if(c2=='H')                                                                        // %LH : Layer Height
                 {
-                    addFloat(float(Printer::queuePositionZLayerCurrent-Printer::queuePositionZLayerLast)*Printer::invAxisStepsPerMM[Z_AXIS],1,2);
+                    addFloat(float(Printer::queuePositionZLayerCurrent-Printer::queuePositionZLayerLast)*Printer::axisMMPerSteps[Z_AXIS],1,2);
                     break;
                 }
                 else if(c2=='P')                                                                        // %LP : ECMP %
@@ -2056,12 +2055,12 @@ void UIDisplay::parse(char *txt,bool ram)
                 }
                 else if(c2=='m')                                                                        // %Lm : g_minZCompensationSteps
                 {
-                    addFloat(float(g_minZCompensationSteps*Printer::invAxisStepsPerMM[Z_AXIS]),1,2);
+                    addFloat(float(g_minZCompensationSteps*Printer::axisMMPerSteps[Z_AXIS]),1,2);
                     break;
                 }
                 else if(c2=='M')                                                                        // %LM : g_maxZCompensationSteps
                 {
-                    addFloat(float(g_maxZCompensationSteps*Printer::invAxisStepsPerMM[Z_AXIS]),2,2);
+                    addFloat(float(g_maxZCompensationSteps*Printer::axisMMPerSteps[Z_AXIS]),2,2);
                     break;
                 }
                 break;
@@ -2071,20 +2070,15 @@ void UIDisplay::parse(char *txt,bool ram)
             {
                 if(c2=='x')                                                                             // %wx : current wobblefix offset in x [um] (Bauchtanz)
                 {
-                    addInt(Printer::wobblefixOffset[X_AXIS],4);
+                    addInt(Printer::lastWobbleFixOffset[X_AXIS] * 1000,4);
                     break;
                 }
                 else if(c2=='y')                                                                        // %wy : current wobblefix offset in y [um] (Bauchtanz)
                 {
-                    addInt(Printer::wobblefixOffset[Y_AXIS],4);
+                    addInt(Printer::lastWobbleFixOffset[Y_AXIS] * 1000,4);
                     break;
                 }
-                /*
-                else if(c2=='z')                                                                        // %wz : current wobblefix offset in z [um] (Hub)
-                {
-                    addInt(Printer::wobblefixOffset[Z_AXIS],4);
-                    break;
-                }*/
+
                 else if(c2=='a')                                                                        // %wa : current wobblefix amplitude for X
                 {
                     addInt(Printer::wobbleAmplitudes[0],4);
@@ -2099,17 +2093,7 @@ void UIDisplay::parse(char *txt,bool ram)
                 {
                     addInt(Printer::wobbleAmplitudes[2],4);
                     break;
-                }/*
-                else if(c2=='d')                                                                        // %wd : current wobblefix amplitude for Z-lift
-                {
-                    addInt(Printer::wobbleAmplitudes[3],4);
-                    break;
                 }
-                else if(c2=='p')                                                                        // %wp : current wobblefix phase for Z-lift (Hub)
-                {
-                    addInt(Printer::wobblePhaseZ,4);
-                    break;
-                }*/
                 else if(c2=='P')                                                                        // %wP : current wobblefix phase for YX-wobble (Bauchtanz)
                 {
                     addInt( long(float(Printer::wobblePhaseXY)*1.8f) ,4);
@@ -3198,12 +3182,12 @@ void UIDisplay::nextPreviousAction(int8_t next)
         case UI_ACTION_EPOSITION:
         {
 #if EXTRUDER_ALLOW_COLD_MOVE
-			Printer::queueRelativeStepsCoordinates(0,0,0, Printer::axisStepsPerMM[E_AXIS]*increment / Printer::extrusionFactor, UI_SET_EXTRUDER_FEEDRATE, true, false); //klappt nicht in Pause!!
+			Printer::queueRelativeMMCoordinates(0, 0, 0, (float)increment/Printer::extrusionFactor, UI_SET_EXTRUDER_FEEDRATE, true, false); //klappt nicht in Pause!!
             Commands::printCurrentPosition();
 #else
             if( Extruder::current->tempControl.targetTemperatureC > UI_SET_MIN_EXTRUDER_TEMP )
             {
-				Printer::queueRelativeStepsCoordinates(0,0,0, Printer::axisStepsPerMM[E_AXIS]*increment / Printer::extrusionFactor, UI_SET_EXTRUDER_FEEDRATE, true, false);
+				Printer::queueRelativeMMCoordinates(0,0,0, (float)increment/Printer::extrusionFactor, UI_SET_EXTRUDER_FEEDRATE, true, false);
                 Commands::printCurrentPosition();
             }
             else
@@ -3282,7 +3266,7 @@ void UIDisplay::nextPreviousAction(int8_t next)
         case UI_ACTION_EXTRUDER_OFFSET_Z:
         {
             //Das hier ist nur dazu gedacht, um eine Tip-Down-Nozzle auf per ToolChange auf die Korrekte Höhe zu justieren.
-            float   fTemp = extruder[1].zOffset * Printer::invAxisStepsPerMM[Z_AXIS]; //mm negativ
+            float   fTemp = extruder[1].zOffset * Printer::axisMMPerSteps[Z_AXIS]; //mm negativ
             INCREMENT_MIN_MAX(fTemp,0.025,-2,0);
             extruder[1].zOffset = int32_t(fTemp * Printer::axisStepsPerMM[Z_AXIS]); //wieder zu steps negativ
 
@@ -3292,7 +3276,7 @@ void UIDisplay::nextPreviousAction(int8_t next)
 #endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
 
             if(extruder[1].id == Extruder::current->id){
-                Printer::extruderOffset[Z_AXIS] = -Extruder::current->zOffset*Printer::invAxisStepsPerMM[Z_AXIS]; //+mm positiv
+                Printer::extruderOffset[Z_AXIS] = -Extruder::current->zOffset*Printer::axisMMPerSteps[Z_AXIS]; //+mm positiv
                 if(Printer::areAxisHomed()) Printer::queueFloatCoordinates(IGNORE_COORDINATE,IGNORE_COORDINATE,IGNORE_COORDINATE,IGNORE_COORDINATE,IGNORE_COORDINATE);
             }
             break;

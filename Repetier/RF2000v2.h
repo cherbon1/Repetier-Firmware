@@ -632,6 +632,7 @@ on this endstop. */
 /** \brief If true, axis won't move to coordinates greater than the defined lengths below. */
 #define max_software_endstop_x              true
 #define max_software_endstop_y              true
+// sollte man das nicht "falsen" können?
 #define max_software_endstop_z              true
 
 /** \brief If during homing the endstop is reached, how many mm should the printer move back for the second try */

@@ -150,7 +150,7 @@ void Commands::printCurrentPosition()
     Com::printF(Com::tXColon,x*(Printer::unitIsInches?0.03937:1),2);
     Com::printF(Com::tSpaceYColon,y*(Printer::unitIsInches?0.03937:1),2);
     Com::printF(Com::tSpaceZColon,z*(Printer::unitIsInches?0.03937:1),2);
-    Com::printFLN(Com::tSpaceEColon, Printer::destinationStepsLast[E_AXIS] * Printer::invAxisStepsPerMM[E_AXIS] * (Printer::unitIsInches ? 0.03937 : 1),2);
+    Com::printFLN(Com::tSpaceEColon, Printer::destinationMM[E_AXIS] * (Printer::unitIsInches ? 0.03937 : 1),2);
 } // printCurrentPosition
 
 
@@ -466,7 +466,7 @@ void Commands::executeGCode(GCode *com)
             if(!Printer::queueGCodeCoordinates(com)) break; // For X Y Z E F
 
             float offset[2] = {Printer::convertToMM(com->hasI()?com->I:0),Printer::convertToMM(com->hasJ()?com->J:0)};
-            float target[4] = {Printer::destinationMMLast[X_AXIS],Printer::destinationMMLast[Y_AXIS],Printer::destinationMMLast[Z_AXIS],Printer::destinationSteps[E_AXIS]*Printer::invAxisStepsPerMM[E_AXIS]};
+            float target[4] = {Printer::destinationMMLast[X_AXIS],Printer::destinationMMLast[Y_AXIS],Printer::destinationMMLast[Z_AXIS],Printer::destinationMMLast[E_AXIS]};
             float r;
             if (com->hasR())
             {
@@ -971,7 +971,7 @@ void Commands::executeGCode(GCode *com)
                                 && actExtruder->waitRetractUnits > 0
                                 && actExtruder->tempControl.currentTemperatureC >= actExtruder->waitRetractTemperature)
                             {
-                                Printer::queueRelativeStepsCoordinates(0,0,0,-actExtruder->waitRetractUnits * Printer::axisStepsPerMM[E_AXIS],actExtruder->maxFeedrate,false,false);
+                                Printer::queueRelativeMMCoordinates(0, 0, 0, -actExtruder->waitRetractUnits, actExtruder->maxFeedrate, false, false);
                                 retracted = 1;
                             }
                         }
@@ -994,7 +994,7 @@ void Commands::executeGCode(GCode *com)
 #if RETRACT_DURING_HEATUP
                     if (retracted && actExtruder==Extruder::current)
                     {
-						Printer::queueRelativeStepsCoordinates(0,0,0,actExtruder->waitRetractUnits * Printer::axisStepsPerMM[E_AXIS],actExtruder->maxFeedrate,false,false);
+						Printer::queueRelativeMMCoordinates(0, 0, 0, actExtruder->waitRetractUnits, actExtruder->maxFeedrate, false, false);
                     }
 #endif // RETRACT_DURING_HEATUP
 #endif // NUM_EXTRUDER>0

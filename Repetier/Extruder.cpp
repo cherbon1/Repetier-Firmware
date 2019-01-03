@@ -401,7 +401,7 @@ void Extruder::selectExtruderById(uint8_t extruderId)
     Extruder::current = &extruder[extruderId];
 
     Printer::axisStepsPerMM[E_AXIS] = Extruder::current->stepsPerMM;
-    Printer::invAxisStepsPerMM[E_AXIS] = 1.0f/Printer::axisStepsPerMM[E_AXIS];
+    Printer::axisMMPerSteps[E_AXIS] = 1.0f/Printer::axisStepsPerMM[E_AXIS];
     Printer::maxFeedrate[E_AXIS] = Extruder::current->maxFeedrate;
     Printer::maxAccelerationMMPerSquareSecond[E_AXIS] = Printer::maxTravelAccelerationMMPerSquareSecond[E_AXIS] = Extruder::current->maxAcceleration;
     Printer::maxPrintAccelerationStepsPerSquareSecond[E_AXIS] = Printer::maxTravelAccelerationStepsPerSquareSecond[E_AXIS] = uint32_t(Printer::maxAccelerationMMPerSquareSecond[E_AXIS] * Printer::axisStepsPerMM[E_AXIS]);
@@ -417,9 +417,9 @@ void Extruder::selectExtruderById(uint8_t extruderId)
 #endif // USE_ADVANCE
 
     Extruder::current->tempControl.updateTempControlVars();
-    Printer::extruderOffset[X_AXIS] = -Extruder::current->xOffset*Printer::invAxisStepsPerMM[X_AXIS];
-    Printer::extruderOffset[Y_AXIS] = -Extruder::current->yOffset*Printer::invAxisStepsPerMM[Y_AXIS];
-    Printer::extruderOffset[Z_AXIS] = -Extruder::current->zOffset*Printer::invAxisStepsPerMM[Z_AXIS];
+    Printer::extruderOffset[X_AXIS] = -Extruder::current->xOffset*Printer::axisMMPerSteps[X_AXIS];
+    Printer::extruderOffset[Y_AXIS] = -Extruder::current->yOffset*Printer::axisMMPerSteps[Y_AXIS];
+    Printer::extruderOffset[Z_AXIS] = -Extruder::current->zOffset*Printer::axisMMPerSteps[Z_AXIS];
 
     //uncomment when inserting diameter for hotend x // Commands::changeFlowrateMultiply(static_cast<float>(Printer::extrudeMultiply)); // needed to adjust extrusionFactor to possibly different diameter
 

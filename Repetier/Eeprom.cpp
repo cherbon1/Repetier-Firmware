@@ -459,9 +459,9 @@ void EEPROM::storeDataIntoEEPROM(uint8_t corrupted)
         HAL::eprSetByte(o+EPR_EXTRUDER_PID_MAX,e->tempControl.pidMax);
         HAL::eprSetByte(o+EPR_EXTRUDER_SENSOR_TYPE,e->tempControl.sensorType);
 
-        HAL::eprSetFloat(o+EPR_EXTRUDER_X_OFFSET,e->xOffset*Printer::invAxisStepsPerMM[X_AXIS]);
-        HAL::eprSetFloat(o+EPR_EXTRUDER_Y_OFFSET,e->yOffset*Printer::invAxisStepsPerMM[Y_AXIS]);
-        HAL::eprSetFloat(o+EPR_EXTRUDER_Z_OFFSET,e->zOffset*Printer::invAxisStepsPerMM[Z_AXIS]);   //e->zOffset  Nibbels
+        HAL::eprSetFloat(o+EPR_EXTRUDER_X_OFFSET,e->xOffset*Printer::axisMMPerSteps[X_AXIS]);
+        HAL::eprSetFloat(o+EPR_EXTRUDER_Y_OFFSET,e->yOffset*Printer::axisMMPerSteps[Y_AXIS]);
+        HAL::eprSetFloat(o+EPR_EXTRUDER_Z_OFFSET,e->zOffset*Printer::axisMMPerSteps[Z_AXIS]);   //e->zOffset  Nibbels
 		
 #if RETRACT_DURING_HEATUP
         HAL::eprSetInt16(o+EPR_EXTRUDER_WAIT_RETRACT_TEMP,e->waitRetractTemperature);

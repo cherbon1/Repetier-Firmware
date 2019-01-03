@@ -113,79 +113,32 @@ void PrintLine::prepareQueueMove(uint8_t check_endstops,uint8_t pathOptimize, fl
     // Find direction
     for(uint8_t axis=0; axis < 4; axis++)
     {
-		p->delta[axis] = Printer::destinationSteps[axis] - Printer::destinationStepsLast[axis];
-
-#if FEATURE_HEAT_BED_Z_COMPENSATION
-        //find highest Z layer with extrusion beneath g_maxZCompensationSteps for calculating the bordercrossing infill additions
-        if(axis == Z_AXIS){
-            if(p->delta[Z_AXIS] != 0){ //z achsen aufstieg/abstieg -> wir müssen durch erkennung von extrusion mögliche zlifts filtern!
-                InterruptProtectedBlock noInts;
-                Printer::queuePositionZLayerCurrent_cand = Printer::destinationSteps[Z_AXIS] + Extruder::current->zOffset;
-                Printer::queuePositionZLayerCurrent_cand += Printer::directCurrentSteps[Z_AXIS];
-                noInts.unprotect();
-                if(Printer::queuePositionZLayerCurrent_cand == Printer::queuePositionZLayerCurrent) Printer::queuePositionZLayerCurrent_cand = 0; //nach zlift nicht neu bestimmen.
-            }
-        }
-#endif // FEATURE_HEAT_BED_Z_COMPENSATION
-
+		float axisDistanceUnscaledMM = Printer::destinationMM[axis] - Printer::destinationMMLast[axis];
+		
         if(axis == E_AXIS)
         {
-			axisDistanceMM[E_AXIS] = (Printer::destinationMM[E_AXIS] - Printer::destinationMMLast[E_AXIS]) * Printer::extrusionFactor
- #if FEATURE_DIGIT_FLOW_COMPENSATION
-                            * g_nDigitFlowCompensation_flowmulti
+#if FEATURE_DIGIT_FLOW_COMPENSATION
+			float axisDistanceScaledMM = axisDistanceUnscaledMM * Printer::extrusionFactor * g_nDigitFlowCompensation_flowmulti;
+#else
+			float axisDistanceScaledMM = axisDistanceUnscaledMM * Printer::extrusionFactor;
  #endif // FEATURE_DIGIT_FLOW_COMPENSATION
-            ;
-            Printer::extrudeMultiplyError += axisDistanceMM[E_AXIS] * Printer::axisStepsPerMM[E_AXIS];
-            p->delta[E_AXIS] = lroundf(Printer::extrudeMultiplyError);
-            Printer::extrudeMultiplyError -= p->delta[E_AXIS];
-
-            Printer::filamentPrinted += axisDistanceMM[E_AXIS];
-#if FEATURE_HEAT_BED_Z_COMPENSATION
-            //prüfe ob in der letzten angefahrenen Z layerhöhe extrudiert wird: dann kein zlift!
-            if(Printer::queuePositionZLayerCurrent_cand){
-                if(p->delta[E_AXIS] > 0){
-                    InterruptProtectedBlock noInts;
-                    long nCurrentPositionStepsZ = Printer::destinationSteps[Z_AXIS] + Extruder::current->zOffset;
-                    nCurrentPositionStepsZ += Printer::directCurrentSteps[Z_AXIS];
-                    noInts.unprotect();
-                    if(Printer::queuePositionZLayerCurrent_cand == nCurrentPositionStepsZ){
-                        Printer::queuePositionZLayerLast = Printer::queuePositionZLayerCurrent;
-                        Printer::queuePositionZLayerCurrent = Printer::queuePositionZLayerCurrent_cand;
-                        if(Printer::queuePositionZLayerLast > Printer::queuePositionZLayerCurrent){
-                            if(Printer::queuePositionZLayerCurrent < Printer::axisStepsPerMM[Z_AXIS]){ //1mm
-                                Printer::queuePositionZLayerLast = 0;
-                            }
-                        }
-#if AUTOADJUST_MIN_MAX_ZCOMP
-                        //Problemfall Startmade: Wenn die Startmade aus etwas weniger als 16 od. MOVE_CACHE_SIZE Teilstücken besteht, was man annehmen kann, dann springt der Pfadplaner über die Startmade einfach drüber und nimmt den ersten Layer als neue Referenz. Das hier ist Preprocessing mit Blick in die Zukunft. Kurz steht in g_minZCompensationSteps z.B. 0.35, anschließend aber z.B. korrekte 0.2mm als g_minZCompensationSteps.
-                        //würde das nicht klappen, hätten wir SenseOffset in der Startmade was maximal schlecht sein kann, weil evtl. die Digits zu hoch sind. -> Sollte mit dieser Automatik hier nicht vorkommen!
-                        if(g_auto_minmaxZCompensationSteps && !Printer::queuePositionZLayerLast && Printer::queuePositionZLayerCurrent < Printer::axisStepsPerMM[Z_AXIS]){ //1mm
-                            //hiermit hätten wir immer exakt 1 Lage, die der Drucker komplett mit dem Bettprofil abfährt, anschließend ab Layer 2 wird ausgeschlichen +ECMP.
-                            if(abs(Printer::queuePositionZLayerCurrent - Printer::axisStepsPerMM[Z_AXIS]*AUTOADJUST_STARTMADEN_AUSSCHLUSS) > 5 /* 2um um startmadenhöhe herum nichts tun */){
-                                g_minZCompensationSteps = Printer::queuePositionZLayerCurrent;
-                                g_maxZCompensationSteps = g_minZCompensationSteps + (g_offsetZCompensationSteps - g_ZCompensationMax) * 20; //max zulässige kompensation pro lage: 1/20 = 5%
-                            }
-                        }
-#endif //AUTOADJUST_MIN_MAX_ZCOMP
-                    }
-                    Printer::queuePositionZLayerCurrent_cand = 0;
-                }
-            }
-#endif // FEATURE_HEAT_BED_Z_COMPENSATION
-			axisDistanceMM[E_AXIS] = fabs(axisDistanceMM[E_AXIS]);
+			p->delta[E_AXIS]                       = lroundf(axisDistanceScaledMM * Printer::axisStepsPerMM[E_AXIS]);
+			axisDistanceMM[E_AXIS] = fabs(axisDistanceScaledMM);
+			Printer::filamentPrinted += axisDistanceScaledMM;
         }
 		else {
-			axisDistanceMM[axis] = fabs(Printer::destinationMM[axis] - Printer::destinationMMLast[axis]);
+			p->delta[axis]                       = lroundf(axisDistanceUnscaledMM * Printer::axisStepsPerMM[E_AXIS]);
+			axisDistanceMM[axis] = fabs(axisDistanceUnscaledMM);
 		}
+
+		//Update calculated coordinate.
+		Printer::destinationMMLast[axis] = Printer::destinationMM[axis];
+
         if(p->delta[axis] >= 0)
-            p->setPositiveDirectionForAxis(axis);
+			p->setPositiveDirectionForAxis(axis);
         else
             p->delta[axis] = -p->delta[axis];
         if(p->delta[axis]) p->setMoveOfAxis(axis);
-
-		//Update calculated coordinate.
-        Printer::destinationStepsLast[axis] = Printer::destinationSteps[axis];
-		Printer::destinationMMLast[axis] = Printer::destinationMM[axis];
     }
     if(p->isNoMove())
     {
@@ -193,6 +146,57 @@ void PrintLine::prepareQueueMove(uint8_t check_endstops,uint8_t pathOptimize, fl
             PrintLine::resetPathPlanner();
         return;         // No steps included
     }
+
+#if FEATURE_HEAT_BED_Z_COMPENSATION
+	if (p->isEPositiveMove() || p->isZMove()) {
+		InterruptProtectedBlock noInts;
+		long nCurrentPositionStepsZ = Printer::getDestinationSteps(Z_AXIS) + Printer::directCurrentSteps[Z_AXIS] + Extruder::current->zOffset;
+		noInts.unprotect();
+
+		// The following two conditions might not follow each other in one move but in serveral queued moves.
+		if (p->isZMove()) {
+			//z achsen aufstieg/abstieg -> wir müssen durch erkennung von extrusion mögliche zlifts filtern!
+			Printer::queuePositionZLayerGuessNew = (Printer::queuePositionZLayerGuessNew == Printer::queuePositionZLayerCurrent) ? 0 : nCurrentPositionStepsZ;
+			// =0 Diesen Layer haben wir schon erkannt. Reset.
+			// z.B. Nach z-Lift nicht neu bestimmen.			
+		}
+
+		if (p->isEPositiveMove())
+		{
+			/* IF extrusion move THEN accept the layer height as new */
+			//prüfe ob in der letzten angefahrenen Z layerhöhe extrudiert wird: dann kein zlift!
+			if (Printer::queuePositionZLayerGuessNew && Printer::queuePositionZLayerGuessNew == nCurrentPositionStepsZ) {
+				// shift layers
+				Printer::queuePositionZLayerLast = Printer::queuePositionZLayerCurrent; //current moves to last layer
+				Printer::queuePositionZLayerCurrent = Printer::queuePositionZLayerGuessNew; //New candidate layer moves to current layer
+
+				// if the new layer ist underneath the old layer (near the bed)
+				// then this means we can assume the last-layer as 0.
+				if (Printer::queuePositionZLayerLast > Printer::queuePositionZLayerCurrent) {
+					if (Printer::queuePositionZLayerCurrent < Printer::axisStepsPerMM[Z_AXIS]) { //1mm
+						Printer::queuePositionZLayerLast = 0;
+					}
+				}
+
+	#if AUTOADJUST_MIN_MAX_ZCOMP
+				//Problemfall Startmade: Wenn die Startmade aus etwas weniger als 16 od. MOVE_CACHE_SIZE Teilstücken besteht, was man annehmen kann, dann springt der Pfadplaner über die Startmade einfach drüber und nimmt den ersten Layer als neue Referenz. Das hier ist Preprocessing mit Blick in die Zukunft. Kurz steht in g_minZCompensationSteps z.B. 0.35, anschließend aber z.B. korrekte 0.2mm als g_minZCompensationSteps.
+				//würde das nicht klappen, hätten wir SenseOffset in der Startmade was maximal schlecht sein kann, weil evtl. die Digits zu hoch sind. -> Sollte mit dieser Automatik hier nicht vorkommen!
+				if (g_auto_minmaxZCompensationSteps && !Printer::queuePositionZLayerLast && Printer::queuePositionZLayerCurrent < Printer::axisStepsPerMM[Z_AXIS]) { 
+					// < 1mm
+					//hiermit hätten wir immer exakt 1 Lage, die der Drucker komplett mit dem Bettprofil abfährt, anschließend ab Layer 2 wird ausgeschlichen +ECMP.
+					if (abs(Printer::queuePositionZLayerCurrent - Printer::axisStepsPerMM[Z_AXIS] * AUTOADJUST_STARTMADEN_AUSSCHLUSS) > 5 /* 2um um startmadenhöhe herum nichts tun */) {
+						g_minZCompensationSteps = Printer::queuePositionZLayerCurrent;
+						g_maxZCompensationSteps = g_minZCompensationSteps + (g_offsetZCompensationSteps - g_ZCompensationMax) * 20; //max zulässige kompensation pro lage: 1/20 = 5%
+					}
+				}
+	#endif //AUTOADJUST_MIN_MAX_ZCOMP
+			}
+			Printer::queuePositionZLayerGuessNew = 0;
+		}
+	}
+#endif // FEATURE_HEAT_BED_Z_COMPENSATION
+
+
     float xydist2;
 
 #if ENABLE_BACKLASH_COMPENSATION
@@ -304,13 +308,13 @@ void PrintLine::prepareDirectMove(void)
                );
             p->delta[E_AXIS] = static_cast<int32_t>(Printer::extrudeMultiplyError);
             Printer::extrudeMultiplyError -= p->delta[E_AXIS];
-            Printer::filamentPrinted += p->delta[E_AXIS] * Printer::invAxisStepsPerMM[axis];
+            Printer::filamentPrinted += p->delta[E_AXIS] * Printer::axisMMPerSteps[axis];
         }
         if(p->delta[axis] >= 0)
             p->setPositiveDirectionForAxis(axis);
         else
             p->delta[axis] = -p->delta[axis];
-        axisDistanceMM[axis] = p->delta[axis] * Printer::invAxisStepsPerMM[axis];
+        axisDistanceMM[axis] = p->delta[axis] * Printer::axisMMPerSteps[axis];
         if(p->delta[axis]) p->setMoveOfAxis(axis);
         Printer::directDestinationStepsLast[axis] = Printer::directDestinationSteps[axis];
     }
@@ -957,7 +961,7 @@ void PrintLine::arc(float *position, float *target, float *offset, float radius,
     float center_axis0 = position[0] + offset[0];
     float center_axis1 = position[1] + offset[1];
     //float linear_travel = 0;              // target[axis_linear] - position[axis_linear];
-    float extruder_travel = (Printer::destinationSteps[E_AXIS] - Printer::destinationStepsLast[E_AXIS]) * Printer::invAxisStepsPerMM[E_AXIS];
+	float extruder_travel = Printer::destinationMM[E_AXIS] - Printer::destinationMMLast[E_AXIS];
     float r_axis0 = -offset[0];             // Radius vector from center to current location
     float r_axis1 = -offset[1];
     float rt_axis0 = target[0] - center_axis0;
@@ -1035,7 +1039,7 @@ void PrintLine::arc(float *position, float *target, float *offset, float radius,
     //arc_target[axis_linear] = position[axis_linear];
 
     // Initialize the extruder axis
-    arc_target[3] = Printer::destinationStepsLast[E_AXIS] * Printer::invAxisStepsPerMM[E_AXIS];
+    arc_target[3] = Printer::destinationMMLast[E_AXIS];
 
     for (i = 1; i<segments; i++)
     {
@@ -1445,7 +1449,7 @@ void PrintLine::performDirectSteps( void )
         }
         //fastest: 150..6000 Steps/s -> 0.15 bis 6 Steps/ms
         if(axis < 255){
-            moveinterval = uint16_t(Printer::invAxisStepsPerMM[axis]*262144); //bei 1mm/s sind das sekunden/Step -> *1000000 -> microsekunden/Step -> etwas schneller ist besser.
+            moveinterval = uint16_t(Printer::axisMMPerSteps[axis]*262144); //bei 1mm/s sind das sekunden/Step -> *1000000 -> microsekunden/Step -> etwas schneller ist besser.
         }
     }else{
         return;

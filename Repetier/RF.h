@@ -427,19 +427,14 @@
 /*
 The following variables are used for movements in x/y/z direction:
 
-- Printer::destinationSteps[x/y/z]
-  - unit is [steps]
-  - holds the position which shall be reached through the g-codes which are currently within the queue
-  - this is not the position to which the printer is heading at the moment, because the printer is heading always to one position (from one g-code) and the queue can contain several g-codes
-
-- Printer::destinationStepsLast[x/y/z]
-  - unit is [steps]
-  - holds the last position which has been calculated as destinationSteps
-  - in most cases, the value of destinationStepsLast is identical to the value of destinationSteps, the values of these variables are different only while a new position is calculated
+- Printer::destinationMM[x/y/z]
+  - unit is [mm]
+  - after a move is queued this is the new target coordinate
 
 - Printer::destinationMMLast[x/y/z]
   - unit is [mm]
-  - the rest is identical to destinationStepsLast
+  - the rest is identical to destinationMMLast
+
 
 - Printer::currentSteps[x/y/z]
   - unit is [steps]

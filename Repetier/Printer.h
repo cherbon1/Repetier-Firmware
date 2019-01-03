@@ -62,7 +62,7 @@ public:
 
     static uint8_t          menuMode;
     static float            axisStepsPerMM[];
-    static float            invAxisStepsPerMM[];
+    static float            axisMMPerSteps[];
     static float            maxFeedrate[];
     static float            homingFeedrate[];
     static float            maxAccelerationMMPerSquareSecond[];
@@ -91,8 +91,6 @@ public:
 #endif // FEATURE_DIGIT_FLOW_COMPENSATION
 
     static float            originOffsetMM[3];
-    static volatile long    destinationSteps[4];        // Target position in steps.
-    static volatile long    destinationStepsLast[4];          // Position in steps from origin.
 	static volatile float   destinationMM[4];           // Target in mm from origin.
     static volatile float   destinationMMLast[4];             // Position in mm from origin.
 
@@ -151,7 +149,7 @@ public:
     static volatile float   compensatedPositionOverPercE;
     static volatile float   compensatedPositionCollectTinyE;
 
-    static volatile long    queuePositionZLayerCurrent_cand;
+    static volatile long    queuePositionZLayerGuessNew;
     static volatile long    queuePositionZLayerCurrent;
     static volatile long    queuePositionZLayerLast;
 
@@ -244,7 +242,7 @@ public:
     static int8_t           wobblePhaseXY;
     //static int8_t           wobblePhaseZ;
     static int16_t          wobbleAmplitudes[3/*4*/]; //X, Y(X_0), Y(X_max), /*Z*/
-    static float            wobblefixOffset[2/*3*/];  //< last calculated target wobbleFixOffsets for display output.
+    static float            lastWobbleFixOffset[2/*3*/];  //< last calculated target wobbleFixOffsets for display output.
 #endif // FEATURE_Kurt67_WOBBLE_FIX
 
     static INLINE void setMenuMode(uint8_t mode,bool on)
@@ -980,19 +978,19 @@ public:
     static INLINE float targetXPosition()
     {
         // return all values in [mm]
-        return (float)(destinationSteps[X_AXIS] + directDestinationSteps[X_AXIS]) * invAxisStepsPerMM[X_AXIS];
+		return destinationMM[X_AXIS] + Printer::getDirectMM(X_AXIS);
     } // targetXPosition
 
     static INLINE float targetYPosition()
     {
         // return all values in [mm]
-        return (float)(destinationSteps[Y_AXIS] + directDestinationSteps[Y_AXIS]) * invAxisStepsPerMM[Y_AXIS];
+		return destinationMM[Y_AXIS] + Printer::getDirectMM(Y_AXIS);
     } // targetYPosition
 
     static inline float targetZPosition()
     {
-        // return all values in [mm]
-        float   fvalue = (float)(destinationSteps[Z_AXIS] + Printer::directDestinationSteps[Z_AXIS]);
+		//sum steps
+        float   fvalue = (float)Printer::directDestinationSteps[Z_AXIS];
 #if FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
         // add the current z-compensation
         fvalue += (float)Printer::compensatedPositionCurrentStepsZ;
@@ -1001,7 +999,11 @@ public:
 #if FEATURE_FIND_Z_ORIGIN
         fvalue += (float)g_nZOriginPosition[Z_AXIS];
 #endif // FEATURE_FIND_Z_ORIGIN
-        fvalue *= Printer::invAxisStepsPerMM[Z_AXIS];
+
+		// return all values in [mm]
+        fvalue *= Printer::axisMMPerSteps[Z_AXIS];
+
+		fvalue += destinationMM[Z_AXIS];
 
         return fvalue;
     } // targetZPosition
@@ -1009,13 +1011,13 @@ public:
     static inline float currentXPositionMM()
     {
         // return all values in [mm]
-        return (currentSteps[X_AXIS] + directCurrentSteps[X_AXIS]) * invAxisStepsPerMM[X_AXIS];
+        return (currentSteps[X_AXIS] + directCurrentSteps[X_AXIS]) * axisMMPerSteps[X_AXIS];
     } // currentXPositionMM
 
     static INLINE float currentYPositionMM()
     {
         // return all values in [mm]
-        return (currentSteps[Y_AXIS] + directCurrentSteps[Y_AXIS]) * invAxisStepsPerMM[Y_AXIS];
+        return (currentSteps[Y_AXIS] + directCurrentSteps[Y_AXIS]) * axisMMPerSteps[Y_AXIS];
     } // currentYPositionMM
 
     static inline long currentZPositionSteps()
@@ -1044,7 +1046,7 @@ public:
         if (Printer::ZMode == Z_VALUE_MODE_LAYER)
         {
             // show the G-Code Commanded Z //offset negativ, das ist hier uninteressant.
-            return (currentSteps[Z_AXIS] + Extruder::current->zOffset) * Printer::invAxisStepsPerMM[Z_AXIS];
+            return (currentSteps[Z_AXIS] + Extruder::current->zOffset) * Printer::axisMMPerSteps[Z_AXIS];
         }
 
         // return all values in [mm]
@@ -1070,7 +1072,7 @@ public:
 #endif // FEATURE_WORK_PART_Z_COMPENSATION
         }
 
-        fvalue *= Printer::invAxisStepsPerMM[Z_AXIS];
+        fvalue *= Printer::axisMMPerSteps[Z_AXIS];
 
         return fvalue;
     } // currentZPositionMM
@@ -1094,10 +1096,22 @@ public:
     static void setup();
     static bool queueGCodeCoordinates(GCode *com);
     static void queueFloatCoordinates(float x, float y, float z, float e, float feedrate);
-	static void queueRelativeStepsCoordinates(long x, long y, long z, long e, float feedrate, bool waitEnd, bool check_endstop);
+	static void queueRelativeStepsCoordinates(long x, long y, long z, long e, float feedrate, bool waitEnd, bool checkEndstop);
+	static void queueRelativeMMCoordinates(float x, float y, float z, float e, float feedrate, bool waitEnd, bool checkEndstop);
     static void homeDigits();
     static void homeAxis(bool xaxis,bool yaxis,bool zaxis); /// Home axis
     static void setOrigin(float xOff,float yOff,float zOff);
+	static void addKurtWobbleFixOffset(bool absolute);
+
+	static INLINE long getDestinationSteps(uint8_t axis)
+	{
+		return lroundf(Printer::destinationMM[axis] * Printer::axisStepsPerMM[axis]);
+	} // getDestinationSteps
+
+	static INLINE float getDirectMM(uint8_t axis)
+	{
+		return (float)Printer::directDestinationSteps[axis] * Printer::axisMMPerSteps[axis];
+	} // getDirectMM
 
     static INLINE uint8_t getFanSpeed(bool percent = false)
     {

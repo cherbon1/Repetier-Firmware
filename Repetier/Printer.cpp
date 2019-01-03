@@ -28,7 +28,7 @@ uint8_t         Printer::unitIsInches = 0;                              ///< 0 =
 
 //Stepper Movement Variables
 float           Printer::axisStepsPerMM[4] = {XAXIS_STEPS_PER_MM,YAXIS_STEPS_PER_MM,ZAXIS_STEPS_PER_MM,1};                   ///< Number of steps per mm needed.
-float           Printer::invAxisStepsPerMM[4] = {1.0f/XAXIS_STEPS_PER_MM,1.0f/YAXIS_STEPS_PER_MM,1.0f/ZAXIS_STEPS_PER_MM,1}; ///< Inverse of axisStepsPerMM for faster conversion
+float           Printer::axisMMPerSteps[4] = {1.0f/XAXIS_STEPS_PER_MM,1.0f/YAXIS_STEPS_PER_MM,1.0f/ZAXIS_STEPS_PER_MM,1}; ///< Inverse of axisStepsPerMM for faster conversion
 float           Printer::maxFeedrate[4] = {MAX_FEEDRATE_X, MAX_FEEDRATE_Y, MAX_FEEDRATE_Z, DIRECT_FEEDRATE_E};               ///< Maximum allowed feedrate. //DIRECT_FEEDRATE_E added by nibbels, wird aber überschrieben.
 float           Printer::homingFeedrate[3] = {HOMING_FEEDRATE_X_PRINT,HOMING_FEEDRATE_Y_PRINT,HOMING_FEEDRATE_Z_PRINT};      ///< dass zumindest etwas sinnvolles drin steht, wird überschrieben.
 
@@ -46,8 +46,6 @@ uint32_t        Printer::maxTravelAccelerationStepsPerSquareSecond[4];
 uint8_t         Printer::relativeCoordinateMode = false;                ///< Determines absolute (false) or relative Coordinates (true).
 uint8_t         Printer::relativeExtruderCoordinateMode = false;        ///< Determines Absolute or Relative E Codes while in Absolute Coordinates mode. E is always relative in Relative Coordinates mode.
 
-volatile long   Printer::destinationSteps[4] = {0,0,0,0};
-volatile long   Printer::destinationStepsLast[4] = {0,0,0,0};
 volatile float  Printer::destinationMM[4] = {0,0,0,0};
 volatile float  Printer::destinationMMLast[4] = {0,0,0,0};
 float           Printer::originOffsetMM[3] = {0,0,0};
@@ -138,7 +136,7 @@ volatile long   Printer::compensatedPositionCurrentStepsZ = 0;
 volatile float  Printer::compensatedPositionOverPercE = 0.0f;
 volatile float  Printer::compensatedPositionCollectTinyE = 0.0f;
 
-volatile long   Printer::queuePositionZLayerCurrent_cand = 0;
+volatile long   Printer::queuePositionZLayerGuessNew = 0;
 volatile long   Printer::queuePositionZLayerCurrent = 0;
 volatile long   Printer::queuePositionZLayerLast = 0;
 
@@ -230,29 +228,28 @@ uint8_t         Printer::motorMicroStepsModeValue[DRV8711_NUM_CHANNELS] = {0}; /
 #endif // FEATURE_ADJUSTABLE_MICROSTEPS
 
 #if FEATURE_Kurt67_WOBBLE_FIX
-
 int8_t Printer::wobblePhaseXY = 0; //+100 = +PI | -100 = -PI
-//int8_t Printer::wobblePhaseZ  = 0; //+100 = +PI | -100 = -PI
-int16_t Printer::wobbleAmplitudes[3/*4*/] = {0}; //X, Y(X_0), Y(X_max), /*Z*/
-float   Printer::wobblefixOffset[2/*3*/] = {0};                       ///< last calculated target wobbleFixOffsets for display output.
-
+int16_t Printer::wobbleAmplitudes[3] = {0}; //X, Y(X_0), Y(X_max), /*Z*/
+float   Printer::lastWobbleFixOffset[2] = {0}; ///< last calculated target wobbleFixOffsets for relative coordinates and display output.
 #endif // FEATURE_Kurt67_WOBBLE_FIX
-
 
 void Printer::constrainQueueDestinationCoords()
 {
     if(isNoDestinationCheck()) return;
 
 #if max_software_endstop_x == true
-    if (destinationSteps[X_AXIS] + directDestinationSteps[X_AXIS] > Printer::maxSteps[X_AXIS]) Printer::destinationSteps[X_AXIS] = Printer::maxSteps[X_AXIS] - directDestinationSteps[X_AXIS];
+    if (destinationMM[X_AXIS] + Printer::getDirectMM(X_AXIS) > Printer::maxSteps[X_AXIS] * Printer::axisMMPerSteps[X_AXIS])
+		Printer::destinationMM[X_AXIS] = Printer::maxSteps[X_AXIS] * Printer::axisMMPerSteps[X_AXIS] - Printer::getDirectMM(X_AXIS);
 #endif // max_software_endstop_x == true
 
 #if max_software_endstop_y == true
-    if (destinationSteps[Y_AXIS] + directDestinationSteps[Y_AXIS] > Printer::maxSteps[Y_AXIS]) Printer::destinationSteps[Y_AXIS] = Printer::maxSteps[Y_AXIS] - directDestinationSteps[Y_AXIS];
+    if (destinationMM[Y_AXIS] + Printer::getDirectMM(Y_AXIS) > Printer::maxSteps[Y_AXIS] * Printer::axisMMPerSteps[Y_AXIS])
+		Printer::destinationMM[Y_AXIS] = Printer::maxSteps[X_AXIS] * Printer::axisMMPerSteps[X_AXIS] - Printer::getDirectMM(Y_AXIS);
 #endif // max_software_endstop_y == true
 
 #if max_software_endstop_z == true
-    if (destinationSteps[Z_AXIS] + directDestinationSteps[Z_AXIS] > Printer::maxSteps[Z_AXIS]) Printer::destinationSteps[Z_AXIS] = Printer::maxSteps[Z_AXIS] - directDestinationSteps[Z_AXIS];
+    if (destinationMM[Z_AXIS] + Printer::getDirectMM(Z_AXIS) > Printer::maxSteps[Z_AXIS] * Printer::axisMMPerSteps[Z_AXIS])
+		Printer::destinationMM[Z_AXIS] = Printer::maxSteps[X_AXIS] * Printer::axisMMPerSteps[X_AXIS] - Printer::getDirectMM(Z_AXIS);
 #endif // max_software_endstop_z == true
 } // constrainQueueDestinationCoords
 
@@ -266,16 +263,20 @@ void Printer::constrainDirectDestinationCoords()
         return;
         // the pause-and-continue functionality must calculate the constrains by itself
     }
+
 #if max_software_endstop_x == true
-    if (destinationSteps[X_AXIS] + directDestinationSteps[X_AXIS] > Printer::maxSteps[X_AXIS]) Printer::directDestinationSteps[X_AXIS] = Printer::maxSteps[X_AXIS] - destinationSteps[X_AXIS];
+    if (Printer::getDestinationSteps(X_AXIS) + directDestinationSteps[X_AXIS] > Printer::maxSteps[X_AXIS] * Printer::axisMMPerSteps[X_AXIS])
+		Printer::directDestinationSteps[X_AXIS] = Printer::maxSteps[X_AXIS] - Printer::getDestinationSteps(X_AXIS);
 #endif // max_software_endstop_x == true
 
 #if max_software_endstop_y == true
-    if (destinationSteps[Y_AXIS] + directDestinationSteps[Y_AXIS] > Printer::maxSteps[Y_AXIS]) Printer::directDestinationSteps[Y_AXIS] = Printer::maxSteps[Y_AXIS] - destinationSteps[Y_AXIS];
+    if (Printer::getDestinationSteps(Y_AXIS) + directDestinationSteps[Y_AXIS] > Printer::maxSteps[Y_AXIS] * Printer::axisMMPerSteps[Y_AXIS])
+		Printer::directDestinationSteps[Y_AXIS] = Printer::maxSteps[Y_AXIS] - Printer::getDestinationSteps(Y_AXIS);
 #endif // max_software_endstop_y == true
 
 #if max_software_endstop_z == true
-    if (destinationSteps[Z_AXIS] + directDestinationSteps[Z_AXIS] > Printer::maxSteps[Z_AXIS]) Printer::directDestinationSteps[Z_AXIS] = Printer::maxSteps[Z_AXIS] - destinationSteps[Z_AXIS];
+    if (Printer::getDestinationSteps(Z_AXIS) + directDestinationSteps[Z_AXIS] > Printer::maxSteps[Z_AXIS] * Printer::axisMMPerSteps[Z_AXIS])
+		Printer::directDestinationSteps[Z_AXIS] = Printer::maxSteps[Z_AXIS] - Printer::getDestinationSteps(Z_AXIS);
 #endif // max_software_endstop_z == true
 } // constrainDirectDestinationCoords
 
@@ -298,7 +299,7 @@ void Printer::updateDerivedParameter()
 
     for(uint8_t axis = 0; axis < 4; axis++)
     {
-        invAxisStepsPerMM[axis] = 1.0f / axisStepsPerMM[axis];
+        axisMMPerSteps[axis] = 1.0f / axisStepsPerMM[axis];
 
 #if FEATURE_MILLING_MODE
         if( Printer::operatingMode == OPERATING_MODE_PRINT )
@@ -416,27 +417,23 @@ void Printer::updateAdvanceFlags()
 
 void Printer::setXAxisSteps(int32_t x) {
 	//G92 Xx:
-	Printer::destinationStepsLast[X_AXIS] = Printer::destinationSteps[X_AXIS] = x;
-	Printer::destinationMMLast[X_AXIS] = Printer::destinationMM[X_AXIS] = Printer::destinationStepsLast[X_AXIS] * invAxisStepsPerMM[X_AXIS] - Printer::extruderOffset[X_AXIS];
+	Printer::destinationMMLast[X_AXIS] = Printer::destinationMM[X_AXIS] = x * axisMMPerSteps[X_AXIS] - Printer::extruderOffset[X_AXIS];
 }
 void Printer::setYAxisSteps(int32_t y) {
 	//G92 Yx:
-	Printer::destinationStepsLast[Y_AXIS] = Printer::destinationSteps[Y_AXIS] = y;
-	Printer::destinationMMLast[Y_AXIS] = Printer::destinationMM[Y_AXIS] = Printer::destinationStepsLast[Y_AXIS] * invAxisStepsPerMM[Y_AXIS] - Printer::extruderOffset[Y_AXIS];
+	Printer::destinationMMLast[Y_AXIS] = Printer::destinationMM[Y_AXIS] = y * axisMMPerSteps[Y_AXIS] - Printer::extruderOffset[Y_AXIS];
 }
 void Printer::setZAxisSteps(int32_t z) {
 	//G92 Zx:
-	Printer::destinationStepsLast[Z_AXIS] = Printer::destinationSteps[Z_AXIS] = z;
-	Printer::destinationMMLast[Z_AXIS] = Printer::destinationMM[Z_AXIS] = Printer::destinationStepsLast[Z_AXIS] * invAxisStepsPerMM[Z_AXIS] - Printer::extruderOffset[Z_AXIS];
+	Printer::destinationMMLast[Z_AXIS] = Printer::destinationMM[Z_AXIS] = z * axisMMPerSteps[Z_AXIS] - Printer::extruderOffset[Z_AXIS];
 }
 void Printer::setEAxisSteps(int32_t e) {
 	//G92 Ex:
-	Printer::destinationStepsLast[E_AXIS] = Printer::destinationSteps[E_AXIS] = e;
-	Printer::destinationMMLast[E_AXIS] = Printer::destinationMM[E_AXIS] = Printer::destinationStepsLast[E_AXIS] * invAxisStepsPerMM[E_AXIS];
+	Printer::destinationMMLast[E_AXIS] = Printer::destinationMM[E_AXIS] = e * axisMMPerSteps[E_AXIS];
 }
 
 #if FEATURE_Kurt67_WOBBLE_FIX
-inline void addKurtWobbleFixOffset(float &x, float &y)
+void Printer::addKurtWobbleFixOffset(bool absoluteXYCoordinates)
 {
 	/*
 	Zielkoordinate in Z ist: "z"
@@ -453,22 +450,38 @@ inline void addKurtWobbleFixOffset(float &x, float &y)
 	float zweiPi = 6.2832f;   //2*Pi
 	float hundertstelPi = 0.031428f; //Pi/100
 	float spindelSteigung = 5.0f;      //[mm]
-	float zSchalterZ = Printer::currentZSteps * Printer::invAxisStepsPerMM[Z_AXIS];
+	float zSchalterZ = Printer::currentZSteps * Printer::axisMMPerSteps[Z_AXIS];
 
 	//wobble durch Bauchtanz der Druckplatte
 	//wobbleX oder wobbleY(x0) oder wobbleX(x245)
 	if (Printer::wobbleAmplitudes[0]) {
 		float anglePositionWobble = cos(zweiPi*(zSchalterZ / spindelSteigung) - (float)Printer::wobblePhaseXY * hundertstelPi);
 		//für das wobble in Richtung X-Achse gilt immer dieselbe Amplitude, weil im extremfall beide gegeneinander arbeiten und sich aufheben könnten, oder die Spindeln arbeiten zusammen.
-		Printer::wobblefixOffset[X_AXIS] = Printer::wobbleAmplitudes[0] * anglePositionWobble;
-		x += Printer::wobblefixOffset[X_AXIS] / 1000;  //offset in [um] -> kosys in [mm]
+		float wOffsetX = Printer::wobbleAmplitudes[0] * anglePositionWobble * 0.001;  //offset in [mm]
+		if (absoluteXYCoordinates) {
+			Printer::destinationMM[X_AXIS] += wOffsetX;
+		}
+		else {
+			//fraglich wie lange das genau bleibt. Ist aber auch so beim relativen Drucken ein Problem.
+			//addiere nur die Änderung des Offsets.
+			Printer::destinationMM[X_AXIS] += (wOffsetX - Printer::lastWobbleFixOffset[X_AXIS]);
+		}
+		Printer::lastWobbleFixOffset[X_AXIS] = wOffsetX;
 	}
 	if (Printer::wobbleAmplitudes[1] || Printer::wobbleAmplitudes[2]) {
 		float anglePositionWobble = sin(zweiPi*(zSchalterZ / spindelSteigung) - (float)Printer::wobblePhaseXY * hundertstelPi);
 		//gilt eher die Y-Achsen-Richtung-Amplitude links (x=0) oder rechts (x=achsenlänge)? (abhängig von der ziel-x-position wird anteilig verrechnet.)
-		float xPosPercent = x / Printer::lengthMM[X_AXIS];
-		Printer::wobblefixOffset[Y_AXIS] = ((1 - xPosPercent) * Printer::wobbleAmplitudes[1] + (xPosPercent)* Printer::wobbleAmplitudes[2]) * anglePositionWobble;
-		y += Printer::wobblefixOffset[Y_AXIS] / 1000;  //offset in [um] -> kosys in [mm]
+		float xPosPercent = Printer::destinationMM[X_AXIS] / Printer::lengthMM[X_AXIS];
+		float wOffsetY = ((1 - xPosPercent) * Printer::wobbleAmplitudes[1] + (xPosPercent)* Printer::wobbleAmplitudes[2]) * anglePositionWobble * 0.001;  //offset in [mm]
+		if (absoluteXYCoordinates) {
+			Printer::destinationMM[Y_AXIS] += wOffsetY;
+		}
+		else {
+			//fraglich wie lange das genau bleibt. Ist aber auch so beim relativen Drucken ein Problem.
+			//addiere nur die Änderung des Offsets.
+			Printer::destinationMM[Y_AXIS] += (wOffsetY - Printer::lastWobbleFixOffset[Y_AXIS]);
+		}
+		Printer::lastWobbleFixOffset[Y_AXIS] = wOffsetY;
 	}
 } // addKurtWobbleFixOffset
 #endif // FEATURE_Kurt67_WOBBLE_FIX
@@ -507,10 +520,14 @@ bool Printer::queueGCodeCoordinates(GCode *com)
 	}
 	else //absolute Coordinate Mode
 	{
-		if (com->hasX()) destinationMM[X_AXIS] = convertToMM(com->X) - originOffsetMM[X_AXIS];
-		if (com->hasY()) destinationMM[Y_AXIS] = convertToMM(com->Y) - originOffsetMM[Y_AXIS];
-		if (com->hasZ()) destinationMM[Z_AXIS] = convertToMM(com->Z) - originOffsetMM[Z_AXIS];
+		if (com->hasX()) destinationMM[X_AXIS] = convertToMM(com->X) - originOffsetMM[X_AXIS] + Printer::extruderOffset[X_AXIS];
+		if (com->hasY()) destinationMM[Y_AXIS] = convertToMM(com->Y) - originOffsetMM[Y_AXIS] + Printer::extruderOffset[Y_AXIS];
+		if (com->hasZ()) destinationMM[Z_AXIS] = convertToMM(com->Z) - originOffsetMM[Z_AXIS] + Printer::extruderOffset[Z_AXIS];
 	}
+
+#if FEATURE_Kurt67_WOBBLE_FIX
+	addKurtWobbleFixOffset(relativeCoordinateMode);
+#endif // FEATURE_Kurt67_WOBBLE_FIX
 
 	if (com->hasE() && isExtrusionAllowed(com->E))
 	{
@@ -524,26 +541,6 @@ bool Printer::queueGCodeCoordinates(GCode *com)
 		}
 	}
 
-	float x = destinationMM[X_AXIS] + Printer::extruderOffset[X_AXIS];
-	float y = destinationMM[Y_AXIS] + Printer::extruderOffset[Y_AXIS];
-	float z = destinationMM[Z_AXIS] + Printer::extruderOffset[Z_AXIS];
-	float e = destinationMM[E_AXIS];
-
-#if FEATURE_Kurt67_WOBBLE_FIX
-	addKurtWobbleFixOffset(x, y);
-#endif // FEATURE_Kurt67_WOBBLE_FIX
-
-	//init by update -> maybe overwrite.
-	destinationSteps[X_AXIS] = destinationStepsLast[X_AXIS];
-	destinationSteps[Y_AXIS] = destinationStepsLast[Y_AXIS];
-	destinationSteps[Z_AXIS] = destinationStepsLast[Z_AXIS];
-	destinationSteps[E_AXIS] = destinationStepsLast[E_AXIS];
-
-	if (com->hasX()) destinationSteps[X_AXIS] = lroundf(x * axisStepsPerMM[X_AXIS]);
-	if (com->hasY()) destinationSteps[Y_AXIS] = lroundf(y * axisStepsPerMM[Y_AXIS]);
-	if (com->hasZ()) destinationSteps[Z_AXIS] = lroundf(z * axisStepsPerMM[Z_AXIS]);
-	if (com->hasE()) destinationSteps[E_AXIS] = lroundf(e * axisStepsPerMM[E_AXIS]);
-
 	if (com->hasF())
 	{
 		if (unitIsInches)
@@ -552,7 +549,7 @@ bool Printer::queueGCodeCoordinates(GCode *com)
 			Printer::feedrate = com->F * (float)feedrateMultiply * 0.00016666666f;
 	}
 
-	return !com->hasNoXYZ() || (com->hasE() && destinationSteps[E_AXIS] != destinationStepsLast[E_AXIS]); // ignore unproductive moves
+	return !com->hasNoXYZ() || (com->hasE() && destinationMM[E_AXIS] != destinationMMLast[E_AXIS]); // ignore unproductive moves
 } // queueGCodeCoordinates
 
 /** 
@@ -578,11 +575,6 @@ void Printer::queueFloatCoordinates(float x, float y, float z, float e, float fe
     y += Printer::extruderOffset[Y_AXIS];
     z += Printer::extruderOffset[Z_AXIS];
 
-    destinationSteps[X_AXIS] = lroundf(x * axisStepsPerMM[X_AXIS]);
-    destinationSteps[Y_AXIS] = lroundf(y * axisStepsPerMM[Y_AXIS]);
-	destinationSteps[Z_AXIS] = lroundf(z * axisStepsPerMM[Z_AXIS]);
-	destinationSteps[E_AXIS] = lroundf(e * axisStepsPerMM[E_AXIS]);
-
     PrintLine::prepareQueueMove(ALWAYS_CHECK_ENDSTOPS, true, feedrate);
 
 	previousMillisCmd = HAL::timeInMilliseconds(); //prevent inactive shutdown of steppers/temps
@@ -591,22 +583,32 @@ void Printer::queueFloatCoordinates(float x, float y, float z, float e, float fe
   /** \brief Move printer the given number of steps. Puts the move into the queue. Used by e.g. homing commands. */
 void Printer::queueRelativeStepsCoordinates(long x, long y, long z, long e, float feedrate, bool waitEnd, bool checkEndstop)
 {
-	destinationSteps[X_AXIS] = destinationStepsLast[X_AXIS] + x;
-	destinationSteps[Y_AXIS] = destinationStepsLast[Y_AXIS] + y;
-	destinationSteps[Z_AXIS] = destinationStepsLast[Z_AXIS] + z;
-	destinationSteps[E_AXIS] = destinationStepsLast[E_AXIS] + e;
-
-	destinationMM[X_AXIS] = destinationMMLast[X_AXIS] + x * invAxisStepsPerMM[X_AXIS];
-	destinationMM[Y_AXIS] = destinationMMLast[Y_AXIS] + y * invAxisStepsPerMM[Y_AXIS];
-	destinationMM[Z_AXIS] = destinationMMLast[Z_AXIS] + z * invAxisStepsPerMM[Z_AXIS];
-	destinationMM[E_AXIS] = destinationMMLast[E_AXIS] + e * invAxisStepsPerMM[E_AXIS];
+	destinationMM[X_AXIS] = destinationMMLast[X_AXIS] + x * axisMMPerSteps[X_AXIS];
+	destinationMM[Y_AXIS] = destinationMMLast[Y_AXIS] + y * axisMMPerSteps[Y_AXIS];
+	destinationMM[Z_AXIS] = destinationMMLast[Z_AXIS] + z * axisMMPerSteps[Z_AXIS];
+	destinationMM[E_AXIS] = destinationMMLast[E_AXIS] + e * axisMMPerSteps[E_AXIS];
 
 	PrintLine::prepareQueueMove(checkEndstop, !waitEnd, feedrate);
 	
-	if (waitEnd) Commands::waitUntilEndOfAllMoves(); //queueRelativeStepsCoordinates + wait
+	if (waitEnd) Commands::waitUntilEndOfAllMoves();
 
 	previousMillisCmd = HAL::timeInMilliseconds(); //prevent inactive shutdown of steppers/temps
 } // queueRelativeStepsCoordinates
+
+/** \brief Move printer the given number of mm. Puts the move into the queue. */
+void Printer::queueRelativeMMCoordinates(float x, float y, float z, float e, float feedrate, bool waitEnd, bool checkEndstop)
+{
+	destinationMM[X_AXIS] = destinationMMLast[X_AXIS] + x;
+	destinationMM[Y_AXIS] = destinationMMLast[Y_AXIS] + y;
+	destinationMM[Z_AXIS] = destinationMMLast[Z_AXIS] + z;
+	destinationMM[E_AXIS] = destinationMMLast[E_AXIS] + e;
+
+	PrintLine::prepareQueueMove(checkEndstop, !waitEnd, feedrate);
+
+	if (waitEnd) Commands::waitUntilEndOfAllMoves();
+
+	previousMillisCmd = HAL::timeInMilliseconds(); //prevent inactive shutdown of steppers/temps
+} // queueRelativeMMCoordinates
 
 void Printer::setOrigin(float xOff,float yOff,float zOff)
 {
@@ -1570,11 +1572,11 @@ void Printer::homeXAxis()
 		Printer::setXAxisSteps((nHomeDir == -1) ? maxSteps[X_AXIS] + offX : minSteps[X_AXIS] - offX);
 
 		Printer::queueRelativeStepsCoordinates( long( 2 * abs(maxSteps[X_AXIS] - minSteps[X_AXIS] + 2*offX) * nHomeDir ), 0, 0, 0, homingFeedrate[X_AXIS], false, true);
-		Printer::queueRelativeStepsCoordinates( long( axisStepsPerMM[X_AXIS] * ENDSTOP_X_BACK_MOVE * (nHomeDir * -1) ),   0, 0, 0, homingFeedrate[X_AXIS] / ENDSTOP_X_RETEST_REDUCTION_FACTOR, false, false);
-		Printer::queueRelativeStepsCoordinates( long( 2 * axisStepsPerMM[X_AXIS] * ENDSTOP_X_BACK_MOVE * nHomeDir ),      0, 0, 0, homingFeedrate[X_AXIS] / ENDSTOP_X_RETEST_REDUCTION_FACTOR, !(bool)offX, true);
+		Printer::queueRelativeMMCoordinates( -1 * ENDSTOP_X_BACK_MOVE * nHomeDir, 0, 0, 0, homingFeedrate[X_AXIS] / ENDSTOP_X_RETEST_REDUCTION_FACTOR, false, false);
+		Printer::queueRelativeMMCoordinates(  2 * ENDSTOP_X_BACK_MOVE * nHomeDir, 0, 0, 0, homingFeedrate[X_AXIS] / ENDSTOP_X_RETEST_REDUCTION_FACTOR, !(bool)offX, true);
 
 		Printer::setXAxisSteps((nHomeDir == -1) ? minSteps[X_AXIS] - offX : maxSteps[X_AXIS] + offX);
-        currentSteps[X_AXIS] = destinationStepsLast[X_AXIS];
+        currentSteps[X_AXIS] = (nHomeDir == -1) ? minSteps[X_AXIS] - offX : maxSteps[X_AXIS] + offX;
 
 #if NUM_EXTRUDER>1
         if( offX )
@@ -1616,11 +1618,11 @@ void Printer::homeYAxis()
 		Printer::setYAxisSteps((nHomeDir == -1) ? maxSteps[Y_AXIS] + offY : minSteps[Y_AXIS] - offY);
 
 		Printer::queueRelativeStepsCoordinates(0, long( 2 * abs(maxSteps[Y_AXIS] - minSteps[Y_AXIS] + 2*offY) * nHomeDir ), 0, 0, homingFeedrate[Y_AXIS], false, true);
-		Printer::queueRelativeStepsCoordinates(0, long( axisStepsPerMM[Y_AXIS] * ENDSTOP_Y_BACK_MOVE * (nHomeDir * -1) ),   0, 0, homingFeedrate[Y_AXIS] / ENDSTOP_Y_RETEST_REDUCTION_FACTOR, false, false);
-		Printer::queueRelativeStepsCoordinates(0, long( 2 * axisStepsPerMM[Y_AXIS] * ENDSTOP_Y_BACK_MOVE * nHomeDir),       0, 0, homingFeedrate[Y_AXIS] / ENDSTOP_Y_RETEST_REDUCTION_FACTOR, !(bool)offY, true);
+		Printer::queueRelativeMMCoordinates(0, -1 * ENDSTOP_Y_BACK_MOVE * nHomeDir, 0, 0, homingFeedrate[Y_AXIS] / ENDSTOP_Y_RETEST_REDUCTION_FACTOR, false, false);
+		Printer::queueRelativeMMCoordinates(0,  2 * ENDSTOP_Y_BACK_MOVE * nHomeDir, 0, 0, homingFeedrate[Y_AXIS] / ENDSTOP_Y_RETEST_REDUCTION_FACTOR, !(bool)offY, true);
 
 		Printer::setYAxisSteps((nHomeDir == -1) ? minSteps[Y_AXIS] - offY : maxSteps[Y_AXIS] + offY);
-        currentSteps[Y_AXIS] = destinationStepsLast[Y_AXIS];
+        currentSteps[Y_AXIS] = (nHomeDir == -1) ? minSteps[Y_AXIS] - offY : maxSteps[Y_AXIS] + offY;
 
 #if NUM_EXTRUDER>1
         if( offY )
@@ -1648,7 +1650,7 @@ void Printer::homeZAxis()
 #if FEATURE_CONFIGURABLE_Z_ENDSTOPS
         if( Printer::ZEndstopUnknown ) {
             //RF1000 und Min-oder-Max gedrückt - nicht klar welcher. Man fährt immer nach unten! Der Schalter hält das aus.
-			Printer::queueRelativeStepsCoordinates(0, 0, axisStepsPerMM[Z_AXIS] * ENDSTOP_Z_BACK_MOVE, 0, homingFeedrate[Z_AXIS] / ENDSTOP_Z_RETEST_REDUCTION_FACTOR, true, false); //drucker muss immer nach
+			Printer::queueRelativeMMCoordinates(0, 0, ENDSTOP_Z_BACK_MOVE, 0, homingFeedrate[Z_AXIS] / ENDSTOP_Z_RETEST_REDUCTION_FACTOR, true, false); //drucker muss immer nach
         }
 #endif
 
@@ -1681,7 +1683,7 @@ void Printer::homeZAxis()
         //1. Schnelles Fahren bis zum Schalterkontakt:
             //Ist der Schalter gedrückt, wird sofort geskipped.
             //Ansonsten bis Schalter fahren. Doppelte mögliche Distanz, sodass Fahrt nicht zu früh aufhören kann.
-		Printer::queueRelativeStepsCoordinates(0, 0, long( 2 * abs(maxSteps[Z_AXIS] - minSteps[Z_AXIS]) * nHomeDir ), 0, homingFeedrate[Z_AXIS], true, true);
+		Printer::queueRelativeMMCoordinates(0, 0, 2 * lengthMM[Z_AXIS] * nHomeDir, 0, homingFeedrate[Z_AXIS], true, true);
 
         //2. in jedem Fall Freifahren vom Schalterkontakt:
             //ENDSTOP_Z_BACK_MOVE größer als 32768 ist eigentlich nicht möglich, nicht sinnvoll und würde, da das überfahren bei 32microsteps von der z-matrix >-12,7mm abhängig ist verboten sein.
@@ -1690,32 +1692,32 @@ void Printer::homeZAxis()
             //faktor *2 und *5 : doppelt/5x so schnell beim Zurücksetzen als nachher beim langsamst hinfahren. Sonst dauert das ewig.
             if(Printer::isZMinEndstopHit()){
                 //schalter noch gedrückt, wir müssen weiter aus dem schalter rausfahren, aber keinesfalls mehr als ENDSTOP_Z_BACK_MOVE
-				Printer::queueRelativeStepsCoordinates(0, 0, long(axisStepsPerMM[Z_AXIS] * 0.1f * (-1 * nHomeDir) ),                     0, float(homingFeedrate[Z_AXIS] / ENDSTOP_Z_RETEST_REDUCTION_FACTOR * 5.0f), true, false);
+				Printer::queueRelativeMMCoordinates(0, 0, 0.1f * (-1 * nHomeDir),                     0, float(homingFeedrate[Z_AXIS] / ENDSTOP_Z_RETEST_REDUCTION_FACTOR * 5.0f), true, false);
             }else{ //wir sind aus dem schalterbereich raus, müssten also nicht weiter zurücksetzen:
                 //1) egal ob der schalter zu anfang überfahren war oder nicht: etwas zurücksetzen, nachdem der schalter angefahren wurde.
                 //2) hier wird in jedem Fall etwas weiter weggefahren, sodass man wieder neu auf Z anfahren kann.
-				Printer::queueRelativeStepsCoordinates(0, 0, long(axisStepsPerMM[Z_AXIS] * Z_ENDSTOP_MAX_HYSTERESIS * (-1 * nHomeDir) ), 0, float(homingFeedrate[Z_AXIS] / ENDSTOP_Z_RETEST_REDUCTION_FACTOR * 2.0f), true, false);
+				Printer::queueRelativeMMCoordinates(0, 0, Z_ENDSTOP_MAX_HYSTERESIS * (-1 * nHomeDir), 0, float(homingFeedrate[Z_AXIS] / ENDSTOP_Z_RETEST_REDUCTION_FACTOR * 2.0f), true, false);
                 break;
             }
         }
 
         //3. langsames Fahren bis zum Schalterkontakt:
-		Printer::queueRelativeStepsCoordinates(0, 0, long(axisStepsPerMM[Z_AXIS] * (0.1f + ENDSTOP_Z_BACK_MOVE) * nHomeDir),          0, float(homingFeedrate[Z_AXIS] / ENDSTOP_Z_RETEST_REDUCTION_FACTOR), true, true);
+		Printer::queueRelativeMMCoordinates(0, 0, (0.1f + ENDSTOP_Z_BACK_MOVE) * nHomeDir,          0, float(homingFeedrate[Z_AXIS] / ENDSTOP_Z_RETEST_REDUCTION_FACTOR), true, true);
 
 #if FEATURE_MILLING_MODE
         //4. Wenn Millingmode dann nochmal freifahren und Koordinate nullen.
         if( Printer::operatingMode == OPERATING_MODE_MILL )
         {
             // when the milling mode is active and we are in operating mode "mill", we use the z max endstop and we free the z-max endstop after it has been hit
-			Printer::queueRelativeStepsCoordinates(0, 0, long(axisStepsPerMM[Z_AXIS] * (LEAVE_Z_MAX_ENDSTOP_AFTER_HOME + Z_ENDSTOP_MAX_HYSTERESIS) * (-1 * nHomeDir) ), 0, float(homingFeedrate[Z_AXIS]), true, false);
+			Printer::queueRelativeMMCoordinates(0, 0, (LEAVE_Z_MAX_ENDSTOP_AFTER_HOME + Z_ENDSTOP_MAX_HYSTERESIS) * (-1 * nHomeDir), 0, float(homingFeedrate[Z_AXIS]), true, false);
         }
 #endif // FEATURE_MILLING_MODE
 
         //5. Setzen der aktuellen End-Position auf die Koordinate, zu der das Homing gehört.
         noInts.protect();
 		Printer::setZAxisSteps((nHomeDir == -1) ? minSteps[Z_AXIS] : maxSteps[Z_AXIS]);
-        currentSteps[Z_AXIS] = destinationStepsLast[Z_AXIS];
-        currentZSteps = destinationStepsLast[Z_AXIS]; //das ist die Z-Koordinate, die die Z-Steps per Dir-Pin abzählt.
+		//currentZSteps ist die Schalter-Z-Koordinate, die die Z-Steps per Dir-Pin abzählt.
+		currentZSteps = currentSteps[Z_AXIS] = (nHomeDir == -1) ? minSteps[Z_AXIS] : maxSteps[Z_AXIS];
         noInts.unprotect();
 
         //6. Korrektur der Flags

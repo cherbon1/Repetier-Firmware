@@ -1,3 +1,9 @@
+V 01.43.28.Mod (2019-01-02)
+- removed most of steps axis computation
+- cleanup of steps to mm and mm to step recalculations
+- wobblefix should now be able to handle relative moves
+- removed alot of code duplication
+
 V 01.43.27.Mod (2019-01-01)
 - complete axis variable refactoring
 - major cleanup
