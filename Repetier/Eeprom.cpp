@@ -167,9 +167,9 @@ void EEPROM::restoreEEPROMSettingsFromConfiguration()
     e->tempControl.pidMax = EXT0_PID_MAX;
     e->tempControl.sensorType = EXT0_TEMPSENSOR_TYPE;
 
-    e->zOffset = int32_t(EXT0_Z_OFFSET_MM * Printer::axisStepsPerMM[Z_AXIS]);
-    e->yOffset = int32_t(EXT0_Y_OFFSET_MM * Printer::axisStepsPerMM[Y_AXIS]);
-    e->xOffset = int32_t(EXT0_X_OFFSET_MM * Printer::axisStepsPerMM[X_AXIS]);
+    e->offsetMM[X_AXIS] = EXT0_X_OFFSET_MM;
+    e->offsetMM[Y_AXIS] = EXT0_Y_OFFSET_MM;
+    e->offsetMM[Z_AXIS] = EXT0_Z_OFFSET_MM;
 
 #if RETRACT_DURING_HEATUP
     e->waitRetractTemperature = EXT0_WAIT_RETRACT_TEMP;
@@ -201,9 +201,9 @@ void EEPROM::restoreEEPROMSettingsFromConfiguration()
     e->tempControl.pidMax = EXT1_PID_MAX;
     e->tempControl.sensorType = EXT1_TEMPSENSOR_TYPE;
 
-    e->zOffset = int32_t(EXT1_Z_OFFSET_MM * Printer::axisStepsPerMM[Z_AXIS]);
-    e->yOffset = int32_t(EXT1_Y_OFFSET_MM * Printer::axisStepsPerMM[Y_AXIS]);
-    e->xOffset = int32_t(EXT1_X_OFFSET_MM * Printer::axisStepsPerMM[X_AXIS]);
+    e->offsetMM[X_AXIS] = EXT1_X_OFFSET_MM;
+    e->offsetMM[Y_AXIS] = EXT1_Y_OFFSET_MM;
+    e->offsetMM[Z_AXIS] = EXT1_Z_OFFSET_MM;
 
 #if RETRACT_DURING_HEATUP
     e->waitRetractTemperature = EXT1_WAIT_RETRACT_TEMP;
@@ -459,9 +459,9 @@ void EEPROM::storeDataIntoEEPROM(uint8_t corrupted)
         HAL::eprSetByte(o+EPR_EXTRUDER_PID_MAX,e->tempControl.pidMax);
         HAL::eprSetByte(o+EPR_EXTRUDER_SENSOR_TYPE,e->tempControl.sensorType);
 
-        HAL::eprSetFloat(o+EPR_EXTRUDER_X_OFFSET,e->xOffset*Printer::axisMMPerSteps[X_AXIS]);
-        HAL::eprSetFloat(o+EPR_EXTRUDER_Y_OFFSET,e->yOffset*Printer::axisMMPerSteps[Y_AXIS]);
-        HAL::eprSetFloat(o+EPR_EXTRUDER_Z_OFFSET,e->zOffset*Printer::axisMMPerSteps[Z_AXIS]);   //e->zOffset  Nibbels
+        HAL::eprSetFloat(o+EPR_EXTRUDER_X_OFFSET, e->offsetMM[X_AXIS]);
+        HAL::eprSetFloat(o+EPR_EXTRUDER_Y_OFFSET, e->offsetMM[Y_AXIS]);
+        HAL::eprSetFloat(o+EPR_EXTRUDER_Z_OFFSET, e->offsetMM[Z_AXIS]);
 		
 #if RETRACT_DURING_HEATUP
         HAL::eprSetInt16(o+EPR_EXTRUDER_WAIT_RETRACT_TEMP,e->waitRetractTemperature);
@@ -871,11 +871,11 @@ void EEPROM::readDataFromEEPROM()
             e->tempControl.sensorType = sensortype_temp;
         }
 
-        e->xOffset = int32_t(HAL::eprGetFloat(o+EPR_EXTRUDER_X_OFFSET)*Printer::axisStepsPerMM[X_AXIS]);
-        e->yOffset = int32_t(HAL::eprGetFloat(o+EPR_EXTRUDER_Y_OFFSET)*Printer::axisStepsPerMM[Y_AXIS]);
-        e->zOffset = int32_t(HAL::eprGetFloat(o+EPR_EXTRUDER_Z_OFFSET)*Printer::axisStepsPerMM[Z_AXIS]);  //e->zOffset  Nibbels
-        if(e->zOffset > 0){
-            e->zOffset = 0; //this offset is negative only! to tune a (right) hotend down.
+        e->offsetMM[X_AXIS] = HAL::eprGetFloat(o+EPR_EXTRUDER_X_OFFSET);
+        e->offsetMM[Y_AXIS] = HAL::eprGetFloat(o+EPR_EXTRUDER_Y_OFFSET);
+        e->offsetMM[Z_AXIS] = HAL::eprGetFloat(o+EPR_EXTRUDER_Z_OFFSET);
+        if(e->offsetMM[Z_AXIS] > 0){
+            e->offsetMM[Z_AXIS] = 0; //this offset is negative only! to tune a (right) hotend down.
 #if FEATURE_AUTOMATIC_EEPROM_UPDATE
             HAL::eprSetFloat(o+EPR_EXTRUDER_Z_OFFSET,0.00f); //do not allow positive values
             change = true; //update checksum later in this function

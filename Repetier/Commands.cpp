@@ -766,7 +766,8 @@ void Commands::executeGCode(GCode *com)
                 if(com->hasX()) xOff = Printer::convertToMM(com->X) - Printer::destinationMMLast[X_AXIS];
                 if(com->hasY()) yOff = Printer::convertToMM(com->Y) - Printer::destinationMMLast[Y_AXIS];
                 if(com->hasZ()) zOff = Printer::convertToMM(com->Z) - Printer::destinationMMLast[Z_AXIS];
-                Printer::setOrigin(xOff,yOff,zOff);
+
+                Printer::setOrigin(xOff, yOff, zOff);
             }
             if(com->hasE())
             {
@@ -1466,10 +1467,10 @@ void Commands::executeGCode(GCode *com)
                 }
                 if (extId >= 0 && extId < NUM_EXTRUDER) {
                     if (com->hasX()) {
-                        extruder[extId].xOffset = com->X * Printer::axisStepsPerMM[X_AXIS];
+                        extruder[extId].offsetMM[X_AXIS] = com->X;
                     }
                     if (com->hasY()) {
-                         extruder[extId].yOffset = com->Y * Printer::axisStepsPerMM[Y_AXIS];
+                        extruder[extId].offsetMM[Y_AXIS] = com->Y;
                     }
                     // Special RFx000-Constraint: This Mod doesnt support Extruder-Z-Offset here because it might be mixed up with Bed Z-Offset.
                     // Change Extruder Z-Offset via Menu. You have to activate UI_SHOW_TIPDOWN_IN_ZCONFIGURATION to see the menu entry to do so for the right extruder.

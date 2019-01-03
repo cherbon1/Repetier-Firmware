@@ -1,3 +1,8 @@
+V 01.43.29.Mod (2019-01-03)
+- eliminated all extruder offset steps to mm calculations
+- switch extruderoffsetmm
+- refactoring
+
 V 01.43.28.Mod (2019-01-02)
 - removed most of steps axis computation
 - cleanup of steps to mm and mm to step recalculations

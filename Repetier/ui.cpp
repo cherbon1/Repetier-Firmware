@@ -1061,15 +1061,15 @@ void UIDisplay::parse(char *txt,bool ram)
 #if NUM_EXTRUDER>1
                 if(c2=='E')                                                                             // %OE : Extruder offset X [mm]
                 {
-                    addFloat(extruder[1].xOffset/Printer::axisStepsPerMM[X_AXIS],4,3);
+                    addFloat(extruder[1].offsetMM[X_AXIS], 4, 3);
                 }
                 if(c2=='F')                                                                             // %OF : Extruder offset Y [mm]
                 {
-                    addFloat(extruder[1].yOffset/Printer::axisStepsPerMM[Y_AXIS],4,3);
+                    addFloat(extruder[1].offsetMM[Y_AXIS], 4, 3);
                 }
                 if(c2=='S')                                                                             // %OS : Extruder spring displacement Z [mm]
                 {
-                    addFloat(extruder[1].zOffset/Printer::axisStepsPerMM[Z_AXIS],4,3);
+                    addFloat(extruder[1].offsetMM[Z_AXIS], 4, 3);
                 }
 #endif // NUM_EXTRUDER>1
 
@@ -3239,12 +3239,10 @@ void UIDisplay::nextPreviousAction(int8_t next)
 #if NUM_EXTRUDER>1
         case UI_ACTION_EXTRUDER_OFFSET_X:
         {
-            float   fTemp = extruder[1].xOffset / Printer::axisStepsPerMM[X_AXIS];
-            INCREMENT_MIN_MAX(fTemp,0.01,32,36);
-            extruder[1].xOffset = int32_t(fTemp * Printer::axisStepsPerMM[X_AXIS]);
+            INCREMENT_MIN_MAX(extruder[1].offsetMM[X_AXIS], 0.01, 32, 36);
 
 #if FEATURE_AUTOMATIC_EEPROM_UPDATE
-            HAL::eprSetFloat(EEPROM::getExtruderOffset(1)+EPR_EXTRUDER_X_OFFSET,fTemp);
+            HAL::eprSetFloat(EEPROM::getExtruderOffset(1)+EPR_EXTRUDER_X_OFFSET, extruder[1].offsetMM[X_AXIS]);
             EEPROM::updateChecksum();
 #endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
 
@@ -3252,12 +3250,10 @@ void UIDisplay::nextPreviousAction(int8_t next)
         }
         case UI_ACTION_EXTRUDER_OFFSET_Y:
         {
-            float   fTemp = extruder[1].yOffset / Printer::axisStepsPerMM[Y_AXIS];
-            INCREMENT_MIN_MAX(fTemp,0.01,-2,2);
-            extruder[1].yOffset = int32_t(fTemp * Printer::axisStepsPerMM[Y_AXIS]);
+            INCREMENT_MIN_MAX(extruder[1].offsetMM[Y_AXIS], 0.01, -2 ,2);
 
 #if FEATURE_AUTOMATIC_EEPROM_UPDATE
-            HAL::eprSetFloat(EEPROM::getExtruderOffset(1)+EPR_EXTRUDER_Y_OFFSET,fTemp);
+            HAL::eprSetFloat(EEPROM::getExtruderOffset(1)+EPR_EXTRUDER_Y_OFFSET, extruder[1].offsetMM[Y_AXIS]);
             EEPROM::updateChecksum();
 #endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
 
@@ -3266,17 +3262,14 @@ void UIDisplay::nextPreviousAction(int8_t next)
         case UI_ACTION_EXTRUDER_OFFSET_Z:
         {
             //Das hier ist nur dazu gedacht, um eine Tip-Down-Nozzle auf per ToolChange auf die Korrekte Höhe zu justieren.
-            float   fTemp = extruder[1].zOffset * Printer::axisMMPerSteps[Z_AXIS]; //mm negativ
-            INCREMENT_MIN_MAX(fTemp,0.025,-2,0);
-            extruder[1].zOffset = int32_t(fTemp * Printer::axisStepsPerMM[Z_AXIS]); //wieder zu steps negativ
+            INCREMENT_MIN_MAX(extruder[1].offsetMM[Z_AXIS], 0.025, -2, 0);
 
 #if FEATURE_AUTOMATIC_EEPROM_UPDATE
-            HAL::eprSetFloat(EEPROM::getExtruderOffset(1)+EPR_EXTRUDER_Z_OFFSET,fTemp); //mm negativ
+            HAL::eprSetFloat(EEPROM::getExtruderOffset(1)+EPR_EXTRUDER_Z_OFFSET, extruder[1].offsetMM[Z_AXIS]); //mm negativ
             EEPROM::updateChecksum();
 #endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
 
             if(extruder[1].id == Extruder::current->id){
-                Printer::extruderOffset[Z_AXIS] = -Extruder::current->zOffset*Printer::axisMMPerSteps[Z_AXIS]; //+mm positiv
                 if(Printer::areAxisHomed()) Printer::queueFloatCoordinates(IGNORE_COORDINATE,IGNORE_COORDINATE,IGNORE_COORDINATE,IGNORE_COORDINATE,IGNORE_COORDINATE);
             }
             break;
@@ -4179,23 +4172,6 @@ void UIDisplay::nextPreviousAction(int8_t next)
                                     g_ZCompensationMatrix[0][0] = EEPROM_FORMAT-1; //force the zmatrix in ram to be invalid and to reload it later.
                                     //korrektur der aktiven kompensation/zoffset ist durch fehlendes homing unterbunden.
                                 }
-                                //patch extruder xyz offsets etc., because they are hold in steps and not mm
-                                for(uint8_t extrudi=0; extrudi<NUM_EXTRUDER; extrudi++){
-                                    switch (i){
-                                        case X_AXIS: {
-                                            extruder[extrudi].xOffset *= stepsmm_korrekturfactor;
-                                            break;
-                                        }
-                                        case Y_AXIS: {
-                                            extruder[extrudi].yOffset *= stepsmm_korrekturfactor;
-                                            break;
-                                        }
-                                        case Z_AXIS: {
-                                            extruder[extrudi].zOffset *= stepsmm_korrekturfactor;
-                                            break;
-                                        }
-                                    }
-                                }
                                 updatederived = true; //übernehmen der werte in offsets und infaxissteps, accel usw..
 #if FEATURE_AUTOMATIC_EEPROM_UPDATE
                                 HAL::eprSetFloat( EPR_XAXIS_STEPS_PER_MM + 4*i, Printer::axisStepsPerMM[i] );
@@ -4558,7 +4534,7 @@ void UIDisplay::executeAction(int action)
             }
             case UI_ACTION_SET_XY_ORIGIN:
             {
-                Printer::setOrigin(-Printer::destinationMMLast[X_AXIS],-Printer::destinationMMLast[Y_AXIS],Printer::originOffsetMM[Z_AXIS]);
+                Printer::setOrigin(-Printer::destinationMMLast[X_AXIS], -Printer::destinationMMLast[Y_AXIS], Printer::originOffsetMM[Z_AXIS]);
                 BEEP_ACCEPT_SET_POSITION
                 break;
             }

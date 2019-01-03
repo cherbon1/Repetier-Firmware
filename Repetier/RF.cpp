@@ -357,11 +357,11 @@ short readStrainGauge( unsigned char uAddress ) //readStrainGauge dauert etwas u
                 if(active_summed_digits <= g_nDigitFlowCompensation_Fmin){
                     g_nDigitFlowCompensation_flowmulti = 1.0f;
                 }else if(active_summed_digits >= g_nDigitFlowCompensation_Fmax){
-                    if( Printer::currentSteps[Z_AXIS] > g_minZCompensationSteps - Extruder::current->zOffset )
+                    if( Printer::currentSteps[Z_AXIS] > g_minZCompensationSteps - int32_t(Extruder::current->offsetMM[Z_AXIS] * Printer::axisStepsPerMM[Z_AXIS]))
                         g_nDigitFlowCompensation_flowmulti = 1.0f + 0.01f * g_nDigitFlowCompensation_intense;
                     else g_nDigitFlowCompensation_flowmulti = 1.0f;
                 }else{
-                    if( Printer::currentSteps[Z_AXIS] > g_minZCompensationSteps - Extruder::current->zOffset )
+                    if( Printer::currentSteps[Z_AXIS] > g_minZCompensationSteps - int32_t(Extruder::current->offsetMM[Z_AXIS] * Printer::axisStepsPerMM[Z_AXIS]))
                         g_nDigitFlowCompensation_flowmulti = 1.0f + 0.01f * g_nDigitFlowCompensation_intense
                                                                              *(active_summed_digits - g_nDigitFlowCompensation_Fmin)
                                                                              /(g_nDigitFlowCompensation_Fmax - g_nDigitFlowCompensation_Fmin);
@@ -381,10 +381,10 @@ short readStrainGauge( unsigned char uAddress ) //readStrainGauge dauert etwas u
                 if(active_summed_digits <= g_nDigitFlowCompensation_Fmin){
                         goal = 1.0f;
                 }else if(active_summed_digits >= g_nDigitFlowCompensation_Fmax){
-                    if( Printer::currentSteps[Z_AXIS] > g_minZCompensationSteps - Extruder::current->zOffset )
+                    if( Printer::currentSteps[Z_AXIS] > g_minZCompensationSteps - int32_t(Extruder::current->offsetMM[Z_AXIS] * Printer::axisStepsPerMM[Z_AXIS]))
                         goal = 1.0f + 0.01f * g_nDigitFlowCompensation_speed_intense;
                 }else{
-                    if( Printer::currentSteps[Z_AXIS] > g_minZCompensationSteps - Extruder::current->zOffset )
+                    if( Printer::currentSteps[Z_AXIS] > g_minZCompensationSteps - int32_t(Extruder::current->offsetMM[Z_AXIS] * Printer::axisStepsPerMM[Z_AXIS]))
                         goal = 1.0f + 0.01f * g_nDigitFlowCompensation_speed_intense
                                                                              *(active_summed_digits - g_nDigitFlowCompensation_Fmin)
                                                                              /(g_nDigitFlowCompensation_Fmax - g_nDigitFlowCompensation_Fmin);
@@ -3491,7 +3491,7 @@ void doHeatBedZCompensation( void )
     if( Printer::doHeatBedZCompensation )
     {
         InterruptProtectedBlock noInts;
-        long nCurrentPositionStepsZ = Printer::currentSteps[Z_AXIS] + Extruder::current->zOffset;
+        long nCurrentPositionStepsZ = Printer::currentSteps[Z_AXIS] + int32_t(Extruder::current->offsetMM[Z_AXIS] * Printer::axisStepsPerMM[Z_AXIS]);
         nCurrentPositionStepsZ += Printer::directCurrentSteps[Z_AXIS];
         noInts.unprotect(); //HAL::allowInterrupts();
 
@@ -6241,7 +6241,7 @@ void handleStrainGaugeFeatures(millis_t uTime){
             #Die Höhe über Grund, kompensiert sollte unterhalb g_maxZCompensationSteps sein.
             #currentSteps = Achsenziel + Achsenoffset, aber g_minZCompensationSteps/g_maxZCompensationSteps kennen das Achsenoffset nicht ohne Hilfe: Das gehört hier her, wenn man die Layerhöhe abgleichen will.
             */
-            if( Printer::currentSteps[Z_AXIS] + Extruder::current->zOffset <= g_minZCompensationSteps )  //Nibbels 010118 in der zkompensation sind hier auch noch directstepsz drin .. TODO??
+            if( Printer::currentSteps[Z_AXIS] + int32_t(Extruder::current->offsetMM[Z_AXIS] * Printer::axisStepsPerMM[Z_AXIS]) <= g_minZCompensationSteps )  //Nibbels 010118 in der zkompensation sind hier auch noch directstepsz drin .. TODO??
             {
                 g_nSensiblePressure1stMarke = 1; //marker für display: wir sind in regelhöhe
                 //wenn durch Gcode gefüllt, prüfe, ob Z-Korrektur (weg vom Bett) notwendig ist, in erstem Layer.
@@ -8634,7 +8634,7 @@ void processCommand( GCode* pCommand )
 
             case 3115:  // M3115 - set the x/y origin to the current x/y position
             {
-                Printer::setOrigin(-Printer::destinationMMLast[X_AXIS],-Printer::destinationMMLast[Y_AXIS],Printer::originOffsetMM[Z_AXIS]);
+                Printer::setOrigin(-Printer::destinationMMLast[X_AXIS], -Printer::destinationMMLast[Y_AXIS], Printer::originOffsetMM[Z_AXIS]);
                 break;
             }
             case 3117:  // M3117 - set a status text which is not overwritten by M117
@@ -10653,7 +10653,7 @@ void processCommand( GCode* pCommand )
                     //Abstand links und rechts.
                     const float spacerX = 10.0f;
                     //spacerXd for my personal safety when I flash dual and forget the axis length.
-                    const float spacerXd = (NUM_EXTRUDER > 1 ? extruder[1].xOffset * Printer::axisMMPerSteps[X_AXIS] : 0);
+                    const float spacerXd = (NUM_EXTRUDER > 1 ? extruder[1].offsetMM[X_AXIS] : 0);
 
                     float x = spacerX;
 #if NUM_EXTRUDER > 0
@@ -10873,13 +10873,16 @@ void processCommand( GCode* pCommand )
 
                     Extruder *actExtruder = Extruder::current;
                     if(pCommand->hasT() && pCommand->T < NUM_EXTRUDER) actExtruder = &extruder[pCommand->T]; //unter umständen ist actExtruder was anderes wie Extruder::current!
-                    if(extruder[1].id == actExtruder->id){ //wenn zielextruder aktuell oder Tn = Extrudernummer 1
-                        if(pCommand->Z <= 0 && pCommand->Z >= -2.0f) actExtruder->zOffset = int32_t((float)pCommand->Z * Printer::axisStepsPerMM[Z_AXIS]);
+                    if(extruder[1].id == actExtruder->id){ 
+						//wenn zielextruder aktuell oder Tn = Extrudernummer 1
+						if (pCommand->Z <= 0 && pCommand->Z >= -2.0f) {
+							actExtruder->offsetMM[Z_AXIS] = (float)pCommand->Z;
+						}
                         //Nur wenn aktuell der extruder mit ID1 aktiv ist, dann sofort nachstellen, ohne T0/T1/... :
                         if(Extruder::current->id == extruder[1].id){
                             Extruder::selectExtruderById(Extruder::current->id);
                         }
-                        Com::printFLN( PSTR( "M3919 T1 Spring displace: " ), actExtruder->zOffset * Printer::axisMMPerSteps[Z_AXIS] );
+                        Com::printFLN( PSTR( "M3919 T1 Spring displace: " ), actExtruder->offsetMM[Z_AXIS] );
                     }else{
                         Com::printFLN( PSTR( "M3919 Error: !=Extr." ), extruder[1].id );
                     }

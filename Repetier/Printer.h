@@ -105,7 +105,6 @@ public:
     static float            extrusionFactor;                    //< Extrusion multiply factor
     static float            maxXYJerk;                            // Maximum allowed jerk in mm/s
     static float            maxZJerk;                           // Maximum allowed jerk in z direction in mm/s
-    static float            extruderOffset[3];                  // offset for different extruder positions.
     static speed_t          vMaxReached;                        // Maximumu reached speed
     static unsigned long    msecondsPrinting;                   // Milliseconds of printing time (means time with heated extruder)
     static unsigned long    msecondsMilling;                    // Milliseconds of milling time
@@ -584,7 +583,7 @@ public:
     static inline uint8_t isZHomeSafe() //experimentelle funktion, die nicht viel abdeckt, das ist ein test. ... TODO: merge with function isHomingAllowed
     {
         bool problematisch = false;
-        if( Extruder::current->zOffset ) problematisch = true; //wenn rechtes gefedertes Hotend tiefer, dann evtl. kollision
+        if( Extruder::current->offsetMM[Z_AXIS] != 0 ) problematisch = true; //wenn rechtes gefedertes Hotend tiefer, dann evtl. kollision
         if( g_offsetZCompensationSteps > 0 ) problematisch = true; //wenn matrix positiv, dann evtl. problem
         if( isAxisHomed(Y_AXIS) && Printer::currentSteps[Y_AXIS] + Printer::directCurrentSteps[Y_AXIS] <= 5*YAXIS_STEPS_PER_MM ) problematisch = false; //vorherige Probleme egal, wenn bett nach hinten gefahren
 #if FEATURE_ALIGN_EXTRUDERS
@@ -1023,7 +1022,7 @@ public:
     static inline long currentZPositionSteps()
     {
         // return all values in [steps]
-        long    value = currentSteps[Z_AXIS] + Extruder::current->zOffset; //offset negativ, das ist normalerweise zu kompensieren/für den Betrachter uninteressant. also rausrechnen.
+        long    value = currentSteps[Z_AXIS] + int32_t(Extruder::current->offsetMM[Z_AXIS] * Printer::axisStepsPerMM[Z_AXIS]); //offset negativ, das ist normalerweise zu kompensieren/für den Betrachter uninteressant. also rausrechnen.
 
 #if FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
         // add the current z-compensation
@@ -1046,21 +1045,13 @@ public:
         if (Printer::ZMode == Z_VALUE_MODE_LAYER)
         {
             // show the G-Code Commanded Z //offset negativ, das ist hier uninteressant.
-            return (currentSteps[Z_AXIS] + Extruder::current->zOffset) * Printer::axisMMPerSteps[Z_AXIS];
+            return currentSteps[Z_AXIS] * Printer::axisMMPerSteps[Z_AXIS] + Extruder::current->offsetMM[Z_AXIS];
         }
+
 
         // return all values in [mm]
         float   fvalue = (float)currentZPositionSteps();
-
-        if (Printer::ZMode <= Z_VALUE_MODE_Z_MIN)
-        {
-            // show the z-distance to z-min (print) or to the z-origin (mill)
-
-            // When we see Z-Min the Extruder::current->zOffset (negative number) is not what we want to see. We want to see the diff with sensor-zeroing.
-            fvalue -= (float)Extruder::current->zOffset; //adds z-Offset for T1 again to really show the axis-scale towards z-min hardware switch.
-        }
-
-        else if (Printer::ZMode == Z_VALUE_MODE_SURFACE)
+		if (Printer::ZMode == Z_VALUE_MODE_SURFACE)
         {
             // show the z-distance to the surface of the heat bed (print) or work part (mill)
 #if FEATURE_HEAT_BED_Z_COMPENSATION
@@ -1071,8 +1062,15 @@ public:
             fvalue -= (float)getWorkPartOffset();
 #endif // FEATURE_WORK_PART_Z_COMPENSATION
         }
-
         fvalue *= Printer::axisMMPerSteps[Z_AXIS];
+
+        if (Printer::ZMode <= Z_VALUE_MODE_Z_MIN)
+        {
+            // show the z-distance to z-min (print) or to the z-origin (mill)
+
+            // When we see Z-Min the Extruder::current->zOffset (negative number) is not what we want to see. We want to see the diff with sensor-zeroing.
+            fvalue -= (float)Extruder::current->offsetMM[Z_AXIS]; //adds z-Offset for T1 again to really show the axis-scale towards z-min hardware switch.
+        }
 
         return fvalue;
     } // currentZPositionMM
@@ -1099,8 +1097,8 @@ public:
 	static void queueRelativeStepsCoordinates(long x, long y, long z, long e, float feedrate, bool waitEnd, bool checkEndstop);
 	static void queueRelativeMMCoordinates(float x, float y, float z, float e, float feedrate, bool waitEnd, bool checkEndstop);
     static void homeDigits();
-    static void homeAxis(bool xaxis,bool yaxis,bool zaxis); /// Home axis
-    static void setOrigin(float xOff,float yOff,float zOff);
+    static void homeAxis(bool xaxis, bool yaxis, bool zaxis); /// Home axis
+    static void setOrigin(float xOff, float yOff, float zOff);
 	static void addKurtWobbleFixOffset(bool absolute);
 
 	static INLINE long getDestinationSteps(uint8_t axis)

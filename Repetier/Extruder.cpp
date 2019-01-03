@@ -411,17 +411,14 @@ void Extruder::selectExtruderById(uint8_t extruderId)
 
 #if USE_ADVANCE
     Printer::maxExtruderSpeed = (uint8_t)floor(HAL::maxExtruderTimerFrequency() / (Extruder::current->maxFeedrate * Extruder::current->stepsPerMM));
-    if(Printer::maxExtruderSpeed>15) Printer::maxExtruderSpeed = 15;
-    float fmax=((float)HAL::maxExtruderTimerFrequency()/((float)Printer::maxExtruderSpeed*Printer::axisStepsPerMM[E_AXIS])); // Limit feedrate to interrupt speed
-    if(fmax<Printer::maxFeedrate[E_AXIS]) Printer::maxFeedrate[E_AXIS] = fmax;
+    if(Printer::maxExtruderSpeed > 15) Printer::maxExtruderSpeed = 15;
+    float fmax = (HAL::maxExtruderTimerFrequency() / ((float)Printer::maxExtruderSpeed*Printer::axisStepsPerMM[E_AXIS])); // Limit feedrate to interrupt speed
+    if(fmax < Printer::maxFeedrate[E_AXIS]) Printer::maxFeedrate[E_AXIS] = fmax;
 #endif // USE_ADVANCE
 
     Extruder::current->tempControl.updateTempControlVars();
-    Printer::extruderOffset[X_AXIS] = -Extruder::current->xOffset*Printer::axisMMPerSteps[X_AXIS];
-    Printer::extruderOffset[Y_AXIS] = -Extruder::current->yOffset*Printer::axisMMPerSteps[Y_AXIS];
-    Printer::extruderOffset[Z_AXIS] = -Extruder::current->zOffset*Printer::axisMMPerSteps[Z_AXIS];
 
-    //uncomment when inserting diameter for hotend x // Commands::changeFlowrateMultiply(static_cast<float>(Printer::extrudeMultiply)); // needed to adjust extrusionFactor to possibly different diameter
+	//uncomment when inserting diameter for hotend x // Commands::changeFlowrateMultiply(static_cast<float>(Printer::extrudeMultiply)); // needed to adjust extrusionFactor to possibly different diameter
 
 	//update position
     Printer::queueFloatCoordinates(IGNORE_COORDINATE,IGNORE_COORDINATE,IGNORE_COORDINATE,IGNORE_COORDINATE,Printer::homingFeedrate[X_AXIS]);
@@ -434,7 +431,6 @@ void Extruder::selectExtruderById(uint8_t extruderId)
     if(executeSelect) // Run only when changing
         GCode::executeFString(Extruder::current->selectCommands);
 #endif // NUM_EXTRUDER>1
-
 } // selectExtruderById
 
 
@@ -1308,7 +1304,9 @@ Extruder extruder[NUM_EXTRUDER] =
 {
 #if NUM_EXTRUDER>0
     {
-        0,(int32_t)(EXT0_X_OFFSET_MM * XAXIS_STEPS_PER_MM),(int32_t)(EXT0_Y_OFFSET_MM * YAXIS_STEPS_PER_MM),(int32_t)(EXT0_Z_OFFSET_MM * ZAXIS_STEPS_PER_MM),EXT0_STEPS_PER_MM,EXT0_ENABLE_PIN,EXT0_ENABLE_ON,
+        0,
+		{EXT0_X_OFFSET_MM, EXT0_Y_OFFSET_MM, EXT0_Z_OFFSET_MM},
+		EXT0_STEPS_PER_MM,EXT0_ENABLE_PIN,EXT0_ENABLE_ON,
         EXT0_MAX_FEEDRATE,EXT0_MAX_ACCELERATION,EXT0_MAX_START_FEEDRATE
         ,EXT0_WAIT_RETRACT_TEMP,EXT0_WAIT_RETRACT_UNITS,0
 
@@ -1340,7 +1338,9 @@ Extruder extruder[NUM_EXTRUDER] =
 
 #if NUM_EXTRUDER>1
     ,{
-        1,(int32_t)(EXT1_X_OFFSET_MM * XAXIS_STEPS_PER_MM),(int32_t)(EXT1_Y_OFFSET_MM * YAXIS_STEPS_PER_MM),(int32_t)(EXT1_Z_OFFSET_MM * ZAXIS_STEPS_PER_MM),EXT1_STEPS_PER_MM,EXT1_ENABLE_PIN,EXT1_ENABLE_ON,
+        1,
+		{EXT1_X_OFFSET_MM, EXT1_Y_OFFSET_MM, EXT1_Z_OFFSET_MM},
+		EXT1_STEPS_PER_MM,EXT1_ENABLE_PIN,EXT1_ENABLE_ON,
         EXT1_MAX_FEEDRATE,EXT1_MAX_ACCELERATION,EXT1_MAX_START_FEEDRATE
         ,EXT1_WAIT_RETRACT_TEMP,EXT1_WAIT_RETRACT_UNITS,0
 

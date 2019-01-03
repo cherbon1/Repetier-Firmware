@@ -435,7 +435,6 @@ The following variables are used for movements in x/y/z direction:
   - unit is [mm]
   - the rest is identical to destinationMMLast
 
-
 - Printer::currentSteps[x/y/z]
   - unit is [steps]
   - holds the position which has been reached through the movements from the queue

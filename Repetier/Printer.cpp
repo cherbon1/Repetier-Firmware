@@ -91,7 +91,6 @@ float           Printer::extrudeMultiplyError = 0;
 float           Printer::extrusionFactor = 1.0;
 float           Printer::maxXYJerk;                                       ///< Maximum allowed jerk in mm/s
 float           Printer::maxZJerk;                                      ///< Maximum allowed jerk in z direction in mm/s
-float           Printer::extruderOffset[3] = {0};                       ///< offset for different extruder positions.
 unsigned int    Printer::vMaxReached;                                   ///< Maximum reached speed
 unsigned long   Printer::msecondsPrinting;                              ///< Milliseconds of printing time (means time with heated extruder)
 unsigned long   Printer::msecondsMilling;                               ///< Milliseconds of milling time
@@ -415,23 +414,6 @@ void Printer::updateAdvanceFlags()
 #endif // USE_ADVANCE
 } // updateAdvanceFlags
 
-void Printer::setXAxisSteps(int32_t x) {
-	//G92 Xx:
-	Printer::destinationMMLast[X_AXIS] = Printer::destinationMM[X_AXIS] = x * axisMMPerSteps[X_AXIS] - Printer::extruderOffset[X_AXIS];
-}
-void Printer::setYAxisSteps(int32_t y) {
-	//G92 Yx:
-	Printer::destinationMMLast[Y_AXIS] = Printer::destinationMM[Y_AXIS] = y * axisMMPerSteps[Y_AXIS] - Printer::extruderOffset[Y_AXIS];
-}
-void Printer::setZAxisSteps(int32_t z) {
-	//G92 Zx:
-	Printer::destinationMMLast[Z_AXIS] = Printer::destinationMM[Z_AXIS] = z * axisMMPerSteps[Z_AXIS] - Printer::extruderOffset[Z_AXIS];
-}
-void Printer::setEAxisSteps(int32_t e) {
-	//G92 Ex:
-	Printer::destinationMMLast[E_AXIS] = Printer::destinationMM[E_AXIS] = e * axisMMPerSteps[E_AXIS];
-}
-
 #if FEATURE_Kurt67_WOBBLE_FIX
 void Printer::addKurtWobbleFixOffset(bool absoluteXYCoordinates)
 {
@@ -520,9 +502,9 @@ bool Printer::queueGCodeCoordinates(GCode *com)
 	}
 	else //absolute Coordinate Mode
 	{
-		if (com->hasX()) destinationMM[X_AXIS] = convertToMM(com->X) - originOffsetMM[X_AXIS] + Printer::extruderOffset[X_AXIS];
-		if (com->hasY()) destinationMM[Y_AXIS] = convertToMM(com->Y) - originOffsetMM[Y_AXIS] + Printer::extruderOffset[Y_AXIS];
-		if (com->hasZ()) destinationMM[Z_AXIS] = convertToMM(com->Z) - originOffsetMM[Z_AXIS] + Printer::extruderOffset[Z_AXIS];
+		if (com->hasX()) destinationMM[X_AXIS] = convertToMM(com->X) - Printer::originOffsetMM[X_AXIS] - Extruder::current->offsetMM[X_AXIS];
+		if (com->hasY()) destinationMM[Y_AXIS] = convertToMM(com->Y) - Printer::originOffsetMM[Y_AXIS] - Extruder::current->offsetMM[Y_AXIS];
+		if (com->hasZ()) destinationMM[Z_AXIS] = convertToMM(com->Z) - Printer::originOffsetMM[Z_AXIS] - Extruder::current->offsetMM[Z_AXIS];
 	}
 
 #if FEATURE_Kurt67_WOBBLE_FIX
@@ -565,20 +547,21 @@ void Printer::queueFloatCoordinates(float x, float y, float z, float e, float fe
 	if (z == IGNORE_COORDINATE) z = destinationMMLast[Z_AXIS];
 	if (e == IGNORE_COORDINATE) e = destinationMMLast[E_AXIS];
 	if (feedrate == IGNORE_COORDINATE) feedrate = Printer::feedrate;
+	
+    x -= Extruder::current->offsetMM[X_AXIS];
+    y -= Extruder::current->offsetMM[Y_AXIS];
+    z -= Extruder::current->offsetMM[Z_AXIS];
 
 	destinationMM[X_AXIS] = x;
 	destinationMM[Y_AXIS] = y;
 	destinationMM[Z_AXIS] = z;
 	destinationMM[E_AXIS] = e;
 
-    x += Printer::extruderOffset[X_AXIS];
-    y += Printer::extruderOffset[Y_AXIS];
-    z += Printer::extruderOffset[Z_AXIS];
-
     PrintLine::prepareQueueMove(ALWAYS_CHECK_ENDSTOPS, true, feedrate);
 
 	previousMillisCmd = HAL::timeInMilliseconds(); //prevent inactive shutdown of steppers/temps
 } // queueFloatCoordinates
+
 
   /** \brief Move printer the given number of steps. Puts the move into the queue. Used by e.g. homing commands. */
 void Printer::queueRelativeStepsCoordinates(long x, long y, long z, long e, float feedrate, bool waitEnd, bool checkEndstop)
@@ -610,7 +593,25 @@ void Printer::queueRelativeMMCoordinates(float x, float y, float z, float e, flo
 	previousMillisCmd = HAL::timeInMilliseconds(); //prevent inactive shutdown of steppers/temps
 } // queueRelativeMMCoordinates
 
-void Printer::setOrigin(float xOff,float yOff,float zOff)
+
+void Printer::setXAxisSteps(int32_t x) {
+	//G92 Xx:
+	Printer::destinationMMLast[X_AXIS] = Printer::destinationMM[X_AXIS] = x * axisMMPerSteps[X_AXIS] + Extruder::current->offsetMM[X_AXIS];
+}
+void Printer::setYAxisSteps(int32_t y) {
+	//G92 Yx:
+	Printer::destinationMMLast[Y_AXIS] = Printer::destinationMM[Y_AXIS] = y * axisMMPerSteps[Y_AXIS] + Extruder::current->offsetMM[Y_AXIS];
+}
+void Printer::setZAxisSteps(int32_t z) {
+	//G92 Zx:
+	Printer::destinationMMLast[Z_AXIS] = Printer::destinationMM[Z_AXIS] = z * axisMMPerSteps[Z_AXIS] + Extruder::current->offsetMM[Z_AXIS];
+}
+void Printer::setEAxisSteps(int32_t e) {
+	//G92 Ex:
+	Printer::destinationMMLast[E_AXIS] = Printer::destinationMM[E_AXIS] = e * axisMMPerSteps[E_AXIS];
+}
+
+void Printer::setOrigin(float xOff, float yOff, float zOff)
 {
     Com::printF( PSTR("setOrigin():") );
 	bool someFailed = false;
@@ -885,7 +886,6 @@ void Printer::setup()
 	
     maxXYJerk = MAX_JERK;
     maxZJerk = MAX_ZJERK;
-    extruderOffset[X_AXIS] = extruderOffset[Y_AXIS] = extruderOffset[Z_AXIS] = 0;
 
     ZOffset = 0;
     interval = 5000;
@@ -1562,7 +1562,10 @@ void Printer::homeXAxis()
         int32_t offX = 0;
 #if NUM_EXTRUDER>1
         // Reposition extruder that way, that all extruders can be selected at home pos.
-        for(uint8_t i=0; i<NUM_EXTRUDER; i++) offX = ( nHomeDir < 0 ? RMath::max(offX,extruder[i].xOffset) : RMath::min(offX,extruder[i].xOffset) );
+        for(uint8_t i=0; i < NUM_EXTRUDER; i++) 
+			offX = ( nHomeDir < 0 )
+			? RMath::max(offX, int32_t(extruder[i].offsetMM[X_AXIS] * Printer::axisStepsPerMM[X_AXIS])) 
+			: RMath::min(offX, int32_t(extruder[i].offsetMM[X_AXIS] * Printer::axisStepsPerMM[X_AXIS]));
 #endif // NUM_EXTRUDER>1
 
 #if FEATURE_MILLING_MODE
@@ -1581,7 +1584,7 @@ void Printer::homeXAxis()
 #if NUM_EXTRUDER>1
         if( offX )
         {
-			Printer::queueRelativeStepsCoordinates((Extruder::current->xOffset-offX) * nHomeDir,0,0,0,homingFeedrate[X_AXIS],true,false);
+			Printer::queueRelativeStepsCoordinates((int32_t(Extruder::current->offsetMM[X_AXIS] * Printer::axisStepsPerMM[X_AXIS]) - offX) * nHomeDir, 0, 0, 0, homingFeedrate[X_AXIS], true, false);
         }
 #endif // NUM_EXTRUDER>1
 
@@ -1608,7 +1611,10 @@ void Printer::homeYAxis()
         int32_t offY = 0;
 #if NUM_EXTRUDER>1
         // Reposition extruder that way, that all extruders can be selected at home pos.
-        for(uint8_t i=0; i<NUM_EXTRUDER; i++) offY = ( nHomeDir < 0 ? RMath::max(offY, extruder[i].yOffset) : RMath::min(offY, extruder[i].yOffset) );
+		for (uint8_t i = 0; i < NUM_EXTRUDER; i++)
+			offY = (nHomeDir < 0)
+			? RMath::max(offY, int32_t(extruder[i].offsetMM[Y_AXIS] * Printer::axisStepsPerMM[Y_AXIS]))
+			: RMath::min(offY, int32_t(extruder[i].offsetMM[Y_AXIS] * Printer::axisStepsPerMM[Y_AXIS]));
 #endif // NUM_EXTRUDER>1
 
 #if FEATURE_MILLING_MODE
@@ -1627,7 +1633,7 @@ void Printer::homeYAxis()
 #if NUM_EXTRUDER>1
         if( offY )
         {
-			Printer::queueRelativeStepsCoordinates(0,(Extruder::current->yOffset-offY) * nHomeDir,0,0,homingFeedrate[Y_AXIS],true,false);
+			Printer::queueRelativeStepsCoordinates(0, (int32_t(Extruder::current->offsetMM[Y_AXIS] * Printer::axisStepsPerMM[Y_AXIS]) - offY) * nHomeDir, 0, 0, homingFeedrate[Y_AXIS], true, false);
         }
 #endif // NUM_EXTRUDER>1
 

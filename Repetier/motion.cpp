@@ -150,7 +150,7 @@ void PrintLine::prepareQueueMove(uint8_t check_endstops,uint8_t pathOptimize, fl
 #if FEATURE_HEAT_BED_Z_COMPENSATION
 	if (p->isEPositiveMove() || p->isZMove()) {
 		InterruptProtectedBlock noInts;
-		long nCurrentPositionStepsZ = Printer::getDestinationSteps(Z_AXIS) + Printer::directCurrentSteps[Z_AXIS] + Extruder::current->zOffset;
+		long nCurrentPositionStepsZ = Printer::getDestinationSteps(Z_AXIS) + Printer::directCurrentSteps[Z_AXIS] + Extruder::current->offsetMM[Z_AXIS] * Printer::axisStepsPerMM[Z_AXIS];
 		noInts.unprotect();
 
 		// The following two conditions might not follow each other in one move but in serveral queued moves.
