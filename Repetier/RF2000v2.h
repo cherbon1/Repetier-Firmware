@@ -95,19 +95,20 @@ For delta robot Z_MAX_LENGTH is the maximum travel of the towers and should be s
 and the platform when the printer is at its home position.
 If EEPROM is enabled these values will be overidden with the values in the EEPROM */
 #if NUM_EXTRUDER == 2
-#define X_MAX_LENGTH_PRINT                  (long)170
+#define X_MAX_LENGTH_PRINT                  170                                                                         // [mm]
 #else
-#define X_MAX_LENGTH_PRINT                  (long)230
+#define X_MAX_LENGTH_PRINT                  230                                                                         // [mm]
 #endif // NUM_EXTRUDER == 2
 
-#define X_MAX_LENGTH_MILL                   (long)200
-#define Y_MAX_LENGTH                        (long)290
-#define Z_MAX_LENGTH                        (long)185 //RF2000 von Nibbels: ~194,86 -> PAUSE_Z_MAX_SPACING_MM großzügig einplanen
+#define X_MAX_LENGTH_MILL                   200                                                                         // [mm]
+#define Y_MAX_LENGTH                        290                                                                         // [mm]
+//RF2000 von Nibbels: ~194,86 -> PAUSE_Z_MAX_SPACING_MM großzügig einplanen
+#define Z_MAX_LENGTH                        185                                                                         // [mm]
 
 /** \brief Coordinates for the minimum axis. Can also be negative if you want to have the bed start at 0 and the printer can go to the left side
 of the bed. Maximum coordinate is given by adding the above MAX_LENGTH values. */
-#define X_MIN_POS                           0
-#define Y_MIN_POS                           0
+#define X_MIN_POS                           0                                                                           // [mm]
+#define Y_MIN_POS                           0                                                                           // [mm]
 
 /** \brief Drive settings for printers with cartesian drive systems */
 /** \brief Number of steps for a 1mm move in x direction.
@@ -624,15 +625,10 @@ on this endstop. */
 //gets inverted when searching home dir in milling mode:
 #define Z_HOME_DIR                          -1
 
-/** \brief If true, axis won't move to coordinates less than zero. */
-#define min_software_endstop_x              false
-#define min_software_endstop_y              false
-#define min_software_endstop_z              false
-
 /** \brief If true, axis won't move to coordinates greater than the defined lengths below. */
 #define max_software_endstop_x              true
 #define max_software_endstop_y              true
-// sollte man das nicht "falsen" können?
+// sollte man das bei RF2000s nicht "falsen" können?
 #define max_software_endstop_z              true
 
 /** \brief If during homing the endstop is reached, how many mm should the printer move back for the second try */

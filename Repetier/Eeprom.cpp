@@ -130,19 +130,19 @@ void EEPROM::restoreEEPROMSettingsFromConfiguration()
     if( Printer::operatingMode == OPERATING_MODE_PRINT )
     {
 #endif // FEATURE_MILLING_MODE
-        Printer::lengthMM[X_AXIS] = X_MAX_LENGTH_PRINT;
+        Printer::axisLengthMM[X_AXIS] = X_MAX_LENGTH_PRINT;
 #if FEATURE_MILLING_MODE
     }
     else
     {
-        Printer::lengthMM[X_AXIS] = X_MAX_LENGTH_MILL;
+        Printer::axisLengthMM[X_AXIS] = X_MAX_LENGTH_MILL;
     }
 #endif // FEATURE_MILLING_MODE
 
-    Printer::lengthMM[Y_AXIS] = Y_MAX_LENGTH;
-    Printer::lengthMM[Z_AXIS] = Z_MAX_LENGTH;
-    Printer::minMM[X_AXIS] = X_MIN_POS;
-    Printer::minMM[Y_AXIS] = Y_MIN_POS;
+    Printer::axisLengthMM[Y_AXIS] = Y_MAX_LENGTH;
+    Printer::axisLengthMM[Z_AXIS] = Z_MAX_LENGTH;
+    Printer::axisHomingOffset[X_AXIS] = abs(X_MIN_POS);
+    Printer::axisHomingOffset[Y_AXIS] = abs(Y_MIN_POS);
 
 #if ENABLE_BACKLASH_COMPENSATION
     Printer::backlash[X_AXIS] = X_BACKLASH;
@@ -415,21 +415,21 @@ void EEPROM::storeDataIntoEEPROM(uint8_t corrupted)
     HAL::eprSetByte(EPR_RF_HEATED_BED_SENSOR_TYPE,HEATED_BED_SENSOR_TYPE);
 #endif // HAVE_HEATED_BED
 
-    HAL::eprSetFloat(EPR_X_HOME_OFFSET,Printer::minMM[X_AXIS]);
-    HAL::eprSetFloat(EPR_Y_HOME_OFFSET,Printer::minMM[Y_AXIS]);
+    HAL::eprSetFloat(EPR_X_HOME_OFFSET,Printer::axisHomingOffset[X_AXIS]);
+    HAL::eprSetFloat(EPR_Y_HOME_OFFSET,Printer::axisHomingOffset[Y_AXIS]);
 
 #if FEATURE_MILLING_MODE
     if( Printer::operatingMode == OPERATING_MODE_PRINT )
     {
 #endif // FEATURE_MILLING_MODE
-        HAL::eprSetFloat(EPR_X_LENGTH,Printer::lengthMM[X_AXIS]);
+        HAL::eprSetFloat(EPR_X_LENGTH,Printer::axisLengthMM[X_AXIS]);
 #if FEATURE_MILLING_MODE
     }else{
-        HAL::eprSetFloat(EPR_X_LENGTH_MILLING,Printer::lengthMM[X_AXIS]);
+        HAL::eprSetFloat(EPR_X_LENGTH_MILLING,Printer::axisLengthMM[X_AXIS]);
     }
 #endif  // FEATURE_MILLING_MODE
-    HAL::eprSetFloat(EPR_Y_LENGTH,Printer::lengthMM[Y_AXIS]);
-    HAL::eprSetFloat(EPR_Z_LENGTH,Printer::lengthMM[Z_AXIS]);
+    HAL::eprSetFloat(EPR_Y_LENGTH,Printer::axisLengthMM[Y_AXIS]);
+    HAL::eprSetFloat(EPR_Z_LENGTH,Printer::axisLengthMM[Z_AXIS]);
 
 #if ENABLE_BACKLASH_COMPENSATION
     HAL::eprSetFloat(EPR_BACKLASH_X,Printer::backlash[X_AXIS]);
@@ -676,7 +676,7 @@ void EEPROM::readDataFromEEPROM()
     Printer::ZOffset = HAL::eprGetInt32(EPR_RF_Z_OFFSET);
     Printer::ZMode = HAL::eprGetByte(EPR_RF_Z_MODE);
     g_staticZSteps = (Printer::ZOffset * Printer::axisStepsPerMM[Z_AXIS]) / 1000;
-    Printer::ZOverrideMax = uint16_t(Printer::axisStepsPerMM[Z_AXIS] * Z_ENDSTOP_DRIVE_OVER);
+    Printer::maxZOverrideSteps = uint16_t(Printer::axisStepsPerMM[Z_AXIS] * Z_ENDSTOP_DRIVE_OVER);
 
     g_minZCompensationSteps    = long(HEAT_BED_Z_COMPENSATION_MIN_MM * Printer::axisStepsPerMM[Z_AXIS]); //load the values with applied micro-steps
     g_maxZCompensationSteps    = long(HEAT_BED_Z_COMPENSATION_MAX_MM * Printer::axisStepsPerMM[Z_AXIS]);
@@ -749,35 +749,35 @@ void EEPROM::readDataFromEEPROM()
     heatedBedController.sensorType = (HAL::eprGetByte(EPR_RF_HEATED_BED_SENSOR_TYPE) != 0) ? HAL::eprGetByte(EPR_RF_HEATED_BED_SENSOR_TYPE) : HEATED_BED_SENSOR_TYPE;
 #endif // HAVE_HEATED_BED
 
-    Printer::minMM[X_AXIS] = HAL::eprGetFloat(EPR_X_HOME_OFFSET);
-    Printer::minMM[Y_AXIS] = HAL::eprGetFloat(EPR_Y_HOME_OFFSET);
+    Printer::axisHomingOffset[X_AXIS] = abs(HAL::eprGetFloat(EPR_X_HOME_OFFSET));
+    Printer::axisHomingOffset[Y_AXIS] = abs(HAL::eprGetFloat(EPR_Y_HOME_OFFSET));
 
 #if FEATURE_MILLING_MODE
     if( Printer::operatingMode == OPERATING_MODE_PRINT )
     {
 #endif // FEATURE_MILLING_MODE
-        Printer::lengthMM[X_AXIS] = HAL::eprGetFloat(EPR_X_LENGTH);
-        if(Printer::lengthMM[X_AXIS] <= 0 || Printer::lengthMM[X_AXIS] > 245.0f){
-            Printer::lengthMM[X_AXIS] = X_MAX_LENGTH_PRINT;
+        Printer::axisLengthMM[X_AXIS] = HAL::eprGetFloat(EPR_X_LENGTH);
+        if(Printer::axisLengthMM[X_AXIS] <= 0 || Printer::axisLengthMM[X_AXIS] > 245.0f){
+            Printer::axisLengthMM[X_AXIS] = X_MAX_LENGTH_PRINT;
 #if FEATURE_AUTOMATIC_EEPROM_UPDATE
-            HAL::eprSetFloat(EPR_X_LENGTH,Printer::lengthMM[X_AXIS]);
+            HAL::eprSetFloat(EPR_X_LENGTH,Printer::axisLengthMM[X_AXIS]);
             change = true; //update checksum later in this function
 #endif //FEATURE_AUTOMATIC_EEPROM_UPDATE
         }
 #if FEATURE_MILLING_MODE
     }else{
-        Printer::lengthMM[X_AXIS] = HAL::eprGetFloat(EPR_X_LENGTH_MILLING);
-        if(Printer::lengthMM[X_AXIS] <= 0 || Printer::lengthMM[X_AXIS] > 245.0f){
-            Printer::lengthMM[X_AXIS] = X_MAX_LENGTH_MILL;
+        Printer::axisLengthMM[X_AXIS] = HAL::eprGetFloat(EPR_X_LENGTH_MILLING);
+        if(Printer::axisLengthMM[X_AXIS] <= 0 || Printer::axisLengthMM[X_AXIS] > 245.0f){
+            Printer::axisLengthMM[X_AXIS] = X_MAX_LENGTH_MILL;
 #if FEATURE_AUTOMATIC_EEPROM_UPDATE
-            HAL::eprSetFloat(EPR_X_LENGTH_MILLING,Printer::lengthMM[X_AXIS]);
+            HAL::eprSetFloat(EPR_X_LENGTH_MILLING,Printer::axisLengthMM[X_AXIS]);
             change = true; //update checksum later in this function
 #endif //FEATURE_AUTOMATIC_EEPROM_UPDATE
         }
     }
 #endif  // FEATURE_MILLING_MODE
-    Printer::lengthMM[Y_AXIS] = HAL::eprGetFloat(EPR_Y_LENGTH);
-    Printer::lengthMM[Z_AXIS] = HAL::eprGetFloat(EPR_Z_LENGTH);
+    Printer::axisLengthMM[Y_AXIS] = HAL::eprGetFloat(EPR_Y_LENGTH);
+    Printer::axisLengthMM[Z_AXIS] = HAL::eprGetFloat(EPR_Z_LENGTH);
 
 #if ENABLE_BACKLASH_COMPENSATION
     Printer::backlash[X_AXIS] = HAL::eprGetFloat(EPR_BACKLASH_X);

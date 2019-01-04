@@ -213,7 +213,7 @@ public:
 					Printer::directDestinationStepsLast[Y_AXIS] = Printer::directDestinationSteps[Y_AXIS] = Printer::directCurrentSteps[Y_AXIS]; //Wenn man G28 und G1 Z200 macht, er vorher gestoppt wird und man zurückfährt, landet er im Minus. Weil der Drucker denkt, er wäre von 200 gestartet.
                 }
             }
-            if(isZPositiveMove() && (Printer::isZMaxEndstopHit() || Printer::currentZSteps > (Printer::maxSteps[Z_AXIS] /*- Printer::minSteps[Z_AXIS]*/) + abs(long(Printer::ZOverrideMax) * 2) ))
+            if(isZPositiveMove() && (Printer::isZMaxEndstopHit() || Printer::currentZSteps > Printer::maxSoftEndstopSteps[Z_AXIS] + abs(long(Printer::maxZOverrideSteps)) ))
             {
                 setZMoveFinished();
                 if(forQueue){
@@ -229,7 +229,7 @@ public:
         {
             if( Printer::isAxisHomed(Z_AXIS) && PrintLine::direct.task != TASK_MOVE_FROM_BUTTON)
             {
-                if( Printer::currentZSteps <= -1*long(Printer::ZOverrideMax) )
+                if( Printer::currentZSteps <= -1*long(Printer::maxZOverrideSteps) )
                 {
                     // --> setZMoveFinished(); //-> some lines down!
                 }else{

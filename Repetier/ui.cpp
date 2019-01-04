@@ -1307,29 +1307,29 @@ void UIDisplay::parse(char *txt,bool ram)
                 }
                 if(c2=='f')                                                                             // %of : flow multiplier
                 {
-                    addInt(Printer::extrudeMultiply
+                    addInt(100 * Printer::menuExtrusionFactor
  #if FEATURE_DIGIT_FLOW_COMPENSATION
-                            * g_nDigitFlowCompensation_flowmulti
+                            * Printer::dynamicExtrusionFactor
  #endif // FEATURE_DIGIT_FLOW_COMPENSATION
                     ,3);
                     break;
                 }
                 if(c2=='m')                                                                             // %om : Speed multiplier
                 {
-                    addInt(Printer::feedrateMultiply
  #if FEATURE_DIGIT_FLOW_COMPENSATION
-                            * g_nDigitFlowCompensation_feedmulti
+                    addInt(Printer::feedrateMultiply * Printer::dynamicFeedrateFactor, 3);
+ #else 
+                    addInt(Printer::feedrateMultiply, 3);
  #endif // FEATURE_DIGIT_FLOW_COMPENSATION
-                    ,3);
                     break;
                 }
                 if(c2=='v')                                                                             // %ov : Active Speed
                 {
-                    addFloat(Printer::v
- #if FEATURE_DIGIT_FLOW_COMPENSATION
-                            * g_nDigitFlowCompensation_feedmulti
- #endif // FEATURE_DIGIT_FLOW_COMPENSATION
-                    ,3,2);
+#if FEATURE_DIGIT_FLOW_COMPENSATION
+					addFloat(Printer::v * Printer::dynamicFeedrateFactor, 3, 2);
+#else 
+					addFloat(Printer::v, 3, 2);
+#endif // FEATURE_DIGIT_FLOW_COMPENSATION
                     break;
                 }
                 if(c2=='p')                                                                             // %op : Is single double or quadstepping?
@@ -3182,12 +3182,12 @@ void UIDisplay::nextPreviousAction(int8_t next)
         case UI_ACTION_EPOSITION:
         {
 #if EXTRUDER_ALLOW_COLD_MOVE
-			Printer::queueRelativeMMCoordinates(0, 0, 0, (float)increment/Printer::extrusionFactor, UI_SET_EXTRUDER_FEEDRATE, true, false); //klappt nicht in Pause!!
+			Printer::queueRelativeMMCoordinates(0, 0, 0, (float)increment/Printer::menuExtrusionFactor, UI_SET_EXTRUDER_FEEDRATE, true, false); //klappt nicht in Pause!!
             Commands::printCurrentPosition();
 #else
             if( Extruder::current->tempControl.targetTemperatureC > UI_SET_MIN_EXTRUDER_TEMP )
             {
-				Printer::queueRelativeMMCoordinates(0,0,0, (float)increment/Printer::extrusionFactor, UI_SET_EXTRUDER_FEEDRATE, true, false);
+				Printer::queueRelativeMMCoordinates(0,0,0, (float)increment/Printer::menuExtrusionFactor, UI_SET_EXTRUDER_FEEDRATE, true, false);
                 Commands::printCurrentPosition();
             }
             else
@@ -3285,9 +3285,9 @@ void UIDisplay::nextPreviousAction(int8_t next)
         }
         case UI_ACTION_FLOWRATE_MULTIPLY:
         {
-            int er = Printer::extrudeMultiply;
-            INCREMENT_MIN_MAX(er,1,25,200);
-            Commands::changeFlowrateMultiply(static_cast<float>(er));
+            float eF = Printer::menuExtrusionFactor;
+            INCREMENT_MIN_MAX(eF, 0.01f, 0.25f, 2.0f);
+            Commands::changeFlowrateMultiply(eF);
             break;
         }
         case UI_ACTION_STEPPER_INACTIVE:
@@ -4977,9 +4977,9 @@ void UIDisplay::executeAction(int action)
             {
                 if(caliper_collect_um && caliper_collect_count){
                     float dim = (float)caliper_filament_standard / (caliper_collect_um / caliper_collect_count);
-                    float multi = 100.0f * dim*dim;
-                    Commands::changeFlowrateMultiply(multi);
-                    Com::printFLN( PSTR( "Set Flowrate Multiplier: " ), multi );
+                    float newExtrusionFactor = dim*dim;
+                    Commands::changeFlowrateMultiply(newExtrusionFactor);
+                    Com::printFLN( PSTR( "Set Flowrate Multiplier: " ), uint8_t(newExtrusionFactor * 100) );
                     BEEP_ACCEPT_SET_POSITION
                 }
                 break;

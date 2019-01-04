@@ -418,7 +418,8 @@ void Extruder::selectExtruderById(uint8_t extruderId)
 
     Extruder::current->tempControl.updateTempControlVars();
 
-	//uncomment when inserting diameter for hotend x // Commands::changeFlowrateMultiply(static_cast<float>(Printer::extrudeMultiply)); // needed to adjust extrusionFactor to possibly different diameter
+	// When inserting diameter for hotend 1/2
+	// We needed to adjust extrusionFactor to possibly different diameter
 
 	//update position
     Printer::queueFloatCoordinates(IGNORE_COORDINATE,IGNORE_COORDINATE,IGNORE_COORDINATE,IGNORE_COORDINATE,Printer::homingFeedrate[X_AXIS]);

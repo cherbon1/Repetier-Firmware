@@ -1,5 +1,12 @@
+V 01.43.30.Mod (2019-01-03)
+- eliminated extrudeMultiplyError
+- optimized some code
+- cleanup of axis minima / homing min position
+- cleanup of homing
+- cleanup of extrusion factor variables
+
 V 01.43.29.Mod (2019-01-03)
-- eliminated all extruder offset steps to mm calculations
+- eliminated all extruder offset steps -> mm calculations
 - switch extruderoffsetmm
 - refactoring
 

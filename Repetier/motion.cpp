@@ -118,16 +118,16 @@ void PrintLine::prepareQueueMove(uint8_t check_endstops,uint8_t pathOptimize, fl
         if(axis == E_AXIS)
         {
 #if FEATURE_DIGIT_FLOW_COMPENSATION
-			float axisDistanceScaledMM = axisDistanceUnscaledMM * Printer::extrusionFactor * g_nDigitFlowCompensation_flowmulti;
+			float axisDistanceScaledMM = axisDistanceUnscaledMM * Printer::menuExtrusionFactor * Printer::dynamicExtrusionFactor;
 #else
-			float axisDistanceScaledMM = axisDistanceUnscaledMM * Printer::extrusionFactor;
+			float axisDistanceScaledMM = axisDistanceUnscaledMM * Printer::menuExtrusionFactor;
  #endif // FEATURE_DIGIT_FLOW_COMPENSATION
-			p->delta[E_AXIS]                       = lroundf(axisDistanceScaledMM * Printer::axisStepsPerMM[E_AXIS]);
+			p->delta[E_AXIS] = lroundf(axisDistanceScaledMM * Printer::axisStepsPerMM[E_AXIS]);
 			axisDistanceMM[E_AXIS] = fabs(axisDistanceScaledMM);
 			Printer::filamentPrinted += axisDistanceScaledMM;
         }
 		else {
-			p->delta[axis]                       = lroundf(axisDistanceUnscaledMM * Printer::axisStepsPerMM[E_AXIS]);
+			p->delta[axis] = lroundf(axisDistanceUnscaledMM * Printer::axisStepsPerMM[E_AXIS]);
 			axisDistanceMM[axis] = fabs(axisDistanceUnscaledMM);
 		}
 
@@ -261,12 +261,12 @@ void PrintLine::prepareQueueMove(uint8_t check_endstops,uint8_t pathOptimize, fl
     {
         xydist2 = axisDistanceMM[X_AXIS] * axisDistanceMM[X_AXIS] + axisDistanceMM[Y_AXIS] * axisDistanceMM[Y_AXIS];
         if(p->isZMove())
-            p->distance = RMath::max((float)sqrt(xydist2 + axisDistanceMM[Z_AXIS] * axisDistanceMM[Z_AXIS]),fabs(axisDistanceMM[E_AXIS]));
+            p->distance = RMath::max((float)sqrt(xydist2 + axisDistanceMM[Z_AXIS] * axisDistanceMM[Z_AXIS]), axisDistanceMM[E_AXIS]);
         else
-            p->distance = RMath::max((float)sqrt(xydist2),fabs(axisDistanceMM[E_AXIS]));
+            p->distance = RMath::max((float)sqrt(xydist2), axisDistanceMM[E_AXIS]);
     }
     else
-        p->distance = fabs(axisDistanceMM[E_AXIS]);
+        p->distance = axisDistanceMM[E_AXIS];
 
     p->calculateMove(axisDistanceMM, p->primaryAxis, feedrate);
 
@@ -299,22 +299,12 @@ void PrintLine::prepareDirectMove(void)
     for(uint8_t axis=0; axis < 4; axis++)
     {
         p->delta[axis] = Printer::directDestinationSteps[axis] - Printer::directCurrentSteps[axis];
-        if(axis == E_AXIS)
-        {
-            Printer::extrudeMultiplyError += (static_cast<float>(p->delta[E_AXIS]) * Printer::extrusionFactor
- #if FEATURE_DIGIT_FLOW_COMPENSATION
-                            * g_nDigitFlowCompensation_flowmulti
- #endif // FEATURE_DIGIT_FLOW_COMPENSATION
-               );
-            p->delta[E_AXIS] = static_cast<int32_t>(Printer::extrudeMultiplyError);
-            Printer::extrudeMultiplyError -= p->delta[E_AXIS];
-            Printer::filamentPrinted += p->delta[E_AXIS] * Printer::axisMMPerSteps[axis];
-        }
+		// no special extrusion handling. this direct drive is only for manual move and button feed. no precision needed.
         if(p->delta[axis] >= 0)
             p->setPositiveDirectionForAxis(axis);
         else
             p->delta[axis] = -p->delta[axis];
-        axisDistanceMM[axis] = p->delta[axis] * Printer::axisMMPerSteps[axis];
+        axisDistanceMM[axis] = fabs(p->delta[axis] * Printer::axisMMPerSteps[axis]);
         if(p->delta[axis]) p->setMoveOfAxis(axis);
         Printer::directDestinationStepsLast[axis] = Printer::directDestinationSteps[axis];
     }
@@ -339,12 +329,12 @@ void PrintLine::prepareDirectMove(void)
     {
         xydist2 = axisDistanceMM[X_AXIS] * axisDistanceMM[X_AXIS] + axisDistanceMM[Y_AXIS] * axisDistanceMM[Y_AXIS];
         if(p->isZMove())
-            p->distance = RMath::max((float)sqrt(xydist2 + axisDistanceMM[Z_AXIS] * axisDistanceMM[Z_AXIS]),fabs(axisDistanceMM[E_AXIS]));
+            p->distance = RMath::max((float)sqrt(xydist2 + axisDistanceMM[Z_AXIS] * axisDistanceMM[Z_AXIS]), axisDistanceMM[E_AXIS]);
         else
-            p->distance = RMath::max((float)sqrt(xydist2),fabs(axisDistanceMM[E_AXIS]));
+            p->distance = RMath::max((float)sqrt(xydist2), axisDistanceMM[E_AXIS]);
     }
     else
-        p->distance = fabs(axisDistanceMM[E_AXIS]);
+        p->distance = axisDistanceMM[E_AXIS];
 
 	float feedrate = (p->isXOrYMove() ? DIRECT_FEEDRATE_XY : p->isZMove() ? DIRECT_FEEDRATE_Z : DIRECT_FEEDRATE_E);
 

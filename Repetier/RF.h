@@ -534,7 +534,6 @@ extern const char   ui_text_saving_success[]        PROGMEM;
 // in case also FEATURE_WORK_PART_Z_COMPENSATION is enabled, only the defined dimensions for the heat bed scan count (so it must be ensured that the dimensions of the heat bed compensation matrix are at least of the size of the work part compensation matrix)
 #define COMPENSATION_MATRIX_MAX_X           long((X_MAX_LENGTH_PRINT - HEAT_BED_SCAN_X_START_MM - HEAT_BED_SCAN_X_END_MM) / HEAT_BED_SCAN_X_STEP_SIZE_MIN_MM + 4)
 #define COMPENSATION_MATRIX_MAX_Y           long((Y_MAX_LENGTH       - HEAT_BED_SCAN_Y_START_MM - HEAT_BED_SCAN_Y_END_MM) / HEAT_BED_SCAN_Y_STEP_SIZE_MIN_MM + 4)
-
 #define COMPENSATION_MATRIX_SIZE            long(COMPENSATION_MATRIX_MAX_X * COMPENSATION_MATRIX_MAX_Y * 2 + EEPROM_OFFSET_MATRIX_START)   // [bytes]
 
 #elif FEATURE_WORK_PART_Z_COMPENSATION
@@ -542,7 +541,6 @@ extern const char   ui_text_saving_success[]        PROGMEM;
 // determine the maximal needed size for the work part compensation
 #define COMPENSATION_MATRIX_MAX_X           long((X_MAX_LENGTH_MILL - WORK_PART_SCAN_X_START_MM - WORK_PART_SCAN_X_END_MM) / WORK_PART_SCAN_X_STEP_SIZE_MIN_MM + 4)
 #define COMPENSATION_MATRIX_MAX_Y           long((Y_MAX_LENGTH      - WORK_PART_SCAN_Y_START_MM - WORK_PART_SCAN_Y_END_MM) / WORK_PART_SCAN_Y_STEP_SIZE_MIN_MM + 4)
-
 #define COMPENSATION_MATRIX_SIZE            long(COMPENSATION_MATRIX_MAX_X * COMPENSATION_MATRIX_MAX_Y * 2 + EEPROM_OFFSET_MATRIX_START)   // [bytes]
 
 #endif // FEATURE_HEAT_BED_Z_COMPENSATION && FEATURE_WORK_PART_Z_COMPENSATION
@@ -642,8 +640,6 @@ extern bool             g_nDigitZCompensationDigits_active;
  extern int8_t           g_nDigitFlowCompensation_speed_intense;
  extern short            g_nDigitFlowCompensation_Fmin;
  extern short            g_nDigitFlowCompensation_Fmax;
- extern float            g_nDigitFlowCompensation_flowmulti;
- extern float            g_nDigitFlowCompensation_feedmulti;
  #endif // FEATURE_DIGIT_FLOW_COMPENSATION
 #endif // FEATURE_DIGIT_Z_COMPENSATION
 

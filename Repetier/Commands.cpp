@@ -139,6 +139,7 @@ void Commands::waitUntilEndOfAllMoves()
 
 void Commands::printCurrentPosition()
 {
+	//TODO: Stimmt das ??
 	float x = Printer::currentXPositionMM();
 	float y = Printer::currentYPositionMM();
 	float z = Printer::currentZPositionMM();
@@ -226,31 +227,19 @@ void Commands::printTemperatures(bool showRaw)
 
 void Commands::changeFeedrateMultiply(int factor)
 {
-    if(factor<25) factor=25;
-    if(factor>500) factor=500;
-    Printer::feedrate *= (float)factor/(float)Printer::feedrateMultiply;
+    factor = constrain(factor, 25, 500);
+    Printer::feedrate *= (float)factor / (float)Printer::feedrateMultiply;
     Printer::feedrateMultiply = factor;
 
-    if( Printer::debugInfo() )
-    {
-        Com::printFLN(Com::tSpeedMultiply,factor);
-    }
-
+    Com::printFLN(Com::tSpeedMultiply, factor);
 } // changeFeedrateMultiply
 
 
-void Commands::changeFlowrateMultiply(float factorpercent)
+void Commands::changeFlowrateMultiply(float newExtrusionFactor)
 {
-    if(factorpercent < 25.0f)   factorpercent = 25.0f;
-    if(factorpercent > 200.0f)  factorpercent = 200.0f;
-    Printer::extrudeMultiply = static_cast<int>(factorpercent);
+    Printer::menuExtrusionFactor = constrain(newExtrusionFactor, 0.1f, 2.0f);
 
-    //if(Extruder::current->diameter <= 0)
-        Printer::extrusionFactor = 0.01f * static_cast<float>(factorpercent);
-    //else
-    //    Printer::extrusionFactor = 0.01f * static_cast<float>(factor) * 4.0f / (Extruder::current->diameter * Extruder::current->diameter * 3.141592654f);
-
-    Com::printFLN(Com::tFlowMultiply,(int)factorpercent);
+    Com::printFLN(Com::tFlowMultiply, (int)lroundf(100 * newExtrusionFactor));
 } // changeFlowrateMultiply
 
 
@@ -1498,7 +1487,12 @@ void Commands::executeGCode(GCode *com)
             }
             case 221:   // M221 - S<Extrusion flow multiplier in percent>
             {
-                changeFlowrateMultiply(static_cast<float>(com->getS(100)));
+				if (com->hasS() && com->S > 0) {
+					changeFlowrateMultiply(static_cast<float>(com->S) * 0.01f);
+				}
+				else {
+					changeFlowrateMultiply(1.0f);
+				}
                 break;
             }
 

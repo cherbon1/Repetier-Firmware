@@ -91,19 +91,18 @@ public:
 #endif // FEATURE_DIGIT_FLOW_COMPENSATION
 
     static float            originOffsetMM[3];
-	static volatile float   destinationMM[4];           // Target in mm from origin.
-    static volatile float   destinationMMLast[4];             // Position in mm from origin.
+	static volatile float   destinationMM[4];                   // Target in mm from origin.
+    static volatile float   destinationMMLast[4];               // Position in mm from origin.
 
-    static long             maxSteps[3];                        // For software endstops, limit of move in positive direction.
-    static long             minSteps[3];                        // For software endstops, limit of move in negative direction.
-    static float            lengthMM[3];
-    static float            minMM[2];
+    static long             maxSoftEndstopSteps[3];             // For software endstops, limit of move in positive direction. (=Homing-Offset + Achsenlänge)
+    static float            axisLengthMM[3];                    // Länge des überfahrbaren Bereichs im positiven Homing. (=Schienen-Fahrweg - Homing-Offset - 2x ExtruderOffset)
+    static float            axisHomingOffset[2];                // Homing-Offset für X und Y
     static float            feedrate;                           // Last requested feedrate.
-    static int              feedrateMultiply;                   // Multiplier for feedrate in percent (factor 1 = 100)
-    static int              extrudeMultiply;                    // Flow multiplier in percdent (factor 1 = 100)
-    static float            extrudeMultiplyError;               //< Accumulated error during extrusion
-    static float            extrusionFactor;                    //< Extrusion multiply factor
-    static float            maxXYJerk;                            // Maximum allowed jerk in mm/s
+    static int              feedrateMultiply;                   // Multiplier for feedrate in percent (factor 1 = 100)	
+	static float            dynamicFeedrateFactor;              // Feedrate multiplier factor for digit compensation (1.0 = 100%)	
+	static float            menuExtrusionFactor;                // Flow multiplier factor (1.0 = 100%)
+	static float            dynamicExtrusionFactor;             // Flow multiplier factor for digit compensation (1.0 = 100%)	
+    static float            maxXYJerk;                          // Maximum allowed jerk in mm/s
     static float            maxZJerk;                           // Maximum allowed jerk in z direction in mm/s
     static speed_t          vMaxReached;                        // Maximumu reached speed
     static unsigned long    msecondsPrinting;                   // Milliseconds of printing time (means time with heated extruder)
@@ -140,7 +139,7 @@ public:
     static volatile char    blockAll;
 
     static volatile long    currentZSteps;
-    static uint16_t         ZOverrideMax;
+    static uint16_t         maxZOverrideSteps;
 
 #if FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
     static volatile long    compensatedPositionTargetStepsZ;
@@ -974,26 +973,26 @@ public:
         flag0 = (on ? flag0 | PRINTER_FLAG0_MANUAL_MOVE_MODE : flag0 & ~PRINTER_FLAG0_MANUAL_MOVE_MODE);
     } // setManualMoveMode
 
-    static INLINE float targetXPosition()
+    static INLINE float targetXPositionMM()
     {
         // return all values in [mm]
 		return destinationMM[X_AXIS] + Printer::getDirectMM(X_AXIS);
-    } // targetXPosition
+    } // targetXPositionMM
 
-    static INLINE float targetYPosition()
+    static INLINE float targetYPositionMM()
     {
         // return all values in [mm]
 		return destinationMM[Y_AXIS] + Printer::getDirectMM(Y_AXIS);
-    } // targetYPosition
+    } // targetYPositionMM
 
-    static inline float targetZPosition()
+    static inline float targetZPositionMM()
     {
 		//sum steps
         float   fvalue = (float)Printer::directDestinationSteps[Z_AXIS];
 #if FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
-        // add the current z-compensation
+        // add the current z-compensation -> die hängt aber von der zielhöhe ab.
         fvalue += (float)Printer::compensatedPositionCurrentStepsZ;
-        fvalue += (float)g_nZScanZPosition;
+        fvalue += (float)g_nZScanZPosition; //-> das ist hier glaub nicht sinnvoll. nur für fräsen?
 #endif // FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
 #if FEATURE_FIND_Z_ORIGIN
         fvalue += (float)g_nZOriginPosition[Z_AXIS];
@@ -1005,7 +1004,7 @@ public:
 		fvalue += destinationMM[Z_AXIS];
 
         return fvalue;
-    } // targetZPosition
+    } // targetZPositionMM
 
     static inline float currentXPositionMM()
     {
