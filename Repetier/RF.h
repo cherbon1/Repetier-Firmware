@@ -429,11 +429,14 @@ The following variables are used for movements in x/y/z direction:
 
 - Printer::destinationMM[x/y/z]
   - unit is [mm]
-  - after a move is queued this is the new target coordinate
+  - this is the precise target coordinate which might not be fully reachable by full steps
+  - add set and subtract positions here.
 
 - Printer::destinationMMLast[x/y/z]
   - unit is [mm]
-  - the rest is identical to destinationMMLast
+  - this coordinate keeps track of the real coordinates which where commanded by using full output steps.
+  - Printer::destinationMMLast - Printer::destinationMM is the step rounding error of the current axis.
+  - change this variable only if you want to define a new error delta free axis scale. -> Printer::destinationMM = Printer::destinationMMLast = blubb.
 
 - Printer::currentSteps[x/y/z]
   - unit is [steps]
@@ -446,11 +449,6 @@ The following variables are used for movements in x/y/z direction:
 - Printer::directDestinationSteps[x/y/z]
   - unit is [steps]
   - holds the position which shall be reached through direct movements, e.g. from the manual buttons or from the direct pause/continue functionality
-
-- Printer::directDestinationStepsLast[x/y/z]
-  - unit is [steps]
-  - holds the last position which has been calculated as directDestinationSteps
-  - in most cases, the value of directDestinationStepsLast is identical to the value of directDestinationSteps, the values of these variables are different only while a new position is calculated
 
 - Printer::directCurrentSteps[x/y/z]
   - unit is [steps]
@@ -790,9 +788,6 @@ extern unsigned short readMotorStatus( unsigned char driver );
 #endif //FEATURE_READ_STEPPER_STATUS
 #endif // CURRENT_CONTROL_DRV8711
 
-extern void cleanupXPositions( void );
-extern void cleanupYPositions( void );
-extern void cleanupZPositions( void );
 extern void cleanupEPositions( void );
 extern void setZOrigin( void );
 

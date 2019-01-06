@@ -355,11 +355,11 @@ short readStrainGauge( unsigned char uAddress ) //readStrainGauge dauert etwas u
                 if(active_summed_digits <= g_nDigitFlowCompensation_Fmin){
 					Printer::dynamicExtrusionFactor = 1.0f;
                 }else if(active_summed_digits >= g_nDigitFlowCompensation_Fmax){
-                    if( Printer::currentSteps[Z_AXIS] > g_minZCompensationSteps - int32_t(Extruder::current->offsetMM[Z_AXIS] * Printer::axisStepsPerMM[Z_AXIS]))
+                    if(Printer::currentSteps[Z_AXIS] > g_minZCompensationSteps)
 						Printer::dynamicExtrusionFactor = 1.0f + 0.01f * g_nDigitFlowCompensation_intense;
                     else Printer::dynamicExtrusionFactor = 1.0f;
                 }else{
-                    if( Printer::currentSteps[Z_AXIS] > g_minZCompensationSteps - int32_t(Extruder::current->offsetMM[Z_AXIS] * Printer::axisStepsPerMM[Z_AXIS]))
+                    if(Printer::currentSteps[Z_AXIS] > g_minZCompensationSteps)
 						Printer::dynamicExtrusionFactor = 1.0f + 0.01f * g_nDigitFlowCompensation_intense
                                                                              *(active_summed_digits - g_nDigitFlowCompensation_Fmin)
                                                                              /(g_nDigitFlowCompensation_Fmax - g_nDigitFlowCompensation_Fmin);
@@ -379,10 +379,10 @@ short readStrainGauge( unsigned char uAddress ) //readStrainGauge dauert etwas u
                 if(active_summed_digits <= g_nDigitFlowCompensation_Fmin){
                         goal = 1.0f;
                 }else if(active_summed_digits >= g_nDigitFlowCompensation_Fmax){
-                    if( Printer::currentSteps[Z_AXIS] > g_minZCompensationSteps - int32_t(Extruder::current->offsetMM[Z_AXIS] * Printer::axisStepsPerMM[Z_AXIS]))
+                    if(Printer::currentSteps[Z_AXIS] > g_minZCompensationSteps)
                         goal = 1.0f + 0.01f * g_nDigitFlowCompensation_speed_intense;
                 }else{
-                    if( Printer::currentSteps[Z_AXIS] > g_minZCompensationSteps - int32_t(Extruder::current->offsetMM[Z_AXIS] * Printer::axisStepsPerMM[Z_AXIS]))
+                    if(Printer::currentSteps[Z_AXIS] > g_minZCompensationSteps)
                         goal = 1.0f + 0.01f * g_nDigitFlowCompensation_speed_intense
                                                                              *(active_summed_digits - g_nDigitFlowCompensation_Fmin)
                                                                              /(g_nDigitFlowCompensation_Fmax - g_nDigitFlowCompensation_Fmin);
@@ -1086,30 +1086,6 @@ void scanHeatBed( void )
             }
             case 54:
             {
-#if DEBUG_HEAT_BED_SCAN
-                if( Printer::debugInfo() )
-                {
-                    Com::printF( PSTR( "nX;" ), nX );
-                    Com::printF( Com::tSemiColon, (float)nX / Printer::axisStepsPerMM[X_AXIS] );
-                    Com::printF( PSTR( ";nY;" ), nY );
-                    Com::printF( Com::tSemiColon, (float)nY / Printer::axisStepsPerMM[Y_AXIS] );
-                    Com::printF( PSTR( ";nZ;" ), g_nZScanZPosition );
-                    Com::printF( Com::tSemiColon, (float)g_nZScanZPosition / Printer::axisStepsPerMM[Z_AXIS] );
-                    Com::printF( PSTR( ";Pressure;" ), nContactPressure );
-
-                    Com::printF( PSTR( ";nIndexX;" ), (int)nIndexX );
-                    Com::printF( PSTR( ";nIndexY;" ), (int)nIndexY );
-
-/*                  // output the non compensated position values
-                    Com::printF( PSTR( ";;" ), Printer::currentSteps[X_AXIS] );
-                    Com::printF( Com::tSemiColon, Printer::currentSteps[Y_AXIS] );
-                    Com::printF( Com::tSemiColon, Printer::currentSteps[Z_AXIS] );
-                    Com::printF( Com::tSemiColon, Printer::compensatedPositionCurrentStepsZ );
-*/
-                    Com::printFLN( PSTR( " " ) );
-                }
-#endif // DEBUG_HEAT_BED_SCAN
-
                 // remember the z-position and the exact y-position of this row/column
                 g_ZCompensationMatrix[nIndexX][nIndexY] = (short)g_nZScanZPosition;
                 g_ZCompensationMatrix[0][nIndexY]       = (short)((float)nY / Printer::axisStepsPerMM[Y_AXIS] + 0.5);   // convert to mm
@@ -3462,16 +3438,10 @@ long getZMatrixDepth(long x, long y){
 }
 
 long getZMatrixDepth_CurrentXY(void){
-    long  nCurrentPositionSteps[2];
-    InterruptProtectedBlock noInts; //HAL::forbidInterrupts();
-    nCurrentPositionSteps[X_AXIS] = Printer::currentSteps[X_AXIS];
-    nCurrentPositionSteps[Y_AXIS] = Printer::currentSteps[Y_AXIS];
-
-    nCurrentPositionSteps[X_AXIS] += Printer::directCurrentSteps[X_AXIS];
-    nCurrentPositionSteps[Y_AXIS] += Printer::directCurrentSteps[Y_AXIS];
-    noInts.unprotect(); //HAL::allowInterrupts();
-
-    return getZMatrixDepth(nCurrentPositionSteps[X_AXIS], nCurrentPositionSteps[Y_AXIS]);
+    return getZMatrixDepth(
+		Printer::getAllCurrentAxisSteps(X_AXIS), 
+		Printer::getAllCurrentAxisSteps(Y_AXIS)
+	);
 }
 
 void doHeatBedZCompensation( void )
@@ -3488,10 +3458,7 @@ void doHeatBedZCompensation( void )
 
     if( Printer::doHeatBedZCompensation )
     {
-        InterruptProtectedBlock noInts;
-        long nCurrentPositionStepsZ = Printer::currentSteps[Z_AXIS] + int32_t(Extruder::current->offsetMM[Z_AXIS] * Printer::axisStepsPerMM[Z_AXIS]);
-        nCurrentPositionStepsZ += Printer::directCurrentSteps[Z_AXIS];
-        noInts.unprotect(); //HAL::allowInterrupts();
+		long nCurrentPositionStepsZ = Printer::getAllCurrentAxisSteps(Z_AXIS);
 
         // Der Z-Kompensation wird das extruderspezifische Z-Offset des jeweiligen Extruders verschwiegen, sodass dieses die Höhen / Limits nicht beeinflusst. Die X- und Y-Offsets werden behalten, denn das korrigiert Düsen- zu Welligkeitsposition nach Extruderwechsel. Das extruderspezifische Z-Offset Extruder::current->zOffset wird beim Toolchange in nCurrentPositionStepsZ eingerechnet und verfahren.
         // Extruder::current->zOffset ist negativ, wenn das hotend weiter heruntergedrückt werden kann als 0. -> Bettfahrt nach unten, um auszuweichen.
@@ -4517,13 +4484,7 @@ void scanWorkPart( void )
                     Com::printF( PSTR( ";nIndexX;" ), (int)nIndexX );
                     Com::printF( PSTR( ";nIndexY;" ), (int)nIndexY );
 
-/*                  // output the non compensated position values
-                    Com::printF( PSTR( ";;" ), Printer::currentSteps[X_AXIS] );
-                    Com::printF( Com::tSemiColon, Printer::currentSteps[Y_AXIS] );
-                    Com::printF( Com::tSemiColon, Printer::currentSteps[Z_AXIS] );
-                    Com::printF( Com::tSemiColon, Printer::compensatedPositionCurrentStepsZ );
-*/
-                    Com::printFLN( PSTR( " " ) );
+					Com::printFLN( PSTR( " " ) );
                 }
 #endif // DEBUG_WORK_PART_SCAN
 
@@ -4807,8 +4768,7 @@ void doWorkPartZCompensation( void )
 
     if( Printer::doWorkPartZCompensation )
     {
-        long nCurrentPositionStepsZ = Printer::currentSteps[Z_AXIS];
-        if( nCurrentPositionStepsZ )
+        if( Printer::currentSteps[Z_AXIS] )
         {
             nNeededZCompensation = getWorkPartOffset();
             nNeededZCompensation += g_staticZSteps;
@@ -6239,7 +6199,7 @@ void handleStrainGaugeFeatures(millis_t uTime){
             #Die Höhe über Grund, kompensiert sollte unterhalb g_maxZCompensationSteps sein.
             #currentSteps = Achsenziel + Achsenoffset, aber g_minZCompensationSteps/g_maxZCompensationSteps kennen das Achsenoffset nicht ohne Hilfe: Das gehört hier her, wenn man die Layerhöhe abgleichen will.
             */
-            if( Printer::currentSteps[Z_AXIS] + int32_t(Extruder::current->offsetMM[Z_AXIS] * Printer::axisStepsPerMM[Z_AXIS]) <= g_minZCompensationSteps )  //Nibbels 010118 in der zkompensation sind hier auch noch directstepsz drin .. TODO??
+            if( Printer::currentSteps[Z_AXIS] <= g_minZCompensationSteps )  //Nibbels 010118 in der zkompensation sind hier auch noch directstepsz drin .. TODO??
             {
                 g_nSensiblePressure1stMarke = 1; //marker für display: wir sind in regelhöhe
                 //wenn durch Gcode gefüllt, prüfe, ob Z-Korrektur (weg vom Bett) notwendig ist, in erstem Layer.
@@ -7130,17 +7090,14 @@ void determinePausePosition( void )
 
     if( g_nPauseSteps[X_AXIS] )
     {
-        long Temp = g_nPauseSteps[X_AXIS];
-        Temp += Printer::currentSteps[X_AXIS];
-        Temp += Printer::directDestinationSteps[X_AXIS];
+        long Temp = g_nPauseSteps[X_AXIS] + Printer::getPlannedDirectAxisSteps(X_AXIS);
 
         if( g_nPauseSteps[X_AXIS] < 0 )
         {
             if( Temp < PAUSE_X_SPACING_MM * Printer::axisStepsPerMM[X_AXIS] )
             {
                 // we can move only partially
-                Temp = PAUSE_X_SPACING_MM * Printer::axisStepsPerMM[X_AXIS] - Printer::directDestinationSteps[X_AXIS];
-                Temp -= Printer::currentSteps[X_AXIS];
+				Temp = PAUSE_X_SPACING_MM * Printer::axisStepsPerMM[X_AXIS] - Printer::getPlannedDirectAxisSteps(X_AXIS);
 
                 Printer::directDestinationSteps[X_AXIS] += Temp;
                 g_nContinueSteps[X_AXIS]                   =  -Temp;
@@ -7157,8 +7114,7 @@ void determinePausePosition( void )
             if( Temp > Max )
             {
                 // we can move only partially
-                Temp =  Max - Printer::directDestinationSteps[X_AXIS];
-                Temp -= Printer::currentSteps[X_AXIS];
+                Temp =  Max - Printer::getPlannedDirectAxisSteps(X_AXIS);
 
                 Printer::directDestinationSteps[X_AXIS] += Temp;
                 g_nContinueSteps[X_AXIS]                   =  -Temp;
@@ -7175,17 +7131,14 @@ void determinePausePosition( void )
 
     if( g_nPauseSteps[Y_AXIS] )
     {
-        long Temp = g_nPauseSteps[Y_AXIS];
-        Temp += Printer::currentSteps[Y_AXIS];
-        Temp += Printer::directDestinationSteps[Y_AXIS];
+        long Temp = g_nPauseSteps[Y_AXIS] + Printer::getPlannedDirectAxisSteps(Y_AXIS);
 
         if( g_nPauseSteps[Y_AXIS] < 0 )
         {
             if( Temp < PAUSE_Y_SPACING_MM * Printer::axisStepsPerMM[Y_AXIS] )
             {
                 // we can move only partially
-                Temp =  PAUSE_Y_SPACING_MM * Printer::axisStepsPerMM[Y_AXIS] - Printer::directDestinationSteps[Y_AXIS];
-                Temp -= Printer::currentSteps[Y_AXIS];
+                Temp =  PAUSE_Y_SPACING_MM * Printer::axisStepsPerMM[Y_AXIS] - Printer::getPlannedDirectAxisSteps(Y_AXIS);
 
                 Printer::directDestinationSteps[Y_AXIS] += Temp;
                 g_nContinueSteps[Y_AXIS]                   =  -Temp;
@@ -7202,8 +7155,7 @@ void determinePausePosition( void )
             if( Temp > Max )
             {
                 // we can move only partially
-                Temp =  Max - Printer::directDestinationSteps[Y_AXIS];
-                Temp -= Printer::currentSteps[Y_AXIS];
+                Temp =  Max - Printer::getPlannedDirectAxisSteps(Y_AXIS);
 
                 Printer::directDestinationSteps[Y_AXIS] += Temp;
                 g_nContinueSteps[Y_AXIS]                   =  -Temp;
@@ -7224,13 +7176,11 @@ void determineZPausePositionForPrint( void )
     // in operating mode "print", pausing drives from the current position downwards the specified g_nPauseSteps[Z_AXIS]
     if( g_nPauseSteps[Z_AXIS] )
     {
-        long Temp =  g_nPauseSteps[Z_AXIS];
-        Temp += Printer::currentSteps[Z_AXIS];
+        long Temp =  g_nPauseSteps[Z_AXIS] + Printer::getPlannedDirectAxisSteps(Z_AXIS);
 
 #if FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
         Temp += Printer::compensatedPositionCurrentStepsZ;
 #endif // FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
-        Temp += Printer::directDestinationSteps[Z_AXIS];
 
         long Max  =  long((Printer::axisLengthMM[Z_AXIS] - PAUSE_Z_MAX_SPACING_MM) * Printer::axisStepsPerMM[Z_AXIS]);
 
@@ -7242,8 +7192,7 @@ void determineZPausePositionForPrint( void )
         else
         {
             // we can move only partially
-            Temp =  Max - Printer::directDestinationSteps[Z_AXIS];
-            Temp -= Printer::currentSteps[Z_AXIS];
+            Temp =  Max - Printer::getPlannedDirectAxisSteps(Z_AXIS);
 
 #if FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
             Temp -= Printer::compensatedPositionCurrentStepsZ;
@@ -8632,7 +8581,7 @@ void processCommand( GCode* pCommand )
 
             case 3115:  // M3115 - set the x/y origin to the current x/y position
             {
-                Printer::setOrigin(-Printer::destinationMMLast[X_AXIS], -Printer::destinationMMLast[Y_AXIS], Printer::originOffsetMM[Z_AXIS]);
+                Printer::setOrigin(-Printer::destinationMM[X_AXIS], -Printer::destinationMM[Y_AXIS], Printer::originOffsetMM[Z_AXIS]);
                 break;
             }
             case 3117:  // M3117 - set a status text which is not overwritten by M117
@@ -10867,24 +10816,25 @@ void processCommand( GCode* pCommand )
                 /* Eigentlich kann man das mit jedem Extruder machen, aber ich lasse das nur für T1 zu, weil ich nur das testen kann. Der Rechte Extruder kann damit absinken, wenn das Filament ihn runterdrückt. Der Linke bleibt in jedem Fall gleich hoch auf der Höhe des Homings! */
                 if ( pCommand->hasZ() && (pCommand->Z <= 0 && pCommand->Z >= -2.0f) ){
                     if(Printer::debugDryrun()) break;
-                    Commands::waitUntilEndOfAllMoves(); //M3919 tipdown
+                    Commands::waitUntilEndOfAllMoves();
 
-                    Extruder *actExtruder = Extruder::current;
-                    if(pCommand->hasT() && pCommand->T < NUM_EXTRUDER) actExtruder = &extruder[pCommand->T]; //unter umständen ist actExtruder was anderes wie Extruder::current!
-                    if(extruder[1].id == actExtruder->id){ 
-						//wenn zielextruder aktuell oder Tn = Extrudernummer 1
-						if (pCommand->Z <= 0 && pCommand->Z >= -2.0f) {
-							actExtruder->offsetMM[Z_AXIS] = (float)pCommand->Z;
-						}
-                        //Nur wenn aktuell der extruder mit ID1 aktiv ist, dann sofort nachstellen, ohne T0/T1/... :
-                        if(Extruder::current->id == extruder[1].id){
-                            Extruder::selectExtruderById(Extruder::current->id);
-                        }
-                        Com::printFLN( PSTR( "M3919 T1 Spring displace: " ), actExtruder->offsetMM[Z_AXIS] );
-                    }else{
-                        Com::printFLN( PSTR( "M3919 Error: !=Extr." ), extruder[1].id );
-                    }
-                }else{
+					uint8_t extruderId = 1;
+
+					float dz = 0;
+					if (Printer::isAxisHomed(Z_AXIS) && Extruder::current->id == extruder[extruderId].id) {
+						dz = (float)pCommand->Z - extruder[extruderId].offsetMM[Z_AXIS];
+						// Shift the extruder-offset negatively to stay at the same point after switch
+						Printer::offsetRelativeMMCoordinates(0, 0, -dz);
+					}
+					extruder[extruderId].offsetMM[Z_AXIS] = (float)pCommand->Z;
+					Com::printFLN(PSTR("M3919 T1 Spring displace: "), extruder[extruderId].offsetMM[Z_AXIS]);
+
+#if FEATURE_AUTOMATIC_EEPROM_UPDATE
+					HAL::eprSetFloat(EEPROM::getExtruderOffset(extruderId) + EPR_EXTRUDER_Z_OFFSET, extruder[extruderId].offsetMM[Z_AXIS]); //mm negativ
+					EEPROM::updateChecksum();
+#endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
+                } 
+				else {
                     Com::printFLN( PSTR( "M3919 Help: Write M3919 T1 Z-0.500 when T1 goes down 500um/0.5mm" ) );
                 }
                 break;
@@ -11123,7 +11073,7 @@ extern void processButton( int nAction )
                 //limits handled by change-function!
                 Commands::changeFeedrateMultiply(Printer::feedrateMultiply + 1);
                 beep(1,4);
-            }else{
+            } else {
     #if !EXTRUDER_ALLOW_COLD_MOVE
                 if( Extruder::current->tempControl.currentTemperatureC < UI_SET_MIN_EXTRUDER_TEMP )
                 {
@@ -11319,10 +11269,7 @@ void nextPreviousXAction( int8_t increment )
         {
             steps = g_nManualSteps[X_AXIS] * increment;
 
-            InterruptProtectedBlock noInts;
-            long Temp = Printer::directDestinationSteps[X_AXIS] + steps;
-            Temp += Printer::currentSteps[X_AXIS];
-            noInts.unprotect();
+			int32_t Temp = Printer::getPlannedDirectAxisSteps(X_AXIS) + steps;
 
             if( increment < 0 && Temp < 0 )
             {
@@ -11338,10 +11285,7 @@ void nextPreviousXAction( int8_t increment )
             else
             {
                 Printer::enableXStepper();
-
-                noInts.protect();
                 Printer::directDestinationSteps[X_AXIS] += steps;
-                noInts.unprotect();
 
                 if( Printer::debugInfo() )
                 {
@@ -11364,8 +11308,8 @@ void nextPreviousXAction( int8_t increment )
 
             InterruptProtectedBlock noInts; //HAL::forbidInterrupts();
             Printer::directDestinationSteps[X_AXIS] = Printer::directCurrentSteps[X_AXIS] + steps;
-            Printer::directDestinationSteps[Y_AXIS] = Printer::directCurrentSteps[Y_AXIS];
-            Printer::directDestinationSteps[Z_AXIS] = Printer::directCurrentSteps[Z_AXIS];
+			Printer::stopDirectAxis(Y_AXIS);
+			Printer::stopDirectAxis(Z_AXIS);
 
             PrintLine::prepareDirectMove();
             PrintLine::direct.task = TASK_MOVE_FROM_BUTTON;
@@ -11380,11 +11324,14 @@ void nextPreviousXAction( int8_t increment )
 			if (Printer::moveMode[X_AXIS] == MOVE_MODE_10_MM) distance = 10;
 			if (Printer::moveMode[X_AXIS] == MOVE_MODE_50_MM) distance = 50;
 
-            long Temp = Printer::directDestinationSteps[X_AXIS];
-            Temp += Printer::currentSteps[X_AXIS]; //homed oder nicht homed, das ist hier egal, nicht gehomed kann ich das sowieso nicht prüfen.
-            Temp += (long)(distance * increment * Printer::axisStepsPerMM[X_AXIS]);
-            if(Temp <= long(Printer::axisLengthMM[X_AXIS] * Printer::axisStepsPerMM[X_AXIS])) Printer::queueRelativeMMCoordinates(distance * increment, 0, 0, 0, Printer::feedrate, false, ALWAYS_CHECK_ENDSTOPS);
-            else showInformation( (void*)ui_text_x_axis, (void*)ui_text_max_reached );
+			int32_t Temp = Printer::getPlannedDirectAxisSteps(X_AXIS) + (int32_t)(increment * distance * Printer::axisStepsPerMM[X_AXIS]);
+
+			if (Temp <= int32_t(Printer::axisLengthMM[X_AXIS] * Printer::axisStepsPerMM[X_AXIS])) {
+				Printer::queueRelativeMMCoordinates(distance * increment, 0, 0, 0, Printer::feedrate, false, ALWAYS_CHECK_ENDSTOPS);
+			}
+			else {
+				showInformation((void*)ui_text_x_axis, (void*)ui_text_max_reached);
+			}
             break;
         }
     }
@@ -11436,10 +11383,7 @@ void nextPreviousYAction( int8_t increment )
         {
             steps = g_nManualSteps[Y_AXIS] * increment;
 
-            InterruptProtectedBlock noInts;
-            long Temp = Printer::directDestinationSteps[Y_AXIS] + steps;
-            Temp += Printer::currentSteps[Y_AXIS];
-            noInts.unprotect();
+			int32_t Temp = Printer::getPlannedDirectAxisSteps(Y_AXIS) + steps;
 
             if( increment < 0 && Temp < 0 )
             {
@@ -11455,10 +11399,7 @@ void nextPreviousYAction( int8_t increment )
             else
             {
                 Printer::enableYStepper();
-
-                noInts.protect();
                 Printer::directDestinationSteps[Y_AXIS] += steps;
-                noInts.unprotect();
 
                 if( Printer::debugInfo() )
                 {
@@ -11480,9 +11421,9 @@ void nextPreviousYAction( int8_t increment )
             else                steps =  (long)((Printer::axisLengthMM[Y_AXIS] + 5) * Printer::axisStepsPerMM[Y_AXIS]);
 
             InterruptProtectedBlock noInts; //HAL::forbidInterrupts();
-            Printer::directDestinationSteps[X_AXIS] = Printer::directCurrentSteps[X_AXIS];
+			Printer::stopDirectAxis(X_AXIS);
             Printer::directDestinationSteps[Y_AXIS] = Printer::directCurrentSteps[Y_AXIS] + steps;
-            Printer::directDestinationSteps[Z_AXIS] = Printer::directCurrentSteps[Z_AXIS];
+			Printer::stopDirectAxis(Z_AXIS);
 
             PrintLine::prepareDirectMove();
             PrintLine::direct.task = TASK_MOVE_FROM_BUTTON;
@@ -11497,11 +11438,14 @@ void nextPreviousYAction( int8_t increment )
 			if (Printer::moveMode[Y_AXIS] == MOVE_MODE_10_MM) distance = 10;
 			if (Printer::moveMode[Y_AXIS] == MOVE_MODE_50_MM) distance = 50;
 
-            long Temp = Printer::directDestinationSteps[Y_AXIS];
-            Temp += Printer::currentSteps[Y_AXIS]; //homed oder nicht homed, das ist hier egal, nicht gehomed kann ich das sowieso nicht prüfen.
-            Temp += (long)(increment * distance * Printer::axisStepsPerMM[Y_AXIS]);
-            if(Temp <= long(Printer::axisLengthMM[Y_AXIS] * Printer::axisStepsPerMM[Y_AXIS])) Printer::queueRelativeMMCoordinates(0, distance * increment, 0, 0, Printer::feedrate, false, ALWAYS_CHECK_ENDSTOPS);
-            else showInformation( (void*)ui_text_y_axis, (void*)ui_text_max_reached );
+            int32_t Temp = Printer::getPlannedDirectAxisSteps(Y_AXIS) + (int32_t)(increment * distance * Printer::axisStepsPerMM[Y_AXIS]);
+
+			if (Temp <= int32_t(Printer::axisLengthMM[Y_AXIS] * Printer::axisStepsPerMM[Y_AXIS])) {
+				Printer::queueRelativeMMCoordinates(0, distance * increment, 0, 0, Printer::feedrate, false, ALWAYS_CHECK_ENDSTOPS);
+			}
+			else {
+				showInformation((void*)ui_text_y_axis, (void*)ui_text_max_reached);
+			}
             break;
         }
     }
@@ -11596,15 +11540,12 @@ void nextPreviousZAction( int8_t increment )
         {
             steps = g_nManualSteps[Z_AXIS] * increment;
 
-            InterruptProtectedBlock noInts;
-            long Temp = Printer::directDestinationSteps[Z_AXIS] + steps;
-            Temp += Printer::currentSteps[Z_AXIS];
+            int32_t Temp = Printer::getPlannedDirectAxisSteps(Z_AXIS) + steps;
 #if FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
             Temp += Printer::compensatedPositionCurrentStepsZ;
 #endif // FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
-            noInts.unprotect();
 
-            if( increment < 0 && Temp < -1*long(Printer::maxZOverrideSteps) && Printer::isZMinEndstopHit() )
+            if( increment < 0 && Temp < -1 * int32_t(Printer::maxZOverrideSteps) && Printer::isZMinEndstopHit() )
             {
                 // do not allow to drive the bed into the extruder
                 showInformation( (void*)ui_text_z_axis, (Printer::isAxisHomed(Z_AXIS) ? (void*)ui_text_min_reached : (void*)ui_text_min_reached_unhomed) );
@@ -11613,10 +11554,7 @@ void nextPreviousZAction( int8_t increment )
             else
             {
                 Printer::enableZStepper();
-
-                noInts.protect();
                 Printer::directDestinationSteps[Z_AXIS] += steps;
-                noInts.unprotect();
 
                 if( Printer::debugInfo() )
                 {
@@ -11649,14 +11587,14 @@ void nextPreviousZAction( int8_t increment )
             if( increment < 0 ) steps = -(long)((Printer::axisLengthMM[Z_AXIS] + 5) * Printer::axisStepsPerMM[Z_AXIS]);
             else                steps =  (long)((Printer::axisLengthMM[Z_AXIS] + 5) * Printer::axisStepsPerMM[Z_AXIS]);
 
-            InterruptProtectedBlock noInts; //HAL::forbidInterrupts();
-            Printer::directDestinationSteps[X_AXIS] = Printer::directCurrentSteps[X_AXIS];
-            Printer::directDestinationSteps[Y_AXIS] = Printer::directCurrentSteps[Y_AXIS];
+            InterruptProtectedBlock noInts;
+			Printer::stopDirectAxis(X_AXIS);
+			Printer::stopDirectAxis(Y_AXIS);
             Printer::directDestinationSteps[Z_AXIS] = Printer::directCurrentSteps[Z_AXIS] + steps;
 
             PrintLine::prepareDirectMove();
             PrintLine::direct.task = TASK_MOVE_FROM_BUTTON;
-            noInts.unprotect(); //HAL::allowInterrupts();
+            noInts.unprotect();
             break;
         }
         case MOVE_MODE_1_MM:
@@ -12136,100 +12074,12 @@ Write a 0 to this bit to clear the fault and resume operation
 
 #endif // CURRENT_CONTROL_DRV8711
 
-
-void cleanupXPositions( void )
-{
-    InterruptProtectedBlock noInts; //HAL::forbidInterrupts();
-
-    Printer::currentSteps[X_AXIS] = 0;
-
-	Printer::destinationMMLast[X_AXIS] =
-		Printer::destinationMM[X_AXIS] = 0.0f;
-
-    Printer::directDestinationSteps[X_AXIS]  =
-    Printer::directCurrentSteps[X_AXIS] = 0;
-
-    g_nContinueSteps[X_AXIS] = 0;
-    g_pauseStatus            = PAUSE_STATUS_NONE;
-    g_pauseMode              = PAUSE_MODE_NONE;
-    g_uPauseTime             = 0;
-    g_pauseBeepDone          = 0;
-
-    noInts.unprotect(); //HAL::allowInterrupts();
-} // cleanupXPositions
-
-
-void cleanupYPositions( void )
-{
-    InterruptProtectedBlock noInts; //HAL::forbidInterrupts();
-
-    Printer::currentSteps[Y_AXIS] = 0;
-
-	Printer::destinationMMLast[Y_AXIS] =
-		Printer::destinationMM[Y_AXIS] = 0.0f;
-
-    Printer::directDestinationSteps[Y_AXIS]  =
-    Printer::directCurrentSteps[Y_AXIS] = 0;
-
-    g_nContinueSteps[Y_AXIS] = 0;
-    g_pauseStatus            = PAUSE_STATUS_NONE;
-    g_pauseMode              = PAUSE_MODE_NONE;
-    g_uPauseTime             = 0;
-    g_pauseBeepDone          = 0;
-
-    noInts.unprotect(); //HAL::allowInterrupts();
-} // cleanupYPositions
-
-
-void cleanupZPositions( void ) //kill all! -> für stepper disabled
-{
-    InterruptProtectedBlock noInts; //HAL::forbidInterrupts();
-
-    Printer::currentSteps[Z_AXIS] = 0;
-
-	Printer::destinationMMLast[Z_AXIS] =
-		Printer::destinationMM[Z_AXIS] = 0.0f;
-
-    Printer::currentZSteps                     = 0;
-
-#if FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
-    Printer::compensatedPositionTargetStepsZ  =
-    Printer::compensatedPositionCurrentStepsZ =
-    Printer::endZCompensationStep             =
-    g_nZScanZPosition                         = 0;
-#endif // FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
-
-#if FEATURE_HEAT_BED_Z_COMPENSATION
-    Printer::queuePositionZLayerLast = 0;
-    Printer::queuePositionZLayerCurrent = 0;
-#endif // FEATURE_HEAT_BED_Z_COMPENSATION
-
-#if FEATURE_FIND_Z_ORIGIN
-    g_nZOriginPosition[X_AXIS] = 0;
-    g_nZOriginPosition[Y_AXIS] = 0;
-    g_nZOriginPosition[Z_AXIS] = 0;
-    Printer::setZOriginSet(false); //flag wegen statusnachricht
-#endif // FEATURE_FIND_Z_ORIGIN
-
-    Printer::directDestinationSteps[Z_AXIS]  =
-    Printer::directCurrentSteps[Z_AXIS] = 0;
-
-    g_nContinueSteps[Z_AXIS] = 0;
-    g_pauseStatus            = PAUSE_STATUS_NONE;
-    g_pauseMode              = PAUSE_MODE_NONE;
-    g_uPauseTime             = 0;
-    g_pauseBeepDone          = 0;
-
-    noInts.unprotect(); //HAL::allowInterrupts();
-} // cleanupZPositions
-
-
 void cleanupEPositions( void )
 {
     InterruptProtectedBlock noInts;
 
-    Printer::directDestinationSteps[E_AXIS]  =
-    Printer::directCurrentSteps[E_AXIS] = 0;
+	Printer::setEAxisSteps(0);
+	Printer::resetDirectAxis(E_AXIS);
 
     g_nContinueSteps[E_AXIS] = 0;
     g_pauseStatus            = PAUSE_STATUS_NONE;
@@ -12245,26 +12095,21 @@ void setZOrigin( void )
 {
 #if FEATURE_FIND_Z_ORIGIN
     g_nZOriginPosition[X_AXIS] = Printer::getDestinationSteps(X_AXIS);
-    g_nZOriginPosition[X_AXIS] += Printer::directDestinationStepsLast[X_AXIS];
+    g_nZOriginPosition[X_AXIS] += Printer::directDestinationSteps[X_AXIS];
     
     g_nZOriginPosition[Y_AXIS] = Printer::getDestinationSteps(Y_AXIS);
-    g_nZOriginPosition[Y_AXIS] += Printer::directDestinationStepsLast[Y_AXIS];
+    g_nZOriginPosition[Y_AXIS] += Printer::directDestinationSteps[Y_AXIS];
 
     g_nZOriginPosition[Z_AXIS] = 0;
     Printer::setZOriginSet(true); //flag wegen statusnachricht
 #endif // FEATURE_FIND_Z_ORIGIN
 	
-    // it does not make sense to change the length here because Printer::destinationMMLast[Z_AXIS] can be a more or less random value
-    //Printer::axisLengthMM[Z_AXIS] -= Printer::destinationMMLast[Z_AXIS];
+    // it does not make sense to change the length here because Printer::destinationMM[Z_AXIS] can be a more or less random value
+    //Printer::axisLengthMM[Z_AXIS] -= Printer::destinationMM[Z_AXIS];
 
-    Printer::currentSteps[Z_AXIS] = 0;
+	Printer::setZAxisSteps(0);
+	Printer::resetDirectAxis(Z_AXIS);
 
-	Printer::destinationMM[Z_AXIS] =
-	Printer::destinationMMLast[Z_AXIS] = 0.0f;
-
-    Printer::directDestinationSteps[Z_AXIS]  =
-    Printer::directCurrentSteps[Z_AXIS] =
-    Printer::directDestinationStepsLast[Z_AXIS]    = 0;
     Printer::originOffsetMM[Z_AXIS]             = 0;
 
     g_nZScanZPosition                           = 0;

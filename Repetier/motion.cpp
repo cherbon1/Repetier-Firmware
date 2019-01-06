@@ -113,26 +113,33 @@ void PrintLine::prepareQueueMove(uint8_t check_endstops,uint8_t pathOptimize, fl
     // Find direction
     for(uint8_t axis=0; axis < 4; axis++)
     {
+		//error zwischen soll und ist.
 		float axisDistanceUnscaledMM = Printer::destinationMM[axis] - Printer::destinationMMLast[axis];
 		
         if(axis == E_AXIS)
         {
 #if FEATURE_DIGIT_FLOW_COMPENSATION
-			float axisDistanceScaledMM = axisDistanceUnscaledMM * Printer::menuExtrusionFactor * Printer::dynamicExtrusionFactor;
+			float axisDistanceFactor = Printer::menuExtrusionFactor * Printer::dynamicExtrusionFactor;
 #else
-			float axisDistanceScaledMM = axisDistanceUnscaledMM * Printer::menuExtrusionFactor;
+			float axisDistanceFactor = Printer::menuExtrusionFactor;
  #endif // FEATURE_DIGIT_FLOW_COMPENSATION
-			p->delta[E_AXIS] = lroundf(axisDistanceScaledMM * Printer::axisStepsPerMM[E_AXIS]);
-			axisDistanceMM[E_AXIS] = fabs(axisDistanceScaledMM);
-			Printer::filamentPrinted += axisDistanceScaledMM;
+			p->delta[E_AXIS] = lroundf(axisDistanceUnscaledMM * axisDistanceFactor * Printer::axisStepsPerMM[E_AXIS]);
+			axisDistanceMM[E_AXIS] = p->delta[E_AXIS] * Printer::axisMMPerSteps[E_AXIS];
+			Printer::filamentPrinted += axisDistanceMM[E_AXIS];
+
+			//Update calculated coordinate using the unscaled e-move distance.
+			Printer::destinationMMLast[axis] += axisDistanceMM[axis] / axisDistanceFactor;
         }
 		else {
-			p->delta[axis] = lroundf(axisDistanceUnscaledMM * Printer::axisStepsPerMM[E_AXIS]);
-			axisDistanceMM[axis] = fabs(axisDistanceUnscaledMM);
+			p->delta[axis] = lroundf(axisDistanceUnscaledMM * Printer::axisStepsPerMM[axis]);
+			axisDistanceMM[axis] = p->delta[axis] * Printer::axisMMPerSteps[axis];
+
+			//Update calculated coordinate by move distance.
+			Printer::destinationMMLast[axis] += axisDistanceMM[axis];
 		}
 
-		//Update calculated coordinate.
-		Printer::destinationMMLast[axis] = Printer::destinationMM[axis];
+		//axisDistanceMM has to be a signless length.
+		axisDistanceMM[axis] = fabs(axisDistanceMM[axis]);
 
         if(p->delta[axis] >= 0)
 			p->setPositiveDirectionForAxis(axis);
@@ -150,7 +157,7 @@ void PrintLine::prepareQueueMove(uint8_t check_endstops,uint8_t pathOptimize, fl
 #if FEATURE_HEAT_BED_Z_COMPENSATION
 	if (p->isEPositiveMove() || p->isZMove()) {
 		InterruptProtectedBlock noInts;
-		long nCurrentPositionStepsZ = Printer::getDestinationSteps(Z_AXIS) + Printer::directCurrentSteps[Z_AXIS] + Extruder::current->offsetMM[Z_AXIS] * Printer::axisStepsPerMM[Z_AXIS];
+		long nCurrentPositionStepsZ = Printer::getDestinationSteps(Z_AXIS) + Printer::directCurrentSteps[Z_AXIS];
 		noInts.unprotect();
 
 		// The following two conditions might not follow each other in one move but in serveral queued moves.
@@ -223,7 +230,7 @@ void PrintLine::prepareQueueMove(uint8_t check_endstops,uint8_t pathOptimize, fl
         // Define variables that are needed for the Bresenham algorithm. Please note that  Z is not currently included in the Bresenham algorithm.
         if(p->delta[Y_AXIS] > p->delta[X_AXIS] && p->delta[Y_AXIS] > p->delta[Z_AXIS])
             p->primaryAxis = Y_AXIS;
-        else if (p->delta[X_AXIS] > p->delta[Z_AXIS] )
+        else if (p->delta[X_AXIS] > p->delta[Z_AXIS])
             p->primaryAxis = X_AXIS;
         else
             p->primaryAxis = Z_AXIS;
@@ -306,7 +313,6 @@ void PrintLine::prepareDirectMove(void)
             p->delta[axis] = -p->delta[axis];
         axisDistanceMM[axis] = fabs(p->delta[axis] * Printer::axisMMPerSteps[axis]);
         if(p->delta[axis]) p->setMoveOfAxis(axis);
-        Printer::directDestinationStepsLast[axis] = Printer::directDestinationSteps[axis];
     }
     if(p->isNoMove())
     {
@@ -324,7 +330,9 @@ void PrintLine::prepareDirectMove(void)
         p->primaryAxis = Z_AXIS;
     else
         p->primaryAxis = E_AXIS;
+
     p->stepsRemaining = p->delta[p->primaryAxis];
+
     if(p->isXYZMove())
     {
         xydist2 = axisDistanceMM[X_AXIS] * axisDistanceMM[X_AXIS] + axisDistanceMM[Y_AXIS] * axisDistanceMM[Y_AXIS];
@@ -373,7 +381,7 @@ void PrintLine::calculateMove(float axisDistanceMM[], fast8_t drivingAxis, float
 
     // Compute the solwest allowed interval (ticks/step), so maximum feedrate is not violated
     int32_t limitInterval0;
-    int32_t limitInterval = limitInterval0 = timeForMove/stepsRemaining; // until not violated by other constraints it is your target speed
+    int32_t limitInterval = limitInterval0 = timeForMove / stepsRemaining; // until not violated by other constraints it is your target speed
     float   toTicks = static_cast<float>(F_CPU) / stepsRemaining;
     if(isXMove())
     {
@@ -948,14 +956,14 @@ void PrintLine::arc(float *position, float *target, float *offset, float radius,
 {
     // int acceleration_manager_was_enabled = plan_is_acceleration_manager_enabled();
     // plan_set_acceleration_manager_enabled(false); // disable acceleration management for the duration of the arc
-    float center_axis0 = position[0] + offset[0];
-    float center_axis1 = position[1] + offset[1];
+    float center_axis0 = position[X_AXIS] + offset[X_AXIS];
+    float center_axis1 = position[Y_AXIS] + offset[Y_AXIS];
     //float linear_travel = 0;              // target[axis_linear] - position[axis_linear];
-	float extruder_travel = Printer::destinationMM[E_AXIS] - Printer::destinationMMLast[E_AXIS];
-    float r_axis0 = -offset[0];             // Radius vector from center to current location
-    float r_axis1 = -offset[1];
-    float rt_axis0 = target[0] - center_axis0;
-    float rt_axis1 = target[1] - center_axis1;
+	float extruder_travel = target[E_AXIS] - position[E_AXIS]; //das kann nicht anders sein, als dass man die extrusion im gcode angibt. man muss vorher verindern, dass in der G3 funktion direkt extrudiert wird.
+    float r_axis0 = -offset[X_AXIS];             // Radius vector from center to current location
+    float r_axis1 = -offset[Y_AXIS];
+    float rt_axis0 = target[X_AXIS] - center_axis0;
+    float rt_axis1 = target[Y_AXIS] - center_axis1;
 
     // CCW angle between position and target from circle center. Only one atan2() trig computation required.
     float angular_travel = atan2(r_axis0*rt_axis1-r_axis1*rt_axis0, r_axis0*rt_axis0+r_axis1*rt_axis1);
@@ -1028,8 +1036,8 @@ void PrintLine::arc(float *position, float *target, float *offset, float radius,
     // Initialize the linear axis
     //arc_target[axis_linear] = position[axis_linear];
 
-    // Initialize the extruder axis
-    arc_target[3] = Printer::destinationMMLast[E_AXIS];
+    // Initialize the extruder axis with current ideal position
+    arc_target[3] = Printer::destinationMM[E_AXIS];
 
     for (i = 1; i<segments; i++)
     {
@@ -1065,10 +1073,9 @@ void PrintLine::arc(float *position, float *target, float *offset, float radius,
 
         Printer::queueFloatCoordinates(arc_target[0],arc_target[1],IGNORE_COORDINATE,arc_target[3],IGNORE_COORDINATE);
     }
+
     // Ensure last segment arrives at target location.
-
     Printer::queueFloatCoordinates(target[0],target[1],IGNORE_COORDINATE,target[3],IGNORE_COORDINATE);
-
 } // arc
 #endif // FEATURE_ARC_SUPPORT
 
@@ -1940,8 +1947,7 @@ long PrintLine::performMove(PrintLine* move, char forQueue)
     if( move->stepsRemaining <= 0 || move->isNoMove() )  // line finished
     {
         if( move->stepsRemaining <= 0 ) { //Wenn keine Steps mehr da, sollten alle Achsen die benutzt wurden wieder freigegeben werden. Bei Z ist der Sonderfall, dass die Z-Kompensation sich reinschummeln könnte.
-            move->setXMoveFinished();
-            move->setYMoveFinished();
+			move->setXYMoveFinished();
             move->setZMoveFinished(); //Wichtig, das die Z-Kompensation wieder weiterarbeiten kann, auch wichtig bei PrintLine::direct!
             //Auch wenn kein Z-Move, könnte die Z-Kompensation die Achse Z benutzt haben.
             //gesetztes endZCompensationStep bei Z finish wäre egal, beendet wird auch ohne Richtung.
@@ -1950,13 +1956,18 @@ long PrintLine::performMove(PrintLine* move, char forQueue)
 
         if( forQueue ) {
             removeCurrentLineForbidInterrupt();
-        } else { //forDirect:
+        } else { 
+			//forDirect: 
+			// Wir dürften das stop nicht brauchen, brauchen es aber:
+			//  Abbrechen von Direct-Move geht "sanft" über stepsremaining
+			//  Abbrechen von Direct-Move geht hart über setMoveFinished.
+			// Bei beiden Abbruchvarianten wird die destination nicht erreicht, also nicht fertig gezählt.
+			Printer::stopDirectAxis(X_AXIS);
+			Printer::stopDirectAxis(Y_AXIS);
+			Printer::stopDirectAxis(Z_AXIS);
+			Printer::stopDirectAxis(E_AXIS);
             move->stepsRemaining = 0;
             move->task           = TASK_NO_TASK;
-            Printer::directDestinationSteps[X_AXIS] = Printer::directDestinationStepsLast[X_AXIS] = Printer::directCurrentSteps[X_AXIS];
-            Printer::directDestinationSteps[Y_AXIS] = Printer::directDestinationStepsLast[Y_AXIS] = Printer::directCurrentSteps[Y_AXIS];
-            Printer::directDestinationSteps[Z_AXIS] = Printer::directDestinationStepsLast[Z_AXIS] = Printer::directCurrentSteps[Z_AXIS];
-            Printer::directDestinationSteps[E_AXIS] = Printer::directDestinationStepsLast[E_AXIS] = Printer::directCurrentSteps[E_AXIS];
             Commands::printCurrentPosition();
         }
 

@@ -202,7 +202,8 @@ public:
                 if(forQueue){
 					Printer::setXAxisSteps(Printer::currentSteps[X_AXIS]);
                 }else{
-					Printer::directDestinationStepsLast[X_AXIS] = Printer::directDestinationSteps[X_AXIS] = Printer::directCurrentSteps[X_AXIS]; //Wenn man G28 und G1 Z200 macht, er vorher gestoppt wird und man zurückfährt, landet er im Minus. Weil der Drucker denkt, er wäre von 200 gestartet.
+					Printer::stopDirectAxis(X_AXIS);
+					//Wenn man G28 und G1 Z200 macht, er vorher gestoppt wird und man zurückfährt, landet er im Minus. Weil der Drucker denkt, er wäre von 200 gestartet.
                 }
             }
             if(isYPositiveMove() && Printer::isYMaxEndstopHit()){
@@ -210,7 +211,8 @@ public:
                 if(forQueue){
 					Printer::setYAxisSteps(Printer::currentSteps[Y_AXIS]);
                 }else{
-					Printer::directDestinationStepsLast[Y_AXIS] = Printer::directDestinationSteps[Y_AXIS] = Printer::directCurrentSteps[Y_AXIS]; //Wenn man G28 und G1 Z200 macht, er vorher gestoppt wird und man zurückfährt, landet er im Minus. Weil der Drucker denkt, er wäre von 200 gestartet.
+					Printer::stopDirectAxis(Y_AXIS);
+					//Wenn man G28 und G1 Z200 macht, er vorher gestoppt wird und man zurückfährt, landet er im Minus. Weil der Drucker denkt, er wäre von 200 gestartet.
                 }
             }
             if(isZPositiveMove() && (Printer::isZMaxEndstopHit() || Printer::currentZSteps > Printer::maxSoftEndstopSteps[Z_AXIS] + abs(long(Printer::maxZOverrideSteps)) ))
@@ -219,7 +221,8 @@ public:
                 if(forQueue){
 					Printer::setZAxisSteps(Printer::currentSteps[Z_AXIS]);
                 }else{
-					Printer::directDestinationStepsLast[Z_AXIS] = Printer::directDestinationSteps[Z_AXIS] = Printer::directCurrentSteps[Z_AXIS]; //Wenn man G28 und G1 Z200 macht, er vorher gestoppt wird und man zurückfährt, landet er im Minus. Weil der Drucker denkt, er wäre von 200 gestartet.
+					Printer::stopDirectAxis(Z_AXIS);
+					//Wenn man G28 und G1 Z200 macht, er vorher gestoppt wird und man zurückfährt, landet er im Minus. Weil der Drucker denkt, er wäre von 200 gestartet.
                 }
             }
         }

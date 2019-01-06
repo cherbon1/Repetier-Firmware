@@ -62,7 +62,8 @@ have problems with other modules using the eeprom */
 #define EPR_PRINTING_DISTANCE           129  // Filament length printed
 #define EPR_X_HOME_OFFSET               133
 #define EPR_Y_HOME_OFFSET               137
-//#define EPR_Z_HOME_OFFSET               141 //z home pos removed by nibbels
+#define EPR_CHECK_NUM_EXTRUDERS             141  // Remember last num_extruders
+//142 143 144 free
 #define EPR_X_LENGTH                    145
 #define EPR_Y_LENGTH                    149
 #define EPR_Z_LENGTH                    153
@@ -224,7 +225,9 @@ public:
     static void update(GCode *com);
     static void updatePrinterUsage();
     static int getExtruderOffset(uint8_t extruder=0);
-
+private:
+	static void restoreEEPROMExtruderSettingsFromConfiguration(uint8_t extruderId);
+	static void storeExtruderDataIntoEEPROM(uint8_t extruderId);
 }; // EEPROM
 
 

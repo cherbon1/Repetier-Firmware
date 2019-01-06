@@ -20,7 +20,7 @@
 #define CONSTANTS_H
 
 
-#define REPETIER_VERSION                    "1.43.30"
+#define REPETIER_VERSION                    "1.43.31"
 #define UI_PRINTER_COMPANY                  "Conrad Community"
 #define UI_VERSION_STRING                   "V " REPETIER_VERSION
 
@@ -76,7 +76,7 @@
 #define MENU_MODE_MILLER                    64  // we have to show the miller menu
 #define MENU_MODE_FAN_MODE_PDM              128  // we have to show the miller menu
 
-#define IGNORE_COORDINATE                   99999
+#define IGNORE_COORDINATE                   99999.0f
 
 #define TASK_NO_TASK                        0
 #define TASK_ENABLE_Z_COMPENSATION          1

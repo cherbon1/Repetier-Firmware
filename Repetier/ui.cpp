@@ -3239,39 +3239,54 @@ void UIDisplay::nextPreviousAction(int8_t next)
 #if NUM_EXTRUDER>1
         case UI_ACTION_EXTRUDER_OFFSET_X:
         {
+			float oldXOffset = extruder[1].offsetMM[X_AXIS];
             INCREMENT_MIN_MAX(extruder[1].offsetMM[X_AXIS], 0.01, 32, 36);
+
+			if (Printer::isAxisHomed(X_AXIS) && Extruder::current->id == extruder[1].id) {
+				float dx = extruder[1].offsetMM[X_AXIS] - oldXOffset;
+				// Shift the extruder-offset negatively to stay at the same point after switch
+				Printer::offsetRelativeMMCoordinates(-dx, 0, 0);
+			}
 
 #if FEATURE_AUTOMATIC_EEPROM_UPDATE
             HAL::eprSetFloat(EEPROM::getExtruderOffset(1)+EPR_EXTRUDER_X_OFFSET, extruder[1].offsetMM[X_AXIS]);
             EEPROM::updateChecksum();
 #endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
-
             break;
         }
         case UI_ACTION_EXTRUDER_OFFSET_Y:
         {
+			float oldYOffset = extruder[1].offsetMM[Y_AXIS];
             INCREMENT_MIN_MAX(extruder[1].offsetMM[Y_AXIS], 0.01, -2 ,2);
+
+			if (Printer::isAxisHomed(Y_AXIS) && Extruder::current->id == extruder[1].id) {
+				float dy = extruder[1].offsetMM[Y_AXIS] - oldYOffset;
+				// Shift the extruder-offset negatively to stay at the same point after switch
+				Printer::offsetRelativeMMCoordinates(0, -dy, 0);
+			}
 
 #if FEATURE_AUTOMATIC_EEPROM_UPDATE
             HAL::eprSetFloat(EEPROM::getExtruderOffset(1)+EPR_EXTRUDER_Y_OFFSET, extruder[1].offsetMM[Y_AXIS]);
             EEPROM::updateChecksum();
 #endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
-
             break;
         }
         case UI_ACTION_EXTRUDER_OFFSET_Z:
         {
+			float oldZOffset = extruder[1].offsetMM[Z_AXIS];
             //Das hier ist nur dazu gedacht, um eine Tip-Down-Nozzle auf per ToolChange auf die Korrekte Höhe zu justieren.
-            INCREMENT_MIN_MAX(extruder[1].offsetMM[Z_AXIS], 0.025, -2, 0);
+            INCREMENT_MIN_MAX(extruder[1].offsetMM[Z_AXIS], 0.025, -2, 0);			
+
+			if (Printer::isAxisHomed(Z_AXIS) && Extruder::current->id == extruder[1].id) {
+				float dz = extruder[1].offsetMM[Z_AXIS] - oldZOffset;
+				// Shift the extruder-offset negatively to stay at the same point after switch
+				Printer::offsetRelativeMMCoordinates(0, 0, -dz);
+			}
 
 #if FEATURE_AUTOMATIC_EEPROM_UPDATE
             HAL::eprSetFloat(EEPROM::getExtruderOffset(1)+EPR_EXTRUDER_Z_OFFSET, extruder[1].offsetMM[Z_AXIS]); //mm negativ
             EEPROM::updateChecksum();
 #endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
-
-            if(extruder[1].id == Extruder::current->id){
-                if(Printer::areAxisHomed()) Printer::queueFloatCoordinates(IGNORE_COORDINATE,IGNORE_COORDINATE,IGNORE_COORDINATE,IGNORE_COORDINATE,IGNORE_COORDINATE);
-            }
             break;
         }
 #endif // NUM_EXTRUDER>1
@@ -4534,7 +4549,7 @@ void UIDisplay::executeAction(int action)
             }
             case UI_ACTION_SET_XY_ORIGIN:
             {
-                Printer::setOrigin(-Printer::destinationMMLast[X_AXIS], -Printer::destinationMMLast[Y_AXIS], Printer::originOffsetMM[Z_AXIS]);
+                Printer::setOrigin(-Printer::destinationMM[X_AXIS], -Printer::destinationMM[Y_AXIS], Printer::originOffsetMM[Z_AXIS]);
                 BEEP_ACCEPT_SET_POSITION
                 break;
             }

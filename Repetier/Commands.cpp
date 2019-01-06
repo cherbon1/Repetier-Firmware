@@ -447,15 +447,31 @@ void Commands::executeGCode(GCode *com)
                 break;
             }
 
-            float position[3];
-			position[X_AXIS] = Printer::destinationMMLast[X_AXIS];
-			position[Y_AXIS] = Printer::destinationMMLast[Y_AXIS];
-			position[Z_AXIS] = Printer::destinationMMLast[Z_AXIS];
+			//TODO: Check if coordinates must be relative here. I guess so ...
+
+            float position[4];
+			position[X_AXIS] = Printer::destinationMM[X_AXIS];
+			position[Y_AXIS] = Printer::destinationMM[Y_AXIS];
+			position[Z_AXIS] = Printer::destinationMM[Z_AXIS];
+			position[E_AXIS] = Printer::destinationMM[E_AXIS];
+
+			float target[4];
+			// inhere destinationMM will change
+			target[E_AXIS] = Printer::convertToMM(com->hasE() ? com->E : 0.0f);
+			com->E = 0.0f; //do not extrude all the amount while going to arc start
 
             if(!Printer::queueGCodeCoordinates(com)) break; // For X Y Z E F
+			
+			// get start position for arc lines
+			target[X_AXIS] = Printer::destinationMM[X_AXIS];
+			target[Y_AXIS] = Printer::destinationMM[Y_AXIS];
+			target[Z_AXIS] = Printer::destinationMM[Z_AXIS];
 
-            float offset[2] = {Printer::convertToMM(com->hasI()?com->I:0),Printer::convertToMM(com->hasJ()?com->J:0)};
-            float target[4] = {Printer::destinationMMLast[X_AXIS],Printer::destinationMMLast[Y_AXIS],Printer::destinationMMLast[Z_AXIS],Printer::destinationMMLast[E_AXIS]};
+            float offset[2] = {
+				Printer::convertToMM(com->hasI()?com->I:0),
+				Printer::convertToMM(com->hasJ()?com->J:0)
+			};
+
             float r;
             if (com->hasR())
             {
@@ -510,8 +526,8 @@ void Commands::executeGCode(GCode *com)
                 */
                 r = Printer::convertToMM(com->R);
                 // Calculate the change in position along each selected axis
-                double x = target[X_AXIS]-position[X_AXIS];
-                double y = target[Y_AXIS]-position[Y_AXIS];
+                double x = double(target[X_AXIS]) - double(position[X_AXIS]);
+                double y = double(target[Y_AXIS]) - double(position[Y_AXIS]);
 
                 double h_x2_div_d = -sqrt(4 * r*r - x*x - y*y)/hypot(x,y); // == -(h * 2 / d)
                 // If r is smaller than d, the arc is now traversing the complex plane beyond the reach of any
@@ -569,7 +585,7 @@ void Commands::executeGCode(GCode *com)
             // Set clockwise/counter-clockwise sign for arc computations
             uint8_t isclockwise = com->G == 2;
             // Trace the arc
-            PrintLine::arc(position, target, offset,r, isclockwise);
+            PrintLine::arc(position, target, offset, r, isclockwise);
             break;
         }
 #endif // FEATURE_ARC_SUPPORT
@@ -703,7 +719,7 @@ void Commands::executeGCode(GCode *com)
                     GCode::executeString( szTemp );
 
                     // in order to leave the hole, we must return to our start position
-                    exitZ = Printer::destinationMMLast[Z_AXIS];
+                    exitZ = Printer::destinationMM[Z_AXIS];
                 }
 
                 // drill the hole
@@ -752,9 +768,9 @@ void Commands::executeGCode(GCode *com)
                 float yOff = Printer::originOffsetMM[Y_AXIS];
                 float zOff = Printer::originOffsetMM[Z_AXIS];
 
-                if(com->hasX()) xOff = Printer::convertToMM(com->X) - Printer::destinationMMLast[X_AXIS];
-                if(com->hasY()) yOff = Printer::convertToMM(com->Y) - Printer::destinationMMLast[Y_AXIS];
-                if(com->hasZ()) zOff = Printer::convertToMM(com->Z) - Printer::destinationMMLast[Z_AXIS];
+                if(com->hasX()) xOff = Printer::convertToMM(com->X) - Printer::destinationMM[X_AXIS];
+                if(com->hasY()) yOff = Printer::convertToMM(com->Y) - Printer::destinationMM[Y_AXIS];
+                if(com->hasZ()) zOff = Printer::convertToMM(com->Z) - Printer::destinationMM[Z_AXIS];
 
                 Printer::setOrigin(xOff, yOff, zOff);
             }
@@ -1455,20 +1471,20 @@ void Commands::executeGCode(GCode *com)
                     extId = com->T;
                 }
                 if (extId >= 0 && extId < NUM_EXTRUDER) {
+					Commands::waitUntilEndOfAllMoves(); //M218
+					float dx = 0;
+					float dy = 0;
                     if (com->hasX()) {
+						if (Printer::isAxisHomed(X_AXIS)) dx = com->X - extruder[extId].offsetMM[X_AXIS];
                         extruder[extId].offsetMM[X_AXIS] = com->X;
                     }
                     if (com->hasY()) {
+						if (Printer::isAxisHomed(Y_AXIS)) dy = com->Y - extruder[extId].offsetMM[Y_AXIS];
                         extruder[extId].offsetMM[Y_AXIS] = com->Y;
                     }
-                    // Special RFx000-Constraint: This Mod doesnt support Extruder-Z-Offset here because it might be mixed up with Bed Z-Offset.
-                    // Change Extruder Z-Offset via Menu. You have to activate UI_SHOW_TIPDOWN_IN_ZCONFIGURATION to see the menu entry to do so for the right extruder.
-                    // Or change the Extruder Z-Offset via EEPROM.
-                    /*if (com->hasZ() && com->Z < 0 && com->Z > -2) {
-                        extruder[extId].zOffset = com->Z * Printer::axisStepsPerMM[Z_AXIS];
-                    } else if (com->hasZ()) {
-                        Com::printFLN(PSTR("M218 Error Z limited to -2..0"));
-                    }*/	
+
+					Printer::offsetRelativeMMCoordinates(-dx, -dy, 0);
+
 #if FEATURE_AUTOMATIC_EEPROM_UPDATE
                     if(com->hasS() && com->S > 0) {
                         if (com->hasX()) HAL::eprSetFloat(EEPROM::getExtruderOffset(extId)+EPR_EXTRUDER_X_OFFSET, com->X);

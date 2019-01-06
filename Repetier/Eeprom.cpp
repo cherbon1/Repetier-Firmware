@@ -58,6 +58,82 @@ void EEPROM::update(GCode *com)
 
 } // update
 
+void EEPROM::restoreEEPROMExtruderSettingsFromConfiguration(uint8_t extruderId) {
+	Extruder *e;
+
+#if NUM_EXTRUDER>0
+	if (extruderId == 0) {
+		e = &extruder[0];
+		e->stepsPerMM = EXT0_STEPS_PER_MM;
+		e->maxFeedrate = EXT0_MAX_FEEDRATE;
+		e->maxEJerk = EXT0_MAX_START_FEEDRATE;
+		e->maxAcceleration = EXT0_MAX_ACCELERATION;
+
+		e->tempControl.pidDriveMax = EXT0_PID_INTEGRAL_DRIVE_MAX;
+		e->tempControl.pidDriveMin = EXT0_PID_INTEGRAL_DRIVE_MIN;
+		e->tempControl.pidPGain = EXT0_PID_P;
+		e->tempControl.pidIGain = EXT0_PID_I;
+		e->tempControl.pidDGain = EXT0_PID_D;
+		e->tempControl.pidMax = EXT0_PID_MAX;
+		e->tempControl.sensorType = EXT0_TEMPSENSOR_TYPE;
+
+		e->offsetMM[X_AXIS] = EXT0_X_OFFSET_MM;
+		e->offsetMM[Y_AXIS] = EXT0_Y_OFFSET_MM;
+		e->offsetMM[Z_AXIS] = EXT0_Z_OFFSET_MM;
+
+#if RETRACT_DURING_HEATUP
+		e->waitRetractTemperature = EXT0_WAIT_RETRACT_TEMP;
+		e->waitRetractUnits = EXT0_WAIT_RETRACT_UNITS;
+#endif // RETRACT_DURING_HEATUP
+
+		e->coolerSpeed = EXT0_EXTRUDER_COOLER_SPEED;
+#if USE_ADVANCE
+#ifdef ENABLE_QUADRATIC_ADVANCE
+		e->advanceK = EXT0_ADVANCE_K;
+#endif // ENABLE_QUADRATIC_ADVANCE
+
+		e->advanceL = EXT0_ADVANCE_L;
+#endif // USE_ADVANCE
+	}
+#endif // NUM_EXTRUDER>0
+
+#if NUM_EXTRUDER>1
+	if (extruderId == 1) {
+		e = &extruder[1];
+		e->stepsPerMM = EXT1_STEPS_PER_MM;
+		e->maxFeedrate = EXT1_MAX_FEEDRATE;
+		e->maxEJerk = EXT1_MAX_START_FEEDRATE;
+		e->maxAcceleration = EXT1_MAX_ACCELERATION;
+
+		e->tempControl.pidDriveMax = EXT1_PID_INTEGRAL_DRIVE_MAX;
+		e->tempControl.pidDriveMin = EXT1_PID_INTEGRAL_DRIVE_MIN;
+		e->tempControl.pidPGain = EXT1_PID_P;
+		e->tempControl.pidIGain = EXT1_PID_I;
+		e->tempControl.pidDGain = EXT1_PID_D;
+		e->tempControl.pidMax = EXT1_PID_MAX;
+		e->tempControl.sensorType = EXT1_TEMPSENSOR_TYPE;
+
+		e->offsetMM[X_AXIS] = EXT1_X_OFFSET_MM;
+		e->offsetMM[Y_AXIS] = EXT1_Y_OFFSET_MM;
+		e->offsetMM[Z_AXIS] = EXT1_Z_OFFSET_MM;
+
+#if RETRACT_DURING_HEATUP
+		e->waitRetractTemperature = EXT1_WAIT_RETRACT_TEMP;
+		e->waitRetractUnits = EXT1_WAIT_RETRACT_UNITS;
+#endif // RETRACT_DURING_HEATUP
+
+		e->coolerSpeed = EXT1_EXTRUDER_COOLER_SPEED;
+
+#if USE_ADVANCE
+#ifdef ENABLE_QUADRATIC_ADVANCE
+		e->advanceK = EXT1_ADVANCE_K;
+#endif // ENABLE_QUADRATIC_ADVANCE
+
+		e->advanceL = EXT1_ADVANCE_L;
+#endif // USE_ADVANCE
+	}
+#endif // NUM_EXTRUDER > 1
+}
 
 void EEPROM::restoreEEPROMSettingsFromConfiguration()
 {
@@ -150,75 +226,11 @@ void EEPROM::restoreEEPROMSettingsFromConfiguration()
     Printer::backlash[Z_AXIS] = Z_BACKLASH;
 #endif // ENABLE_BACKLASH_COMPENSATION
 
-    Extruder *e;
-
 #if NUM_EXTRUDER>0
-    e = &extruder[0];
-    e->stepsPerMM = EXT0_STEPS_PER_MM;
-    e->maxFeedrate = EXT0_MAX_FEEDRATE;
-    e->maxEJerk = EXT0_MAX_START_FEEDRATE;
-    e->maxAcceleration = EXT0_MAX_ACCELERATION;
-
-    e->tempControl.pidDriveMax = EXT0_PID_INTEGRAL_DRIVE_MAX;
-    e->tempControl.pidDriveMin = EXT0_PID_INTEGRAL_DRIVE_MIN;
-    e->tempControl.pidPGain = EXT0_PID_P;
-    e->tempControl.pidIGain = EXT0_PID_I;
-    e->tempControl.pidDGain = EXT0_PID_D;
-    e->tempControl.pidMax = EXT0_PID_MAX;
-    e->tempControl.sensorType = EXT0_TEMPSENSOR_TYPE;
-
-    e->offsetMM[X_AXIS] = EXT0_X_OFFSET_MM;
-    e->offsetMM[Y_AXIS] = EXT0_Y_OFFSET_MM;
-    e->offsetMM[Z_AXIS] = EXT0_Z_OFFSET_MM;
-
-#if RETRACT_DURING_HEATUP
-    e->waitRetractTemperature = EXT0_WAIT_RETRACT_TEMP;
-    e->waitRetractUnits = EXT0_WAIT_RETRACT_UNITS;
-#endif // RETRACT_DURING_HEATUP
-
-    e->coolerSpeed = EXT0_EXTRUDER_COOLER_SPEED;
-#if USE_ADVANCE
-#ifdef ENABLE_QUADRATIC_ADVANCE
-    e->advanceK = EXT0_ADVANCE_K;
-#endif // ENABLE_QUADRATIC_ADVANCE
-
-    e->advanceL = EXT0_ADVANCE_L;
-#endif // USE_ADVANCE
+	EEPROM::restoreEEPROMExtruderSettingsFromConfiguration(0);
 #endif // NUM_EXTRUDER>0
-
 #if NUM_EXTRUDER>1
-    e = &extruder[1];
-    e->stepsPerMM = EXT1_STEPS_PER_MM;
-    e->maxFeedrate = EXT1_MAX_FEEDRATE;
-    e->maxEJerk = EXT1_MAX_START_FEEDRATE;
-    e->maxAcceleration = EXT1_MAX_ACCELERATION;
-
-    e->tempControl.pidDriveMax = EXT1_PID_INTEGRAL_DRIVE_MAX;
-    e->tempControl.pidDriveMin = EXT1_PID_INTEGRAL_DRIVE_MIN;
-    e->tempControl.pidPGain = EXT1_PID_P;
-    e->tempControl.pidIGain = EXT1_PID_I;
-    e->tempControl.pidDGain = EXT1_PID_D;
-    e->tempControl.pidMax = EXT1_PID_MAX;
-    e->tempControl.sensorType = EXT1_TEMPSENSOR_TYPE;
-
-    e->offsetMM[X_AXIS] = EXT1_X_OFFSET_MM;
-    e->offsetMM[Y_AXIS] = EXT1_Y_OFFSET_MM;
-    e->offsetMM[Z_AXIS] = EXT1_Z_OFFSET_MM;
-
-#if RETRACT_DURING_HEATUP
-    e->waitRetractTemperature = EXT1_WAIT_RETRACT_TEMP;
-    e->waitRetractUnits = EXT1_WAIT_RETRACT_UNITS;
-#endif // RETRACT_DURING_HEATUP
-
-    e->coolerSpeed = EXT1_EXTRUDER_COOLER_SPEED;
-
-#if USE_ADVANCE
-#ifdef ENABLE_QUADRATIC_ADVANCE
-    e->advanceK = EXT1_ADVANCE_K;
-#endif // ENABLE_QUADRATIC_ADVANCE
-
-    e->advanceL = EXT1_ADVANCE_L;
-#endif // USE_ADVANCE
+	EEPROM::restoreEEPROMExtruderSettingsFromConfiguration(1);
 #endif // NUM_EXTRUDER > 1
 
 /* TODO : Restliche Parameter neu einlesen. ....
@@ -340,7 +352,8 @@ void EEPROM::clearEEPROM()
 void EEPROM::storeDataIntoEEPROM(uint8_t corrupted)
 {
 #if EEPROM_MODE!=0
-    HAL::eprSetByte(EPR_MAGIC_BYTE,EEPROM_MODE);
+    HAL::eprSetByte(EPR_MAGIC_BYTE, EEPROM_MODE);
+	HAL::eprSetByte(EPR_CHECK_NUM_EXTRUDERS, NUM_EXTRUDER);	
     HAL::eprSetInt32(EPR_BAUDRATE,baudrate);
     HAL::eprSetInt32(EPR_MAX_INACTIVE_TIME,maxInactiveTime);
     HAL::eprSetInt32(EPR_STEPPER_INACTIVE_TIME,stepperInactiveTime);
@@ -444,47 +457,7 @@ void EEPROM::storeDataIntoEEPROM(uint8_t corrupted)
     // now the extruder
     for(uint8_t i=0; i<NUM_EXTRUDER; i++)
     {
-        int o=EEPROM::getExtruderOffset(i);
-        Extruder *e = &extruder[i];
-        HAL::eprSetFloat(o+EPR_EXTRUDER_STEPS_PER_MM,e->stepsPerMM);
-        HAL::eprSetFloat(o+EPR_EXTRUDER_MAX_FEEDRATE,e->maxFeedrate);
-        HAL::eprSetFloat(o+EPR_EXTRUDER_MAX_START_FEEDRATE,e->maxEJerk);
-        HAL::eprSetFloat(o+EPR_EXTRUDER_MAX_ACCELERATION,e->maxAcceleration);
-
-        HAL::eprSetByte(o+EPR_EXTRUDER_DRIVE_MAX,e->tempControl.pidDriveMax);
-        HAL::eprSetByte(o+EPR_EXTRUDER_DRIVE_MIN,e->tempControl.pidDriveMin);
-        HAL::eprSetFloat(o+EPR_EXTRUDER_PID_PGAIN,e->tempControl.pidPGain);
-        HAL::eprSetFloat(o+EPR_EXTRUDER_PID_IGAIN,e->tempControl.pidIGain);
-        HAL::eprSetFloat(o+EPR_EXTRUDER_PID_DGAIN,e->tempControl.pidDGain);
-        HAL::eprSetByte(o+EPR_EXTRUDER_PID_MAX,e->tempControl.pidMax);
-        HAL::eprSetByte(o+EPR_EXTRUDER_SENSOR_TYPE,e->tempControl.sensorType);
-
-        HAL::eprSetFloat(o+EPR_EXTRUDER_X_OFFSET, e->offsetMM[X_AXIS]);
-        HAL::eprSetFloat(o+EPR_EXTRUDER_Y_OFFSET, e->offsetMM[Y_AXIS]);
-        HAL::eprSetFloat(o+EPR_EXTRUDER_Z_OFFSET, e->offsetMM[Z_AXIS]);
-		
-#if RETRACT_DURING_HEATUP
-        HAL::eprSetInt16(o+EPR_EXTRUDER_WAIT_RETRACT_TEMP,e->waitRetractTemperature);
-        HAL::eprSetInt16(o+EPR_EXTRUDER_WAIT_RETRACT_UNITS,e->waitRetractUnits);
-#else
-        HAL::eprSetInt16(o+EPR_EXTRUDER_WAIT_RETRACT_TEMP,EXT0_WAIT_RETRACT_TEMP);
-        HAL::eprSetInt16(o+EPR_EXTRUDER_WAIT_RETRACT_UNITS,EXT0_WAIT_RETRACT_UNITS);
-#endif // RETRACT_DURING_HEATUP
-
-        HAL::eprSetByte(o+EPR_EXTRUDER_COOLER_SPEED,e->coolerSpeed);
-
-#if USE_ADVANCE
-#ifdef ENABLE_QUADRATIC_ADVANCE
-        HAL::eprSetFloat(o+EPR_EXTRUDER_ADVANCE_K,e->advanceK);
-#else
-        HAL::eprSetFloat(o+EPR_EXTRUDER_ADVANCE_K,0);
-#endif // ENABLE_QUADRATIC_ADVANCE
-
-        HAL::eprSetFloat(o+EPR_EXTRUDER_ADVANCE_L,e->advanceL);
-#else
-        HAL::eprSetFloat(o+EPR_EXTRUDER_ADVANCE_K,0);
-        HAL::eprSetFloat(o+EPR_EXTRUDER_ADVANCE_L,0);
-#endif // USE_ADVANCE
+		storeExtruderDataIntoEEPROM(i);
     }
     HAL::eprSetInt16(EPR_RF_STEP_PACKING_MIN_INTERVAL, Printer::stepsPackingMinInterval );
 
@@ -608,6 +581,50 @@ void EEPROM::storeDataIntoEEPROM(uint8_t corrupted)
 #endif // EEPROM_MODE!=0
 
 } // storeDataIntoEEPROM
+
+void EEPROM::storeExtruderDataIntoEEPROM(uint8_t extruderId) {
+	int o = EEPROM::getExtruderOffset(extruderId);
+	Extruder *e = &extruder[extruderId];
+	HAL::eprSetFloat(o + EPR_EXTRUDER_STEPS_PER_MM, e->stepsPerMM);
+	HAL::eprSetFloat(o + EPR_EXTRUDER_MAX_FEEDRATE, e->maxFeedrate);
+	HAL::eprSetFloat(o + EPR_EXTRUDER_MAX_START_FEEDRATE, e->maxEJerk);
+	HAL::eprSetFloat(o + EPR_EXTRUDER_MAX_ACCELERATION, e->maxAcceleration);
+
+	HAL::eprSetByte(o + EPR_EXTRUDER_DRIVE_MAX, e->tempControl.pidDriveMax);
+	HAL::eprSetByte(o + EPR_EXTRUDER_DRIVE_MIN, e->tempControl.pidDriveMin);
+	HAL::eprSetFloat(o + EPR_EXTRUDER_PID_PGAIN, e->tempControl.pidPGain);
+	HAL::eprSetFloat(o + EPR_EXTRUDER_PID_IGAIN, e->tempControl.pidIGain);
+	HAL::eprSetFloat(o + EPR_EXTRUDER_PID_DGAIN, e->tempControl.pidDGain);
+	HAL::eprSetByte(o + EPR_EXTRUDER_PID_MAX, e->tempControl.pidMax);
+	HAL::eprSetByte(o + EPR_EXTRUDER_SENSOR_TYPE, e->tempControl.sensorType);
+
+	HAL::eprSetFloat(o + EPR_EXTRUDER_X_OFFSET, e->offsetMM[X_AXIS]);
+	HAL::eprSetFloat(o + EPR_EXTRUDER_Y_OFFSET, e->offsetMM[Y_AXIS]);
+	HAL::eprSetFloat(o + EPR_EXTRUDER_Z_OFFSET, e->offsetMM[Z_AXIS]);
+
+#if RETRACT_DURING_HEATUP
+	HAL::eprSetInt16(o + EPR_EXTRUDER_WAIT_RETRACT_TEMP, e->waitRetractTemperature);
+	HAL::eprSetInt16(o + EPR_EXTRUDER_WAIT_RETRACT_UNITS, e->waitRetractUnits);
+#else
+	HAL::eprSetInt16(o + EPR_EXTRUDER_WAIT_RETRACT_TEMP, EXT0_WAIT_RETRACT_TEMP);
+	HAL::eprSetInt16(o + EPR_EXTRUDER_WAIT_RETRACT_UNITS, EXT0_WAIT_RETRACT_UNITS);
+#endif // RETRACT_DURING_HEATUP
+
+	HAL::eprSetByte(o + EPR_EXTRUDER_COOLER_SPEED, e->coolerSpeed);
+
+#if USE_ADVANCE
+#ifdef ENABLE_QUADRATIC_ADVANCE
+	HAL::eprSetFloat(o + EPR_EXTRUDER_ADVANCE_K, e->advanceK);
+#else
+	HAL::eprSetFloat(o + EPR_EXTRUDER_ADVANCE_K, 0);
+#endif // ENABLE_QUADRATIC_ADVANCE
+
+	HAL::eprSetFloat(o + EPR_EXTRUDER_ADVANCE_L, e->advanceL);
+#else
+	HAL::eprSetFloat(o + EPR_EXTRUDER_ADVANCE_K, 0);
+	HAL::eprSetFloat(o + EPR_EXTRUDER_ADVANCE_L, 0);
+#endif // USE_ADVANCE
+}
 
 
 void EEPROM::updateChecksum()
@@ -1158,19 +1175,17 @@ void EEPROM::readDataFromEEPROM()
     Extruder::initHeatedBed();
 
 #endif // EEPROM_MODE!=0
-
 } // readDataFromEEPROM
 
 
 void EEPROM::initBaudrate()
 {
 #if EEPROM_MODE!=0
-    if(HAL::eprGetByte(EPR_MAGIC_BYTE)==EEPROM_MODE)
+    if(HAL::eprGetByte(EPR_MAGIC_BYTE) == EEPROM_MODE)
     {
         baudrate = HAL::eprGetInt32(EPR_BAUDRATE);
     }
 #endif // EEPROM_MODE!=0
-
 } // initBaudrate
 
 
@@ -1178,28 +1193,44 @@ void EEPROM::init()
 {
 #if EEPROM_MODE!=0
     bool kill_eeprom_because_corrupted = (computeChecksum() != HAL::eprGetByte(EPR_INTEGRITY_BYTE));
-    bool kill_eeprom_wrong_version     = (EEPROM_MODE       != HAL::eprGetByte(EPR_MAGIC_BYTE));
-
+    bool kill_eeprom_wrong_version_update     = (EEPROM_MODE       != HAL::eprGetByte(EPR_MAGIC_BYTE));
     bool kill_eeprom_by_back_ok_play   = (READ(ENABLE_KEY_1)==0 && READ(ENABLE_KEY_4)==0 && READ(ENABLE_KEY_E5)==0);
 
-    if( !(kill_eeprom_wrong_version || kill_eeprom_because_corrupted || kill_eeprom_by_back_ok_play))
+	bool update_eeprom_num_extruders_changed = (NUM_EXTRUDER > HAL::eprGetByte(EPR_CHECK_NUM_EXTRUDERS) && NUM_EXTRUDER == 2); //prevent stupid bugs because of zeros in extruder 2 configuration
+
+    if( !(kill_eeprom_wrong_version_update || kill_eeprom_because_corrupted || kill_eeprom_by_back_ok_play || update_eeprom_num_extruders_changed))
     {
         EEPROM::readDataFromEEPROM();
     }
-    else
-    {
-        Com::printF(PSTR("EEPROM reset"));
-        if(kill_eeprom_wrong_version) Com::printF(PSTR(" wrong version"));
-        if(kill_eeprom_because_corrupted) Com::printF(PSTR(" corrupted"));
-        if(kill_eeprom_by_back_ok_play) Com::printF(PSTR(" back+ok+play"));
-        Com::println();
+	else if (update_eeprom_num_extruders_changed) {
+		EEPROM::restoreEEPROMExtruderSettingsFromConfiguration(1);
+		EEPROM::storeExtruderDataIntoEEPROM(1);
+		HAL::eprSetByte(EPR_CHECK_NUM_EXTRUDERS, NUM_EXTRUDER);
+		EEPROM::updateChecksum();
+
+		Com::printF(PSTR("EEPROM update "));
+		Com::printFLN(PSTR(UI_TEXT_EXTRUDER1_ADD));
+		showInformation(PSTR(UI_TEXT_CONFIGURATION), PSTR(UI_TEXT_EXTRUDER1_ADD), PSTR(UI_TEXT_RESTORE_DEFAULTS));
+	}
+    else {
+        if (kill_eeprom_wrong_version_update) 
 
         EEPROM::clearEEPROM();
         EEPROM::restoreEEPROMSettingsFromConfiguration();
         EEPROM::storeDataIntoEEPROM(kill_eeprom_because_corrupted); //wenn corrupted dann auch die betriebszähler löschen.
         EEPROM::initializeAllOperatingModes(); //der operatingmode der nicht aktiv ist bekommt die standardwerte ins eeprom.
 
-        showInformation( PSTR(UI_TEXT_CONFIGURATION), PSTR(UI_TEXT_FAIL), PSTR(UI_TEXT_RESTORE_DEFAULTS) );
+		Com::printF(PSTR("EEPROM reset "));
+		if (kill_eeprom_wrong_version_update) {
+			Com::printFLN(PSTR("wrong version"));
+			showInformation(PSTR(UI_TEXT_CONFIGURATION), PSTR(UI_TEXT_UPDATE), PSTR(UI_TEXT_RESTORE_DEFAULTS));
+		}
+		else {
+			if (kill_eeprom_because_corrupted) Com::printF(PSTR("corrupted"));
+			if (kill_eeprom_by_back_ok_play) Com::printF(PSTR("back+ok+play"));
+			Com::println();
+			showInformation(PSTR(UI_TEXT_CONFIGURATION), PSTR(UI_TEXT_FAIL), PSTR(UI_TEXT_RESTORE_DEFAULTS));
+		}
     }
 #endif // EEPROM_MODE!=0
 } // init

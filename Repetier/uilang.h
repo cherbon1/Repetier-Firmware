@@ -115,6 +115,8 @@
 #define UI_TEXT_NO                      "No"
 #define UI_TEXT_OK                      "Ok"
 #define UI_TEXT_FAIL                    "Fail"
+#define UI_TEXT_UPDATE                  "Update"
+#define UI_TEXT_EXTRUDER1_ADD           "Extruder 1 added"
 #define UI_TEXT_ABORT_KEYPRESSED        "Aborted by keys"
 #define UI_TEXT_NEEDFIX                 "too high"
 #define UI_TEXT_UP                      "Up"

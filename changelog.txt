@@ -1,3 +1,11 @@
+V 01.43.31.Mod (2019-01-05)
+- auto update extruder 1 configuration into eeprom on num_extruders changing from 1 to 2. (This should avoid stupid errors when all extruder settings are 0.)
+- more refactoring
+- removed unused variables
+- fixed mixed variable usage like destinationMM vs. destinationMMLast
+- more sense for extrusion while drawing arc
+- the float axis system now keeps track of its error
+
 V 01.43.30.Mod (2019-01-03)
 - eliminated extrudeMultiplyError
 - optimized some code

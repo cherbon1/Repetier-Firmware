@@ -387,12 +387,21 @@ void Extruder::selectExtruderById(uint8_t extruderId)
 
 #if NUM_EXTRUDER>1
     bool executeSelect = false;
-    if(extruderId!=Extruder::current->id)
+    if(extruderId != Extruder::current->id)
     {
         GCode::executeFString(Extruder::current->deselectCommands);
         executeSelect = true;
     }
 #endif // NUM_EXTRUDER>1
+	
+	// Update extruder head position
+	// We only move an axis to its corrected position if we are homed. Otherwise homing will do this job.
+	float dOffset[3] = { 0 };
+	if (Printer::isAxisHomed(X_AXIS)) dOffset[X_AXIS] = extruder[extruderId].offsetMM[X_AXIS] - Extruder::current->offsetMM[X_AXIS]; //neu - alt -> geht negativ als bewegung rein.
+	if (Printer::isAxisHomed(Y_AXIS)) dOffset[Y_AXIS] = extruder[extruderId].offsetMM[Y_AXIS] - Extruder::current->offsetMM[Y_AXIS];
+	if (Printer::isAxisHomed(Z_AXIS)) dOffset[Z_AXIS] = extruder[extruderId].offsetMM[Z_AXIS] - Extruder::current->offsetMM[Z_AXIS];
+	// Shift the extruder-offset negatively to stay at the same point after switch
+	Printer::offsetRelativeMMCoordinates(-dOffset[X_AXIS], -dOffset[Y_AXIS], -dOffset[Z_AXIS]);
 
 #if STEPPER_ON_DELAY
     Extruder::current->enabled = 0;
@@ -420,10 +429,7 @@ void Extruder::selectExtruderById(uint8_t extruderId)
 
 	// When inserting diameter for hotend 1/2
 	// We needed to adjust extrusionFactor to possibly different diameter
-
-	//update position
-    Printer::queueFloatCoordinates(IGNORE_COORDINATE,IGNORE_COORDINATE,IGNORE_COORDINATE,IGNORE_COORDINATE,Printer::homingFeedrate[X_AXIS]);
-
+	
 #if USE_ADVANCE
     HAL::resetExtruderDirection();
 #endif // USE_ADVANCE
@@ -599,7 +605,6 @@ void Extruder::disableCurrentExtruderMotor()
 #endif // STEPPER_ON_DELAY
 
     cleanupEPositions();
-
 } // disableCurrentExtruderMotor
 
 

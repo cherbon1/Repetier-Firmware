@@ -92,7 +92,7 @@ public:
 
     static float            originOffsetMM[3];
 	static volatile float   destinationMM[4];                   // Target in mm from origin.
-    static volatile float   destinationMMLast[4];               // Position in mm from origin.
+    static float            destinationMMLast[4];               // Position in mm from origin.
 
     static long             maxSoftEndstopSteps[3];             // For software endstops, limit of move in positive direction. (=Homing-Offset + Achsenlänge)
     static float            axisLengthMM[3];                    // Länge des überfahrbaren Bereichs im positiven Homing. (=Schienen-Fahrweg - Homing-Offset - 2x ExtruderOffset)
@@ -156,7 +156,7 @@ public:
 
     static volatile long    directDestinationSteps[4];
     static volatile long    directCurrentSteps[4];
-    static long             directDestinationStepsLast[4];
+
     static char             waitMove;
 
 #if FEATURE_MILLING_MODE
@@ -293,8 +293,18 @@ public:
 
         // when the stepper is disabled we loose our home position because somebody else can move our mechanical parts
         setHomed( false , -1 , -1 );
-        cleanupXPositions();
+		InterruptProtectedBlock noInts; //HAL::forbidInterrupts();
 
+		Printer::setXAxisSteps(0);
+		Printer::resetDirectAxis(X_AXIS);
+
+		g_nContinueSteps[X_AXIS] = 0;
+		g_pauseStatus = PAUSE_STATUS_NONE;
+		g_pauseMode = PAUSE_MODE_NONE;
+		g_uPauseTime = 0;
+		g_pauseBeepDone = 0;
+
+		noInts.unprotect(); //HAL::allowInterrupts();
     } // disableXStepper
 
     /** \brief Disable stepper motor for y direction. */
@@ -314,8 +324,19 @@ public:
 
         // when the stepper is disabled we loose our home position because somebody else can move our mechanical parts
         setHomed( -1, false , -1 );
-        cleanupYPositions();
 
+		InterruptProtectedBlock noInts; //HAL::forbidInterrupts();
+
+		Printer::setYAxisSteps(0);
+		Printer::resetDirectAxis(Y_AXIS);
+
+		g_nContinueSteps[Y_AXIS] = 0;
+		g_pauseStatus = PAUSE_STATUS_NONE;
+		g_pauseMode = PAUSE_MODE_NONE;
+		g_uPauseTime = 0;
+		g_pauseBeepDone = 0;
+
+		noInts.unprotect(); //HAL::allowInterrupts();
     } // disableYStepper
 
     /** \brief Disable stepper motor for z direction. */
@@ -340,7 +361,38 @@ public:
         Printer::lastZDirection = 0;
 #endif // FEATURE_CONFIGURABLE_Z_ENDSTOPS
 
-        cleanupZPositions();
+		InterruptProtectedBlock noInts;
+
+		Printer::setZAxisSteps(0);
+		Printer::currentZSteps = 0;
+		Printer::resetDirectAxis(Z_AXIS);
+
+#if FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
+		Printer::compensatedPositionTargetStepsZ =
+			Printer::compensatedPositionCurrentStepsZ =
+			Printer::endZCompensationStep =
+			g_nZScanZPosition = 0;
+#endif // FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
+
+#if FEATURE_HEAT_BED_Z_COMPENSATION
+		Printer::queuePositionZLayerLast = 0;
+		Printer::queuePositionZLayerCurrent = 0;
+#endif // FEATURE_HEAT_BED_Z_COMPENSATION
+
+#if FEATURE_FIND_Z_ORIGIN
+		g_nZOriginPosition[X_AXIS] = 0;
+		g_nZOriginPosition[Y_AXIS] = 0;
+		g_nZOriginPosition[Z_AXIS] = 0;
+		Printer::setZOriginSet(false); //flag wegen statusnachricht
+#endif // FEATURE_FIND_Z_ORIGIN
+
+		g_nContinueSteps[Z_AXIS] = 0;
+		g_pauseStatus = PAUSE_STATUS_NONE;
+		g_pauseMode = PAUSE_MODE_NONE;
+		g_uPauseTime = 0;
+		g_pauseBeepDone = 0;
+
+		noInts.unprotect();
     } // disableZStepper
 
     /** \brief Enable stepper motor for x direction. */
@@ -584,7 +636,7 @@ public:
         bool problematisch = false;
         if( Extruder::current->offsetMM[Z_AXIS] != 0 ) problematisch = true; //wenn rechtes gefedertes Hotend tiefer, dann evtl. kollision
         if( g_offsetZCompensationSteps > 0 ) problematisch = true; //wenn matrix positiv, dann evtl. problem
-        if( isAxisHomed(Y_AXIS) && Printer::currentSteps[Y_AXIS] + Printer::directCurrentSteps[Y_AXIS] <= 5*YAXIS_STEPS_PER_MM ) problematisch = false; //vorherige Probleme egal, wenn bett nach hinten gefahren
+        if( isAxisHomed(Y_AXIS) && Printer::getAllCurrentAxisSteps(Y_AXIS) <= 5 * YAXIS_STEPS_PER_MM ) problematisch = false; //vorherige Probleme egal, wenn bett nach hinten gefahren
 #if FEATURE_ALIGN_EXTRUDERS
         if( g_nAlignExtrudersStatus ) problematisch = false; //das homing passiert in Z einzeln, liegt aber neben dem Bett.
 #endif // FEATURE_ALIGN_EXTRUDERS
@@ -1006,23 +1058,11 @@ public:
         return fvalue;
     } // targetZPositionMM
 
-    static inline float currentXPositionMM()
-    {
-        // return all values in [mm]
-        return (currentSteps[X_AXIS] + directCurrentSteps[X_AXIS]) * axisMMPerSteps[X_AXIS];
-    } // currentXPositionMM
-
-    static INLINE float currentYPositionMM()
-    {
-        // return all values in [mm]
-        return (currentSteps[Y_AXIS] + directCurrentSteps[Y_AXIS]) * axisMMPerSteps[Y_AXIS];
-    } // currentYPositionMM
-
     static inline long currentZPositionSteps()
     {
         // return all values in [steps]
-        long    value = currentSteps[Z_AXIS] + int32_t(Extruder::current->offsetMM[Z_AXIS] * Printer::axisStepsPerMM[Z_AXIS]); //offset negativ, das ist normalerweise zu kompensieren/für den Betrachter uninteressant. also rausrechnen.
-
+		long value = Printer::getAllCurrentAxisSteps(Z_AXIS);
+			
 #if FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
         // add the current z-compensation
         value += Printer::compensatedPositionCurrentStepsZ; //da drin: zoffset + senseoffset + digitcompensation
@@ -1033,20 +1073,29 @@ public:
         value += g_nZOriginPosition[Z_AXIS];
 #endif // FEATURE_FIND_Z_ORIGIN
 
-        // add the current manual z-steps
-        value += Printer::directCurrentSteps[Z_AXIS];
 
         return value;
     } // currentZPositionSteps
+
+    static inline float currentXPositionMM()
+    {
+        // return all values in [mm]
+        return Printer::getAllCurrentAxisSteps(X_AXIS) * axisMMPerSteps[X_AXIS];
+    } // currentXPositionMM
+
+    static inline float currentYPositionMM()
+    {
+        // return all values in [mm]
+        return Printer::getAllCurrentAxisSteps(Y_AXIS) * axisMMPerSteps[Y_AXIS];
+    } // currentYPositionMM
 
     static inline float currentZPositionMM()
     {
         if (Printer::ZMode == Z_VALUE_MODE_LAYER)
         {
             // show the G-Code Commanded Z //offset negativ, das ist hier uninteressant.
-            return currentSteps[Z_AXIS] * Printer::axisMMPerSteps[Z_AXIS] + Extruder::current->offsetMM[Z_AXIS];
+            return currentSteps[Z_AXIS] * Printer::axisMMPerSteps[Z_AXIS];
         }
-
 
         // return all values in [mm]
         float   fvalue = (float)currentZPositionSteps();
@@ -1063,14 +1112,6 @@ public:
         }
         fvalue *= Printer::axisMMPerSteps[Z_AXIS];
 
-        if (Printer::ZMode <= Z_VALUE_MODE_Z_MIN)
-        {
-            // show the z-distance to z-min (print) or to the z-origin (mill)
-
-            // When we see Z-Min the Extruder::current->zOffset (negative number) is not what we want to see. We want to see the diff with sensor-zeroing.
-            fvalue -= (float)Extruder::current->offsetMM[Z_AXIS]; //adds z-Offset for T1 again to really show the axis-scale towards z-min hardware switch.
-        }
-
         return fvalue;
     } // currentZPositionMM
 
@@ -1086,15 +1127,63 @@ public:
     static void updateDerivedParameter();
     static void switchEverythingOff();
     static void updateAdvanceFlags();
-	static void setXAxisSteps(int32_t x);
-	static void setYAxisSteps(int32_t y);
-	static void setZAxisSteps(int32_t z);
-	static void setEAxisSteps(int32_t e);
+
+	static INLINE void setXAxisSteps(int32_t x) {
+		//G92 Xx:
+		Printer::currentSteps[X_AXIS] = x;
+		Printer::destinationMMLast[X_AXIS] = Printer::destinationMM[X_AXIS] = x * axisMMPerSteps[X_AXIS];
+	}
+	static INLINE void setYAxisSteps(int32_t y) {
+		//G92 Yx:
+		Printer::currentSteps[Y_AXIS] = y;
+		Printer::destinationMMLast[Y_AXIS] = Printer::destinationMM[Y_AXIS] = y * axisMMPerSteps[Y_AXIS];
+	}
+	static INLINE void setZAxisSteps(int32_t z) {
+		//G92 Zx:
+		Printer::currentSteps[Z_AXIS] = z;
+		Printer::destinationMMLast[Z_AXIS] = Printer::destinationMM[Z_AXIS] = z * axisMMPerSteps[Z_AXIS];
+	}
+	static INLINE void setAxisMM(uint8_t axis, float mm) {
+		Printer::currentSteps[axis] = mm * axisStepsPerMM[axis];
+		Printer::destinationMMLast[axis] = Printer::destinationMM[axis] = mm;
+	}
+
+	static INLINE void setEAxisSteps(int32_t e) {
+		//G92 Ex:
+		Printer::destinationMMLast[E_AXIS] = Printer::destinationMM[E_AXIS] = e * axisMMPerSteps[E_AXIS];
+	}
+
+	static INLINE void stopDirectAxis(uint8_t axis) {
+		Printer::directDestinationSteps[axis] = Printer::directCurrentSteps[axis];
+	}
+	static INLINE void resetDirectAxis(uint8_t axis) {
+		Printer::directDestinationSteps[axis] = Printer::directCurrentSteps[axis] = 0;
+	}
+
+	static int32_t getAllCurrentAxisSteps(uint8_t axis) {
+		InterruptProtectedBlock noInts;
+		int32_t currentAxisSteps = Printer::currentSteps[axis];
+		currentAxisSteps += Printer::directCurrentSteps[axis];
+		noInts.unprotect();
+
+		return currentAxisSteps;
+	}
+	static int32_t getPlannedDirectAxisSteps(uint8_t axis) {
+		InterruptProtectedBlock noInts;
+		int32_t plannedAxisSteps = Printer::currentSteps[axis];
+		plannedAxisSteps += Printer::directDestinationSteps[axis];
+		noInts.unprotect();
+
+		return plannedAxisSteps;
+	}
+
+
     static void setup();
     static bool queueGCodeCoordinates(GCode *com);
     static void queueFloatCoordinates(float x, float y, float z, float e, float feedrate);
 	static void queueRelativeStepsCoordinates(long x, long y, long z, long e, float feedrate, bool waitEnd, bool checkEndstop);
 	static void queueRelativeMMCoordinates(float x, float y, float z, float e, float feedrate, bool waitEnd, bool checkEndstop);
+	static void offsetRelativeMMCoordinates(float dx, float dy, float dz);
     static void homeDigits();
     static void homeAxis(bool xaxis, bool yaxis, bool zaxis); /// Home axis
     static void setOrigin(float xOff, float yOff, float zOff);

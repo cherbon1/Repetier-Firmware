@@ -66,7 +66,7 @@
  * IMPORTANT: With mode <>0 some changes in Configuration.h are not set any more, as they are
  *            taken from the EEPROM.
  */
-#define EEPROM_MODE                         121
+#define EEPROM_MODE                         144
 
 
 // ##########################################################################################
