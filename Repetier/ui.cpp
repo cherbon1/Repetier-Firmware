@@ -1095,15 +1095,18 @@ void UIDisplay::parse(char *txt,bool ram)
             {
                 if(c2=='x' && col<MAX_COLS)                                                                             // %hx : x homed
                 {
-                    if(Printer::flag3 & PRINTER_FLAG3_X_HOMED) printCols[col++]='*';
+                    if(Printer::flag3 & PRINTER_FLAG3_X_HOMED) printCols[col++]=' ';
+					else printCols[col++] = '?';
                 }
                 else if(c2=='y' && col<MAX_COLS)                                                                             // %hy : y homed
                 {
-                    if(Printer::flag3 & PRINTER_FLAG3_Y_HOMED) printCols[col++]='*';
+                    if(Printer::flag3 & PRINTER_FLAG3_Y_HOMED) printCols[col++]=' ';
+					else printCols[col++] = '?';
                 }
                 else if(c2=='z' && col<MAX_COLS)                                                                             // %hz : z homed
                 {
-                    if(Printer::flag3 & PRINTER_FLAG3_Z_HOMED) printCols[col++]='*';
+                    if(Printer::flag3 & PRINTER_FLAG3_Z_HOMED) printCols[col++]=' ';
+					else printCols[col++] = '?';
                 }
                 else if(c2=='a' && col<MAX_COLS)                                                                             // %ha : all homed
                 {
@@ -1392,9 +1395,9 @@ void UIDisplay::parse(char *txt,bool ram)
             {
                 char    bDefect = false;
 
-                if(c2>='0' && c2<='3')
+                if(c2 >= '0' && c2 <= '6')
                 {
-                    if(c2=='0')                                                                         // %x0 : X position
+                    if(c2 == '0')                                                                         // %x0 : X position
                     {
                         if( Printer::blockAll )
                         {
@@ -1403,10 +1406,10 @@ void UIDisplay::parse(char *txt,bool ram)
                         }
                         else
                         {
-                            fvalue = Printer::currentXPositionMM();
+                            fvalue = Printer::currentSteps[X_AXIS] * Printer::axisMMPerSteps[X_AXIS];
                         }
                     }
-                    else if(c2=='1')                                                                    // %x1 : Y position
+                    else if(c2 == '1')                                                                    // %x1 : Y position
                     {
                         if( Printer::blockAll )
                         {
@@ -1415,10 +1418,10 @@ void UIDisplay::parse(char *txt,bool ram)
                         }
                         else
                         {
-                            fvalue = Printer::currentYPositionMM();
+                            fvalue = Printer::currentSteps[Y_AXIS] * Printer::axisMMPerSteps[Y_AXIS];
                         }
                     }
-                    else if(c2=='2')                                                                    // %x2 : Z position
+                    else if(c2 == '2')                                                                    // %x2 : Z position
                     {
                         if( Printer::blockAll )
                         {
@@ -1430,7 +1433,49 @@ void UIDisplay::parse(char *txt,bool ram)
                             fvalue = Printer::currentZPositionMM();
                         }
                     }
-                    else                                                                                // %x3 : Current extruder position
+					else if (c2 == '3')                                                                    // %x3 : X offset position
+					{
+						if (Printer::blockAll)
+						{
+							// we can not move any more
+							bDefect = true;
+						}
+						else
+						{
+							fvalue = Printer::directCurrentSteps[X_AXIS] * Printer::axisMMPerSteps[X_AXIS];
+						}
+					}
+					else if (c2 == '4')                                                                    // %x4 : Y offset position
+					{
+						if (Printer::blockAll)
+						{
+							// we can not move any more
+							bDefect = true;
+						}
+						else
+						{
+							fvalue = Printer::directCurrentSteps[Y_AXIS] * Printer::axisMMPerSteps[Y_AXIS];
+						}
+					}
+					else if (c2 == '5')                                                                    // %x5 : Z offset position
+					{
+						if (Printer::blockAll)
+						{
+							// we can not move any more
+							bDefect = true;
+						}
+						else
+						{
+							// Wenn nur CurrentSteps[Z_AXIS] ausgegeben wird, ist auch interssant, viel die differenz aller anderer versätze ist:
+							if (Printer::ZMode == Z_VALUE_MODE_LAYER) {
+								fvalue = (Printer::currentZSteps - Printer::currentSteps[Z_AXIS]) * Printer::axisMMPerSteps[Z_AXIS];
+								if (col<MAX_COLS) printCols[col++] = ' ';
+								addFloat(fvalue, 3, 2);
+							}
+							break;
+						}
+					}
+                    else                                                                                // %x6 : Current extruder position
                     {
                         if( Printer::blockAll )
                         {
@@ -1449,7 +1494,7 @@ void UIDisplay::parse(char *txt,bool ram)
                     }
                     else
                     {
-                        addFloat(fvalue,4,2);
+                        addFloat(fvalue,3,2);
                     }
                 }
                 break;
@@ -3240,12 +3285,12 @@ void UIDisplay::nextPreviousAction(int8_t next)
         case UI_ACTION_EXTRUDER_OFFSET_X:
         {
 			float oldXOffset = extruder[1].offsetMM[X_AXIS];
-            INCREMENT_MIN_MAX(extruder[1].offsetMM[X_AXIS], 0.01, 32, 36);
+            INCREMENT_MIN_MAX(extruder[1].offsetMM[X_AXIS], 0.25, 32, 36);
 
 			if (Printer::isAxisHomed(X_AXIS) && Extruder::current->id == extruder[1].id) {
-				float dx = extruder[1].offsetMM[X_AXIS] - oldXOffset;
 				// Shift the extruder-offset negatively to stay at the same point after switch
-				Printer::offsetRelativeMMCoordinates(-dx, 0, 0);
+				int32_t dx = (extruder[1].offsetMM[X_AXIS] - oldXOffset) * Printer::axisStepsPerMM[X_AXIS];
+				Printer::offsetRelativeStepsCoordinates(-dx, 0, 0, 0);
 			}
 
 #if FEATURE_AUTOMATIC_EEPROM_UPDATE
@@ -3257,12 +3302,12 @@ void UIDisplay::nextPreviousAction(int8_t next)
         case UI_ACTION_EXTRUDER_OFFSET_Y:
         {
 			float oldYOffset = extruder[1].offsetMM[Y_AXIS];
-            INCREMENT_MIN_MAX(extruder[1].offsetMM[Y_AXIS], 0.01, -2 ,2);
+            INCREMENT_MIN_MAX(extruder[1].offsetMM[Y_AXIS], 0.25, -2 ,2);
 
 			if (Printer::isAxisHomed(Y_AXIS) && Extruder::current->id == extruder[1].id) {
-				float dy = extruder[1].offsetMM[Y_AXIS] - oldYOffset;
+				int32_t dy = (extruder[1].offsetMM[Y_AXIS] - oldYOffset) * Printer::axisStepsPerMM[Y_AXIS];
 				// Shift the extruder-offset negatively to stay at the same point after switch
-				Printer::offsetRelativeMMCoordinates(0, -dy, 0);
+				Printer::offsetRelativeStepsCoordinates(0, -dy, 0, 0);
 			}
 
 #if FEATURE_AUTOMATIC_EEPROM_UPDATE
@@ -3275,12 +3320,12 @@ void UIDisplay::nextPreviousAction(int8_t next)
         {
 			float oldZOffset = extruder[1].offsetMM[Z_AXIS];
             //Das hier ist nur dazu gedacht, um eine Tip-Down-Nozzle auf per ToolChange auf die Korrekte Höhe zu justieren.
-            INCREMENT_MIN_MAX(extruder[1].offsetMM[Z_AXIS], 0.025, -2, 0);			
+            INCREMENT_MIN_MAX(extruder[1].offsetMM[Z_AXIS], 0.025, -2, 0);
 
 			if (Printer::isAxisHomed(Z_AXIS) && Extruder::current->id == extruder[1].id) {
-				float dz = extruder[1].offsetMM[Z_AXIS] - oldZOffset;
+				int32_t dz = (extruder[1].offsetMM[Z_AXIS] - oldZOffset) * Printer::axisStepsPerMM[Z_AXIS];
 				// Shift the extruder-offset negatively to stay at the same point after switch
-				Printer::offsetRelativeMMCoordinates(0, 0, -dz);
+				Printer::offsetRelativeStepsCoordinates(0, 0, -dz, 0);
 			}
 
 #if FEATURE_AUTOMATIC_EEPROM_UPDATE

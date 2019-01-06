@@ -1,3 +1,12 @@
+V 01.43.32.Mod (2019-01-05)
+- introduced x and y stepcounter beginning from endstop
+- directSteps are now responsible for extruder offset and position menu
+- unhomed axes are now marked with an ?. Homed axes are not marked at all.
+- displayed position coordinates are now shown divided into "Gcode commanded" and "other offset stuff"
+- hitting max endstop or soft endstop limit stops extrusion too.
+- auto increase xaxis length to configuration value if a printer is changed from 2 to 1 extruders.
+- auto decrease xaxis length to configuration value if a printer is changed from 1 to 2 extruders.
+
 V 01.43.31.Mod (2019-01-05)
 - auto update extruder 1 configuration into eeprom on num_extruders changing from 1 to 2. (This should avoid stupid errors when all extruder settings are 0.)
 - more refactoring

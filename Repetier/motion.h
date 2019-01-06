@@ -192,12 +192,27 @@ public:
         if(isCheckEndstops())
         {
             //Min-Axis:
-            if(isXNegativeMove() && Printer::isXMinEndstopHit())
-                setXMoveFinished();
-            if(isYNegativeMove() && Printer::isYMinEndstopHit())
-                setYMoveFinished();
+			if (isXNegativeMove() && Printer::isXMinEndstopHit()) {
+				setXMoveFinished();
+				if (forQueue) {
+					
+				}
+				else {
+					Printer::resetDirectAxis(X_AXIS);
+				}
+			}
+			if (isYNegativeMove() && Printer::isYMinEndstopHit()) {
+				setYMoveFinished();
+				if (forQueue) {
+
+				}
+				else {
+					Printer::resetDirectAxis(Y_AXIS);
+				}
+			}
             //Max-Axis:
-            if(isXPositiveMove() && Printer::isXMaxEndstopHit()){
+            if(isXPositiveMove() && Printer::isXMaxEndstopHit())
+			{
                 setXMoveFinished();
                 if(forQueue){
 					Printer::setXAxisSteps(Printer::currentSteps[X_AXIS]);
@@ -206,7 +221,8 @@ public:
 					//Wenn man G28 und G1 Z200 macht, er vorher gestoppt wird und man zurückfährt, landet er im Minus. Weil der Drucker denkt, er wäre von 200 gestartet.
                 }
             }
-            if(isYPositiveMove() && Printer::isYMaxEndstopHit()){
+            if(isYPositiveMove() && Printer::isYMaxEndstopHit()) 
+			{
                 setYMoveFinished();
                 if(forQueue){
 					Printer::setYAxisSteps(Printer::currentSteps[Y_AXIS]);
@@ -215,9 +231,10 @@ public:
 					//Wenn man G28 und G1 Z200 macht, er vorher gestoppt wird und man zurückfährt, landet er im Minus. Weil der Drucker denkt, er wäre von 200 gestartet.
                 }
             }
-            if(isZPositiveMove() && (Printer::isZMaxEndstopHit() || Printer::currentZSteps > Printer::maxSoftEndstopSteps[Z_AXIS] + abs(long(Printer::maxZOverrideSteps)) ))
+            if(isZPositiveMove() && Printer::isZMaxEndstopHit())
             {
                 setZMoveFinished();
+				setEMoveFinished(); //why extrude more if we reached z limit. -> stop it.
                 if(forQueue){
 					Printer::setZAxisSteps(Printer::currentSteps[Z_AXIS]);
                 }else{
@@ -230,17 +247,25 @@ public:
         // Test Z-Axis every step, otherwise it could easyly ruin your printer!
         if(isZNegativeMove() && Printer::isZMinEndstopHit())
         {
-            if( Printer::isAxisHomed(Z_AXIS) && PrintLine::direct.task != TASK_MOVE_FROM_BUTTON)
+			if (!Printer::isAxisHomed(Z_AXIS))
+			{
+				setZMoveFinished();
+
+				return;
+			}
+
+            if(PrintLine::direct.task == TASK_MOVE_FROM_BUTTON)
             {
-                if( Printer::currentZSteps <= -1*long(Printer::maxZOverrideSteps) )
-                {
-                    // --> setZMoveFinished(); //-> some lines down!
-                }else{
-                    // we allow to overdrive Z-min a little bit so that also G-Codes are able to move to a smaller z-position even when Z-min has fired already
-                    return;
-                }
+				setZMoveFinished();
+
+				return;
+			}
+
+			// we allow to overdrive Z-min a little bit so that also G-Codes are able to move to a smaller z-position even when Z-min has fired already
+            if(Printer::currentZSteps <= -1*long(Printer::maxZOverrideSteps))
+            {
+				setZMoveFinished();
             }
-            setZMoveFinished();
         }
     } // checkEndstops
 

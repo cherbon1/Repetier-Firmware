@@ -52,11 +52,14 @@ List of placeholder:
 %x0 : X position
 %x1 : Y position
 %x2 : Z position
+%x3 : X offset position
+%x4 : Y offset position
+%x5 : Z offset position
 %hx : X homed
 %hy : Y homed
 %hz : Z homed
 %ha : all homed
-%x3 : Current extruder position
+%x6 : Current extruder position
 %sx : State of x min endstop
 %sX : State of x max endstop
 %sy : State of y min endstop
@@ -235,7 +238,7 @@ for 2 row displays. You can add additional pages or change the default pages lik
         UI_PAGE4(ui_page1,UI_TEXT_PAGE_EXTRUDER,"Z:%x2 mm %sC%hz",UI_TEXT_STRAIN_GAUGE,"%os")
     #endif // HAVE_HEATED_BED==true
 
-    UI_PAGE4(ui_page2,"X:%x0 mm %hx","Y:%x1 mm %hy","Z:%x2 mm %sC%hz","%os")
+    UI_PAGE4(ui_page2,"X%hx%x0 %x3mm","Y%hy%x1 %x4mm","Z%hz%x2%x5mm%sC","%os")
 
     #if NUM_EXTRUDER>1
         UI_PAGE4(ui_page3,UI_TEXT_PAGE_EXTRUDER1,UI_TEXT_PAGE_EXTRUDER2,UI_TEXT_PAGE_BED,"%os")
@@ -777,7 +780,7 @@ UI_MENU_CHANGEACTION_FILTER(ui_menu_advanceL_e1, UI_TEXT_EXTR_ADVANCE_L_E1, UI_A
 UI_MENU(ui_menu_accel, UI_MENU_ACCEL, UI_MENU_ACCEL_COUNT)
 
 /** \brief Feedrate Interrupt Shift */
-UI_MENU_CHANGEACTION(ui_menu_freq_dbl, UI_TEXT_FREQ_DBL, UI_ACTION_SHIFT_INTERVAL)
+UI_MENU_CHANGEACTION(ui_menu_freq_dbl, UI_TEXT_INTERRUPT_SHIFT_INTERVAL, UI_ACTION_SHIFT_INTERVAL)
 #define UI_MENU_FREQ_DBL_COND   ,&ui_menu_freq_dbl
 #define UI_MENU_FREQ_DBL_COUNT 1
 /** \brief Feedrates */

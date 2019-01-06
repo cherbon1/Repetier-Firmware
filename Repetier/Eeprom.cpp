@@ -1196,42 +1196,67 @@ void EEPROM::init()
     bool kill_eeprom_wrong_version_update     = (EEPROM_MODE       != HAL::eprGetByte(EPR_MAGIC_BYTE));
     bool kill_eeprom_by_back_ok_play   = (READ(ENABLE_KEY_1)==0 && READ(ENABLE_KEY_4)==0 && READ(ENABLE_KEY_E5)==0);
 
-	bool update_eeprom_num_extruders_changed = (NUM_EXTRUDER > HAL::eprGetByte(EPR_CHECK_NUM_EXTRUDERS) && NUM_EXTRUDER == 2); //prevent stupid bugs because of zeros in extruder 2 configuration
-
-    if( !(kill_eeprom_wrong_version_update || kill_eeprom_because_corrupted || kill_eeprom_by_back_ok_play || update_eeprom_num_extruders_changed))
-    {
-        EEPROM::readDataFromEEPROM();
-    }
-	else if (update_eeprom_num_extruders_changed) {
-		EEPROM::restoreEEPROMExtruderSettingsFromConfiguration(1);
-		EEPROM::storeExtruderDataIntoEEPROM(1);
-		HAL::eprSetByte(EPR_CHECK_NUM_EXTRUDERS, NUM_EXTRUDER);
-		EEPROM::updateChecksum();
-
-		Com::printF(PSTR("EEPROM update "));
-		Com::printFLN(PSTR(UI_TEXT_EXTRUDER1_ADD));
-		showInformation(PSTR(UI_TEXT_CONFIGURATION), PSTR(UI_TEXT_EXTRUDER1_ADD), PSTR(UI_TEXT_RESTORE_DEFAULTS));
-	}
-    else {
-        if (kill_eeprom_wrong_version_update) 
-
+	bool update_eeprom_num_extruders_changed_2 = (NUM_EXTRUDER > HAL::eprGetByte(EPR_CHECK_NUM_EXTRUDERS) && NUM_EXTRUDER == 2);
+	bool update_eeprom_num_extruders_changed_1 = (NUM_EXTRUDER < HAL::eprGetByte(EPR_CHECK_NUM_EXTRUDERS) && NUM_EXTRUDER == 1);
+	
+    if (kill_eeprom_wrong_version_update || kill_eeprom_because_corrupted || kill_eeprom_by_back_ok_play) {
         EEPROM::clearEEPROM();
         EEPROM::restoreEEPROMSettingsFromConfiguration();
         EEPROM::storeDataIntoEEPROM(kill_eeprom_because_corrupted); //wenn corrupted dann auch die betriebszähler löschen.
         EEPROM::initializeAllOperatingModes(); //der operatingmode der nicht aktiv ist bekommt die standardwerte ins eeprom.
 
 		Com::printF(PSTR("EEPROM reset "));
+
 		if (kill_eeprom_wrong_version_update) {
 			Com::printFLN(PSTR("wrong version"));
 			showInformation(PSTR(UI_TEXT_CONFIGURATION), PSTR(UI_TEXT_UPDATE), PSTR(UI_TEXT_RESTORE_DEFAULTS));
-		}
-		else {
-			if (kill_eeprom_because_corrupted) Com::printF(PSTR("corrupted"));
-			if (kill_eeprom_by_back_ok_play) Com::printF(PSTR("back+ok+play"));
-			Com::println();
-			showInformation(PSTR(UI_TEXT_CONFIGURATION), PSTR(UI_TEXT_FAIL), PSTR(UI_TEXT_RESTORE_DEFAULTS));
-		}
+
+			return;
+		}		
+
+		if (kill_eeprom_because_corrupted) Com::printF(PSTR("corrupted"));
+		if (kill_eeprom_by_back_ok_play) Com::printF(PSTR("back+ok+play"));
+		Com::println();
+		showInformation(PSTR(UI_TEXT_CONFIGURATION), PSTR(UI_TEXT_FAIL), PSTR(UI_TEXT_RESTORE_DEFAULTS));
+		
+		return;
     }
+
+	if (update_eeprom_num_extruders_changed_2) {
+		// prevent stupid bugs because of zeros in extruder 2 configuration
+		// add second extruder settings to eeprom
+		EEPROM::restoreEEPROMExtruderSettingsFromConfiguration(1);
+		EEPROM::storeExtruderDataIntoEEPROM(1);
+		// auto-adjust x axis length:		
+		Printer::axisLengthMM[X_AXIS] = X_MAX_LENGTH_PRINT;
+		HAL::eprSetFloat(EPR_X_LENGTH, X_MAX_LENGTH_PRINT);
+
+		HAL::eprSetByte(EPR_CHECK_NUM_EXTRUDERS, NUM_EXTRUDER);
+		EEPROM::updateChecksum();
+
+		Com::printF(PSTR("EEPROM update "));
+		Com::printFLN(PSTR(UI_TEXT_EXTRUDER1_ADD));
+		showInformation(PSTR(UI_TEXT_CONFIGURATION), PSTR(UI_TEXT_EXTRUDER1_ADD), PSTR(UI_TEXT_UPDATE));
+
+		//continue loading data.
+	}
+
+	if (update_eeprom_num_extruders_changed_1) {
+		// auto-adjust x axis length:		
+		Printer::axisLengthMM[X_AXIS] = X_MAX_LENGTH_PRINT;
+		HAL::eprSetFloat(EPR_X_LENGTH, X_MAX_LENGTH_PRINT);
+
+		HAL::eprSetByte(EPR_CHECK_NUM_EXTRUDERS, NUM_EXTRUDER);
+		EEPROM::updateChecksum();
+
+		Com::printF(PSTR("EEPROM update "));
+		Com::printFLN(PSTR(UI_TEXT_EXTRUDER1_REMOVED));
+		showInformation(PSTR(UI_TEXT_CONFIGURATION), PSTR(UI_TEXT_EXTRUDER1_REMOVED), PSTR(UI_TEXT_UPDATE));
+
+		//continue loading data.
+	}
+
+	EEPROM::readDataFromEEPROM();
 #endif // EEPROM_MODE!=0
 } // init
 

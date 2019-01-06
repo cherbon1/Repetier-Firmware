@@ -20,7 +20,7 @@
 #define CONSTANTS_H
 
 
-#define REPETIER_VERSION                    "1.43.31"
+#define REPETIER_VERSION                    "1.43.32"
 #define UI_PRINTER_COMPANY                  "Conrad Community"
 #define UI_VERSION_STRING                   "V " REPETIER_VERSION
 
@@ -147,6 +147,5 @@
 #define int8                                int8_t
 #define uint32                              uint32_t
 #define int32                               int32_t
-
 
 #endif // CONSTANTS_H

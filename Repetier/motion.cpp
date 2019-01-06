@@ -93,7 +93,8 @@ uint8_t             PrintLine::linesPos         = 0;    // Position for executin
 void PrintLine::prepareQueueMove(uint8_t check_endstops,uint8_t pathOptimize, float feedrate)
 {
     Printer::unmarkAllSteppersDisabled(); // ??? hier wird nichts enabled. Nur markiert, auch wenn später oder früher "enablestepper" passiert.
-    //evtl. weil dadurch in jedem fall gleich ein stepper aktiviert werden würde -> darum hier schon als aktiv markieren, weil umumgänglich ist. Aber dann müsste man das (timingsicher) auch schon in den Funktionen über prepareDirectMove erledigt haben.
+    //evtl. weil dadurch in jedem fall gleich ein stepper aktiviert werden würde -> darum hier schon als aktiv markieren, weil umumgänglich ist.
+	// Aber dann müsste man das (timingsicher) auch schon in den Funktionen über prepareDirectMove erledigt haben.
 
     PrintLine::waitForXFreeLines(1);
 
@@ -107,8 +108,6 @@ void PrintLine::prepareQueueMove(uint8_t check_endstops,uint8_t pathOptimize, fl
     p->joinFlags = 0;
     if(!pathOptimize) p->setEndSpeedFixed(true);
     p->dir = 0;
-
-    Printer::constrainQueueDestinationCoords(); //not in newest repetier!
 
     // Find direction
     for(uint8_t axis=0; axis < 4; axis++)
@@ -287,8 +286,15 @@ void PrintLine::prepareQueueMove(uint8_t check_endstops,uint8_t pathOptimize, fl
 
 void PrintLine::prepareDirectMove(void)
 {
+	if (PrintLine::direct.stepsRemaining) {
+		// Do not overwrite a running directstep process. 
+		// If we return here the steps still might be processed as slow direct-stepping.
+		// Rework your code if you see this happening.
+		return;
+	}
     Printer::unmarkAllSteppersDisabled(); // ??? hier wird nichts enabled. Nur markiert, auch wenn später oder früher "enablestepper" passiert.
-    //evtl. weil dadurch in jedem fall gleich ein stepper aktiviert werden würde -> darum hier schon als aktiv markieren, weil umumgänglich ist. Aber dann müsste man das (timingsicher) auch schon in den Funktionen über prepareDirectMove erledigt haben.
+    //evtl. weil dadurch in jedem fall gleich ein stepper aktiviert werden würde -> darum hier schon als aktiv markieren, weil umumgänglich ist.
+	// Aber dann müsste man das (timingsicher) auch schon in den Funktionen über prepareDirectMove erledigt haben.
 
     PrintLine *p = &PrintLine::direct;
 
@@ -299,9 +305,7 @@ void PrintLine::prepareDirectMove(void)
     p->joinFlags = 0;
     p->setEndSpeedFixed(true);
     p->dir = 0;
-
-    Printer::constrainDirectDestinationCoords();
-
+	
     // Find direction
     for(uint8_t axis=0; axis < 4; axis++)
     {
@@ -1095,9 +1099,8 @@ long PrintLine::performPauseCheck(){
 #endif // FEATURE_MILLING_MODE
                        if( g_nPauseSteps[E_AXIS] )
                        {
-                           Printer::directDestinationSteps[E_AXIS] -= g_nPauseSteps[E_AXIS];
+						   Printer::offsetRelativeStepsCoordinates(0, 0, 0, -g_nPauseSteps[E_AXIS]);
                            g_nContinueSteps[E_AXIS] =                    g_nPauseSteps[E_AXIS];
-                           PrintLine::prepareDirectMove();
                        }
 #if FEATURE_MILLING_MODE
                     }
@@ -1117,8 +1120,7 @@ long PrintLine::performPauseCheck(){
                 {
                     if( g_nContinueSteps[E_AXIS] )
                     {
-                        Printer::directDestinationSteps[E_AXIS] += g_nContinueSteps[E_AXIS];
-                        PrintLine::prepareDirectMove();
+						Printer::offsetRelativeStepsCoordinates(0, 0, 0, g_nContinueSteps[E_AXIS]);
                     }
                     g_pauseStatus = PAUSE_STATUS_PAUSED;
                     break;
@@ -1129,20 +1131,15 @@ long PrintLine::performPauseCheck(){
                     if( Printer::operatingMode == OPERATING_MODE_PRINT )
                     {
 #endif // FEATURE_MILLING_MODE
-                        Printer::directDestinationSteps[X_AXIS] += g_nContinueSteps[X_AXIS];
-                        Printer::directDestinationSteps[Y_AXIS] += g_nContinueSteps[Y_AXIS];
-                        Printer::directDestinationSteps[Z_AXIS] += g_nContinueSteps[Z_AXIS];
-                        Printer::directDestinationSteps[E_AXIS] += g_nContinueSteps[E_AXIS];
+						Printer::offsetRelativeStepsCoordinates(g_nContinueSteps[X_AXIS], g_nContinueSteps[Y_AXIS], g_nContinueSteps[Z_AXIS], g_nContinueSteps[E_AXIS]);
 #if FEATURE_MILLING_MODE
                     }
                     else
                     {
                         // in operating mode mill, we have 2 continue positions because we have to move into x/y direction before we shall enter the work part
-                        Printer::directDestinationSteps[X_AXIS] += g_nContinueSteps[X_AXIS];
-                        Printer::directDestinationSteps[Y_AXIS] += g_nContinueSteps[Y_AXIS];
+						Printer::offsetRelativeStepsCoordinates(g_nContinueSteps[X_AXIS], g_nContinueSteps[Y_AXIS], 0, 0);
                     }
 #endif // FEATURE_MILLING_MODE
-                    PrintLine::prepareDirectMove();
                     g_pauseStatus = PAUSE_STATUS_PAUSED;
                     break;
                 }
@@ -1150,8 +1147,7 @@ long PrintLine::performPauseCheck(){
                 {
                     if( g_nContinueSteps[Z_AXIS] )
                     {
-                        Printer::directDestinationSteps[Z_AXIS] += g_nContinueSteps[Z_AXIS];
-                        PrintLine::prepareDirectMove();
+						Printer::offsetRelativeStepsCoordinates(0, 0, g_nContinueSteps[Z_AXIS], 0);
                     }
                     g_pauseStatus = PAUSE_STATUS_PAUSED;
                     break;
@@ -1225,9 +1221,8 @@ long PrintLine::performQueueMove()
 #endif // FEATURE_MILLING_MODE
                             if( g_nPauseSteps[E_AXIS] )
                             {
-                                Printer::directDestinationSteps[E_AXIS] -= g_nPauseSteps[E_AXIS];
-                                g_nContinueSteps[E_AXIS]                   =  g_nPauseSteps[E_AXIS];
-                                prepareDirectMove();
+								Printer::offsetRelativeStepsCoordinates(0, 0, 0, -g_nPauseSteps[E_AXIS]);
+								g_nContinueSteps[E_AXIS] = g_nPauseSteps[E_AXIS];
                             }
 #if FEATURE_MILLING_MODE
                         }

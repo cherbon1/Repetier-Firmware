@@ -396,12 +396,12 @@ void Extruder::selectExtruderById(uint8_t extruderId)
 	
 	// Update extruder head position
 	// We only move an axis to its corrected position if we are homed. Otherwise homing will do this job.
-	float dOffset[3] = { 0 };
-	if (Printer::isAxisHomed(X_AXIS)) dOffset[X_AXIS] = extruder[extruderId].offsetMM[X_AXIS] - Extruder::current->offsetMM[X_AXIS]; //neu - alt -> geht negativ als bewegung rein.
-	if (Printer::isAxisHomed(Y_AXIS)) dOffset[Y_AXIS] = extruder[extruderId].offsetMM[Y_AXIS] - Extruder::current->offsetMM[Y_AXIS];
-	if (Printer::isAxisHomed(Z_AXIS)) dOffset[Z_AXIS] = extruder[extruderId].offsetMM[Z_AXIS] - Extruder::current->offsetMM[Z_AXIS];
+	int32_t dOffset[3] = { 0 };
+	if (Printer::isAxisHomed(X_AXIS)) dOffset[X_AXIS] = (extruder[extruderId].offsetMM[X_AXIS] - Extruder::current->offsetMM[X_AXIS]) * Printer::axisStepsPerMM[X_AXIS]; //neu - alt -> geht negativ als bewegung rein.
+	if (Printer::isAxisHomed(Y_AXIS)) dOffset[Y_AXIS] = (extruder[extruderId].offsetMM[Y_AXIS] - Extruder::current->offsetMM[Y_AXIS]) * Printer::axisStepsPerMM[Y_AXIS];
+	if (Printer::isAxisHomed(Z_AXIS)) dOffset[Z_AXIS] = (extruder[extruderId].offsetMM[Z_AXIS] - Extruder::current->offsetMM[Z_AXIS]) * Printer::axisStepsPerMM[Z_AXIS];
 	// Shift the extruder-offset negatively to stay at the same point after switch
-	Printer::offsetRelativeMMCoordinates(-dOffset[X_AXIS], -dOffset[Y_AXIS], -dOffset[Z_AXIS]);
+	Printer::offsetRelativeStepsCoordinates(-dOffset[X_AXIS], -dOffset[Y_AXIS], -dOffset[Z_AXIS], 0);
 
 #if STEPPER_ON_DELAY
     Extruder::current->enabled = 0;

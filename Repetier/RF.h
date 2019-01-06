@@ -474,13 +474,11 @@ The following variables are used for movements in x/y/z direction:
 
 - the current x/y position of the printer in [steps] is:
   - Printer::currentSteps[x/y] + directCurrentSteps[x/y]
-  - note that an additional, extruder-dependent origin can be used/set
-  - see also:
-    - Printer::currentXPositionMM()
-    - Printer::currentYPositionMM()
+  - from Endstop: Printer::currentXSteps or Printer::currentYSteps
 
 - the current z position of the printer in [steps] is:
   - Printer::currentSteps[z] + directCurrentSteps[z] + compensatedPositionCurrentStepsZ
+  - Printer::currentZSteps as the resulting position from endstop
   - see also:
     - Printer::currentZPositionMM()
 

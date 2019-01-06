@@ -140,8 +140,8 @@ void Commands::waitUntilEndOfAllMoves()
 void Commands::printCurrentPosition()
 {
 	//TODO: Stimmt das ??
-	float x = Printer::currentXPositionMM();
-	float y = Printer::currentYPositionMM();
+	float x = Printer::currentXSteps * Printer::axisMMPerSteps[X_AXIS];
+	float y = Printer::currentYSteps * Printer::axisMMPerSteps[Y_AXIS];
 	float z = Printer::currentZPositionMM();
 
     x += Printer::originOffsetMM[X_AXIS];
@@ -418,10 +418,6 @@ void Commands::executeGCode(GCode *com)
             if(!isMovingAllowed(PSTR("G1")))
             {
                 break;
-            }
-            if(com->hasS())
-            {
-                Printer::setNoDestinationCheck(com->S!=0);
             }
             if(Printer::queueGCodeCoordinates(com)) // For X Y Z E F
             {
@@ -1472,18 +1468,18 @@ void Commands::executeGCode(GCode *com)
                 }
                 if (extId >= 0 && extId < NUM_EXTRUDER) {
 					Commands::waitUntilEndOfAllMoves(); //M218
-					float dx = 0;
-					float dy = 0;
+					int32_t dx = 0;
+					int32_t dy = 0;
                     if (com->hasX()) {
-						if (Printer::isAxisHomed(X_AXIS)) dx = com->X - extruder[extId].offsetMM[X_AXIS];
+						if (Printer::isAxisHomed(X_AXIS)) dx = (com->X - extruder[extId].offsetMM[X_AXIS]) * Printer::axisStepsPerMM[X_AXIS];
                         extruder[extId].offsetMM[X_AXIS] = com->X;
                     }
                     if (com->hasY()) {
-						if (Printer::isAxisHomed(Y_AXIS)) dy = com->Y - extruder[extId].offsetMM[Y_AXIS];
+						if (Printer::isAxisHomed(Y_AXIS)) dy = (com->Y - extruder[extId].offsetMM[Y_AXIS]) * Printer::axisStepsPerMM[Y_AXIS];
                         extruder[extId].offsetMM[Y_AXIS] = com->Y;
                     }
 
-					Printer::offsetRelativeMMCoordinates(-dx, -dy, 0);
+					Printer::offsetRelativeStepsCoordinates(-dx, -dy, 0, 0);
 
 #if FEATURE_AUTOMATIC_EEPROM_UPDATE
                     if(com->hasS() && com->S > 0) {
