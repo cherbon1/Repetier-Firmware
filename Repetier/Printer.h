@@ -95,7 +95,7 @@ public:
 
     static long             maxSoftEndstopSteps[3];             // For software endstops, limit of move in positive direction. (=Homing-Offset + Achsenlänge)
     static float            axisLengthMM[3];                    // Länge des überfahrbaren Bereichs im positiven Homing. (=Schienen-Fahrweg - Homing-Offset - 2x ExtruderOffset)
-    static float            axisHomingOffset[2];                // Homing-Offset für X und Y
+    static float            axisHomingOffsetMM[2];                // Homing-Offset für X und Y
     static float            feedrate;                           // Last requested feedrate.
     static int              feedrateMultiply;                   // Multiplier for feedrate in percent (factor 1 = 100)	
 	static float            dynamicFeedrateFactor;              // Feedrate multiplier factor for digit compensation (1.0 = 100%)	

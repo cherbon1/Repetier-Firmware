@@ -476,6 +476,9 @@ void UIDisplay::initializeLCD(bool normal)
 
 void UIDisplay::printRow(uint8_t r,char *txt,char *txt2,uint8_t changeAtCol)
 {
+#if MAX_COLS < UI_COLS && FEATURE_SEE_DISPLAY
+ #error if you set MAX_COLS to a tiny value you risk overflows. Probably not only within FEATURE_SEE_DISPLAY
+#endif
     changeAtCol = RMath::min((uint8_t)UI_COLS,changeAtCol);
     uint8_t col=0;
 
@@ -490,7 +493,7 @@ void UIDisplay::printRow(uint8_t r,char *txt,char *txt2,uint8_t changeAtCol)
         lcdPutChar(c);
 #if FEATURE_SEE_DISPLAY
         //cache whatever you write to the display!
-        displayCache[r][col] = c;
+		displayCache[r][col] = c;
 #endif //FEATURE_SEE_DISPLAY
         col++;
     }
@@ -503,7 +506,8 @@ void UIDisplay::printRow(uint8_t r,char *txt,char *txt2,uint8_t changeAtCol)
 #endif //FEATURE_SEE_DISPLAY
         col++;
     }
-    if(txt2!=NULL)
+
+	if(txt2!=NULL)
     {
         while((c=*txt2) != 0x00 && col<UI_COLS)
         {
@@ -525,6 +529,10 @@ void UIDisplay::printRow(uint8_t r,char *txt,char *txt2,uint8_t changeAtCol)
             col++;
         }
     }
+#if FEATURE_SEE_DISPLAY
+	//if we had sdcard files last we would see more than 20 bytes. Keep 0 at end.
+	displayCache[r][col] = 0;
+#endif //FEATURE_SEE_DISPLAY
 } // printRow
 #endif // UI_DISPLAY_TYPE==1 || UI_DISPLAY_TYPE==2
 

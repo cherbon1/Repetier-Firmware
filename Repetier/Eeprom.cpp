@@ -217,8 +217,8 @@ void EEPROM::restoreEEPROMSettingsFromConfiguration()
 
     Printer::axisLengthMM[Y_AXIS] = Y_MAX_LENGTH;
     Printer::axisLengthMM[Z_AXIS] = Z_MAX_LENGTH;
-    Printer::axisHomingOffset[X_AXIS] = abs(X_MIN_POS);
-    Printer::axisHomingOffset[Y_AXIS] = abs(Y_MIN_POS);
+    Printer::axisHomingOffsetMM[X_AXIS] = abs(X_MIN_POS);
+    Printer::axisHomingOffsetMM[Y_AXIS] = abs(Y_MIN_POS);
 
 #if ENABLE_BACKLASH_COMPENSATION
     Printer::backlash[X_AXIS] = X_BACKLASH;
@@ -428,8 +428,8 @@ void EEPROM::storeDataIntoEEPROM(uint8_t corrupted)
     HAL::eprSetByte(EPR_RF_HEATED_BED_SENSOR_TYPE,HEATED_BED_SENSOR_TYPE);
 #endif // HAVE_HEATED_BED
 
-    HAL::eprSetFloat(EPR_X_HOME_OFFSET,Printer::axisHomingOffset[X_AXIS]);
-    HAL::eprSetFloat(EPR_Y_HOME_OFFSET,Printer::axisHomingOffset[Y_AXIS]);
+    HAL::eprSetFloat(EPR_X_HOME_OFFSET,Printer::axisHomingOffsetMM[X_AXIS]);
+    HAL::eprSetFloat(EPR_Y_HOME_OFFSET,Printer::axisHomingOffsetMM[Y_AXIS]);
 
 #if FEATURE_MILLING_MODE
     if( Printer::operatingMode == OPERATING_MODE_PRINT )
@@ -766,8 +766,8 @@ void EEPROM::readDataFromEEPROM()
     heatedBedController.sensorType = (HAL::eprGetByte(EPR_RF_HEATED_BED_SENSOR_TYPE) != 0) ? HAL::eprGetByte(EPR_RF_HEATED_BED_SENSOR_TYPE) : HEATED_BED_SENSOR_TYPE;
 #endif // HAVE_HEATED_BED
 
-    Printer::axisHomingOffset[X_AXIS] = abs(HAL::eprGetFloat(EPR_X_HOME_OFFSET));
-    Printer::axisHomingOffset[Y_AXIS] = abs(HAL::eprGetFloat(EPR_Y_HOME_OFFSET));
+    Printer::axisHomingOffsetMM[X_AXIS] = abs(HAL::eprGetFloat(EPR_X_HOME_OFFSET));
+    Printer::axisHomingOffsetMM[Y_AXIS] = abs(HAL::eprGetFloat(EPR_Y_HOME_OFFSET));
 
 #if FEATURE_MILLING_MODE
     if( Printer::operatingMode == OPERATING_MODE_PRINT )

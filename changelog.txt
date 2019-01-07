@@ -1,4 +1,11 @@
-V 01.43.33.Mod (2019-01-07)
+V 01.43.35.Mod (2019-01-07)
+- M3912 autostartmade now chooses it start-Y to 0mm if a nonzero Y-Axis-Minimum is set in EEPROM
+- increased some axis limits to the length of soft endstop mm.
+- wobblefix now scales its x-position between real 0 and soft-endstop-mm to make it a bit more precise and num-extruder independend.
+- FEATURE_SEE_DISPLAY M3029 does not show olddated sd-card-bytes anymore if the display is now switched back to normal menu.
+- FEATURE_SEE_DISPLAY M3029 L1 now shows the displays output line by line for better human readability.
+
+V 01.43.34.Mod (2019-01-07)
 - Updated SdFat 1.0.12 to 1.0.13 Avoid MISO missing pull-up problem
 - Updated SdFat 1.0.13 to 1.0.14 Improved card re-initialization
 

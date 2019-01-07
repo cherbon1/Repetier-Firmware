@@ -5496,11 +5496,7 @@ char prepareCompensationMatrix( void )
     else
     {
         // we have to shift all x columns one index
-/*      if( Printer::debugInfo() )
-        {
-            Com::printFLN( PSTR( "prepareCompensationMatrix(): x[2] = 0" ) );
-        }
-*/      for( x=1; x<g_uZMatrixMax[X_AXIS]; x++ )
+        for( x=1; x<g_uZMatrixMax[X_AXIS]; x++ )
         {
             for( y=0; y<=g_uZMatrixMax[Y_AXIS]; y++ )
             {
@@ -5515,11 +5511,7 @@ char prepareCompensationMatrix( void )
     if( g_ZCompensationMatrix[g_uZMatrixMax[X_AXIS]][0] < (short)Printer::axisLengthMM[X_AXIS] )
     {
         // we have to fill x[g_uZMatrixMax[X_AXIS]] with the values of x[g_uZMatrixMax[X_AXIS]-1]
-/*      if( Printer::debugInfo() )
-        {
-            Com::printFLN( PSTR( "prepareCompensationMatrix(): x[g_uZMatrixMax[X_AXIS]-1] < Printer::axisLengthMM[X_AXIS]" ) );
-        }
-*/      g_ZCompensationMatrix[g_uZMatrixMax[X_AXIS]+1][0] = short(Printer::axisLengthMM[X_AXIS]);
+        g_ZCompensationMatrix[g_uZMatrixMax[X_AXIS]+1][0] = short(Printer::axisLengthMM[X_AXIS]);
         for( y=1; y<=g_uZMatrixMax[Y_AXIS]; y++ )
         {
             g_ZCompensationMatrix[g_uZMatrixMax[X_AXIS]+1][y] = g_ZCompensationMatrix[g_uZMatrixMax[X_AXIS]][y];
@@ -5531,20 +5523,12 @@ char prepareCompensationMatrix( void )
     else
     {
         // there is nothing else to do here
-/*      if( Printer::debugInfo() )
-        {
-            Com::printFLN( PSTR( "prepareCompensationMatrix(): x[g_uZMatrixMax[X_AXIS]-1] = Printer::axisLengthMM[X_AXIS]" ) );
-        }
-*/  }
+    }
 
     if( g_ZCompensationMatrix[0][2] > 0 )
     {
         // we have to fill y[1] with the values of y[2]
-/*      if( Printer::debugInfo() )
-        {
-            Com::printFLN( PSTR( "prepareCompensationMatrix(): y[2] > 0" ) );
-        }
-*/      g_ZCompensationMatrix[0][1] = 0;
+        g_ZCompensationMatrix[0][1] = 0;
         for( x=1; x<=g_uZMatrixMax[X_AXIS]; x++ )
         {
             g_ZCompensationMatrix[x][1] = g_ZCompensationMatrix[x][2];
@@ -5553,11 +5537,7 @@ char prepareCompensationMatrix( void )
     else
     {
         // we have to shift all y columns one index
-/*      if( Printer::debugInfo() )
-        {
-            Com::printFLN( PSTR( "prepareCompensationMatrix(): y[2] = 0" ) );
-        }
-*/      for( x=0; x<=g_uZMatrixMax[X_AXIS]; x++ )
+        for( x=0; x<=g_uZMatrixMax[X_AXIS]; x++ )
         {
             for( y=1; y<g_uZMatrixMax[Y_AXIS]; y++ )
             {
@@ -5572,11 +5552,7 @@ char prepareCompensationMatrix( void )
     if( g_ZCompensationMatrix[0][g_uZMatrixMax[Y_AXIS]] < short(Printer::axisLengthMM[Y_AXIS]) )
     {
         // we have to fill y[g_uZMatrixMax[Y_AXIS]] with the values of y[g_uZMatrixMax[Y_AXIS]-1]
-/*      if( Printer::debugInfo() )
-        {
-            Com::printFLN( PSTR( "prepareCompensationMatrix(): y[g_uZMatrixMax[Y_AXIS]-1] < Printer::axisLengthMM[Y_AXIS]" ) );
-        }
-*/      g_ZCompensationMatrix[0][g_uZMatrixMax[Y_AXIS]+1] = short(Printer::axisLengthMM[Y_AXIS]);
+        g_ZCompensationMatrix[0][g_uZMatrixMax[Y_AXIS]+1] = short(Printer::axisLengthMM[Y_AXIS]);
         for( x=1; x<=g_uZMatrixMax[X_AXIS]; x++ )
         {
             g_ZCompensationMatrix[x][g_uZMatrixMax[Y_AXIS]+1] = g_ZCompensationMatrix[x][g_uZMatrixMax[Y_AXIS]];
@@ -5590,7 +5566,6 @@ char prepareCompensationMatrix( void )
     determineCompensationOffsetZ();
 
     return 0;
-
 } // prepareCompensationMatrix
 
 
@@ -7110,7 +7085,7 @@ void determinePausePosition( void )
         }
         else if( g_nPauseSteps[X_AXIS] > 0 )
         {
-            long  Max = long((Printer::axisLengthMM[X_AXIS] - PAUSE_X_SPACING_MM) * Printer::axisStepsPerMM[X_AXIS]) ;
+            long Max = Printer::maxSoftEndstopSteps[X_AXIS] - long(PAUSE_X_SPACING_MM * Printer::axisStepsPerMM[X_AXIS]);
             if( Temp > Max )
             {
                 // we can move only partially
@@ -7151,7 +7126,7 @@ void determinePausePosition( void )
         }
         else if( g_nPauseSteps[Y_AXIS] > 0 )
         {
-            long  Max = long((Printer::axisLengthMM[Y_AXIS] - PAUSE_Y_SPACING_MM) * Printer::axisStepsPerMM[Y_AXIS]);
+			long Max = Printer::maxSoftEndstopSteps[Y_AXIS] - long(PAUSE_Y_SPACING_MM * Printer::axisStepsPerMM[Y_AXIS]);
             if( Temp > Max )
             {
                 // we can move only partially
@@ -7182,12 +7157,19 @@ void determineZPausePositionForPrint( void )
         Temp += Printer::compensatedPositionCurrentStepsZ;
 #endif // FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
 
-        long Max  =  long((Printer::axisLengthMM[Z_AXIS] - PAUSE_Z_MAX_SPACING_MM) * Printer::axisStepsPerMM[Z_AXIS]);
+		// we are allowed to run into the softEndstop on Z-Axis but if we run into the switch by pausing we wont find home.
+		// To prevent this we have to count the unfinished z-steps at the endstop switch and subtract it from continue-steps.
 
+		// Or we would have to make sure that we start at directSteps = 0 and invert it for finding home.
+
+		// Or we should remember the the direct steps position before pausing and then go back by difference of the steps.
+		// In that case nobody should be allowed to change extruder while pausing because it will be reverted and then we have the wrong extruder selected.
+
+		long Max = Printer::maxSoftEndstopSteps[Z_AXIS] - long(PAUSE_Z_MAX_SPACING_MM * Printer::axisStepsPerMM[Z_AXIS]);
         if( Temp <= Max )
         {
-            Printer::directDestinationSteps[Z_AXIS] += g_nPauseSteps[Z_AXIS];
-            g_nContinueSteps[Z_AXIS]                   =  -g_nPauseSteps[Z_AXIS];
+            Printer::directDestinationSteps[Z_AXIS] +=  g_nPauseSteps[Z_AXIS];
+            g_nContinueSteps[Z_AXIS]                 = -g_nPauseSteps[Z_AXIS];
         }
         else
         {
@@ -7198,28 +7180,22 @@ void determineZPausePositionForPrint( void )
             Temp -= Printer::compensatedPositionCurrentStepsZ;
 #endif // FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
 
-            Printer::directDestinationSteps[Z_AXIS] += Temp;
-            g_nContinueSteps[Z_AXIS]                   =  -Temp;
+            Printer::directDestinationSteps[Z_AXIS] +=  Temp;
+            g_nContinueSteps[Z_AXIS]                 = -Temp;
         }
     }else{
         g_nContinueSteps[Z_AXIS] = 0;
     }
-    return;
-
 } // determineZPausePositionForPrint
 
 void determineZPausePositionForMill( void )
 {
-    long    Temp;
-
     // in operating mode "mill", pausing drives from the current position downwards the specified g_nPauseSteps[Z_AXIS] + currentSteps[Z_AXIS] because we must drive the tool out of the work part before we can move into x or y direction
-    Temp =  g_nPauseSteps[Z_AXIS];
+    long Temp =  g_nPauseSteps[Z_AXIS];
     Temp -= Printer::currentSteps[Z_AXIS]; // in operating mode "mill", the bed/work part moves upwards while the milling is in progress - Printer::currentSteps[Z_AXIS] is negative
 
-    Printer::directDestinationSteps[Z_AXIS] += Temp;
-    g_nContinueSteps[Z_AXIS]                   =  -Temp;
-    return;
-
+    Printer::directDestinationSteps[Z_AXIS] +=  Temp;
+    g_nContinueSteps[Z_AXIS]                 = -Temp;
 } // determineZPausePositionForMill
 
 
@@ -7244,16 +7220,13 @@ void setExtruderCurrent( uint8_t nr, uint8_t current )
         Com::printF( PSTR( "Extruder" ), (short)nr );
         Com::printFLN( PSTR( " = " ), (uint32_t)current );
     }
-    return;
-
 } // setExtruderCurrent
 
 
 void processCommand( GCode* pCommand )
 {
     long    nTemp;
-
-
+	
     if( pCommand->hasM() )
     {
         switch( pCommand->M )
@@ -7926,37 +7899,51 @@ void processCommand( GCode* pCommand )
 
                     Com::printF( PSTR( "," ),MAX_COLS+1 );
                     Com::printF( PSTR( ":" ) );
+					if (pCommand->hasL()) {
+						//print line by line for human readability
+						Com::println();
+						Com::println();
+					}
+					// we print out UI_ROWS x MAX_COLS+1 field.
                     for(uint8_t row = 0; row < UI_ROWS; row++){
+						bool nulled = false;
                         for(uint8_t col = 0; col < MAX_COLS+1; col++){
-                            if(displayCache[row][col]){
-                                if(isprint(displayCache[row][col])){
-                                    Com::print(displayCache[row][col]);
-                                }else{
-                                    switch(displayCache[row][col]){
-                                        case 2: {
-                                            Com::print('\'');
-                                            break;
-                                        }
-                                        case 5: {
-                                            Com::print('!');
-                                            break;
-                                        }
-                                        case (char)CHAR_SELECTOR: {
-                                            Com::print('>');
-                                            break;
-                                        }
-                                        case (char)CHAR_SELECTED:{
-                                            Com::print('*');
-                                            break;
-                                        }
-                                        default:
-                                            Com::print('_'); //others?
-                                    }
+							if (displayCache[row][col] == 0 || nulled) {
+								nulled = true;
+								Com::print(' '); //null as space
+								continue;
+							}
+
+                            if(isprint(displayCache[row][col])){
+                                Com::print(displayCache[row][col]);
+								continue;
+                            }
+
+                            switch(displayCache[row][col]){
+                                case 2: {
+                                    Com::print('\'');
+                                    break;
                                 }
-                            }else{
-                                Com::print(' '); //null as space
+                                case 5: {
+                                    Com::print('!');
+                                    break;
+                                }
+                                case (char)CHAR_SELECTOR: {
+                                    Com::print('>');
+                                    break;
+                                }
+                                case (char)CHAR_SELECTED:{
+                                    Com::print('*');
+                                    break;
+                                }
+                                default:
+                                    Com::print('_'); //others?
                             }
                         }
+						if (pCommand->hasL()) {
+							//print line by line for human readability
+							Com::println();
+						}
                     }
                     Com::println();
                 }
@@ -8469,53 +8456,53 @@ void processCommand( GCode* pCommand )
 
             case 3105: // M3105 [X] [Y] [Z] [E] - configure the offset in x, y, z and e direction which shall be applied in case the "Pause" button has been pressed ( units are [mm] )
             {
-                if( pCommand->hasNoXYZ() && !pCommand->hasE() )
+                if (pCommand->hasNoXYZ() && !pCommand->hasE())
                 {
                     showInvalidSyntax( pCommand->M );
                 }
                 else
                 {
-                    if( pCommand->hasX() )
+                    if (pCommand->hasX())
                     {
                         // test and take over the specified value
-                        nTemp = pCommand->X;
-                        if( nTemp < -Printer::axisLengthMM[X_AXIS] )    nTemp = -Printer::axisLengthMM[X_AXIS];
-                        if( nTemp >  Printer::axisLengthMM[X_AXIS] )    nTemp =  Printer::axisLengthMM[X_AXIS];
+                        nTemp = pCommand->X * Printer::axisStepsPerMM[X_AXIS];
+                        if (nTemp < -Printer::maxSoftEndstopSteps[X_AXIS]) nTemp = -Printer::maxSoftEndstopSteps[X_AXIS];
+                        if (nTemp >  Printer::maxSoftEndstopSteps[X_AXIS]) nTemp =  Printer::maxSoftEndstopSteps[X_AXIS];
 
-                        g_nPauseSteps[X_AXIS] = (long)((float)nTemp * Printer::axisStepsPerMM[X_AXIS]);
-                        Com::printF( PSTR( "M3105: new x pause offset: " ), nTemp );
+                        g_nPauseSteps[X_AXIS] = nTemp;
+                        Com::printF( PSTR( "M3105: new x pause offset: " ), nTemp * Printer::axisMMPerSteps[X_AXIS]);
                         Com::printFLN( PSTR( " [mm]" ) );
                     }
-                    if( pCommand->hasY() )
+                    if (pCommand->hasY())
                     {
                         // test and take over the specified value
-                        nTemp = pCommand->Y;
-                        if( nTemp < -Printer::axisLengthMM[Y_AXIS] )     nTemp = -Printer::axisLengthMM[Y_AXIS];
-                        if( nTemp >  Printer::axisLengthMM[Y_AXIS] )     nTemp =  Printer::axisLengthMM[Y_AXIS];
+                        nTemp = pCommand->Y * Printer::axisStepsPerMM[Y_AXIS];
+                        if (nTemp < -Printer::maxSoftEndstopSteps[Y_AXIS]) nTemp = -Printer::maxSoftEndstopSteps[Y_AXIS];
+                        if (nTemp >  Printer::maxSoftEndstopSteps[Y_AXIS]) nTemp =  Printer::maxSoftEndstopSteps[Y_AXIS];
 
-                        g_nPauseSteps[Y_AXIS] = (long)((float)nTemp * Printer::axisStepsPerMM[Y_AXIS]);
-                        Com::printF( PSTR( "M3105: new y pause offset: " ), nTemp );
+                        g_nPauseSteps[Y_AXIS] = nTemp;
+                        Com::printF( PSTR( "M3105: new y pause offset: " ), nTemp * Printer::axisMMPerSteps[Y_AXIS]);
                         Com::printFLN( PSTR( " [mm]" ) );
                     }
-                    if( pCommand->hasZ() )
+                    if (pCommand->hasZ())
                     {
                         // test and take over the specified value
-                        nTemp = pCommand->Z;
-                        if( nTemp < 0 )                              nTemp = 0; //no pause within printed part.
-                        if( nTemp > Printer::axisLengthMM[Z_AXIS] )      nTemp = Printer::axisLengthMM[Z_AXIS];
+                        nTemp = pCommand->Z * Printer::axisStepsPerMM[Z_AXIS];
+                        if (nTemp < 0)                                    nTemp = 0; //no pause within printed part.
+                        if (nTemp > Printer::maxSoftEndstopSteps[Z_AXIS]) nTemp = Printer::maxSoftEndstopSteps[Z_AXIS];
 
-                        g_nPauseSteps[Z_AXIS] = (long)((float)nTemp * Printer::axisStepsPerMM[Z_AXIS]);
-                        Com::printF( PSTR( "M3105: new z pause offset: " ), nTemp );
+                        g_nPauseSteps[Z_AXIS] = nTemp;
+                        Com::printF( PSTR( "M3105: new z pause offset: " ), nTemp * Printer::axisMMPerSteps[Z_AXIS]);
                         Com::printFLN( PSTR( " [mm]" ) );
                     }
-                    if( pCommand->hasE() )
+                    if (pCommand->hasE())
                     {
                         // test and take over the specified value
                         nTemp = pCommand->E;
-                        if( nTemp < 0 )     nTemp = 0;
-                        if( nTemp > 5 )     nTemp = 5; //Zahl immer positiv, sie wird abgezogen = Retract!
+                        if(nTemp < 0) nTemp = 0;
+                        if(nTemp > 5) nTemp = 5; //Zahl immer positiv, sie wird abgezogen = Retract!
 
-                        g_nPauseSteps[E_AXIS] = (long)((float)nTemp * EXT0_STEPS_PER_MM);
+                        g_nPauseSteps[E_AXIS] = (long)((float)nTemp * Extruder::current->stepsPerMM);
                         Com::printF( PSTR( "M3105: new extruder pause offset: " ), nTemp );
                         Com::printFLN( PSTR( " [mm]" ) );
                     }
@@ -8537,7 +8524,7 @@ void processCommand( GCode* pCommand )
                         // test and take over the specified value
                         nTemp = pCommand->X;
                         if( nTemp < 0 )                         nTemp = 0;
-                        if( nTemp > Printer::axisLengthMM[X_AXIS] ) nTemp = Printer::axisLengthMM[X_AXIS];
+                        if( nTemp > Printer::maxSoftEndstopSteps[X_AXIS] * Printer::axisMMPerSteps[X_AXIS] ) nTemp = Printer::maxSoftEndstopSteps[X_AXIS] * Printer::axisMMPerSteps[X_AXIS];
 
                         g_nParkPosition[X_AXIS] = nTemp;
                         if( Printer::debugInfo() )
@@ -8551,7 +8538,7 @@ void processCommand( GCode* pCommand )
                         // test and take over the specified value
                         nTemp = pCommand->Y;
                         if( nTemp < 0 )             nTemp = 0;
-                        if( nTemp > Printer::axisLengthMM[Y_AXIS] )  nTemp = Printer::axisLengthMM[Y_AXIS];
+                        if( nTemp > Printer::maxSoftEndstopSteps[Y_AXIS] * Printer::axisMMPerSteps[Y_AXIS])  nTemp = Printer::maxSoftEndstopSteps[Y_AXIS] * Printer::axisMMPerSteps[Y_AXIS];
 
                         g_nParkPosition[Y_AXIS] = nTemp;
                         if( Printer::debugInfo() )
@@ -8565,7 +8552,7 @@ void processCommand( GCode* pCommand )
                         // test and take over the specified value
                         nTemp = pCommand->Z;
                         if( nTemp < 0 )             nTemp = 0;
-                        if( nTemp > Printer::axisLengthMM[Z_AXIS] )  nTemp = Printer::axisLengthMM[Z_AXIS];
+                        if( nTemp > Printer::maxSoftEndstopSteps[Z_AXIS] * Printer::axisMMPerSteps[Z_AXIS])  nTemp = Printer::maxSoftEndstopSteps[Z_AXIS] * Printer::axisMMPerSteps[Z_AXIS];
 
                         g_nParkPosition[Z_AXIS] = nTemp;
                         if( Printer::debugInfo() )
@@ -10572,12 +10559,12 @@ void processCommand( GCode* pCommand )
                         if(Lines > 5) Lines = 5;
                     }
 
-                    float y = 23.0f; /*+Printer::axisHomingOffset[Y_AXIS]*/
+                    float y = (Printer::axisHomingOffsetMM[Y_AXIS] != 0 ? 0.0f : 23.0f);
                     if ( pCommand->hasY() ){
                         y = (float)pCommand->Y;
                         if(y < 0.5f) y = 0.5f;
 						// Länge y Achse - halbe Bahnbreite - 1.5 pro Versatz - Schrägversatz nur bei Dual. Übertrieben aber das sollte genau sein.
-						float maxY = Printer::axisLengthMM[Y_AXIS] - 0.5f - Lines * 1.5f - (NUM_EXTRUDER > 1 ? 5.0f : 0.0f);
+						float maxY = Printer::maxSoftEndstopSteps[Y_AXIS] * Printer::axisMMPerSteps[Y_AXIS] - 0.5f - Lines * 1.5f - (NUM_EXTRUDER > 1 ? 5.0f : 0.0f);
                         if(y > maxY) y = maxY;
                     }
 
@@ -10606,7 +10593,8 @@ void processCommand( GCode* pCommand )
 #endif //NUM_EXTRUDER > 0
                     if ( pCommand->hasY() ){ //override y with user value
                         y = (float)pCommand->Y;
-                        if(y > Printer::axisLengthMM[Y_AXIS]*0.5) y = Printer::axisLengthMM[Y_AXIS]*0.5;
+						float max = Printer::maxSoftEndstopSteps[Y_AXIS] * Printer::axisMMPerSteps[Y_AXIS] * 0.5;
+                        if(y > max)  y = max;
                         if(y < 0.0f) y = 0.0f;
                     }
                     float e =  0.0f;
@@ -12016,8 +12004,9 @@ void setZOrigin( void )
     Printer::setZOriginSet(true); //flag wegen statusnachricht
 #endif // FEATURE_FIND_Z_ORIGIN
 	
-    // it does not make sense to change the length here because Printer::destinationMM[Z_AXIS] can be a more or less random value
-    //Printer::axisLengthMM[Z_AXIS] -= Printer::destinationMM[Z_AXIS];
+	// Axis length is decreased by active position height
+	// Diese neue Länge wandert gleich ins EEPROM. Will man das wirklich? Unten sollte sowieso der Endschalter stoppen.
+	// Printer::axisLengthMM[Z_AXIS] -= (Printer::destinationMM[Z_AXIS] + Printer::getDirectMM(Z_AXIS));
 
 	Printer::setZAxisSteps(0);
 	Printer::resetDirectAxis(Z_AXIS);
@@ -12025,7 +12014,7 @@ void setZOrigin( void )
     Printer::originOffsetMM[Z_AXIS]             = 0;
 
     g_nZScanZPosition                           = 0;
-    Printer::currentZSteps                      = 0; //an dieser variable darf man im druckmodus eigentlich nie rumspielen ^^.
+    // -> nönö, daran verändert nur das homing was!: Printer::currentZSteps                      = 0; //an dieser variable darf man im druckmodus eigentlich nie rumspielen ^^.
 
     Printer::updateDerivedParameter();
 

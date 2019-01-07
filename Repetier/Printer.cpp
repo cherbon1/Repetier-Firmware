@@ -82,7 +82,7 @@ volatile int    Printer::advanceStepsSet;
 
 long            Printer::maxSoftEndstopSteps[3] = {0};                  // For software endstops, limit of move in positive direction. (=Homing-Offset + Achsenlänge)
 float           Printer::axisLengthMM[3] = {0};                         // Länge des überfahrbaren Bereichs im positiven Homing. (=Schienen-Fahrweg - Homing-Offset - 2x ExtruderOffset)
-float           Printer::axisHomingOffset[2] = {0};                     // Homing-Offset für X und Y
+float           Printer::axisHomingOffsetMM[2] = {0};                     // Homing-Offset für X und Y
 float           Printer::feedrate = 10;                                 // Last requested feedrate.
 int             Printer::feedrateMultiply = 100;                        // Multiplier for feedrate in percent (factor 100 = 100%)
 float           Printer::dynamicFeedrateFactor = 1.0;                   // Feedrate multiplier factor for digit compensation (1.0 = 100%)
@@ -238,12 +238,12 @@ void Printer::updateDerivedParameter()
 	// das extruder offset dürfen wir zur achslänge addieren, weil in dem Axis-Length von z.b. 180 mm schon angenommen wird, dass der extruder mit beiden nozzles jeden punkt erreicht.
 	// Offset von links ist gesetzt, aber überfahren rechts muss aber noch möglich werden.
 	// Darum 1x das Offset mehr zulassen und die Achsenlänge immer als reine Druckbreite definieren.
-    maxSoftEndstopSteps[X_AXIS] = (long)(axisStepsPerMM[X_AXIS] * (axisHomingOffset[X_AXIS] + axisLengthMM[X_AXIS] 
+    maxSoftEndstopSteps[X_AXIS] = (long)(axisStepsPerMM[X_AXIS] * (axisHomingOffsetMM[X_AXIS] + axisLengthMM[X_AXIS] 
 #if NUM_EXTRUDER > 1
 		+ getMaxExtruderOffsetMM(X_AXIS)		
 #endif
 	));
-    maxSoftEndstopSteps[Y_AXIS] = (long)(axisStepsPerMM[Y_AXIS] * (axisHomingOffset[Y_AXIS] + axisLengthMM[Y_AXIS]
+    maxSoftEndstopSteps[Y_AXIS] = (long)(axisStepsPerMM[Y_AXIS] * (axisHomingOffsetMM[Y_AXIS] + axisLengthMM[Y_AXIS]
 #if NUM_EXTRUDER > 1
 		+ getMaxExtruderOffsetMM(Y_AXIS)
 #endif
@@ -416,7 +416,7 @@ void Printer::addKurtWobbleFixOffset(bool absoluteXYCoordinates)
 	if (Printer::wobbleAmplitudes[1] || Printer::wobbleAmplitudes[2]) {
 		float anglePositionWobble = sin(zweiPi*(zSchalterZ / spindelSteigung) - (float)Printer::wobblePhaseXY * hundertstelPi);
 		//gilt eher die Y-Achsen-Richtung-Amplitude links (x=0) oder rechts (x=achsenlänge)? (abhängig von der ziel-x-position wird anteilig verrechnet.)
-		float xPosPercent = Printer::destinationMM[X_AXIS] / Printer::axisLengthMM[X_AXIS];
+		float xPosPercent = float(Printer::currentXSteps) / float(Printer::maxSoftEndstopSteps[X_AXIS]);
 		float wOffsetY = ((1 - xPosPercent) * Printer::wobbleAmplitudes[1] + (xPosPercent)* Printer::wobbleAmplitudes[2]) * anglePositionWobble * 0.001;  //offset in [mm]
 		if (absoluteXYCoordinates) {
 			Printer::destinationMM[Y_AXIS] += wOffsetY;
@@ -919,8 +919,8 @@ void Printer::setup()
 
 	Printer::axisLengthMM[Y_AXIS] = Y_MAX_LENGTH;
 	Printer::axisLengthMM[Z_AXIS] = Z_MAX_LENGTH;
-	Printer::axisHomingOffset[X_AXIS] = abs(X_MIN_POS);
-	Printer::axisHomingOffset[Y_AXIS] = abs(Y_MIN_POS);
+	Printer::axisHomingOffsetMM[X_AXIS] = abs(X_MIN_POS);
+	Printer::axisHomingOffsetMM[Y_AXIS] = abs(Y_MIN_POS);
 
 #if FEATURE_CONFIGURABLE_Z_ENDSTOPS
     ZEndstopType          = DEFAULT_Z_ENDSTOP_TYPE;
@@ -1528,7 +1528,7 @@ void Printer::homeXAxis()
 		Printer::currentXSteps = (nHomeDir == -1) ? 0 : maxSoftEndstopSteps[X_AXIS];
 
 		// Goto X homing min position
-		Printer::queueRelativeMMCoordinates(-1 * nHomeDir * Printer::axisHomingOffset[X_AXIS], 0, 0, 0, homingFeedrate[X_AXIS], true, false);
+		Printer::queueRelativeMMCoordinates(-1 * nHomeDir * Printer::axisHomingOffsetMM[X_AXIS], 0, 0, 0, homingFeedrate[X_AXIS], true, false);
 		
 #if NUM_EXTRUDER>1
         if( offX )
@@ -1578,7 +1578,7 @@ void Printer::homeYAxis()
 		Printer::currentYSteps = (nHomeDir == -1) ? 0 : maxSoftEndstopSteps[Y_AXIS];
 
 		// Goto Y homing min position
-		Printer::queueRelativeMMCoordinates(0, -1 * nHomeDir * Printer::axisHomingOffset[Y_AXIS], 0, 0, homingFeedrate[X_AXIS], true, false);
+		Printer::queueRelativeMMCoordinates(0, -1 * nHomeDir * Printer::axisHomingOffsetMM[Y_AXIS], 0, 0, homingFeedrate[X_AXIS], true, false);
 
 #if NUM_EXTRUDER>1
         if( offY )
@@ -1600,7 +1600,7 @@ void Printer::homeYAxis()
 
 void Printer::homeZAxis()
 {
-    char    nHomeDir = Printer::anyHomeDir(Z_AXIS);
+    char nHomeDir = Printer::anyHomeDir(Z_AXIS);
 
     if( nHomeDir )
     {
@@ -1636,18 +1636,17 @@ void Printer::homeZAxis()
 
         //1. Schnelles Fahren bis zum Schalterkontakt:
             //Ist der Schalter gedrückt, wird sofort geskipped.
-            //Ansonsten bis Schalter fahren. Doppelte mögliche Distanz, sodass Fahrt nicht zu früh aufhören kann.
-		Printer::queueRelativeMMCoordinates(0, 0, 2 * axisLengthMM[Z_AXIS] * nHomeDir, 0, homingFeedrate[Z_AXIS], true, true);
+		Printer::queueRelativeStepsCoordinates(0, 0, (maxSoftEndstopSteps[Z_AXIS] + 2 * int32_t(maxZOverrideSteps)) * nHomeDir, 0, homingFeedrate[Z_AXIS], true, true);
 
         //2. in jedem Fall Freifahren vom Schalterkontakt:
             //ENDSTOP_Z_BACK_MOVE größer als 32768 ist eigentlich nicht möglich, nicht sinnvoll und würde, da das überfahren bei 32microsteps von der z-matrix >-12,7mm abhängig ist verboten sein.
             //darum ist uint16_t in jedem fall ohne overflow.
-        for(uint16_t step = 0; step < uint16_t(axisStepsPerMM[Z_AXIS] * ENDSTOP_Z_BACK_MOVE); step += uint16_t(0.1f * axisStepsPerMM[Z_AXIS]) ){
+        for (uint16_t step = 0; step < uint16_t(axisStepsPerMM[Z_AXIS] * ENDSTOP_Z_BACK_MOVE); step += uint16_t(0.1f * axisStepsPerMM[Z_AXIS]) ){
             //faktor *2 und *5 : doppelt/5x so schnell beim Zurücksetzen als nachher beim langsamst hinfahren. Sonst dauert das ewig.
-            if(Printer::isZMinEndstopHit()){
+            if (Printer::isZMinEndstopHit()){
                 //schalter noch gedrückt, wir müssen weiter aus dem schalter rausfahren, aber keinesfalls mehr als ENDSTOP_Z_BACK_MOVE
 				Printer::queueRelativeMMCoordinates(0, 0, 0.1f * (-1 * nHomeDir),                     0, float(homingFeedrate[Z_AXIS] / ENDSTOP_Z_RETEST_REDUCTION_FACTOR * 5.0f), true, false);
-            }else{ //wir sind aus dem schalterbereich raus, müssten also nicht weiter zurücksetzen:
+            } else { //wir sind aus dem schalterbereich raus, müssten also nicht weiter zurücksetzen:
                 //1) egal ob der schalter zu anfang überfahren war oder nicht: etwas zurücksetzen, nachdem der schalter angefahren wurde.
                 //2) hier wird in jedem Fall etwas weiter weggefahren, sodass man wieder neu auf Z anfahren kann.
 				Printer::queueRelativeMMCoordinates(0, 0, Z_ENDSTOP_MAX_HYSTERESIS * (-1 * nHomeDir), 0, float(homingFeedrate[Z_AXIS] / ENDSTOP_Z_RETEST_REDUCTION_FACTOR * 2.0f), true, false);
