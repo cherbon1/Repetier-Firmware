@@ -1,4 +1,8 @@
 V 01.43.33.Mod (2019-01-07)
+- Updated SdFat 1.0.12 to 1.0.13 Avoid MISO missing pull-up problem
+- Updated SdFat 1.0.13 to 1.0.14 Improved card re-initialization
+
+V 01.43.33.Mod (2019-01-07)
 - added max extruder offset 1x to soft endstop limit to prevent early stop at dual extruders
 - removed z-mode surface until someone misses it (was probably broken anyways)
 - removed (uncommented) z-mode origin until someone misses it (was probably broken anyways)
