@@ -1,4 +1,9 @@
-V 01.43.32.Mod (2019-01-05)
+V 01.43.33.Mod (2019-01-07)
+- added max extruder offset 1x to soft endstop limit to prevent early stop at dual extruders
+- removed z-mode surface until someone misses it (was probably broken anyways)
+- removed (uncommented) z-mode origin until someone misses it (was probably broken anyways)
+
+V 01.43.32.Mod (2019-01-07)
 - introduced x and y stepcounter beginning from endstop
 - directSteps are now responsible for extruder offset and position menu
 - unhomed axes are now marked with an ?. Homed axes are not marked at all.

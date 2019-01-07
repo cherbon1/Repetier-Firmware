@@ -11282,8 +11282,9 @@ void nextPreviousXAction( int8_t increment )
                 return;
             }
 
-            if( increment < 0 ) steps = -(long)((Printer::axisLengthMM[X_AXIS] + 5) * Printer::axisStepsPerMM[X_AXIS]);
-            else                steps =  (long)((Printer::axisLengthMM[X_AXIS] + 5) * Printer::axisStepsPerMM[X_AXIS]);
+			//errate homed möglichst den erzwungenen stop-punkt wegen dem bonus der decelleration
+            if( increment < 0 ) steps = (Printer::isAxisHomed(X_AXIS) ? -Printer::currentXSteps : -Printer::maxSoftEndstopSteps[X_AXIS]);
+            else                steps = (Printer::isAxisHomed(X_AXIS) ? Printer::maxSoftEndstopSteps[X_AXIS] - Printer::currentXSteps : Printer::maxSoftEndstopSteps[X_AXIS]);
 
 			Printer::offsetRelativeStepsCoordinates(steps, 0, 0, 0, TASK_MOVE_FROM_BUTTON);
             break;
@@ -11297,7 +11298,7 @@ void nextPreviousXAction( int8_t increment )
 			if (Printer::moveMode[X_AXIS] == MOVE_MODE_50_MM) distanceMM = 50;
 
 			int32_t plannedDestination = Printer::getPlannedDirectAxisSteps(X_AXIS) + (int32_t)(increment * distanceMM * Printer::axisStepsPerMM[X_AXIS]);
-			if (plannedDestination > int32_t(Printer::axisLengthMM[X_AXIS] * Printer::axisStepsPerMM[X_AXIS])) {
+			if (plannedDestination > Printer::maxSoftEndstopSteps[X_AXIS]) {
 				showInformation((void*)ui_text_x_axis, (void*)ui_text_max_reached);
 				return;
 			}
@@ -11369,8 +11370,9 @@ void nextPreviousYAction( int8_t increment )
                 return;
             }
 
-            if( increment < 0 ) steps = -(long)((Printer::axisLengthMM[Y_AXIS] + 5) * Printer::axisStepsPerMM[Y_AXIS]);
-            else                steps =  (long)((Printer::axisLengthMM[Y_AXIS] + 5) * Printer::axisStepsPerMM[Y_AXIS]);
+			//errate homed möglichst den erzwungenen stop-punkt wegen dem bonus der decelleration
+            if( increment < 0 ) steps = (Printer::isAxisHomed(Y_AXIS) ? -Printer::currentYSteps : -Printer::maxSoftEndstopSteps[Y_AXIS]);
+            else                steps = (Printer::isAxisHomed(Y_AXIS) ? Printer::maxSoftEndstopSteps[Y_AXIS] - Printer::currentYSteps : Printer::maxSoftEndstopSteps[Y_AXIS]);
 
 			Printer::offsetRelativeStepsCoordinates(0, steps, 0, 0, TASK_MOVE_FROM_BUTTON);
             break;
@@ -11384,7 +11386,7 @@ void nextPreviousYAction( int8_t increment )
 			if (Printer::moveMode[Y_AXIS] == MOVE_MODE_50_MM) distanceMM = 50;
 
             int32_t plannedDestination = Printer::getPlannedDirectAxisSteps(Y_AXIS) + (int32_t)(increment * distanceMM * Printer::axisStepsPerMM[Y_AXIS]);
-			if (plannedDestination > int32_t(Printer::axisLengthMM[Y_AXIS] * Printer::axisStepsPerMM[Y_AXIS])) {
+			if (plannedDestination > Printer::maxSoftEndstopSteps[Y_AXIS]) {
 				showInformation((void*)ui_text_y_axis, (void*)ui_text_max_reached);
 				return;
 			}
@@ -11494,8 +11496,9 @@ void nextPreviousZAction( int8_t increment )
                 return;
             }
 
-            if (increment < 0) steps = -(long)((Printer::axisLengthMM[Z_AXIS] + 5) * Printer::axisStepsPerMM[Z_AXIS]);
-            else               steps =  (long)((Printer::axisLengthMM[Z_AXIS] + 5) * Printer::axisStepsPerMM[Z_AXIS]);
+			//errate homed möglichst den erzwungenen stop-punkt wegen dem bonus der decelleration
+			if (increment < 0) steps = (Printer::isAxisHomed(Z_AXIS) ? -Printer::currentZSteps : -Printer::maxSoftEndstopSteps[Z_AXIS]);
+			else               steps = (Printer::isAxisHomed(Z_AXIS) ? Printer::maxSoftEndstopSteps[Z_AXIS] - Printer::currentZSteps : Printer::maxSoftEndstopSteps[Z_AXIS]);
 
 			Printer::offsetRelativeStepsCoordinates(0, 0, steps, 0, TASK_MOVE_FROM_BUTTON);
             break;

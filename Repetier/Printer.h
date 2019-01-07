@@ -1039,50 +1039,26 @@ public:
 			return Printer::currentZSteps * Printer::axisMMPerSteps[Z_AXIS];
 		}
 
-		//TODO: Das stimmt bestimmt nicht :D
-		if (Printer::ZMode == Z_VALUE_MODE_SURFACE)
-		{
-			// return all values in [mm]
-			long fvalue = Printer::currentZSteps;
-#if FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
-			// add the current z-compensation
-			fvalue += Printer::compensatedPositionCurrentStepsZ; //da drin: zoffset + senseoffset + digitcompensation
-			fvalue += g_nZScanZPosition;
-#endif // FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
-#if FEATURE_FIND_Z_ORIGIN
-			fvalue += g_nZOriginPosition[Z_AXIS];
-#endif // FEATURE_FIND_Z_ORIGIN
-			// show the z-distance to the surface of the heat bed (print) or work part (mill)
-#if FEATURE_HEAT_BED_Z_COMPENSATION
-			fvalue -= (float)getHeatBedOffset();
-#endif // FEATURE_HEAT_BED_Z_COMPENSATION
-#if FEATURE_WORK_PART_Z_COMPENSATION
-			fvalue -= (float)getWorkPartOffset();
-#endif // FEATURE_WORK_PART_Z_COMPENSATION
-			
-			return float(fvalue * Printer::axisMMPerSteps[Z_AXIS]);
-		}
+//		//TODO: Das stimmt bestimmt nicht :D -> Nur fürs Milling und sollte sich von oben Z_VALUE_MODE_Z_MIN unterscheiden.
+//		if (Printer::ZMode == Z_VALUE_MODE_Z_ORIGIN)
+//		{
+//			// return all values in [mm]
+//			long fvalue = Printer::currentZSteps;
+//#if FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
+//			// add the current z-compensation
+//			fvalue += Printer::compensatedPositionCurrentStepsZ; //da drin: zoffset + senseoffset + digitcompensation
+//			fvalue += g_nZScanZPosition;
+//#endif // FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
+//
+//#if FEATURE_FIND_Z_ORIGIN
+//			fvalue += g_nZOriginPosition[Z_AXIS];
+//#endif // FEATURE_FIND_Z_ORIGIN
+//
+//			return float(fvalue * Printer::axisMMPerSteps[Z_AXIS]);
+//		}
 
-		//TODO: Das stimmt bestimmt nicht :D
-		if (Printer::ZMode == Z_VALUE_MODE_Z_ORIGIN)
-		{
-			// return all values in [mm]
-			long fvalue = Printer::currentZSteps;
-#if FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
-			// add the current z-compensation
-			fvalue += Printer::compensatedPositionCurrentStepsZ; //da drin: zoffset + senseoffset + digitcompensation
-			fvalue += g_nZScanZPosition;
-#endif // FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
-
-#if FEATURE_FIND_Z_ORIGIN
-			fvalue += g_nZOriginPosition[Z_AXIS];
-#endif // FEATURE_FIND_Z_ORIGIN
-
-			return float(fvalue * Printer::axisMMPerSteps[Z_AXIS]);
-		}
-
-		// Printer::ZMode == Z_VALUE_MODE_LAYER)
-		// show the G-Code Commanded Z //offset negativ, das ist hier uninteressant.
+		// Z_VALUE_MODE_LAYER:
+		// show the G-Code Commanded Z
 		return Printer::currentSteps[Z_AXIS] * Printer::axisMMPerSteps[Z_AXIS];
     } // currentZPositionMM
 
@@ -1092,6 +1068,16 @@ public:
         HAL::delayMicroseconds(STEPPER_HIGH_DELAY);
 #endif // #if STEPPER_HIGH_DELAY>0
     } // insertStepperHighDelay
+
+#if NUM_EXTRUDER > 1
+	static INLINE float getMaxExtruderOffsetMM(uint8_t axis) {
+		float off = 0.0f;
+		// Reposition extruder that way, that all extruders can be selected at home pos.
+		for (uint8_t i = 0; i < NUM_EXTRUDER; i++) off = RMath::max(off, fabs(extruder[i].offsetMM[axis]));
+
+		return off;
+	}
+#endif
 
     static void updateDerivedParameter();
     static void switchEverythingOff();

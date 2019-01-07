@@ -625,12 +625,6 @@ on this endstop. */
 //gets inverted when searching home dir in milling mode:
 #define Z_HOME_DIR                          -1
 
-/** \brief If true, axis won't move to coordinates greater than the defined lengths below. */
-#define max_software_endstop_x              true
-#define max_software_endstop_y              true
-// sollte man das bei RF2000s nicht "falsen" können?
-#define max_software_endstop_z              true
-
 /** \brief If during homing the endstop is reached, how many mm should the printer move back for the second try */
 #define ENDSTOP_X_BACK_MOVE                 5.0f
 #define ENDSTOP_Y_BACK_MOVE                 5.0f

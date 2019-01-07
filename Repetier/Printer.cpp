@@ -235,8 +235,20 @@ float   Printer::lastWobbleFixOffset[2] = {0}; ///< last calculated target wobbl
 
 void Printer::updateDerivedParameter()
 {
-    maxSoftEndstopSteps[X_AXIS] = (long)(axisStepsPerMM[X_AXIS] * (axisHomingOffset[X_AXIS] + axisLengthMM[X_AXIS]));
-    maxSoftEndstopSteps[Y_AXIS] = (long)(axisStepsPerMM[Y_AXIS] * (axisHomingOffset[Y_AXIS] + axisLengthMM[Y_AXIS]));
+	// das extruder offset dürfen wir zur achslänge addieren, weil in dem Axis-Length von z.b. 180 mm schon angenommen wird, dass der extruder mit beiden nozzles jeden punkt erreicht.
+	// Offset von links ist gesetzt, aber überfahren rechts muss aber noch möglich werden.
+	// Darum 1x das Offset mehr zulassen und die Achsenlänge immer als reine Druckbreite definieren.
+    maxSoftEndstopSteps[X_AXIS] = (long)(axisStepsPerMM[X_AXIS] * (axisHomingOffset[X_AXIS] + axisLengthMM[X_AXIS] 
+#if NUM_EXTRUDER > 1
+		+ getMaxExtruderOffsetMM(X_AXIS)		
+#endif
+	));
+    maxSoftEndstopSteps[Y_AXIS] = (long)(axisStepsPerMM[Y_AXIS] * (axisHomingOffset[Y_AXIS] + axisLengthMM[Y_AXIS]
+#if NUM_EXTRUDER > 1
+		+ getMaxExtruderOffsetMM(Y_AXIS)
+#endif
+	));
+	// Sonderbehandlung für Z.
     maxSoftEndstopSteps[Z_AXIS] = (long)(axisStepsPerMM[Z_AXIS] * axisLengthMM[Z_AXIS]);
 
     // For which directions do we need backlash compensation

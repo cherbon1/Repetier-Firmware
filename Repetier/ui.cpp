@@ -1467,7 +1467,7 @@ void UIDisplay::parse(char *txt,bool ram)
 						else
 						{
 							// Wenn nur CurrentSteps[Z_AXIS] ausgegeben wird, ist auch interssant, viel die differenz aller anderer versätze ist:
-							if (Printer::ZMode == Z_VALUE_MODE_LAYER) {
+							if (Printer::ZMode != Z_VALUE_MODE_Z_MIN) { //->Z_VALUE_MODE_LAYER
 								fvalue = (Printer::currentZSteps - Printer::currentSteps[Z_AXIS]) * Printer::axisMMPerSteps[Z_AXIS];
 								if (col<MAX_COLS) printCols[col++] = ' ';
 								addFloat(fvalue, 3, 2);
@@ -1511,17 +1511,7 @@ void UIDisplay::parse(char *txt,bool ram)
                 }
                 else if(c2=='m')                                                                        // %zm : Z Scale
                 {
-#if FEATURE_MILLING_MODE
-                    if( Printer::operatingMode == OPERATING_MODE_MILL )
-                    {
-                        //addStringP(Printer::ZMode==Z_VALUE_MODE_Z_ORIGIN?ui_text_z_mode_z_origin:ui_text_z_mode_surface);
-                        addStringP(Printer::ZMode==Z_VALUE_MODE_Z_ORIGIN ? ui_text_z_mode_z_origin : (Printer::ZMode==Z_VALUE_MODE_SURFACE ? ui_text_z_mode_surface : ui_text_z_mode_gcode) );
-                    }
-                    else
-#endif // FEATURE_MILLING_MODE
-                    {
-                        addStringP(Printer::ZMode==Z_VALUE_MODE_Z_MIN ? ui_text_z_mode_min : (Printer::ZMode==Z_VALUE_MODE_SURFACE ? ui_text_z_mode_surface : ui_text_z_mode_gcode) );
-                    }
+                    addStringP(Printer::ZMode == Z_VALUE_MODE_Z_MIN ? ui_text_z_mode_min : ui_text_z_mode_gcode);
                 }
                 else if(c2=='s')                                                                        // %zs : Z-Schraube korrektur mm
                 {
@@ -4808,7 +4798,6 @@ void UIDisplay::executeAction(int action)
             case UI_ACTION_ZMODE:
             {
                 if( Printer::ZMode == 1 )        Printer::ZMode = 2;
-                else if( Printer::ZMode == 2 )   Printer::ZMode = 3;
                 else                             Printer::ZMode = 1;
 #if FEATURE_AUTOMATIC_EEPROM_UPDATE
                 HAL::eprSetByte( EPR_RF_Z_MODE, Printer::ZMode );
