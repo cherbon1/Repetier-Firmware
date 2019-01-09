@@ -7047,7 +7047,45 @@ void determinePausePosition( void )
     if( Printer::operatingMode == OPERATING_MODE_PRINT )
     {
 #endif // FEATURE_MILLING_MODE
-        determineZPausePositionForPrint();
+		// in operating mode "print", pausing drives from the current position downwards the specified g_nPauseSteps[Z_AXIS]
+		if (g_nPauseSteps[Z_AXIS])
+		{
+			long Temp = g_nPauseSteps[Z_AXIS] + Printer::getPlannedDirectAxisSteps(Z_AXIS);
+
+#if FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
+			Temp += Printer::compensatedPositionCurrentStepsZ;
+#endif // FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
+
+			// we are allowed to run into the softEndstop on Z-Axis but if we run into the switch by pausing we wont find home.
+			// To prevent this we have to count the unfinished z-steps at the endstop switch and subtract it from continue-steps.
+
+			// Or we would have to make sure that we start at directSteps = 0 and invert it for finding home.
+
+			// Or we should remember the the direct steps position before pausing and then go back by difference of the steps.
+			// In that case nobody should be allowed to change extruder while pausing because it will be reverted and then we have the wrong extruder selected.
+
+			long Max = Printer::maxSoftEndstopSteps[Z_AXIS] - long(PAUSE_Z_MAX_SPACING_MM * Printer::axisStepsPerMM[Z_AXIS]);
+			if (Temp <= Max)
+			{
+				Printer::directDestinationSteps[Z_AXIS] += g_nPauseSteps[Z_AXIS];
+				g_nContinueSteps[Z_AXIS] = -g_nPauseSteps[Z_AXIS];
+			}
+			else
+			{
+				// we can move only partially
+				Temp = Max - Printer::getPlannedDirectAxisSteps(Z_AXIS);
+
+#if FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
+				Temp -= Printer::compensatedPositionCurrentStepsZ;
+#endif // FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
+
+				Printer::directDestinationSteps[Z_AXIS] += Temp;
+				g_nContinueSteps[Z_AXIS] = -Temp;
+			}
+		}
+		else {
+			g_nContinueSteps[Z_AXIS] = 0;
+		}
 #if FEATURE_MILLING_MODE
     }
     else //Printer::operatingMode == OPERATING_MODE_MILL
@@ -7057,7 +7095,13 @@ void determinePausePosition( void )
         {
             g_nContinueSteps[X_AXIS] = 0;
             g_nContinueSteps[Y_AXIS] = 0;
-            determineZPausePositionForMill();
+
+			// in operating mode "mill", pausing drives from the current position downwards the specified g_nPauseSteps[Z_AXIS] + currentSteps[Z_AXIS] because we must drive the tool out of the work part before we can move into x or y direction
+			long Temp = g_nPauseSteps[Z_AXIS];
+			Temp -= Printer::currentSteps[Z_AXIS]; // in operating mode "mill", the bed/work part moves upwards while the milling is in progress - Printer::currentSteps[Z_AXIS] is negative
+
+			Printer::directDestinationSteps[Z_AXIS] += Temp;
+			g_nContinueSteps[Z_AXIS] = -Temp;
             return;
         }
     }
@@ -7145,59 +7189,6 @@ void determinePausePosition( void )
         g_nContinueSteps[Y_AXIS] = 0;
     }
 } // determinePausePosition
-
-void determineZPausePositionForPrint( void )
-{
-    // in operating mode "print", pausing drives from the current position downwards the specified g_nPauseSteps[Z_AXIS]
-    if( g_nPauseSteps[Z_AXIS] )
-    {
-        long Temp =  g_nPauseSteps[Z_AXIS] + Printer::getPlannedDirectAxisSteps(Z_AXIS);
-
-#if FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
-        Temp += Printer::compensatedPositionCurrentStepsZ;
-#endif // FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
-
-		// we are allowed to run into the softEndstop on Z-Axis but if we run into the switch by pausing we wont find home.
-		// To prevent this we have to count the unfinished z-steps at the endstop switch and subtract it from continue-steps.
-
-		// Or we would have to make sure that we start at directSteps = 0 and invert it for finding home.
-
-		// Or we should remember the the direct steps position before pausing and then go back by difference of the steps.
-		// In that case nobody should be allowed to change extruder while pausing because it will be reverted and then we have the wrong extruder selected.
-
-		long Max = Printer::maxSoftEndstopSteps[Z_AXIS] - long(PAUSE_Z_MAX_SPACING_MM * Printer::axisStepsPerMM[Z_AXIS]);
-        if( Temp <= Max )
-        {
-            Printer::directDestinationSteps[Z_AXIS] +=  g_nPauseSteps[Z_AXIS];
-            g_nContinueSteps[Z_AXIS]                 = -g_nPauseSteps[Z_AXIS];
-        }
-        else
-        {
-            // we can move only partially
-            Temp =  Max - Printer::getPlannedDirectAxisSteps(Z_AXIS);
-
-#if FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
-            Temp -= Printer::compensatedPositionCurrentStepsZ;
-#endif // FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
-
-            Printer::directDestinationSteps[Z_AXIS] +=  Temp;
-            g_nContinueSteps[Z_AXIS]                 = -Temp;
-        }
-    }else{
-        g_nContinueSteps[Z_AXIS] = 0;
-    }
-} // determineZPausePositionForPrint
-
-void determineZPausePositionForMill( void )
-{
-    // in operating mode "mill", pausing drives from the current position downwards the specified g_nPauseSteps[Z_AXIS] + currentSteps[Z_AXIS] because we must drive the tool out of the work part before we can move into x or y direction
-    long Temp =  g_nPauseSteps[Z_AXIS];
-    Temp -= Printer::currentSteps[Z_AXIS]; // in operating mode "mill", the bed/work part moves upwards while the milling is in progress - Printer::currentSteps[Z_AXIS] is negative
-
-    Printer::directDestinationSteps[Z_AXIS] +=  Temp;
-    g_nContinueSteps[Z_AXIS]                 = -Temp;
-} // determineZPausePositionForMill
-
 
 void setExtruderCurrent( uint8_t nr, uint8_t current )
 {

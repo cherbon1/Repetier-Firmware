@@ -198,7 +198,7 @@ public:
 					
 				}
 				else {
-					Printer::resetDirectAxis(X_AXIS);
+					Printer::stopDirectAxis(X_AXIS);
 				}
 			}
 			if (isYNegativeMove() && Printer::isYMinEndstopHit()) {
@@ -207,7 +207,7 @@ public:
 
 				}
 				else {
-					Printer::resetDirectAxis(Y_AXIS);
+					Printer::stopDirectAxis(Y_AXIS);
 				}
 			}
             //Max-Axis:

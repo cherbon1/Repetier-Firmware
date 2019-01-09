@@ -1,11 +1,14 @@
 !!! This branch rightnow is highly experimental !!! 
 TODO:
-# pause while printing = crash
 # test all offset scans
 # test or rework matrix scan
 # rest or rework milling functions
 # consider tuning in the shiftinterval value to a new perfect value
 # test arc-support while printing and not printing
+
+V 01.43.37.Mod (2019-01-09)
+- Fix crash while going into pause
+- Prepare some rework on pause steps auto-limiting
 
 V 01.43.36.Mod (2019-01-08)
 - fix automatic layer detection for senseoffset and epercent compensation

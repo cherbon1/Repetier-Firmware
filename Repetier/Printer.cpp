@@ -558,7 +558,7 @@ void Printer::queueRelativeMMCoordinates(float x, float y, float z, float e, flo
  */
 void Printer::offsetRelativeStepsCoordinates(int32_t dx, int32_t dy, int32_t dz, int32_t de, uint8_t configuration) {
 	if (dx != 0 || dy != 0 || dz != 0 || de != 0) {
-		while (PrintLine::direct.stepsRemaining) {
+		while (configuration != TASK_PAUSE_PRINT && PrintLine::direct.stepsRemaining) {
 			// If another offset move is going on, we have to wait
 			Commands::checkForPeriodicalActions(Processing);
 		}
@@ -576,6 +576,10 @@ void Printer::offsetRelativeStepsCoordinates(int32_t dx, int32_t dy, int32_t dz,
 		Printer::directDestinationSteps[E_AXIS] += de;
 
 		PrintLine::prepareDirectMove();
+
+		if (configuration == TASK_PAUSE_PRINT) {
+			return;
+		}
 
 		// If we start this move by pressing a button we dont want to wait for it to finish and instead have it listening to the buttons release
 		if (configuration == TASK_MOVE_FROM_BUTTON) {

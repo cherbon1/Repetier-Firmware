@@ -761,8 +761,6 @@ extern void waitforPauseStatus_fromButton();
 extern void pausePrint( void );
 extern void continuePrint( void );
 extern void determinePausePosition( void );
-extern void determineZPausePositionForPrint( void );
-extern void determineZPausePositionForMill( void );
 extern void setExtruderCurrent( uint8_t nr, uint8_t current );
 extern void processCommand( GCode* pCommand );
 extern void queueTask( char task );

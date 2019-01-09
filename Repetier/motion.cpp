@@ -1106,7 +1106,7 @@ long PrintLine::performPauseCheck(){
 #endif // FEATURE_MILLING_MODE
                        if( g_nPauseSteps[E_AXIS] )
                        {
-						   Printer::offsetRelativeStepsCoordinates(0, 0, 0, -g_nPauseSteps[E_AXIS]);
+						   Printer::offsetRelativeStepsCoordinates(0, 0, 0, -g_nPauseSteps[E_AXIS], TASK_PAUSE_PRINT);
                            g_nContinueSteps[E_AXIS] =                    g_nPauseSteps[E_AXIS];
                        }
 #if FEATURE_MILLING_MODE
@@ -1127,7 +1127,7 @@ long PrintLine::performPauseCheck(){
                 {
                     if( g_nContinueSteps[E_AXIS] )
                     {
-						Printer::offsetRelativeStepsCoordinates(0, 0, 0, g_nContinueSteps[E_AXIS]);
+						Printer::offsetRelativeStepsCoordinates(0, 0, 0, g_nContinueSteps[E_AXIS], TASK_PAUSE_PRINT);
                     }
                     g_pauseStatus = PAUSE_STATUS_PAUSED;
                     break;
@@ -1138,7 +1138,7 @@ long PrintLine::performPauseCheck(){
                     if( Printer::operatingMode == OPERATING_MODE_PRINT )
                     {
 #endif // FEATURE_MILLING_MODE
-						Printer::offsetRelativeStepsCoordinates(g_nContinueSteps[X_AXIS], g_nContinueSteps[Y_AXIS], g_nContinueSteps[Z_AXIS], g_nContinueSteps[E_AXIS]);
+						Printer::offsetRelativeStepsCoordinates(g_nContinueSteps[X_AXIS], g_nContinueSteps[Y_AXIS], g_nContinueSteps[Z_AXIS], g_nContinueSteps[E_AXIS], TASK_PAUSE_PRINT);
 #if FEATURE_MILLING_MODE
                     }
                     else
@@ -1154,7 +1154,7 @@ long PrintLine::performPauseCheck(){
                 {
                     if( g_nContinueSteps[Z_AXIS] )
                     {
-						Printer::offsetRelativeStepsCoordinates(0, 0, g_nContinueSteps[Z_AXIS], 0);
+						Printer::offsetRelativeStepsCoordinates(0, 0, g_nContinueSteps[Z_AXIS], 0, TASK_PAUSE_PRINT);
                     }
                     g_pauseStatus = PAUSE_STATUS_PAUSED;
                     break;
@@ -1228,7 +1228,7 @@ long PrintLine::performQueueMove()
 #endif // FEATURE_MILLING_MODE
                             if( g_nPauseSteps[E_AXIS] )
                             {
-								Printer::offsetRelativeStepsCoordinates(0, 0, 0, -g_nPauseSteps[E_AXIS]);
+								Printer::offsetRelativeStepsCoordinates(0, 0, 0, -g_nPauseSteps[E_AXIS], TASK_PAUSE_PRINT);
 								g_nContinueSteps[E_AXIS] = g_nPauseSteps[E_AXIS];
                             }
 #if FEATURE_MILLING_MODE
