@@ -276,8 +276,8 @@ Overridden if EEPROM activated. */
 #define HOMING_FEEDRATE_Z_MILL              7
 
 /** \brief Speed for direct movements in mm/s. Overridden if EEPROM activated. */
-#define DIRECT_FEEDRATE_XY                  80
-#define DIRECT_FEEDRATE_Z                   7
+#define DIRECT_FEEDRATE_XY                  100
+#define DIRECT_FEEDRATE_Z                   9
 #define DIRECT_FEEDRATE_E                   25
 
 /** \brief Set order of axis homing. Use HOME_ORDER_XYZ and replace XYZ with your order. */

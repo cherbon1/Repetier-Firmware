@@ -7048,44 +7048,8 @@ void determinePausePosition( void )
     {
 #endif // FEATURE_MILLING_MODE
 		// in operating mode "print", pausing drives from the current position downwards the specified g_nPauseSteps[Z_AXIS]
-		if (g_nPauseSteps[Z_AXIS])
-		{
-			long Temp = g_nPauseSteps[Z_AXIS] + Printer::getPlannedDirectAxisSteps(Z_AXIS);
-
-#if FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
-			Temp += Printer::compensatedPositionCurrentStepsZ;
-#endif // FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
-
-			// we are allowed to run into the softEndstop on Z-Axis but if we run into the switch by pausing we wont find home.
-			// To prevent this we have to count the unfinished z-steps at the endstop switch and subtract it from continue-steps.
-
-			// Or we would have to make sure that we start at directSteps = 0 and invert it for finding home.
-
-			// Or we should remember the the direct steps position before pausing and then go back by difference of the steps.
-			// In that case nobody should be allowed to change extruder while pausing because it will be reverted and then we have the wrong extruder selected.
-
-			long Max = Printer::maxSoftEndstopSteps[Z_AXIS] - long(PAUSE_Z_MAX_SPACING_MM * Printer::axisStepsPerMM[Z_AXIS]);
-			if (Temp <= Max)
-			{
-				Printer::directDestinationSteps[Z_AXIS] += g_nPauseSteps[Z_AXIS];
-				g_nContinueSteps[Z_AXIS] = -g_nPauseSteps[Z_AXIS];
-			}
-			else
-			{
-				// we can move only partially
-				Temp = Max - Printer::getPlannedDirectAxisSteps(Z_AXIS);
-
-#if FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
-				Temp -= Printer::compensatedPositionCurrentStepsZ;
-#endif // FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
-
-				Printer::directDestinationSteps[Z_AXIS] += Temp;
-				g_nContinueSteps[Z_AXIS] = -Temp;
-			}
-		}
-		else {
-			g_nContinueSteps[Z_AXIS] = 0;
-		}
+		Printer::directDestinationSteps[Z_AXIS] += g_nPauseSteps[Z_AXIS];
+		g_nContinueSteps[Z_AXIS] =                -g_nPauseSteps[Z_AXIS];
 #if FEATURE_MILLING_MODE
     }
     else //Printer::operatingMode == OPERATING_MODE_MILL
@@ -7107,87 +7071,11 @@ void determinePausePosition( void )
     }
 #endif // FEATURE_MILLING_MODE
 
-    if( g_nPauseSteps[X_AXIS] )
-    {
-        long Temp = g_nPauseSteps[X_AXIS] + Printer::getPlannedDirectAxisSteps(X_AXIS);
+	Printer::directDestinationSteps[Y_AXIS] += g_nPauseSteps[Y_AXIS];
+	g_nContinueSteps[Y_AXIS] =                -g_nPauseSteps[Y_AXIS];
 
-        if( g_nPauseSteps[X_AXIS] < 0 )
-        {
-            if( Temp < PAUSE_X_SPACING_MM * Printer::axisStepsPerMM[X_AXIS] )
-            {
-                // we can move only partially
-				Temp = PAUSE_X_SPACING_MM * Printer::axisStepsPerMM[X_AXIS] - Printer::getPlannedDirectAxisSteps(X_AXIS);
-
-                Printer::directDestinationSteps[X_AXIS] += Temp;
-                g_nContinueSteps[X_AXIS]                   =  -Temp;
-            }
-            else
-            {
-                Printer::directDestinationSteps[X_AXIS] += g_nPauseSteps[X_AXIS];
-                g_nContinueSteps[X_AXIS]                   =  -g_nPauseSteps[X_AXIS];
-            }
-        }
-        else if( g_nPauseSteps[X_AXIS] > 0 )
-        {
-            long Max = Printer::maxSoftEndstopSteps[X_AXIS] - long(PAUSE_X_SPACING_MM * Printer::axisStepsPerMM[X_AXIS]);
-            if( Temp > Max )
-            {
-                // we can move only partially
-                Temp =  Max - Printer::getPlannedDirectAxisSteps(X_AXIS);
-
-                Printer::directDestinationSteps[X_AXIS] += Temp;
-                g_nContinueSteps[X_AXIS]                   =  -Temp;
-            }
-            else
-            {
-                Printer::directDestinationSteps[X_AXIS] += g_nPauseSteps[X_AXIS];
-                g_nContinueSteps[X_AXIS]                   =  -g_nPauseSteps[X_AXIS];
-            }
-        }
-    }else{
-        g_nContinueSteps[X_AXIS] = 0;
-    }
-
-    if( g_nPauseSteps[Y_AXIS] )
-    {
-        long Temp = g_nPauseSteps[Y_AXIS] + Printer::getPlannedDirectAxisSteps(Y_AXIS);
-
-        if( g_nPauseSteps[Y_AXIS] < 0 )
-        {
-            if( Temp < PAUSE_Y_SPACING_MM * Printer::axisStepsPerMM[Y_AXIS] )
-            {
-                // we can move only partially
-                Temp =  PAUSE_Y_SPACING_MM * Printer::axisStepsPerMM[Y_AXIS] - Printer::getPlannedDirectAxisSteps(Y_AXIS);
-
-                Printer::directDestinationSteps[Y_AXIS] += Temp;
-                g_nContinueSteps[Y_AXIS]                   =  -Temp;
-            }
-            else
-            {
-                Printer::directDestinationSteps[Y_AXIS] += g_nPauseSteps[Y_AXIS];
-                g_nContinueSteps[Y_AXIS]                   =  -g_nPauseSteps[Y_AXIS];
-            }
-        }
-        else if( g_nPauseSteps[Y_AXIS] > 0 )
-        {
-			long Max = Printer::maxSoftEndstopSteps[Y_AXIS] - long(PAUSE_Y_SPACING_MM * Printer::axisStepsPerMM[Y_AXIS]);
-            if( Temp > Max )
-            {
-                // we can move only partially
-                Temp =  Max - Printer::getPlannedDirectAxisSteps(Y_AXIS);
-
-                Printer::directDestinationSteps[Y_AXIS] += Temp;
-                g_nContinueSteps[Y_AXIS]                   =  -Temp;
-            }
-            else
-            {
-                Printer::directDestinationSteps[Y_AXIS] += g_nPauseSteps[Y_AXIS];
-                g_nContinueSteps[Y_AXIS]                   =  -g_nPauseSteps[Y_AXIS];
-            }
-        }
-    }else{
-        g_nContinueSteps[Y_AXIS] = 0;
-    }
+	Printer::directDestinationSteps[X_AXIS] += g_nPauseSteps[X_AXIS];
+	g_nContinueSteps[X_AXIS] =                -g_nPauseSteps[X_AXIS];
 } // determinePausePosition
 
 void setExtruderCurrent( uint8_t nr, uint8_t current )
@@ -11203,22 +11091,13 @@ extern void processButton( int nAction )
 
 void nextPreviousXAction( int8_t increment )
 {
-    long    steps;
-
-    if( PrintLine::direct.stepsRemaining )
-    {
-        return;
-    }
-
-    if( Printer::processAsDirectSteps() )
+    if (Printer::processAsDirectSteps())
     {
         // this operation is not allowed while a printing/milling is in progress
-        //wenn man schnell den knopf klickt, soll man nicht im showerror landen, das nervt. Man sieht das ja, was der verfährt.
-        //showError( (void*)ui_text_x_axis, (void*)ui_text_operation_denied );
         return;
     }
 
-    if(increment < 0 && Printer::isXMinEndstopHit())
+    if (increment < 0 && Printer::isXMinEndstopHit())
     {
         // we shall move to the left but the x-min-endstop is hit already, so we do nothing
         showInformation( (void*)ui_text_x_axis, (void*)ui_text_min_reached );
@@ -11239,15 +11118,13 @@ void nextPreviousXAction( int8_t increment )
     {
         case MOVE_MODE_SINGLE_STEPS:
         {
-            steps = g_nManualSteps[X_AXIS] * increment;
+			int32_t steps = g_nManualSteps[X_AXIS] * increment;
 
-			int32_t Temp = Printer::getPlannedDirectAxisSteps(X_AXIS) + steps;
-
-            if( increment < 0 && Temp < 0 )
-            {
-                showError( (void*)ui_text_x_axis, (void*)ui_text_operation_denied );
-				return;
-            }
+			if (increment < 0 && Printer::currentXSteps + steps < 0 && Printer::isAxisHomed(X_AXIS))
+			{
+				// If we are very close to the homed known Y-Endstop go to 0-Coordinate
+				steps = -Printer::currentXSteps;
+			}
 
             Printer::enableXStepper();
             Printer::directDestinationSteps[X_AXIS] += steps;
@@ -11255,12 +11132,13 @@ void nextPreviousXAction( int8_t increment )
         }
         case MOVE_MODE_SINGLE_MOVE:
         {
-            if( PrintLine::direct.stepsRemaining )
+            if (PrintLine::direct.stepsRemaining)
             {
                 // we are moving already, there is nothing more to do
                 return;
             }
-
+			
+			int32_t steps;
 			//errate homed möglichst den erzwungenen stop-punkt wegen dem bonus der decelleration
             if( increment < 0 ) steps = (Printer::isAxisHomed(X_AXIS) ? -Printer::currentXSteps : -Printer::maxSoftEndstopSteps[X_AXIS]);
             else                steps = (Printer::isAxisHomed(X_AXIS) ? Printer::maxSoftEndstopSteps[X_AXIS] - Printer::currentXSteps : Printer::maxSoftEndstopSteps[X_AXIS]);
@@ -11291,29 +11169,20 @@ void nextPreviousXAction( int8_t increment )
 
 void nextPreviousYAction( int8_t increment )
 {
-    long    steps;
-
-    if( PrintLine::direct.stepsRemaining )
-    {
-        // we are moving already, there is nothing more to do
-        return;
-    }
-
-    if( Printer::processAsDirectSteps() )
+    if (Printer::processAsDirectSteps())
     {
         // this operation is not allowed while a printing/milling is in progress
-        // Wenn man schnell den Knopf klickt, soll man nicht im showerror landen, das nervt. Man sieht das ja, was der verfährt.
         return;
     }
 
-    if(increment < 0 && Printer::isYMinEndstopHit())
+    if (increment < 0 && Printer::isYMinEndstopHit())
     {
         // we shall move to the back but the y-min-endstop is hit already, so we do nothing
         showInformation( (void*)ui_text_y_axis, (void*)ui_text_min_reached );
         return;
     }
 
-    if(increment > 0 && Printer::isYMaxEndstopHit())
+    if (increment > 0 && Printer::isYMaxEndstopHit())
     {
         // we shall move to the front but the end of the y-axis has been reached already, so we do nothing
         showInformation( (void*)ui_text_y_axis, (void*)ui_text_max_reached );
@@ -11323,18 +11192,16 @@ void nextPreviousYAction( int8_t increment )
     // show that we are active
     previousMillisCmd = HAL::timeInMilliseconds(); //prevent inactive shutdown of steppers/temps
 
-    switch( Printer::moveMode[Y_AXIS] )
+    switch(Printer::moveMode[Y_AXIS])
     {
         case MOVE_MODE_SINGLE_STEPS:
         {
-            steps = g_nManualSteps[Y_AXIS] * increment;
-
-			int32_t Temp = Printer::getPlannedDirectAxisSteps(Y_AXIS) + steps;
-
-            if( increment < 0 && Temp < 0 )
+			int32_t steps = g_nManualSteps[Y_AXIS] * increment;
+			
+            if (increment < 0 && Printer::currentYSteps + steps < 0 && Printer::isAxisHomed(Y_AXIS))
             {
-                showInformation( (void*)ui_text_y_axis, (void*)ui_text_min_reached );
-				return;
+				// If we are very close to the homed known Y-Endstop go to 0-Coordinate
+				steps = -Printer::currentYSteps;
             }
 
             Printer::enableYStepper();
@@ -11343,12 +11210,13 @@ void nextPreviousYAction( int8_t increment )
         }
         case MOVE_MODE_SINGLE_MOVE:
         {
-            if( PrintLine::direct.stepsRemaining )
+            if (PrintLine::direct.stepsRemaining)
             {
                 // we are moving already, there is nothing more to do
                 return;
             }
 
+			int32_t steps;
 			//errate homed möglichst den erzwungenen stop-punkt wegen dem bonus der decelleration
             if( increment < 0 ) steps = (Printer::isAxisHomed(Y_AXIS) ? -Printer::currentYSteps : -Printer::maxSoftEndstopSteps[Y_AXIS]);
             else                steps = (Printer::isAxisHomed(Y_AXIS) ? Printer::maxSoftEndstopSteps[Y_AXIS] - Printer::currentYSteps : Printer::maxSoftEndstopSteps[Y_AXIS]);
@@ -11379,17 +11247,8 @@ void nextPreviousYAction( int8_t increment )
 
 void nextPreviousZAction( int8_t increment )
 {
-    long    steps;
-    char    moveMode;
-
-    if( PrintLine::direct.stepsRemaining )
-    {
-        // we are moving already, there is nothing more to do
-        return;
-    }
-
 #if FEATURE_CONFIGURABLE_Z_ENDSTOPS
-    if( Printer::ZEndstopUnknown )
+    if (Printer::ZEndstopUnknown)
     {
         showError( (void*)ui_text_z_axis, (void*)ui_text_home_unknown );
         return;
@@ -11399,14 +11258,15 @@ void nextPreviousZAction( int8_t increment )
     // show that we are active
     previousMillisCmd = HAL::timeInMilliseconds(); //prevent inactive shutdown of steppers/temps
 
-    moveMode = Printer::moveMode[Z_AXIS];
-    if( Printer::processAsDirectSteps() )
+	char moveMode = Printer::moveMode[Z_AXIS];
+    if (Printer::processAsDirectSteps())
     {
         // in case we are printing/milling at the moment, only the single step movements are allowed
         moveMode = MOVE_MODE_SINGLE_STEPS;
     }
 
-    if(uid.lastButtonAction == UI_ACTION_RF_HEAT_BED_DOWN || uid.lastButtonAction == UI_ACTION_RF_HEAT_BED_UP){
+    if (uid.lastButtonAction == UI_ACTION_RF_HEAT_BED_DOWN || uid.lastButtonAction == UI_ACTION_RF_HEAT_BED_UP)
+	{
         //es wäre evtl. cooler die variable durchzuschleifen, aber so gehts auch!
         //VORSICHT: ES könnte evtl. sein dass sich lastbuttonaction während der ausführung ändert. (??)
 
@@ -11420,41 +11280,39 @@ void nextPreviousZAction( int8_t increment )
         }
     }
 
-    //Limits für die Bewegung in Z by Nibbels
-    if(increment > 0 && Printer::isZMaxEndstopHit())
-    {
-        //fall down to Single Steps @Endstop
-        moveMode = MOVE_MODE_SINGLE_STEPS;
-    }
-    if(increment < 0 && Printer::isZMinEndstopHit()){
-        //fall down to Single Steps @Endstop
-        moveMode = MOVE_MODE_SINGLE_STEPS;
-    }
+    //Limits für die Bewegung in Z
+	if (increment > 0 && Printer::isZMaxEndstopHit())
+	{
+		// we shall move to the front but the end of the y-axis has been reached already, so we do nothing
+		showInformation((void*)ui_text_z_axis, (void*)ui_text_max_reached);
+		return;
+	}
 
-    switch( moveMode )
+    if (increment < 0 && Printer::isZMinEndstopHit())
+	{
+		if (!Printer::isAxisHomed(Z_AXIS))
+		{
+			return;
+		}
+		else
+		{
+			//fall down to Single Steps @Endstop
+			moveMode = MOVE_MODE_SINGLE_STEPS;
+		}
+    }
+	
+    switch(moveMode)
     {
         case MOVE_MODE_SINGLE_STEPS:
         {
-            steps = g_nManualSteps[Z_AXIS] * increment;
+			int32_t steps = g_nManualSteps[Z_AXIS] * increment;
 
-            int32_t Temp = Printer::getPlannedDirectAxisSteps(Z_AXIS) + steps;
-#if FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
-            Temp += Printer::compensatedPositionCurrentStepsZ;
-#endif // FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
-
-            if (increment < 0 && Temp < -1 * int32_t(Printer::maxZOverrideSteps) && Printer::isZMinEndstopHit())
+            if (increment < 0 && Printer::isZMinEndstopHit() && Printer::currentZSteps + steps < -1 * int32_t(Printer::maxZOverrideSteps))
             {
                 // do not allow to drive the bed into the extruder
-                showInformation( (void*)ui_text_z_axis, (Printer::isAxisHomed(Z_AXIS) ? (void*)ui_text_min_reached : (void*)ui_text_min_reached_unhomed) );
+                showInformation((void*)ui_text_z_axis, (void*)ui_text_min_reached);
 				return;
             }
-
-            if (increment > 0 && Printer::isZMaxEndstopHit())
-			{
-				// do not allow to drive the bed into the extruder
-				showInformation((void*)ui_text_z_axis, (void*)ui_text_max_reached);
-				return;
-			}
 
             Printer::enableZStepper();
             Printer::directDestinationSteps[Z_AXIS] += steps;
@@ -11468,13 +11326,7 @@ void nextPreviousZAction( int8_t increment )
                 return;
             }
 
-            if (increment < 0 && Printer::isZMinEndstopHit())
-            {
-                // we shall move upwards but the z-min-endstop is hit already, so we do nothing
-                showInformation( (void*)ui_text_z_axis, (Printer::isAxisHomed(Z_AXIS) ? (void*)ui_text_min_reached : (void*)ui_text_min_reached_unhomed) );
-                return;
-            }
-
+			int32_t steps;
 			//errate homed möglichst den erzwungenen stop-punkt wegen dem bonus der decelleration
 			if (increment < 0) steps = (Printer::isAxisHomed(Z_AXIS) ? -Printer::currentZSteps : -Printer::maxSoftEndstopSteps[Z_AXIS]);
 			else               steps = (Printer::isAxisHomed(Z_AXIS) ? Printer::maxSoftEndstopSteps[Z_AXIS] - Printer::currentZSteps : Printer::maxSoftEndstopSteps[Z_AXIS]);
@@ -11490,42 +11342,36 @@ void nextPreviousZAction( int8_t increment )
 			if (moveMode == MOVE_MODE_10_MM) distanceMM = 10;
 			if (moveMode == MOVE_MODE_50_MM) distanceMM = 50;
 
-            if (increment < 0 && Printer::isZMinEndstopHit())
-            {
-                // we shall move upwards but the z-min-endstop is hit already, so we do nothing
-                showInformation( (void*)ui_text_z_axis, (Printer::isAxisHomed(Z_AXIS) ? (void*)ui_text_min_reached : (void*)ui_text_min_reached_unhomed) );
-                return;
-            }
-
 			// Normale Bewegung möglich:
 			if (!Printer::isAxisHomed(Z_AXIS)
 				|| increment > 0
-				|| Printer::currentZSteps * Printer::axisMMPerSteps[Z_AXIS] >= (float)distanceMM) {
-				Printer::queueRelativeMMCoordinates(0, 0, distanceMM * increment, 0, Printer::homingFeedrate[Z_AXIS], false, ALWAYS_CHECK_ENDSTOPS);
+				|| Printer::currentZSteps * Printer::axisMMPerSteps[Z_AXIS] >= (float)distanceMM)
+			{
+				Printer::offsetRelativeStepsCoordinates(0, 0, distanceMM * Printer::axisStepsPerMM[Z_AXIS] * increment, 0);
 
 				return;
 			}
 
 #if FEATURE_MILLING_MODE
-			// Irgendeine Milling-Sonderregel -> Keine Ahnung ob man darüber nachdenken sollte. TODO.
-            if( Printer::operatingMode != OPERATING_MODE_PRINT )
+			// Im Milling nicht so strikt sein, einfach fahren was kommandiert wird und auf softendstop hoffen. Evtl. ist diese Regel Bullshit.
+            if (Printer::operatingMode != OPERATING_MODE_PRINT)
 			{
-				//Beim Milling ist Z=0 das obere des Bauteils. Dann geht Z - ins Bauteil rein. Daher ist überfahren ok.
-				Printer::queueRelativeMMCoordinates(0, 0, distance * increment, 0, Printer::feedrate, false, ALWAYS_CHECK_ENDSTOPS);
+				Printer::offsetRelativeStepsCoordinates(0, 0, distanceMM * Printer::axisStepsPerMM[Z_AXIS] * increment, 0);
 
 				return;
 			}
 #endif // FEATURE_MILLING_MODE
 
             // Wir sind hier knapp über dem Schalter: Nur so weit runterfahren, wie man über 0 ist. Denn da ist beim Printermode homed der Endschalter.
-			if (Printer::currentZSteps > 0) {
-				Printer::queueRelativeStepsCoordinates(0, 0, -Printer::currentZSteps, 0, Printer::homingFeedrate[Z_AXIS], false, ALWAYS_CHECK_ENDSTOPS);
+			if (Printer::currentZSteps > 0)
+			{
+				Printer::offsetRelativeStepsCoordinates(0, 0, -Printer::currentZSteps, 0);
 
 				return;
 			}
 
 			// Sonst Stepweise
-            Printer::queueRelativeStepsCoordinates(0, 0, -1 * g_nManualSteps[Z_AXIS], 0, Printer::homingFeedrate[Z_AXIS], false, ALWAYS_CHECK_ENDSTOPS);
+			Printer::offsetRelativeStepsCoordinates(0, 0, -1 * g_nManualSteps[Z_AXIS], 0);
 
             break;
         }

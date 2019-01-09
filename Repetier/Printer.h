@@ -1112,7 +1112,7 @@ public:
 		// if we saved rollback relative coordinates reduce them to the limited amount.
 		// those rollback coordinates are move-back-steps after pausing etc.
 		if (g_nContinueSteps[axis]) {
-			g_nContinueSteps[axis] -= (Printer::directDestinationSteps[axis] - Printer::directCurrentSteps[axis]);
+			g_nContinueSteps[axis] -= (Printer::directCurrentSteps[axis] - Printer::directDestinationSteps[axis]);
 		}
 		Printer::directDestinationSteps[axis] = Printer::directCurrentSteps[axis];
 	}

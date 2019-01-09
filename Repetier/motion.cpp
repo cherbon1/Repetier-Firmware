@@ -1409,7 +1409,7 @@ long PrintLine::performDirectMove()
 void PrintLine::performDirectSteps( void )
 {
     static unsigned long g_uLastDirectStepTime = 0;
-    uint16_t moveinterval = 1000; //ns default.
+    uint16_t moveinterval; //ns default.
 
     //fix that microstepping and steps/mm settings are not constraining speed of buttons/.. extrusion.
     bool x_needed = Printer::directCurrentSteps[X_AXIS] != Printer::directDestinationSteps[X_AXIS];
@@ -1418,7 +1418,8 @@ void PrintLine::performDirectSteps( void )
     bool e_needed = Printer::directCurrentSteps[E_AXIS] != Printer::directDestinationSteps[E_AXIS];
     bool some_needed = x_needed || y_needed || z_needed || e_needed;
 
-    if(some_needed){
+    if (some_needed)
+	{
         //suche den gröbsten beteiligten stepper, denn der braucht ein limit. -> STEPS/s
         uint16_t fastest = 65535; //steps/mm*1 -> steps/s sind im bereich um 150 bis 3000 -> man kann bis grob 10mm/s per uint16_t rechnen.
         uint8_t axis = 255;
@@ -1446,16 +1447,19 @@ void PrintLine::performDirectSteps( void )
                 axis = Z_AXIS;
             }
         }
-        //fastest: 150..6000 Steps/s -> 0.15 bis 6 Steps/ms
-        if(axis < 255){
+		
+		moveinterval = 1000; //ns default.
+		//fastest: 150..6000 Steps/s -> 0.15 bis 6 Steps/ms
+		if(axis < 255){
             moveinterval = uint16_t(Printer::axisMMPerSteps[axis]*262144); //bei 1mm/s sind das sekunden/Step -> *1000000 -> microsekunden/Step -> etwas schneller ist besser.
         }
-    }else{
+    }
+	else {
         return;
     }
 
 
-    if( abs(HAL::timeInMicroseconds() - g_uLastDirectStepTime) >= moveinterval /*ns*/ )
+    if (abs(HAL::timeInMicroseconds() - g_uLastDirectStepTime) >= moveinterval /*ns*/)
     {
         bool bDone = false;
         g_uLastDirectStepTime = HAL::timeInMicroseconds();

@@ -6,6 +6,12 @@ TODO:
 # consider tuning in the shiftinterval value to a new perfect value
 # test arc-support while printing and not printing
 
+V 01.43.38.Mod (2019-01-09)
+- simplified constraining functions for target coordinates because we can trust soft endstop limits.
+- all menu position movements are now driven by directPosition System and therefore handled like an offset.
+- slightly increased positioning feedrate becuase 70 felt slow while pausing etc.
+- fixed continue after pausing
+
 V 01.43.37.Mod (2019-01-09)
 - Fix crash while going into pause
 - Prepare some rework on pause steps auto-limiting
