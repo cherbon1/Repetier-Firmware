@@ -205,8 +205,8 @@ List of placeholder:
 %FH : Digit Homing to Zero ON/OFF
 %FC : Digits force-bend-hotend-down Compensation Z ON/OFF
 
-%LL : Last Layer (Direct + Queue + Extr. Zoffset)
-%LC : Current Layer (Direct + Queue + Extr. Zoffset)
+%LL : Last Layer (Queue)
+%LC : Current Layer (Queue)
 %LH : Layer Height
 %LP : ECMP %
 %Lm : g_minZCompensationSteps

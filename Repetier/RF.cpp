@@ -3444,7 +3444,7 @@ long getZMatrixDepth_CurrentXY(void){
 	);
 }
 
-void doHeatBedZCompensation( void )
+void recalculateHeatBedZCompensation( void )
 {
     long            nNeededZCompensation = 0;
     float           nNeededZEPerc = 0.0f;
@@ -3568,7 +3568,7 @@ void doHeatBedZCompensation( void )
     Printer::compensatedPositionTargetStepsZ = nNeededZCompensation;
     Printer::compensatedPositionOverPercE    = nNeededZEPerc;
     noInts.unprotect();
-} // doHeatBedZCompensation
+} // recalculateHeatBedZCompensation
 
 
 long getHeatBedOffset( void )
@@ -6078,7 +6078,7 @@ unsigned short readWord24C256( int addressI2C, unsigned int addressEEPROM )
 } // readWord24C256
 
 
-void doZCompensation( void )
+void recalculateZCompensation( void )
 {
 #if FEATURE_MILLING_MODE
     if( Printer::operatingMode == OPERATING_MODE_MILL )
@@ -6091,10 +6091,10 @@ void doZCompensation( void )
 #endif // FEATURE_MILLING_MODE
     {
 #if FEATURE_HEAT_BED_Z_COMPENSATION
-        doHeatBedZCompensation();
+		recalculateHeatBedZCompensation();
 #endif // FEATURE_HEAT_BED_Z_COMPENSATION
     }
-} // doZCompensation
+} // recalculateZCompensation
 
 
 void handleStrainGaugeFeatures(millis_t uTime){
@@ -6174,7 +6174,7 @@ void handleStrainGaugeFeatures(millis_t uTime){
             #Die Höhe über Grund, kompensiert sollte unterhalb g_maxZCompensationSteps sein.
             #currentSteps = Achsenziel + Achsenoffset, aber g_minZCompensationSteps/g_maxZCompensationSteps kennen das Achsenoffset nicht ohne Hilfe: Das gehört hier her, wenn man die Layerhöhe abgleichen will.
             */
-            if( Printer::currentSteps[Z_AXIS] <= g_minZCompensationSteps )  //Nibbels 010118 in der zkompensation sind hier auch noch directstepsz drin .. TODO??
+            if (Printer::currentSteps[Z_AXIS] <= g_minZCompensationSteps) 
             {
                 g_nSensiblePressure1stMarke = 1; //marker für display: wir sind in regelhöhe
                 //wenn durch Gcode gefüllt, prüfe, ob Z-Korrektur (weg vom Bett) notwendig ist, in erstem Layer.
@@ -6214,7 +6214,7 @@ void handleStrainGaugeFeatures(millis_t uTime){
                         //mehr offsetincrement je höher digits oberhalb limit. linear
                         if(nPressure > g_nSensiblePressureDigits*1.1){
                             //je größer der Fehler, desto beschränkt größer der step
-                            inc =   (float)nPressure / (float)g_nSensiblePressureDigits - 1; //0.1 ... riesig
+                            inc = (float)nPressure / (float)g_nSensiblePressureDigits - 1; //0.1 ... riesig
                             if(inc > 2.0) inc = 2.0;
                             inc *= 12; // 1,2..24,0
                             step += (short)inc;

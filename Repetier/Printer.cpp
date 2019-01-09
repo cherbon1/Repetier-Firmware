@@ -136,7 +136,7 @@ volatile long   Printer::compensatedPositionCurrentStepsZ = 0;
 volatile float  Printer::compensatedPositionOverPercE = 0.0f;
 volatile float  Printer::compensatedPositionCollectTinyE = 0.0f;
 
-volatile long   Printer::queuePositionZLayerGuessNew = 0;
+long            Printer::queuePositionZLayerGuessNew = 0;
 volatile long   Printer::queuePositionZLayerCurrent = 0;
 volatile long   Printer::queuePositionZLayerLast = 0;
 

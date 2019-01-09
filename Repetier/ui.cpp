@@ -2076,12 +2076,12 @@ void UIDisplay::parse(char *txt,bool ram)
             }
             case 'L':
             {
-                if(c2=='L')                                                                             // %LL : Last Layer (Direct + Queue + Extr. Zoffset)
+                if(c2=='L')                                                                             // %LL : Last Layer (Queue)
                 {
                     addFloat(float(Printer::queuePositionZLayerLast*Printer::axisMMPerSteps[Z_AXIS]),3,2);
                     break;
                 }
-                else if(c2=='C')                                                                        // %LC : Current Layer (Direct + Queue + Extr. Zoffset)
+                else if(c2=='C')                                                                        // %LC : Current Layer (Queue)
                 {
                     addFloat(float(Printer::queuePositionZLayerCurrent*Printer::axisMMPerSteps[Z_AXIS]),3,2);
                     break;

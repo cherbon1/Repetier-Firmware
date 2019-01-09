@@ -148,7 +148,7 @@ public:
     static volatile float   compensatedPositionOverPercE;
     static volatile float   compensatedPositionCollectTinyE;
 
-    static volatile long    queuePositionZLayerGuessNew;
+    static long             queuePositionZLayerGuessNew;
     static volatile long    queuePositionZLayerCurrent;
     static volatile long    queuePositionZLayerLast;
 

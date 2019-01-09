@@ -1,3 +1,16 @@
+!!! This branch rightnow is highly experimental !!! 
+TODO:
+# pause while printing = crash
+# test all offset scans
+# test or rework matrix scan
+# rest or rework milling functions
+# consider tuning in the shiftinterval value to a new perfect value
+# test arc-support while printing and not printing
+
+V 01.43.36.Mod (2019-01-08)
+- fix automatic layer detection for senseoffset and epercent compensation
+- set Z-Mode for displayed z-millimeters to Z_VALUE_MODE_LAYER per default.
+
 V 01.43.35.Mod (2019-01-07)
 - M3912 autostartmade now chooses it start-Y to 0mm if a nonzero Y-Axis-Minimum is set in EEPROM
 - increased some axis limits to the length of soft endstop mm.

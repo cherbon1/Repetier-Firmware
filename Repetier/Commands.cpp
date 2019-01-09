@@ -80,7 +80,7 @@ void Commands::checkForPeriodicalActions(enum FirmwareState state)
       execute16msPeriodical = 0;
       bool buttonSpeedBoost = (!execute100msPeriodical && HAL::timeInMilliseconds() - uid.lastButtonStart < 20000);
       if(buttonSpeedBoost) UI_SLOW;
-      doZCompensation();
+	  recalculateZCompensation();
     }
 
     if (execute100msPeriodical) {

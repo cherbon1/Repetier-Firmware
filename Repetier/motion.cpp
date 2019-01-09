@@ -127,7 +127,7 @@ void PrintLine::prepareQueueMove(uint8_t check_endstops,uint8_t pathOptimize, fl
 			Printer::filamentPrinted += axisDistanceMM[E_AXIS];
 
 			//Update calculated coordinate using the unscaled e-move distance.
-			Printer::destinationMMLast[axis] += axisDistanceMM[axis] / axisDistanceFactor;
+			Printer::destinationMMLast[E_AXIS] += (axisDistanceMM[E_AXIS] / axisDistanceFactor);
         }
 		else {
 			p->delta[axis] = lroundf(axisDistanceUnscaledMM * Printer::axisStepsPerMM[axis]);
@@ -154,51 +154,58 @@ void PrintLine::prepareQueueMove(uint8_t check_endstops,uint8_t pathOptimize, fl
     }
 
 #if FEATURE_HEAT_BED_Z_COMPENSATION
-	if (p->isEPositiveMove() || p->isZMove()) {
-		InterruptProtectedBlock noInts;
-		long nCurrentPositionStepsZ = Printer::getDestinationSteps(Z_AXIS) + Printer::directCurrentSteps[Z_AXIS];
-		noInts.unprotect();
+	// MAIN RULE:
+	/* IF there is an extrusion move
+	      after a Z move
+	      to different layer height than before
+		  which is not 0
+	   THEN 
+	      accept the z height value as new layer */
 
-		// The following two conditions might not follow each other in one move but in serveral queued moves.
-		if (p->isZMove()) {
-			//z achsen aufstieg/abstieg -> wir müssen durch erkennung von extrusion mögliche zlifts filtern!
-			Printer::queuePositionZLayerGuessNew = (Printer::queuePositionZLayerGuessNew == Printer::queuePositionZLayerCurrent) ? 0 : nCurrentPositionStepsZ;
-			// =0 Diesen Layer haben wir schon erkannt. Reset.
-			// z.B. Nach z-Lift nicht neu bestimmen.			
-		}
+	// The following two move conditions might not follow each other in one move but in serveral queued moves.
+	if (p->isZMove())
+	{
+		int32_t newZ = Printer::getDestinationSteps(Z_AXIS);
+		// Z achsen aufstieg/abstieg -> The ternary condition is there to filter out zlifts
+		Printer::queuePositionZLayerGuessNew = (newZ == Printer::queuePositionZLayerCurrent) ? 0 : newZ;
+	}
 
-		if (p->isEPositiveMove())
-		{
-			/* IF extrusion move THEN accept the layer height as new */
-			//prüfe ob in der letzten angefahrenen Z layerhöhe extrudiert wird: dann kein zlift!
-			if (Printer::queuePositionZLayerGuessNew && Printer::queuePositionZLayerGuessNew == nCurrentPositionStepsZ) {
-				// shift layers
-				Printer::queuePositionZLayerLast = Printer::queuePositionZLayerCurrent; //current moves to last layer
-				Printer::queuePositionZLayerCurrent = Printer::queuePositionZLayerGuessNew; //New candidate layer moves to current layer
+	if (p->isEPositiveMove())
+	{
+		// We extrude. Do we have a new z layer height too?
+		if (Printer::queuePositionZLayerGuessNew) {
+			// It seems we have a new layer height, so shift layers down
+			// Set current layer as last layer.
+			Printer::queuePositionZLayerLast = Printer::queuePositionZLayerCurrent;
+			// Set new layer as current layer
+			Printer::queuePositionZLayerCurrent = Printer::queuePositionZLayerGuessNew;
 
-				// if the new layer ist underneath the old layer (near the bed)
-				// then this means we can assume the last-layer as 0.
-				if (Printer::queuePositionZLayerLast > Printer::queuePositionZLayerCurrent) {
-					if (Printer::queuePositionZLayerCurrent < Printer::axisStepsPerMM[Z_AXIS]) { //1mm
-						Printer::queuePositionZLayerLast = 0;
-					}
+			// If the new layer ist underneath the old layer (near the bed)
+			// then this means we can assume the last-layer as 0 after some sort of startline.
+			// We need this info to possibly have senseoffset running again for sequential multipart prints
+			if (Printer::queuePositionZLayerLast > Printer::queuePositionZLayerCurrent) {
+				if (Printer::queuePositionZLayerCurrent < Printer::axisStepsPerMM[Z_AXIS]) { //1mm
+					Printer::queuePositionZLayerLast = 0;
 				}
-
-	#if AUTOADJUST_MIN_MAX_ZCOMP
-				//Problemfall Startmade: Wenn die Startmade aus etwas weniger als 16 od. MOVE_CACHE_SIZE Teilstücken besteht, was man annehmen kann, dann springt der Pfadplaner über die Startmade einfach drüber und nimmt den ersten Layer als neue Referenz. Das hier ist Preprocessing mit Blick in die Zukunft. Kurz steht in g_minZCompensationSteps z.B. 0.35, anschließend aber z.B. korrekte 0.2mm als g_minZCompensationSteps.
-				//würde das nicht klappen, hätten wir SenseOffset in der Startmade was maximal schlecht sein kann, weil evtl. die Digits zu hoch sind. -> Sollte mit dieser Automatik hier nicht vorkommen!
-				if (g_auto_minmaxZCompensationSteps && !Printer::queuePositionZLayerLast && Printer::queuePositionZLayerCurrent < Printer::axisStepsPerMM[Z_AXIS]) { 
-					// < 1mm
-					//hiermit hätten wir immer exakt 1 Lage, die der Drucker komplett mit dem Bettprofil abfährt, anschließend ab Layer 2 wird ausgeschlichen +ECMP.
-					if (abs(Printer::queuePositionZLayerCurrent - Printer::axisStepsPerMM[Z_AXIS] * AUTOADJUST_STARTMADEN_AUSSCHLUSS) > 5 /* 2um um startmadenhöhe herum nichts tun */) {
-						g_minZCompensationSteps = Printer::queuePositionZLayerCurrent;
-						g_maxZCompensationSteps = g_minZCompensationSteps + (g_offsetZCompensationSteps - g_ZCompensationMax) * 20; //max zulässige kompensation pro lage: 1/20 = 5%
-					}
-				}
-	#endif //AUTOADJUST_MIN_MAX_ZCOMP
 			}
-			Printer::queuePositionZLayerGuessNew = 0;
+
+#if AUTOADJUST_MIN_MAX_ZCOMP
+			// Problemfall Startmade: Wenn die Startmade aus etwas weniger als 16 od. MOVE_CACHE_SIZE Teilstücken besteht,
+			// was man annehmen kann, dann springt der Pfadplaner über die Startmade einfach drüber und nimmt den ersten Layer als neue Referenz.
+			// Das hier ist Preprocessing mit Blick in die Zukunft. Kurz steht in g_minZCompensationSteps z.B. 0.35, anschließend aber z.B. korrekte 0.2mm als g_minZCompensationSteps.
+			// würde das nicht klappen, hätten wir SenseOffset in der Startmade was maximal schlecht sein kann, weil evtl. die Digits zu hoch sind.
+			//-> Sollte mit dieser Automatik hier nicht vorkommen!
+			if (g_auto_minmaxZCompensationSteps && !Printer::queuePositionZLayerLast && Printer::queuePositionZLayerCurrent < Printer::axisStepsPerMM[Z_AXIS]) { 
+				// < 1mm
+				//hiermit hätten wir immer exakt 1 Lage, die der Drucker komplett mit dem Bettprofil abfährt, anschließend ab Layer 2 wird ausgeschlichen +ECMP.
+				if (abs(Printer::queuePositionZLayerCurrent - Printer::axisStepsPerMM[Z_AXIS] * AUTOADJUST_STARTMADEN_AUSSCHLUSS) > 5 /* 2um um startmadenhöhe herum nichts tun */) {
+					g_minZCompensationSteps = Printer::queuePositionZLayerCurrent;
+					g_maxZCompensationSteps = g_minZCompensationSteps + (g_offsetZCompensationSteps - g_ZCompensationMax) * 20; //max zulässige kompensation pro lage: 1/20 = 5%
+				}
+			}
+#endif //AUTOADJUST_MIN_MAX_ZCOMP
 		}
+		Printer::queuePositionZLayerGuessNew = 0;
 	}
 #endif // FEATURE_HEAT_BED_Z_COMPENSATION
 

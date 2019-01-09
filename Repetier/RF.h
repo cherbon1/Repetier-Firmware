@@ -697,7 +697,7 @@ extern short testExtruderTemperature( void );
 extern short testHeatBedTemperature( void );
 extern long getZMatrixDepth( long x, long y );
 extern long getZMatrixDepth_CurrentXY( void );
-extern void doHeatBedZCompensation( void );
+extern void recalculateHeatBedZCompensation( void );
 
 extern long getHeatBedOffset( void );
 extern void switchActiveHeatBed( char newActiveHeatBed );
@@ -747,7 +747,7 @@ extern void writeWord24C256( int addressI2C, unsigned int addressEEPROM, unsigne
 extern unsigned char readByte24C256( int addressI2C, unsigned int addressEEPROM );
 extern unsigned short readWord24C256( int addressI2C, unsigned int addressEEPROM );
 
-extern void doZCompensation( void );
+extern void recalculateZCompensation( void );
 extern void loopFeatures( void );
 extern void outputObject( bool showerrors = true );
 
