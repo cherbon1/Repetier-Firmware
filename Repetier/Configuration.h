@@ -915,7 +915,7 @@ we use blocks of 2 kByte size for the structure of our EEPROM
 #define Z_OFFSET_BUTTON_STEPS               5
 
 /** \brief Defines the default z scale */
-#define DEFAULT_Z_SCALE_MODE                Z_VALUE_MODE_Z_MIN
+#define DEFAULT_Z_SCALE_MODE                Z_VALUE_MODE_LAYER
 
 /** \brief Minimal temperature which can be reached by cooling */
 #define MAX_ROOM_TEMPERATURE                40                                                  // [°C]
