@@ -620,6 +620,14 @@ on this endstop. */
 #define MAX_HARDWARE_ENDSTOP_Z              false
 #endif // FEATURE_CONFIGURABLE_Z_ENDSTOPS
 
+/** \brief Set order of axis homing. Use HOME_ORDER_XYZ and replace XYZ with your order. */
+#if FEATURE_MILLING_MODE
+#define HOMING_ORDER_PRINT              HOME_ORDER_XYZ           //if you work with springloaded hotend or positive Z-Matrix home Z last! You might otherwise hit the surface.
+#define HOMING_ORDER_MILL               HOME_ORDER_ZXY
+#else
+#define HOMING_ORDER_PRINT              HOME_ORDER_XYZ           //if you work with springloaded hotend or positive Z-Matrix home Z last!! You might otherwise hit the surface.
+#endif // FEATURE_MILLING_MODE
+
 /** \brief Sets direction of endstops when homing; 1=MAX, -1=MIN */
 #define X_HOME_DIR                          -1
 #define Y_HOME_DIR                          -1

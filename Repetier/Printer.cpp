@@ -82,7 +82,7 @@ volatile int    Printer::advanceStepsSet;
 
 long            Printer::maxSoftEndstopSteps[3] = {0};                  // For software endstops, limit of move in positive direction. (=Homing-Offset + Achsenlänge)
 float           Printer::axisLengthMM[3] = {0};                         // Länge des überfahrbaren Bereichs im positiven Homing. (=Schienen-Fahrweg - Homing-Offset - 2x ExtruderOffset)
-float           Printer::axisHomingOffsetMM[2] = {0};                     // Homing-Offset für X und Y
+float           Printer::axisHomingOffsetMM[2] = {0};                   // Homing-Offset für X und Y
 float           Printer::feedrate = 10;                                 // Last requested feedrate.
 int             Printer::feedrateMultiply = 100;                        // Multiplier for feedrate in percent (factor 100 = 100%)
 float           Printer::dynamicFeedrateFactor = 1.0;                   // Feedrate multiplier factor for digit compensation (1.0 = 100%)
@@ -97,6 +97,7 @@ float           Printer::filamentPrinted = 0.0f;                        // mm of
 long            Printer::ZOffset = 0;                                   // Z Offset in um
 char            Printer::ZMode = DEFAULT_Z_SCALE_MODE;                  // Z Scale  1 = show the z-distance to z-min (print) or to the z-origin (mill), 2 = show the z-distance to the surface of the heat bed (print) or work part (mill)
 char            Printer::moveMode[3];                                   // move mode which is applied within the Position X/Y/Z menus
+bool            Printer::moveKosys = KOSYS_GCODE;                       // true = GCode, false = DirectMove / OffsetMove
 
 #if ENABLE_BACKLASH_COMPENSATION
 float           Printer::backlash[3];
@@ -876,7 +877,7 @@ void Printer::setup()
     moveMode[X_AXIS] = DEFAULT_MOVE_MODE_X;
     moveMode[Y_AXIS] = DEFAULT_MOVE_MODE_Y;
     moveMode[Z_AXIS] = DEFAULT_MOVE_MODE_Z;
-
+	
 #if ENABLE_BACKLASH_COMPENSATION
     backlash[X_AXIS] = X_BACKLASH;
     backlash[Y_AXIS] = Y_BACKLASH;

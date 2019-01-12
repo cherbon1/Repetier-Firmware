@@ -6,6 +6,20 @@ TODO:
 # consider tuning in the shiftinterval value to a new perfect value
 # test arc-support while printing and not printing
 
+V 01.43.39.Mod (2019-01-12)
+- z positioning using menu is always direct/offset move
+- xy positioning is now configurable via menu Position -> XY-Kosys: "GCODE" or "OFFSET"
+   use GCODE for choosing a position for setting an GCODE Origin position; an Origin stays when homing
+   use OFFSET for choosing a new 0 position; this offset vanishes when homing
+- single step moves now stick to the kosys setting just described
+- single move / free move is allways a direct/offset move
+   this move mode now is at the end of options because it is not an option between steps and 1mm. It is a totally special move mode.
+- the move koordinate system ist now shown within positioning menu
+- the single steps positioning within menu now shows the distance of a single step in mikrometers
+   you can configure the Z distance within menu -> Position -> Z-Steps: xxxx um
+   (x- and y- single step size is still configurable via configuration.h prior compiling and flashing)
+- Z-Offset-Scan might now printing "Screw too low" instead of "Scan too high" because this should be a much better description for the actual problem.
+
 V 01.43.38.Mod (2019-01-09)
 - simplified constraining functions for target coordinates because we can trust soft endstop limits.
 - all menu position movements are now driven by directPosition System and therefore handled like an offset.

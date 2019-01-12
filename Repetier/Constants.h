@@ -20,7 +20,7 @@
 #define CONSTANTS_H
 
 
-#define REPETIER_VERSION                    "1.43.38"
+#define REPETIER_VERSION                    "1.43.39"
 #define UI_PRINTER_COMPANY                  "Conrad Community"
 #define UI_VERSION_STRING                   "V " REPETIER_VERSION
 
@@ -121,10 +121,10 @@
 #define RGB_STATUS_COLOR_CHANGE             15
 
 #define MOVE_MODE_SINGLE_STEPS              1
-#define MOVE_MODE_SINGLE_MOVE               2
-#define MOVE_MODE_1_MM                      3
-#define MOVE_MODE_10_MM                     4
-#define MOVE_MODE_50_MM                     5
+#define MOVE_MODE_1_MM                      2
+#define MOVE_MODE_10_MM                     3
+#define MOVE_MODE_50_MM                     4
+#define MOVE_MODE_SINGLE_MOVE               5
 
 #define HEAT_BED_SCAN_MODE_PLA              1
 #define HEAT_BED_SCAN_MODE_ABS              2

@@ -185,6 +185,11 @@ void EEPROM::restoreEEPROMSettingsFromConfiguration()
     Printer::maxXYJerk = MAX_JERK;
     Printer::maxZJerk = MAX_ZJERK;
 
+	Printer::moveMode[X_AXIS] = DEFAULT_MOVE_MODE_X;
+	Printer::moveMode[Y_AXIS] = DEFAULT_MOVE_MODE_Y;
+	Printer::moveMode[Z_AXIS] = DEFAULT_MOVE_MODE_Z;
+	Printer::moveKosys = KOSYS_GCODE;
+
     Printer::maxAccelerationMMPerSquareSecond[X_AXIS] = MAX_ACCELERATION_UNITS_PER_SQ_SECOND_X;
     Printer::maxAccelerationMMPerSquareSecond[Y_AXIS] = MAX_ACCELERATION_UNITS_PER_SQ_SECOND_Y;
     Printer::maxAccelerationMMPerSquareSecond[Z_AXIS] = MAX_ACCELERATION_UNITS_PER_SQ_SECOND_Z;
@@ -318,10 +323,10 @@ ich glaube gesehen zu haben, dass acceleration und feedrates nicht neu eingelese
     Extruder::selectExtruderById(Extruder::current->id);
     Extruder::initHeatedBed();
 
-    g_nManualSteps[X_AXIS] = uint32_t(Printer::axisStepsPerMM[X_AXIS] * DEFAULT_MANUAL_MM_X);
-    g_nManualSteps[Y_AXIS] = uint32_t(Printer::axisStepsPerMM[Y_AXIS] * DEFAULT_MANUAL_MM_Y);
-    g_nManualSteps[Z_AXIS] = uint32_t(Printer::axisStepsPerMM[Z_AXIS] * DEFAULT_MANUAL_MM_Z);
-    g_nManualSteps[E_AXIS] = uint32_t(Extruder::current->stepsPerMM * DEFAULT_MANUAL_MM_E);
+    g_nManualSteps[X_AXIS] = lroundf(Printer::axisStepsPerMM[X_AXIS] * DEFAULT_MANUAL_MM_X);
+    g_nManualSteps[Y_AXIS] = lroundf(Printer::axisStepsPerMM[Y_AXIS] * DEFAULT_MANUAL_MM_Y);
+    g_nManualSteps[Z_AXIS] = lroundf(Printer::axisStepsPerMM[Z_AXIS] * DEFAULT_MANUAL_MM_Z);
+    g_nManualSteps[E_AXIS] = lroundf(Extruder::current->stepsPerMM * DEFAULT_MANUAL_MM_E);
 
     Com::printInfoFLN(Com::tEPRConfigResetDefaults);
 #endif // EEPROM_MODE!=0
@@ -367,8 +372,9 @@ void EEPROM::storeDataIntoEEPROM(uint8_t corrupted)
     HAL::eprSetByte(EPR_RF_Z_MODE,Printer::ZMode);
     HAL::eprSetByte(EPR_RF_MOVE_MODE_X,Printer::moveMode[X_AXIS]);
     HAL::eprSetByte(EPR_RF_MOVE_MODE_Y,Printer::moveMode[Y_AXIS]);
-    HAL::eprSetByte(EPR_RF_MOVE_MODE_Z,Printer::moveMode[Z_AXIS]);
-
+	HAL::eprSetByte(EPR_RF_MOVE_MODE_Z, Printer::moveMode[Z_AXIS]);
+	HAL::eprSetByte(EPR_RF_MOVE_MODE_XY_KOSYS, Printer::moveKosys);
+	
 #if FEATURE_MILLING_MODE
     if( Printer::operatingMode == OPERATING_MODE_PRINT )
     {
@@ -701,8 +707,9 @@ void EEPROM::readDataFromEEPROM()
 
     Printer::moveMode[X_AXIS] = HAL::eprGetByte(EPR_RF_MOVE_MODE_X);
     Printer::moveMode[Y_AXIS] = HAL::eprGetByte(EPR_RF_MOVE_MODE_Y);
-    Printer::moveMode[Z_AXIS] = HAL::eprGetByte(EPR_RF_MOVE_MODE_Z);
-
+	Printer::moveMode[Z_AXIS] = HAL::eprGetByte(EPR_RF_MOVE_MODE_Z);
+	Printer::moveKosys = (bool)HAL::eprGetByte(EPR_RF_MOVE_MODE_XY_KOSYS);
+	
     Printer::maxXYJerk = HAL::eprGetFloat(EPR_MAX_XYJERK);
     Printer::maxZJerk = HAL::eprGetFloat(EPR_MAX_ZJERK);
 
@@ -996,12 +1003,12 @@ void EEPROM::readDataFromEEPROM()
     Printer::MillerType = HAL::eprGetByte( EPR_RF_MILLER_TYPE ) == MILLER_TYPE_ONE_TRACK ? MILLER_TYPE_ONE_TRACK : MILLER_TYPE_TWO_TRACKS;
 #endif // FEATURE_CONFIGURABLE_MILLER_TYPE
 
-    g_nManualSteps[X_AXIS] = uint32_t(Printer::axisStepsPerMM[X_AXIS] * DEFAULT_MANUAL_MM_X);
-    g_nManualSteps[Y_AXIS] = uint32_t(Printer::axisStepsPerMM[Y_AXIS] * DEFAULT_MANUAL_MM_Y);
+    g_nManualSteps[X_AXIS] = lroundf(Printer::axisStepsPerMM[X_AXIS] * DEFAULT_MANUAL_MM_X);
+    g_nManualSteps[Y_AXIS] = lroundf(Printer::axisStepsPerMM[Y_AXIS] * DEFAULT_MANUAL_MM_Y);
     const unsigned long stepsize_table[NUM_ACCEPTABLE_STEP_SIZE_TABLE] PROGMEM = ACCEPTABLE_STEP_SIZE_TABLE;
     //diese z-step-size aus dem eeprom verdoppelt/halbiert sich mit den microsteps. testpatch: diese stepsizes stammen von 2560steps/mm. Das ändert sich wie die microsteps. also ist der faktor "stepsmm/2560"
-    g_nManualSteps[Z_AXIS] = uint32_t(constrain( (unsigned long)HAL::eprGetInt32( EPR_RF_MOD_Z_STEP_SIZE )*Printer::axisStepsPerMM[Z_AXIS]/2560 , 1 , stepsize_table[NUM_ACCEPTABLE_STEP_SIZE_TABLE-1]*Printer::axisStepsPerMM[Z_AXIS]/2560 ) ); //limit stepsize to value in config.
-    g_nManualSteps[E_AXIS] = uint32_t(Extruder::current->stepsPerMM * DEFAULT_MANUAL_MM_E); //current extruder stepsPerMM weil hier noch kein update für Printer::axisStepsPerMM[E_AXIS] gemacht wurde!
+    g_nManualSteps[Z_AXIS] = lroundf(constrain( (unsigned long)HAL::eprGetInt32( EPR_RF_MOD_Z_STEP_SIZE )*Printer::axisStepsPerMM[Z_AXIS]/2560 , 1 , stepsize_table[NUM_ACCEPTABLE_STEP_SIZE_TABLE-1]*Printer::axisStepsPerMM[Z_AXIS]/2560 ) ); //limit stepsize to value in config.
+    g_nManualSteps[E_AXIS] = lroundf(Extruder::current->stepsPerMM * DEFAULT_MANUAL_MM_E); //current extruder stepsPerMM weil hier noch kein update für Printer::axisStepsPerMM[E_AXIS] gemacht wurde!
 
 #if FEATURE_HEAT_BED_Z_COMPENSATION
     g_ZOSTestPoint[X_AXIS] = HAL::eprGetByte( EPR_RF_MOD_ZOS_SCAN_POINT_X );

@@ -415,8 +415,8 @@ void Extruder::selectExtruderById(uint8_t extruderId)
     Printer::maxAccelerationMMPerSquareSecond[E_AXIS] = Printer::maxTravelAccelerationMMPerSquareSecond[E_AXIS] = Extruder::current->maxAcceleration;
     Printer::maxPrintAccelerationStepsPerSquareSecond[E_AXIS] = Printer::maxTravelAccelerationStepsPerSquareSecond[E_AXIS] = uint32_t(Printer::maxAccelerationMMPerSquareSecond[E_AXIS] * Printer::axisStepsPerMM[E_AXIS]);
 
-    g_nManualSteps[E_AXIS] = uint32_t(Printer::axisStepsPerMM[E_AXIS] * DEFAULT_MANUAL_MM_E);
-    g_nPauseSteps[E_AXIS]  = long    (Printer::axisStepsPerMM[E_AXIS] * DEFAULT_PAUSE_MM_E);
+    g_nManualSteps[E_AXIS] = lroundf(Printer::axisStepsPerMM[E_AXIS] * DEFAULT_MANUAL_MM_E);
+    g_nPauseSteps[E_AXIS]  = long   (Printer::axisStepsPerMM[E_AXIS] * DEFAULT_PAUSE_MM_E);
 
 #if USE_ADVANCE
     Printer::maxExtruderSpeed = (uint8_t)floor(HAL::maxExtruderTimerFrequency() / (Extruder::current->maxFeedrate * Extruder::current->stepsPerMM));

@@ -163,10 +163,12 @@ millis_t        g_uStopTime                 = 0;
 volatile millis_t g_uBlockCommands          = 0;
 
 // other configurable parameters
-unsigned long   g_nManualSteps[4]           = { uint32_t(XAXIS_STEPS_PER_MM * DEFAULT_MANUAL_MM_X),
-                                                uint32_t(YAXIS_STEPS_PER_MM * DEFAULT_MANUAL_MM_Y),
-                                                uint32_t(ZAXIS_STEPS_PER_MM * DEFAULT_MANUAL_MM_Z),
-                                                uint32_t( EXT0_STEPS_PER_MM * DEFAULT_MANUAL_MM_E) }; //pre init
+unsigned long   g_nManualSteps[4]           = { 
+	lroundf(XAXIS_STEPS_PER_MM * DEFAULT_MANUAL_MM_X),
+	lroundf(YAXIS_STEPS_PER_MM * DEFAULT_MANUAL_MM_Y),
+	lroundf(ZAXIS_STEPS_PER_MM * DEFAULT_MANUAL_MM_Z),
+	lroundf( EXT0_STEPS_PER_MM * DEFAULT_MANUAL_MM_E) 
+}; //pre init
 
 volatile long   g_nPauseSteps[4]            = { long(XAXIS_STEPS_PER_MM * DEFAULT_PAUSE_MM_X_PRINT),
                                                 long(XAXIS_STEPS_PER_MM * DEFAULT_PAUSE_MM_Y_PRINT),
@@ -2520,7 +2522,7 @@ void searchZOScan( void )
                 Com::printF( PSTR( ", " ), yScanPosition );
                 Com::printFLN( PSTR( ") [(x,y) Steps]" ) );
 #endif // DEBUG_HEAT_BED_SCAN == 2
-				Printer::queueRelativeMMCoordinates( xScanPosition, yScanPosition, 0, 0, RMath::min(Printer::homingFeedrate[X_AXIS],Printer::homingFeedrate[Y_AXIS]), true, true );
+				Printer::queueRelativeMMCoordinates( xScanPosition, yScanPosition, 0, 0, RMath::min(Printer::homingFeedrate[X_AXIS], Printer::homingFeedrate[Y_AXIS]), true, true );
                 g_nZOSScanStatus = 6;
                 break;
             }
@@ -11126,26 +11128,17 @@ void nextPreviousXAction( int8_t increment )
 				steps = -Printer::currentXSteps;
 			}
 
-            Printer::enableXStepper();
-            Printer::directDestinationSteps[X_AXIS] += steps;
+			if (Printer::moveKosys == KOSYS_GCODE)
+			{
+				Printer::queueRelativeStepsCoordinates(steps, 0, 0, 0, Printer::homingFeedrate[X_AXIS], true, ALWAYS_CHECK_ENDSTOPS);
+			}
+			else /*if (Printer::moveKosys == KOSYS_DIRECTOFFSET) */
+			{
+				Printer::enableXStepper();
+				Printer::directDestinationSteps[X_AXIS] += steps;
+			}
             break;
-        }
-        case MOVE_MODE_SINGLE_MOVE:
-        {
-            if (PrintLine::direct.stepsRemaining)
-            {
-                // we are moving already, there is nothing more to do
-                return;
-            }
-			
-			int32_t steps;
-			//errate homed möglichst den erzwungenen stop-punkt wegen dem bonus der decelleration
-            if( increment < 0 ) steps = (Printer::isAxisHomed(X_AXIS) ? -Printer::currentXSteps : -Printer::maxSoftEndstopSteps[X_AXIS]);
-            else                steps = (Printer::isAxisHomed(X_AXIS) ? Printer::maxSoftEndstopSteps[X_AXIS] - Printer::currentXSteps : Printer::maxSoftEndstopSteps[X_AXIS]);
-
-			Printer::offsetRelativeStepsCoordinates(steps, 0, 0, 0, TASK_MOVE_FROM_BUTTON);
-            break;
-        }		
+        }	
 		case MOVE_MODE_1_MM:
 		case MOVE_MODE_10_MM:
 		case MOVE_MODE_50_MM:
@@ -11160,9 +11153,32 @@ void nextPreviousXAction( int8_t increment )
 				return;
 			}
 
-			Printer::offsetRelativeStepsCoordinates(distanceMM * Printer::axisStepsPerMM[Y_AXIS] * increment, 0, 0, 0);
+			if (Printer::moveKosys == KOSYS_GCODE)
+			{
+				Printer::queueRelativeMMCoordinates(distanceMM * increment, 0, 0, 0, Printer::homingFeedrate[X_AXIS], true, ALWAYS_CHECK_ENDSTOPS);
+			}
+			else /*if (Printer::moveKosys == KOSYS_DIRECTOFFSET) */
+			{
+				Printer::offsetRelativeStepsCoordinates(distanceMM * Printer::axisStepsPerMM[Y_AXIS] * increment, 0, 0, 0);
+			}
             break;
         }
+        case MOVE_MODE_SINGLE_MOVE:
+        {
+            if (PrintLine::direct.stepsRemaining)
+            {
+                // we are moving already, there is nothing more to do
+                return;
+            }
+			
+			int32_t steps;
+			//errate homed möglichst den erzwungenen stop-punkt wegen dem bonus der decelleration
+            if( increment < 0 ) steps = (Printer::isAxisHomed(X_AXIS) ? -Printer::currentXSteps : -Printer::maxSoftEndstopSteps[X_AXIS]);
+            else                steps = (Printer::isAxisHomed(X_AXIS) ? Printer::maxSoftEndstopSteps[X_AXIS] - Printer::currentXSteps : Printer::maxSoftEndstopSteps[X_AXIS]);
+			Printer::offsetRelativeStepsCoordinates(steps, 0, 0, 0, TASK_MOVE_FROM_BUTTON);
+
+            break;
+        }	
     }
 } // nextPreviousXAction
 
@@ -11204,24 +11220,16 @@ void nextPreviousYAction( int8_t increment )
 				steps = -Printer::currentYSteps;
             }
 
-            Printer::enableYStepper();
-            Printer::directDestinationSteps[Y_AXIS] += steps;
-            break;
-        }
-        case MOVE_MODE_SINGLE_MOVE:
-        {
-            if (PrintLine::direct.stepsRemaining)
-            {
-                // we are moving already, there is nothing more to do
-                return;
-            }
+			if (Printer::moveKosys == KOSYS_GCODE)
+			{
+				Printer::queueRelativeStepsCoordinates(0, steps, 0, 0, Printer::homingFeedrate[Y_AXIS], true, ALWAYS_CHECK_ENDSTOPS);
+			}
+			else /*if (Printer::moveKosys == KOSYS_DIRECTOFFSET) */
+			{
+				Printer::enableYStepper();
+				Printer::directDestinationSteps[Y_AXIS] += steps;
+			}
 
-			int32_t steps;
-			//errate homed möglichst den erzwungenen stop-punkt wegen dem bonus der decelleration
-            if( increment < 0 ) steps = (Printer::isAxisHomed(Y_AXIS) ? -Printer::currentYSteps : -Printer::maxSoftEndstopSteps[Y_AXIS]);
-            else                steps = (Printer::isAxisHomed(Y_AXIS) ? Printer::maxSoftEndstopSteps[Y_AXIS] - Printer::currentYSteps : Printer::maxSoftEndstopSteps[Y_AXIS]);
-
-			Printer::offsetRelativeStepsCoordinates(0, steps, 0, 0, TASK_MOVE_FROM_BUTTON);
             break;
         }
 		case MOVE_MODE_1_MM:
@@ -11238,7 +11246,31 @@ void nextPreviousYAction( int8_t increment )
 				return;
 			}
 
-			Printer::offsetRelativeStepsCoordinates(0, distanceMM * Printer::axisStepsPerMM[Y_AXIS] * increment, 0, 0);
+			if (Printer::moveKosys == KOSYS_GCODE)
+			{
+				Printer::queueRelativeMMCoordinates(0, distanceMM * increment, 0, 0, Printer::homingFeedrate[Y_AXIS], true, ALWAYS_CHECK_ENDSTOPS);
+			}
+			else /*if (Printer::moveKosys == KOSYS_DIRECTOFFSET) */
+			{
+				Printer::offsetRelativeStepsCoordinates(0, distanceMM * Printer::axisStepsPerMM[Y_AXIS] * increment, 0, 0);
+			}
+
+            break;
+        }
+        case MOVE_MODE_SINGLE_MOVE:
+        {
+            if (PrintLine::direct.stepsRemaining)
+            {
+                // we are moving already, there is nothing more to do
+                return;
+            }
+
+			int32_t steps;
+			//errate homed möglichst den erzwungenen stop-punkt wegen dem bonus der decelleration
+            if( increment < 0 ) steps = (Printer::isAxisHomed(Y_AXIS) ? -Printer::currentYSteps : -Printer::maxSoftEndstopSteps[Y_AXIS]);
+            else                steps = (Printer::isAxisHomed(Y_AXIS) ? Printer::maxSoftEndstopSteps[Y_AXIS] - Printer::currentYSteps : Printer::maxSoftEndstopSteps[Y_AXIS]);
+
+			Printer::offsetRelativeStepsCoordinates(0, steps, 0, 0, TASK_MOVE_FROM_BUTTON);
             break;
         }
     }
@@ -11314,8 +11346,75 @@ void nextPreviousZAction( int8_t increment )
 				return;
             }
 
-            Printer::enableZStepper();
-            Printer::directDestinationSteps[Z_AXIS] += steps;
+			//Z should be direct, because we have scan origin and z-origin to set coordinates and while printing gcode coordinate system is senseless.
+
+			//if (Printer::moveKosys == KOSYS_GCODE) 
+			//{
+			//	Printer::queueRelativeStepsCoordinates(0, 0, steps, 0, Printer::homingFeedrate[Z_AXIS], true, ALWAYS_CHECK_ENDSTOPS);
+			//}
+			//else /*if (Printer::moveKosys == KOSYS_DIRECTOFFSET) */
+			//{
+				Printer::enableZStepper();
+				Printer::directDestinationSteps[Z_AXIS] += steps;
+			//}
+
+            break;
+        }
+        case MOVE_MODE_1_MM:
+		case MOVE_MODE_10_MM:
+		case MOVE_MODE_50_MM:
+        {
+			uint8_t distanceMM = 1;
+			if (moveMode == MOVE_MODE_10_MM) distanceMM = 10;
+			if (moveMode == MOVE_MODE_50_MM) distanceMM = 50;
+
+			// Normale Bewegung möglich:
+			if (!Printer::isAxisHomed(Z_AXIS)
+				|| increment > 0
+				|| Printer::currentZSteps * Printer::axisMMPerSteps[Z_AXIS] >= (float)distanceMM)
+			{
+//#if MENU_POSITION_ALL_DIRECT
+				Printer::offsetRelativeStepsCoordinates(0, 0, distanceMM * Printer::axisStepsPerMM[Z_AXIS] * increment, 0);
+//#else 
+//				Printer::queueRelativeMMCoordinates(0, 0, distanceMM * increment, 0, Printer::homingFeedrate[Z_AXIS], true, ALWAYS_CHECK_ENDSTOPS);
+//#endif
+
+				return;
+			}
+
+#if FEATURE_MILLING_MODE
+			// Im Milling nicht so strikt sein, einfach fahren was kommandiert wird und auf softendstop hoffen. Evtl. ist diese Regel Bullshit.
+            if (Printer::operatingMode != OPERATING_MODE_PRINT)
+			{
+//#if MENU_POSITION_ALL_DIRECT
+				Printer::offsetRelativeStepsCoordinates(0, 0, distanceMM * Printer::axisStepsPerMM[Z_AXIS] * increment, 0);
+//#else 
+//				Printer::queueRelativeMMCoordinates(0, 0, distanceMM * increment, 0, Printer::feedrate, true, ALWAYS_CHECK_ENDSTOPS);
+//#endif
+
+				return;
+			}
+#endif // FEATURE_MILLING_MODE
+
+            // Wir sind hier knapp über dem Schalter: Nur so weit runterfahren, wie man über 0 ist. Denn da ist beim Printermode homed der Endschalter.
+			if (Printer::currentZSteps > 0)
+			{
+//#if MENU_POSITION_ALL_DIRECT
+				Printer::offsetRelativeStepsCoordinates(0, 0, -Printer::currentZSteps, 0);
+//#else 
+//				Printer::queueRelativeStepsCoordinates(0, 0, -Printer::currentZSteps, 0, Printer::homingFeedrate[Z_AXIS], true, ALWAYS_CHECK_ENDSTOPS);
+//#endif
+
+				return;
+			}
+
+//#if MENU_POSITION_ALL_DIRECT
+			// Sonst Stepweise
+			Printer::offsetRelativeStepsCoordinates(0, 0, -1 * g_nManualSteps[Z_AXIS], 0);
+//#else 
+//			Printer::queueRelativeStepsCoordinates(0, 0, -1 * g_nManualSteps[Z_AXIS], 0, Printer::homingFeedrate[Z_AXIS], true, ALWAYS_CHECK_ENDSTOPS);
+//#endif
+
             break;
         }
         case MOVE_MODE_SINGLE_MOVE:
@@ -11332,47 +11431,6 @@ void nextPreviousZAction( int8_t increment )
 			else               steps = (Printer::isAxisHomed(Z_AXIS) ? Printer::maxSoftEndstopSteps[Z_AXIS] - Printer::currentZSteps : Printer::maxSoftEndstopSteps[Z_AXIS]);
 
 			Printer::offsetRelativeStepsCoordinates(0, 0, steps, 0, TASK_MOVE_FROM_BUTTON);
-            break;
-        }
-        case MOVE_MODE_1_MM:
-		case MOVE_MODE_10_MM:
-		case MOVE_MODE_50_MM:
-        {
-			uint8_t distanceMM = 1;
-			if (moveMode == MOVE_MODE_10_MM) distanceMM = 10;
-			if (moveMode == MOVE_MODE_50_MM) distanceMM = 50;
-
-			// Normale Bewegung möglich:
-			if (!Printer::isAxisHomed(Z_AXIS)
-				|| increment > 0
-				|| Printer::currentZSteps * Printer::axisMMPerSteps[Z_AXIS] >= (float)distanceMM)
-			{
-				Printer::offsetRelativeStepsCoordinates(0, 0, distanceMM * Printer::axisStepsPerMM[Z_AXIS] * increment, 0);
-
-				return;
-			}
-
-#if FEATURE_MILLING_MODE
-			// Im Milling nicht so strikt sein, einfach fahren was kommandiert wird und auf softendstop hoffen. Evtl. ist diese Regel Bullshit.
-            if (Printer::operatingMode != OPERATING_MODE_PRINT)
-			{
-				Printer::offsetRelativeStepsCoordinates(0, 0, distanceMM * Printer::axisStepsPerMM[Z_AXIS] * increment, 0);
-
-				return;
-			}
-#endif // FEATURE_MILLING_MODE
-
-            // Wir sind hier knapp über dem Schalter: Nur so weit runterfahren, wie man über 0 ist. Denn da ist beim Printermode homed der Endschalter.
-			if (Printer::currentZSteps > 0)
-			{
-				Printer::offsetRelativeStepsCoordinates(0, 0, -Printer::currentZSteps, 0);
-
-				return;
-			}
-
-			// Sonst Stepweise
-			Printer::offsetRelativeStepsCoordinates(0, 0, -1 * g_nManualSteps[Z_AXIS], 0);
-
             break;
         }
     }
@@ -11831,12 +11889,8 @@ void cleanupEPositions( void )
 void setZOrigin( void )
 {
 #if FEATURE_FIND_Z_ORIGIN
-    g_nZOriginPosition[X_AXIS] = Printer::getDestinationSteps(X_AXIS);
-    g_nZOriginPosition[X_AXIS] += Printer::directDestinationSteps[X_AXIS];
-    
-    g_nZOriginPosition[Y_AXIS] = Printer::getDestinationSteps(Y_AXIS);
-    g_nZOriginPosition[Y_AXIS] += Printer::directDestinationSteps[Y_AXIS];
-
+	g_nZOriginPosition[X_AXIS] = Printer::currentXSteps;    
+    g_nZOriginPosition[Y_AXIS] = Printer::currentYSteps;
     g_nZOriginPosition[Z_AXIS] = 0;
     Printer::setZOriginSet(true); //flag wegen statusnachricht
 #endif // FEATURE_FIND_Z_ORIGIN
@@ -11848,6 +11902,7 @@ void setZOrigin( void )
 	Printer::setZAxisSteps(0);
 	Printer::resetDirectAxis(Z_AXIS);
 
+	// Origin offset set for gcode coordinate translation
     Printer::originOffsetMM[Z_AXIS]             = 0;
 
     g_nZScanZPosition                           = 0;

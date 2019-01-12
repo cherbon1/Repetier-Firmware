@@ -779,7 +779,7 @@ UI_STRING(ui_yes,UI_TEXT_YES)
 UI_STRING(ui_no,UI_TEXT_NO)
 UI_STRING(ui_ok,UI_TEXT_OK)
 UI_STRING(ui_fail,UI_TEXT_FAIL)
-UI_STRING(ui_neetfix,UI_TEXT_NEEDFIX)
+UI_STRING(ui_neetfix,UI_TEXT_O_SCAN_NEEDFIX)
 UI_STRING(ui_up,UI_TEXT_UP)
 UI_STRING(ui_down,UI_TEXT_DOWN)
 UI_STRING(ui_selected,UI_TEXT_SEL)
@@ -1843,10 +1843,21 @@ void UIDisplay::parse(char *txt,bool ram)
 #endif // FEATURE_SENSIBLE_PRESSURE
                 }
 
-                if(c2=='1')                                                                             // %s1 : current value of the strain gauge
-                {
-                    addInt(g_nLastDigits,5);
-                }
+				if (c2 == '1')                                                                             // %s1 : current value of the strain gauge
+				{
+					addInt(g_nLastDigits, 5);
+				}
+
+				if (c2 == 'k')                                                                             // %sk : Positioning coordinate system for XY (move by gode or directoffset)
+				{
+					if (Printer::moveKosys == KOSYS_GCODE)
+					{
+						addStringP(PSTR(UI_TEXT_MOVE_MODE_GCODE));
+					}
+					else /* if (Printer::moveKosys == KOSYS_DIRECTOFFSET) */{
+						addStringP(PSTR(UI_TEXT_MOVE_MODE_OFFSET));
+					}
+				}
 
                 break;
             }
@@ -1855,7 +1866,7 @@ void UIDisplay::parse(char *txt,bool ram)
                 if(c2=='0')      addFloat(extruder[0].stepsPerMM,3,0);                                                // %S0 : Steps per mm extruder0
                 else if(c2=='1') addFloat(extruder[1].stepsPerMM,3,0);                                                // %S1 : Steps per mm extruder1
                 else if(c2=='e') addFloat(Extruder::current->stepsPerMM,3,0);                                         // %Se : Steps per mm current extruder
-                else if(c2=='z') addFloat(g_nManualSteps[Z_AXIS] * Printer::axisMMPerSteps[Z_AXIS] * 1000,4,0);    // %Sz : Mikrometer per Z-Single_Step (Z_Axis)
+                else if(c2=='z') addFloat(g_nManualSteps[Z_AXIS] * Printer::axisMMPerSteps[Z_AXIS] * 1000.0f, 4, 1);     // %Sz : Mikrometer per Z-Single_Step (Z_Axis)
                 else if(c2=='M' && col<MAX_COLS){ if(g_ZMatrixChangedInRam) printCols[col++]='*'; }                   // %SM : Matrix has changed in Ram and is ready to Save. -> *)
 #if FEATURE_WORK_PART_Z_COMPENSATION || FEATURE_HEAT_BED_Z_COMPENSATION
                 else if(c2=='s') addFloat(g_scanStartZLiftMM,1,1);                                                    // %Ss : active current value of HEAT_BED_SCAN_Z_START_MM
@@ -1870,12 +1881,8 @@ void UIDisplay::parse(char *txt,bool ram)
                     {
                         case MOVE_MODE_SINGLE_STEPS:
                         {
-                            addStringP(PSTR(UI_TEXT_MOVE_MODE_SINGLE_STEPS));
-                            break;
-                        }
-                        case MOVE_MODE_SINGLE_MOVE:
-                        {
-                            addStringP(PSTR(UI_TEXT_MOVE_MODE_SINGLE_MOVE));
+							addFloat(g_nManualSteps[X_AXIS] * Printer::axisMMPerSteps[X_AXIS] * 1000.0f, 1, 0);
+							addStringP(PSTR(" um"));
                             break;
                         }
                         case MOVE_MODE_1_MM:
@@ -1893,7 +1900,24 @@ void UIDisplay::parse(char *txt,bool ram)
                             addStringP(PSTR(UI_TEXT_MOVE_MODE_50_MM));
                             break;
                         }
+                        case MOVE_MODE_SINGLE_MOVE:
+                        {
+                            addStringP(PSTR(UI_TEXT_MOVE_MODE_SINGLE_MOVE));
+                            break;
+                        }
                     }
+					if (Printer::moveMode[X_AXIS] == MOVE_MODE_SINGLE_MOVE || Printer::moveKosys == KOSYS_DIRECTOFFSET)
+					{
+						addStringP(PSTR(" ("));
+						addStringP(PSTR(UI_TEXT_MOVE_MODE_OFFSET));
+						addStringP(PSTR(")"));
+					}
+					else {
+						addStringP(PSTR(" ("));
+						addStringP(PSTR(UI_TEXT_MOVE_MODE_GCODE));
+						addStringP(PSTR(")"));
+					}
+					break;
                 }
                 if(c2=='y')                                                                             // %py: mode of the Position Y menu
                 {
@@ -1901,12 +1925,8 @@ void UIDisplay::parse(char *txt,bool ram)
                     {
                         case MOVE_MODE_SINGLE_STEPS:
                         {
-                            addStringP(PSTR(UI_TEXT_MOVE_MODE_SINGLE_STEPS));
-                            break;
-                        }
-                        case MOVE_MODE_SINGLE_MOVE:
-                        {
-                            addStringP(PSTR(UI_TEXT_MOVE_MODE_SINGLE_MOVE));
+							addFloat(g_nManualSteps[Y_AXIS] * Printer::axisMMPerSteps[Y_AXIS] * 1000.0f, 1, 0);
+							addStringP(PSTR(" um"));
                             break;
                         }
                         case MOVE_MODE_1_MM:
@@ -1924,7 +1944,24 @@ void UIDisplay::parse(char *txt,bool ram)
                             addStringP(PSTR(UI_TEXT_MOVE_MODE_50_MM));
                             break;
                         }
+                        case MOVE_MODE_SINGLE_MOVE:
+                        {
+                            addStringP(PSTR(UI_TEXT_MOVE_MODE_SINGLE_MOVE));
+                            break;
+                        }
                     }
+					if (Printer::moveMode[Y_AXIS] == MOVE_MODE_SINGLE_MOVE || Printer::moveKosys == KOSYS_DIRECTOFFSET)
+					{
+						addStringP(PSTR(" ("));
+						addStringP(PSTR(UI_TEXT_MOVE_MODE_OFFSET));
+						addStringP(PSTR(")"));
+					}
+					else {
+						addStringP(PSTR(" ("));
+						addStringP(PSTR(UI_TEXT_MOVE_MODE_GCODE));
+						addStringP(PSTR(")"));
+					}
+					break;
                 }
                 if(c2=='z')                                                                             // %pz: mode of the Position Z menu
                 {
@@ -1932,12 +1969,8 @@ void UIDisplay::parse(char *txt,bool ram)
                     {
                         case MOVE_MODE_SINGLE_STEPS:
                         {
-                            addStringP(PSTR(UI_TEXT_MOVE_MODE_SINGLE_STEPS));
-                            break;
-                        }
-                        case MOVE_MODE_SINGLE_MOVE:
-                        {
-                            addStringP(PSTR(UI_TEXT_MOVE_MODE_SINGLE_MOVE));
+							addFloat(g_nManualSteps[Z_AXIS] * Printer::axisMMPerSteps[Z_AXIS] * 1000.0f, 1, 1);
+							addStringP(PSTR(" um"));
                             break;
                         }
                         case MOVE_MODE_1_MM:
@@ -1955,7 +1988,24 @@ void UIDisplay::parse(char *txt,bool ram)
                             addStringP(PSTR(UI_TEXT_MOVE_MODE_50_MM));
                             break;
                         }
+                        case MOVE_MODE_SINGLE_MOVE:
+                        {
+                            addStringP(PSTR(UI_TEXT_MOVE_MODE_SINGLE_MOVE));
+                            break;
+                        }
                     }
+					// Z axis is always direct offset move because gcode does not make sense here.
+
+					//if (Printer::moveMode[Z_AXIS] == MOVE_MODE_SINGLE_MOVE || Printer::moveKosys == KOSYS_DIRECTOFFSET)
+					//{
+					addStringP(PSTR(" ("));
+					addStringP(PSTR(UI_TEXT_MOVE_MODE_OFFSET));
+					addStringP(PSTR(")"));
+					//}
+					//else {
+					//	addStringP(PSTR(UI_TEXT_MOVE_MODE_GCODE));
+					//}
+					break;
                 }
 #if FEATURE_EMERGENCY_PAUSE
                 if(c2=='l')                                                                             // %pl : g_nEmergencyPauseDigitsMin [1700/kg]
@@ -2819,7 +2869,7 @@ void UIDisplay::okAction()
 void UIDisplay::rightAction()
 {
 #if FEATURE_SENSIBLE_PRESSURE
-    if( menuLevel == 0 && menuPos[0] == 1 ){ //wenn im Mod-Menü für Z-Offset/Matrix Sense-Offset/Limiter, dann anders!
+    if ( menuLevel == 0 && menuPos[0] == 1 ) { //wenn im Mod-Menü für Z-Offset/Matrix Sense-Offset/Limiter, dann anders!
         //we are in the Mod menu
         if(g_nSensiblePressureDigits == EMERGENCY_PAUSE_DIGITS_MAX * 0.8 || g_nSensiblePressureDigits == 32767){
             //ist max, dann auf 0.
@@ -2845,51 +2895,51 @@ void UIDisplay::rightAction()
 #endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
         }
         beep(1,4);
-    }else{
+    } else {
 #endif
-#if UI_HAS_KEYS==1
-    if( menu[menuLevel] == &ui_menu_xpos )
-    {
-        Printer::moveMode[X_AXIS] ++;
-        if( Printer::moveMode[X_AXIS] > MOVE_MODE_50_MM )
-        {
-            Printer::moveMode[X_AXIS] = MOVE_MODE_SINGLE_STEPS;
-        }
-        refreshPage();
+	#if UI_HAS_KEYS==1
+		if (menu[menuLevel] == &ui_menu_xpos)
+		{
+			Printer::moveMode[X_AXIS] ++;
+			if (Printer::moveMode[X_AXIS] > MOVE_MODE_SINGLE_MOVE)
+			{
+				Printer::moveMode[X_AXIS] = MOVE_MODE_SINGLE_STEPS;
+			}
+			refreshPage();
 
-#if FEATURE_AUTOMATIC_EEPROM_UPDATE
-        HAL::eprSetByte(EPR_RF_MOVE_MODE_X,Printer::moveMode[X_AXIS]);
-        EEPROM::updateChecksum();
-#endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
-    }
-    else if( menu[menuLevel] == &ui_menu_ypos )
-    {
-        Printer::moveMode[Y_AXIS] ++;
-        if( Printer::moveMode[Y_AXIS] > MOVE_MODE_50_MM )
-        {
-            Printer::moveMode[Y_AXIS] = MOVE_MODE_SINGLE_STEPS;
-        }
-        refreshPage();
+	#if FEATURE_AUTOMATIC_EEPROM_UPDATE
+			HAL::eprSetByte(EPR_RF_MOVE_MODE_X, Printer::moveMode[X_AXIS]);
+			EEPROM::updateChecksum();
+	#endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
+		}
+		else if (menu[menuLevel] == &ui_menu_ypos)
+		{
+			Printer::moveMode[Y_AXIS] ++;
+			if (Printer::moveMode[Y_AXIS] > MOVE_MODE_SINGLE_MOVE)
+			{
+				Printer::moveMode[Y_AXIS] = MOVE_MODE_SINGLE_STEPS;
+			}
+			refreshPage();
 
-#if FEATURE_AUTOMATIC_EEPROM_UPDATE
-        HAL::eprSetByte(EPR_RF_MOVE_MODE_Y,Printer::moveMode[Y_AXIS]);
-        EEPROM::updateChecksum();
-#endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
-    }
-    else if( menu[menuLevel] == &ui_menu_zpos )
-    {
-        Printer::moveMode[Z_AXIS] ++;
-        if( Printer::moveMode[Z_AXIS] > MOVE_MODE_50_MM )
-        {
-            Printer::moveMode[Z_AXIS] = MOVE_MODE_SINGLE_STEPS;
-        }
-        refreshPage();
+	#if FEATURE_AUTOMATIC_EEPROM_UPDATE
+			HAL::eprSetByte(EPR_RF_MOVE_MODE_Y, Printer::moveMode[Y_AXIS]);
+			EEPROM::updateChecksum();
+	#endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
+		}
+		else if (menu[menuLevel] == &ui_menu_zpos)
+		{
+			Printer::moveMode[Z_AXIS] ++;
+			if (Printer::moveMode[Z_AXIS] > MOVE_MODE_SINGLE_MOVE)
+			{
+				Printer::moveMode[Z_AXIS] = MOVE_MODE_SINGLE_STEPS;
+			}
+			refreshPage();
 
-#if FEATURE_AUTOMATIC_EEPROM_UPDATE
-        HAL::eprSetByte(EPR_RF_MOVE_MODE_Z,Printer::moveMode[Z_AXIS]);
-        EEPROM::updateChecksum();
-#endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
-    }
+	#if FEATURE_AUTOMATIC_EEPROM_UPDATE
+			HAL::eprSetByte(EPR_RF_MOVE_MODE_Z, Printer::moveMode[Z_AXIS]);
+			EEPROM::updateChecksum();
+	#endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
+		}
 #endif // UI_HAS_KEYS==1
 #if FEATURE_SENSIBLE_PRESSURE
     }
@@ -4699,11 +4749,23 @@ void UIDisplay::executeAction(int action)
             }
 #endif // FEATURE_24V_FET_OUTPUTS
 
-            case UI_ACTION_CONFIG_SINGLE_STEPS:
-            {
-                configureMANUAL_STEPS_Z( 1 );
-                break;
-            }
+			case UI_ACTION_CONFIG_SINGLE_STEPS:
+			{
+				configureMANUAL_STEPS_Z(1);
+				break;
+			}
+
+			case UI_ACTION_CONFIG_SINGLE_STEPS_KOSYS:
+			{
+				if (Printer::moveKosys)   Printer::moveKosys = false;
+				else                      Printer::moveKosys = true;
+
+#if FEATURE_AUTOMATIC_EEPROM_UPDATE
+				HAL::eprSetByte(EPR_RF_MOVE_MODE_XY_KOSYS, Printer::moveKosys);
+				EEPROM::updateChecksum();
+#endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
+				break;
+			}
 
 #if FEATURE_MILLING_MODE
             case UI_ACTION_OPERATING_MODE:

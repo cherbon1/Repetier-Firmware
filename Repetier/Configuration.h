@@ -280,14 +280,6 @@ Overridden if EEPROM activated. */
 #define DIRECT_FEEDRATE_Z                   9
 #define DIRECT_FEEDRATE_E                   25
 
-/** \brief Set order of axis homing. Use HOME_ORDER_XYZ and replace XYZ with your order. */
-#if FEATURE_MILLING_MODE
-#define HOMING_ORDER_PRINT              HOME_ORDER_XYZ           //if you work with springloaded hotend or positive Z-Matrix home Z last! You might otherwise hit the surface.
-#define HOMING_ORDER_MILL               HOME_ORDER_ZXY
-#else
-#define HOMING_ORDER_PRINT              HOME_ORDER_XYZ           //if you work with springloaded hotend or positive Z-Matrix home Z last!! You might otherwise hit the surface.
-#endif // FEATURE_MILLING_MODE
-
 /** \brief If you have a backlash in both z-directions, you can use this. For most printer, the bed will be pushed down by it's
 own weight, so this is nearly never needed. */
 #define ENABLE_BACKLASH_COMPENSATION        false
