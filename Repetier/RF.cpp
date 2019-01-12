@@ -3623,11 +3623,6 @@ void showAbortScanReason(const void* scanName, char abortScanIdentifier) {
 		showError(scanName, PSTR("Bug SOS"));
 		break;
 	}
-	case SCAN_ABORT_REASON_SCAN_STEP_DELTA_OUT_OF_RANGE:
-	{
-		showError(scanName, PSTR("Bug DOOR"));
-		break;
-	}
 	case SCAN_ABORT_REASON_MATRIX_DIMENSION:
 	{
 		showError(scanName, PSTR("Bug MDO"));
@@ -3638,6 +3633,12 @@ void showAbortScanReason(const void* scanName, char abortScanIdentifier) {
 	case SCAN_ABORT_REASON_SCAN_TOO_UNEVEN:
 	{
 		showError(scanName, PSTR("Uneven bed, dirt"), PSTR("hole, bad ground"));
+		break;
+	}
+	case SCAN_ABORT_REASON_SCAN_STEP_DELTA_OUT_OF_RANGE:
+	{
+		//Möglich, Fehler trat auf, als ich die Düse beim HBS ein Blatt Papier mitschleppen hab lassen.
+		showError(scanName, PSTR("Leftovers, snot"), PSTR("incrustation"));
 		break;
 	}
 
