@@ -524,6 +524,37 @@ extern const char   ui_text_sensor_error[]          PROGMEM;
 extern const char   ui_text_heater_error[]          PROGMEM;
 extern const char   ui_text_saving_success[]        PROGMEM;
 
+// Geplantes Canceling
+#define SCAN_ABORT_REASON_CANCELED  1
+#define SCAN_ABORT_REASON_PRINTER_LONELY  2
+
+// Kabelbruch, Extruder verspannt, Stecker wackelig, Ingress,...
+#define SCAN_ABORT_REASON_START_PRESSURE  3
+#define SCAN_ABORT_REASON_IDLE_PRESSURE  4
+#define SCAN_ABORT_REASON_AVERAGE_PRESSURE  5
+
+// Hinweise auf Bugs
+#define SCAN_ABORT_REASON_SCAN_OVER_START  6
+#define SCAN_ABORT_REASON_SCAN_STEP_DELTA_OUT_OF_RANGE  7
+#define SCAN_ABORT_REASON_MATRIX_DIMENSION  8
+
+// Löcher im Druckbett, Druckbett verdreckt, Mechanik problem, DDP schlecht geklebt
+#define SCAN_ABORT_REASON_SCAN_TOO_UNEVEN  9
+
+// Z-Schraube falsch, Origin-/Workpart-Scan gegen nichts, ??
+// _MAX_COMPENSATION und _ENDSTOP_PROTECTION deuten im Printermodus auf dasselbe hin, sind aber 2 unterschiedliche Stellen.
+#define SCAN_ABORT_REASON_MIN_ENDSTOP  10
+#define SCAN_ABORT_REASON_MAX_ENDSTOP  11
+#define SCAN_ABORT_REASON_REACHED_MAX_COMPENSATION  12
+#define SCAN_ABORT_REASON_REACHED_ENDSTOP_PROTECTION  13
+
+// Ungültige oder nicht vorhandene Z-Matrix
+#define SCAN_ABORT_REASON_MISSING_MATRIX  14
+// Softwaretechnisch ungültiges Ergebnis. Scan über 12+mm tief??
+#define SCAN_ABORT_REASON_OVERFLOWING_MATRIX  15
+// Anscheinend crashgefährliches Hardware-Software-Setting
+#define SCAN_ABORT_REASON_BAD_HEIGHT_MATRIX  16
+
 #if FEATURE_HEAT_BED_Z_COMPENSATION
 
 // determine the maximal needed size for the heat bed compensation
@@ -675,6 +706,8 @@ extern unsigned char    g_uRGBTargetB;
 extern void initRF( void );
 extern void initStrainGauge( void );
 extern short readStrainGauge( unsigned char uAddress );
+
+extern void showAbortScanReason(const void* scanName, char abortScanIdentifier);
 
 #if FEATURE_HEAT_BED_Z_COMPENSATION
 extern void startHeatBedScan( void );

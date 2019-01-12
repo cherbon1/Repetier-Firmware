@@ -6,6 +6,13 @@ TODO:
 # consider tuning in the shiftinterval value to a new perfect value
 # test arc-support while printing and not printing
 
+V 01.43.40.Mod (2019-01-12)
+- Hardening against user interaction while scans are working. Thx @nikibalboa
+- Added a check for "align extruders" to prevent homing while aligning
+- Added a check for all scans to prevent manual movement over menu / z-up-down-buttons
+- Z-Offset-Scan and other scans will now cleanly abort if z coordinates go underneath allowed Z-Overdrive (endstop protection). Thx @nikibalboa
+- All possible scan (Z-Offset, Matrix, Origin, Workpart, Align Extruders) errors should now have an error specific full screen display message
+
 V 01.43.39.Mod (2019-01-12)
 - z positioning using menu is always direct/offset move
 - xy positioning is now configurable via menu Position -> XY-Kosys: "GCODE" or "OFFSET"
