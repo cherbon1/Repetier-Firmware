@@ -311,9 +311,9 @@ public:
 		g_uPauseTime = 0;
 		g_pauseBeepDone = 0;
 
-		Commands::printCurrentPosition();
-
 		noInts.unprotect(); //HAL::allowInterrupts();
+
+		Commands::printCurrentPosition();
     } // disableXStepper
 
     /** \brief Disable stepper motor for y direction. */
@@ -346,9 +346,9 @@ public:
 		g_uPauseTime = 0;
 		g_pauseBeepDone = 0;
 
-		Commands::printCurrentPosition();
-
 		noInts.unprotect(); //HAL::allowInterrupts();
+
+		Commands::printCurrentPosition();
     } // disableYStepper
 
     /** \brief Disable stepper motor for z direction. */
@@ -403,10 +403,10 @@ public:
 		g_pauseMode = PAUSE_MODE_NONE;
 		g_uPauseTime = 0;
 		g_pauseBeepDone = 0;
+		
+		noInts.unprotect();
 
 		Commands::printCurrentPosition();
-
-		noInts.unprotect();
     } // disableZStepper
 
     /** \brief Enable stepper motor for x direction. */

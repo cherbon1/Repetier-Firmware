@@ -4645,7 +4645,6 @@ void UIDisplay::executeAction(int action)
                 }
                 exitmenu();
                 Printer::homeAxis(false,false,true);
-                Commands::printCurrentPosition();
                 break;
             }
             case UI_ACTION_SET_XY_ORIGIN:
