@@ -195,8 +195,8 @@ fail:
    *
    * LS_R - Recursive list of subdirectories.
    */
-  void ls(uint8_t flags = 0) {
-    vwd()->ls(flags);
+  bool ls(uint8_t flags = 0) {
+    return vwd()->ls(flags);
   }
   //----------------------------------------------------------------------------
   /** List the directory contents of a directory.
@@ -213,10 +213,9 @@ fail:
    *
    * LS_R - Recursive list of subdirectories.
    */
-  void ls(const char* path, uint8_t flags) {
+  bool ls(const char* path, uint8_t flags) {
     FatFile dir;
-    dir.open(vwd(), path, O_RDONLY);
-    dir.ls(flags);
+	return dir.open(vwd(), path, O_RDONLY) && dir.ls(flags);
   }
   //----------------------------------------------------------------------------
   /** Make a subdirectory in the volume working directory.

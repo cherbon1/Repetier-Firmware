@@ -1,10 +1,13 @@
 !!! This branch rightnow is highly experimental !!! 
 TODO:
-# test all offset scans
-# test or rework matrix scan
-# rest or rework milling functions
+# test if extrusion amount is still ok after retracts / G92 E0
+# test origin scan, workpart scan
+# test or rework milling functions
 # consider tuning in the shiftinterval value to a new perfect value
 # test arc-support while printing and not printing
+
+V 01.43.41.Mod (2019-01-12)
+- Update from SdFat 1.0.14 to 1.0.15 (however those changes wont affect us)
 
 V 01.43.40.Mod (2019-01-12)
 - Hardening against user interaction while scans are working. Thx @nikibalboa
