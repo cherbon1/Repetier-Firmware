@@ -116,6 +116,7 @@
 #define UI_TEXT_OK                      "Ok"
 #define UI_TEXT_FAIL                    "Fail"
 #define UI_TEXT_UPDATE                  "Update"
+#define UI_TEXT_UPDATE_MATRIX           "Rescan Z-Matrix!"
 #define UI_TEXT_EXTRUDER1_ADD           "Extruder 1 added"
 #define UI_TEXT_EXTRUDER1_REMOVED       "X-Axis increased"
 #define UI_TEXT_ABORT_KEYPRESSED        "Aborted by keys"
@@ -532,9 +533,13 @@
 #define UI_TEXT_YES                     "Ja"
 #define UI_TEXT_NO                      "Nein"
 #define UI_TEXT_OK                      "Ok"
-#define UI_TEXT_O_SCAN_NEEDFIX          "Z-Schraube tief"
 #define UI_TEXT_FAIL                    "Fail"
+#define UI_TEXT_UPDATE                  "Update"
+#define UI_TEXT_UPDATE_MATRIX           "Rescan Z-Matrix!"
+#define UI_TEXT_EXTRUDER1_ADD           "Extruder 1 added"
+#define UI_TEXT_EXTRUDER1_REMOVED       "X-Axis increased"
 #define UI_TEXT_ABORT_KEYPRESSED        "Aborted by keys"
+#define UI_TEXT_O_SCAN_NEEDFIX          "Z-Schraube tief"
 #define UI_TEXT_UP                      "Hoch"
 #define UI_TEXT_DOWN                    "Runter"
 #define UI_TEXT_SEL                     "\003"
@@ -784,15 +789,10 @@
 #define UI_TEXT_MICRO_STEPS_Z          "MicroStepsZ:%Xz"
 #define UI_TEXT_MICRO_STEPS_E          "MicroStepsE:%XE"
 
-#define UI_ACTION_TEXT_PESSEN_TIPP "(schnelle+ Hotends)" //19
-#define UI_ACTION_TEXT_CLASSICPID_TIPP "(schnelle Hotends)" //18
-#define UI_ACTION_TEXT_NO_TIPP "(hochleist. Bett)" //17
-#define UI_ACTION_TEXT_TYREUS_LYBEN_TIPP "(hochleist.+ Bett)" //18
-
-#define UI_ACTION_TEXT_PESSEN_TIPP          "(empf. f" STR_uuml "r Hotends)"
-#define UI_ACTION_TEXT_CLASSICPID_TIPP      "(alternat. f" STR_uuml "r Hotends)"
-#define UI_ACTION_TEXT_NO_TIPP              "(alternat. f" STR_uuml "r Bett)"
-#define UI_ACTION_TEXT_TYREUS_LYBEN_TIPP    "(empf. f" STR_uuml "r highpower Bett)"
+#define UI_ACTION_TEXT_PESSEN_TIPP       "(empf. f" STR_uuml "r Hotends)"
+#define UI_ACTION_TEXT_CLASSICPID_TIPP   "(alternat. f" STR_uuml "r Hotends)"
+#define UI_ACTION_TEXT_NO_TIPP           "(alternat. f" STR_uuml "r Bett)"
+#define UI_ACTION_TEXT_TYREUS_LYBEN_TIPP "(empf. f" STR_uuml "r highpower Bett)"
 
 #if MOTHERBOARD == DEVICE_TYPE_RF2000 || MOTHERBOARD == DEVICE_TYPE_RF2000v2
     #define UI_TEXT_WOBBLE_FIX_PHASEXY      "Phase XY: %wP\002"
