@@ -3441,9 +3441,12 @@ long getZMatrixDepth(long x, long y){
 }
 
 long getZMatrixDepth_CurrentXY(void){
+	// We need the current queue steps here. No Direct, No Offsets.
+	// We need to insert where the nozzle is, relative to 0 homing coordinate
+	// Because our RF2000 Matrix is 180mm width. That is the center of the bed. left and right are spaces. -> Center buildarea starts at 0 gcode coordinates and thats what we want.
     return getZMatrixDepth(
-		Printer::currentXSteps, 
-		Printer::currentYSteps
+		Printer::currentSteps[X_AXIS], 
+		Printer::currentSteps[Y_AXIS]
 	);
 }
 
@@ -3572,18 +3575,6 @@ void recalculateHeatBedZCompensation( void )
     Printer::compensatedPositionOverPercE    = nNeededZEPerc;
     noInts.unprotect();
 } // recalculateHeatBedZCompensation
-
-long getHeatBedOffset( void )
-{
-    if( !Printer::doHeatBedZCompensation && !g_nHeatBedScanStatus && !g_nZOSScanStatus ) //|| g_nZOSScanStatus brauche ich hier vermutlich nicht. Aber ich lasse es mal drin!
-    {
-        // we determine the offset to the scanned heat bed only in case the heat bed z compensation is active
-        return 0; //vermerk Nibbels: Beim HBS -> adjustCompensationMatrix -> short  deltaZ  = nZ - nOffset; -> mit offset ist das verfälscht!! --> return 0
-    }
-
-    //Funktion rechnet das Z-Matrix-Korrigierte Offset aus, an der exakten Stelle an der wir stehen.
-    return getZMatrixDepth_CurrentXY();
-} // getHeatBedOffset
 #endif // FEATURE_HEAT_BED_Z_COMPENSATION
 
 void showAbortScanReason(const void* scanName, char abortScanIdentifier) {
@@ -5712,7 +5703,7 @@ void adjustCompensationMatrix( short nZ )
 {
     short   x;
     short   y;
-    short   nOffset = getHeatBedOffset();
+    short   nOffset = getZMatrixDepth_CurrentXY();
     short   deltaZ  = nZ - nOffset;
 
     for( x=1; x<=g_uZMatrixMax[X_AXIS]; x++ )
@@ -9354,10 +9345,6 @@ void processCommand( GCode* pCommand )
 
                                     Com::printF( PSTR( "; cPSZ;" ), Printer::directCurrentSteps[Z_AXIS] );
 
-#if FEATURE_HEAT_BED_Z_COMPENSATION
-                                    Com::printF( PSTR( "; hbO;" ), getHeatBedOffset() );
-#endif // FEATURE_HEAT_BED_Z_COMPENSATION
-
 #if FEATURE_WORK_PART_Z_COMPENSATION
                                     Com::printF( PSTR( "; wpO;" ), getWorkPartOffset() );
 #endif // FEATURE_WORK_PART_Z_COMPENSATION
@@ -9377,10 +9364,6 @@ void processCommand( GCode* pCommand )
 #endif // FEATURE_FIND_Z_ORIGIN
 
                                     Com::printF( PSTR( "; cPSZ;" ), Printer::directCurrentSteps[Z_AXIS] / Printer::axisStepsPerMM[Z_AXIS] );
-
-#if FEATURE_HEAT_BED_Z_COMPENSATION
-                                    Com::printF( PSTR( "; hbO;" ), getHeatBedOffset() / Printer::axisStepsPerMM[Z_AXIS] );
-#endif // FEATURE_HEAT_BED_Z_COMPENSATION
 
 #if FEATURE_WORK_PART_Z_COMPENSATION
                                     Com::printF( PSTR( "; wpO;" ), getWorkPartOffset() / Printer::axisStepsPerMM[Z_AXIS] );

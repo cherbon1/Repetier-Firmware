@@ -732,7 +732,6 @@ extern long getZMatrixDepth( long x, long y );
 extern long getZMatrixDepth_CurrentXY( void );
 extern void recalculateHeatBedZCompensation( void );
 
-extern long getHeatBedOffset( void );
 extern void switchActiveHeatBed( char newActiveHeatBed );
 #endif // FEATURE_HEAT_BED_Z_COMPENSATION
 
