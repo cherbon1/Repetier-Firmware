@@ -11239,6 +11239,7 @@ void nextPreviousXAction( int8_t increment )
 			if (Printer::moveKosys == KOSYS_GCODE)
 			{
 				Printer::queueRelativeStepsCoordinates(steps, 0, 0, 0, Printer::homingFeedrate[X_AXIS], true, ALWAYS_CHECK_ENDSTOPS);
+				Commands::printCurrentPosition();
 			}
 			else /*if (Printer::moveKosys == KOSYS_DIRECTOFFSET) */
 			{
@@ -11264,6 +11265,7 @@ void nextPreviousXAction( int8_t increment )
 			if (Printer::moveKosys == KOSYS_GCODE)
 			{
 				Printer::queueRelativeMMCoordinates(distanceMM * increment, 0, 0, 0, Printer::homingFeedrate[X_AXIS], true, ALWAYS_CHECK_ENDSTOPS);
+				Commands::printCurrentPosition();
 			}
 			else /*if (Printer::moveKosys == KOSYS_DIRECTOFFSET) */
 			{
@@ -11331,6 +11333,7 @@ void nextPreviousYAction( int8_t increment )
 			if (Printer::moveKosys == KOSYS_GCODE)
 			{
 				Printer::queueRelativeStepsCoordinates(0, steps, 0, 0, Printer::homingFeedrate[Y_AXIS], true, ALWAYS_CHECK_ENDSTOPS);
+				Commands::printCurrentPosition();
 			}
 			else /*if (Printer::moveKosys == KOSYS_DIRECTOFFSET) */
 			{
@@ -11356,7 +11359,8 @@ void nextPreviousYAction( int8_t increment )
 
 			if (Printer::moveKosys == KOSYS_GCODE)
 			{
-				Printer::queueRelativeMMCoordinates(0, distanceMM * increment, 0, 0, Printer::homingFeedrate[Y_AXIS], true, ALWAYS_CHECK_ENDSTOPS);
+				Printer::queueRelativeMMCoordinates(0, distanceMM * increment, 0, 0, Printer::homingFeedrate[Y_AXIS], true, ALWAYS_CHECK_ENDSTOPS); 
+				Commands::printCurrentPosition();
 			}
 			else /*if (Printer::moveKosys == KOSYS_DIRECTOFFSET) */
 			{

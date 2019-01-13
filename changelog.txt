@@ -3,13 +3,15 @@ TODO:
 # test if extrusion amount is still ok after retracts / G92 E0
 # test origin scan, workpart scan
 # test or rework milling functions
-# consider tuning in the shiftinterval value to a new perfect value
 # test arc-support while printing and not printing
 
 V 01.43.43.Mod (2019-01-13)
 - fixed german translation text
 - fixed redefinition of some text (old version was not deleted once)
 - added hint to extruder switch message that a change of num_extruder raises the need of a new matrix scan.
+- cleanup of z-coordinate menu
+- cleanup of printCurrentPosition() function to show any host where the head is located
+- added printCurrentPosition() to gcode axis menu positioning (not to offset axis)
 
 V 01.43.42.Mod (2019-01-13)
 - fixed coordinate shift in zMatrix evaluation

@@ -55,10 +55,12 @@ List of placeholder:
 %x3 : X offset position
 %x4 : Y offset position
 %x5 : Z offset position
-%hx : X homed
-%hy : Y homed
-%hz : Z homed
-%ha : all homed
+%hx : X homed = *
+%hy : Y homed = *
+%hz : Z homed = *
+%hX : X homed (? or :)
+%hY : Y homed (? or :)
+%hZ : Z homed (? or :)
 %x6 : Current extruder position
 %sx : State of x min endstop
 %sX : State of x max endstop
@@ -231,15 +233,15 @@ for 2 row displays. You can add additional pages or change the default pages lik
 #if UI_ROWS>=4
     #if HAVE_HEATED_BED==true
         #if UI_COLS<=16
-            UI_PAGE4(ui_page1,"%U1%ec/%EcB%eb/%Eb%U2","Z:%x2 mm %sC%hz",UI_TEXT_STRAIN_GAUGE,"%os")
+            UI_PAGE4(ui_page1,"%U1%ec/%EcB%eb/%Eb%U2","Z%hZ%x2%x5%sC",UI_TEXT_STRAIN_GAUGE,"%os")
         #else
-            UI_PAGE4(ui_page1,"%U1%ec/%Ec\002 B%eb/%Eb\002%U2","Z:%x2 mm %sC%hz",UI_TEXT_STRAIN_GAUGE,"%os")
+            UI_PAGE4(ui_page1,"%U1%ec/%Ec\002 B%eb/%Eb\002%U2","Z%hZ%x2%x5 %sC",UI_TEXT_STRAIN_GAUGE,"%os")
         #endif // UI_COLS<=16
     #else
-        UI_PAGE4(ui_page1,UI_TEXT_PAGE_EXTRUDER,"Z:%x2 mm %sC%hz",UI_TEXT_STRAIN_GAUGE,"%os")
+        UI_PAGE4(ui_page1,UI_TEXT_PAGE_EXTRUDER,"Z%hZ%x2%x5 %sC",UI_TEXT_STRAIN_GAUGE,"%os")
     #endif // HAVE_HEATED_BED==true
 
-    UI_PAGE4(ui_page2,"X%hx%x0 %x3mm","Y%hy%x1 %x4mm","Z%hz%x2%x5mm%sC","%os")
+    UI_PAGE4(ui_page2,"X%hX%x0 %x3mm","Y%hY%x1 %x4mm","Z%hZ%x2%x5%sC","%os")
 
     #if NUM_EXTRUDER>1
         UI_PAGE4(ui_page3,UI_TEXT_PAGE_EXTRUDER1,UI_TEXT_PAGE_EXTRUDER2,UI_TEXT_PAGE_BED,"%os")
@@ -270,12 +272,12 @@ for 2 row displays. You can add additional pages or change the default pages lik
         UI_PAGE4(ui_page_mod,UI_TEXT_STRAIN_GAUGE_SPEED,
                         "zO: %z0um zM: %HB",
                         "sO: %sSum%sM",
-                        "Z: %x2mm %sC%hz")
+                        "Z%hZ%x2%x5 %sC")
     #else
         UI_PAGE4(ui_page_mod,UI_TEXT_STRAIN_GAUGE_SPEED,
                         "zO: %z0 um zMat: %HB",
                         "sO: %sS um %sM",
-                        "Z: %x2 mm %sC%hz")
+                        "Z%hZ %x2%x5 %sC")
     #endif
     #define UI_MOD_PAGES , &ui_page_mod
     #define UI_MOD_COUNT 1

@@ -15,6 +15,7 @@
     along with Repetier-Firmware.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "Commands.h"
 
 #ifndef PRINTER_H
 #define PRINTER_H
@@ -310,6 +311,8 @@ public:
 		g_uPauseTime = 0;
 		g_pauseBeepDone = 0;
 
+		Commands::printCurrentPosition();
+
 		noInts.unprotect(); //HAL::allowInterrupts();
     } // disableXStepper
 
@@ -342,6 +345,8 @@ public:
 		g_pauseMode = PAUSE_MODE_NONE;
 		g_uPauseTime = 0;
 		g_pauseBeepDone = 0;
+
+		Commands::printCurrentPosition();
 
 		noInts.unprotect(); //HAL::allowInterrupts();
     } // disableYStepper
@@ -398,6 +403,8 @@ public:
 		g_pauseMode = PAUSE_MODE_NONE;
 		g_uPauseTime = 0;
 		g_pauseBeepDone = 0;
+
+		Commands::printCurrentPosition();
 
 		noInts.unprotect();
     } // disableZStepper
@@ -1102,13 +1109,9 @@ public:
 		Printer::currentSteps[Z_AXIS] = z;
 		Printer::destinationMMLast[Z_AXIS] = Printer::destinationMM[Z_AXIS] = z * axisMMPerSteps[Z_AXIS];
 	}
-	static INLINE void setAxisMM(uint8_t axis, float mm) {
-		Printer::currentSteps[axis] = mm * axisStepsPerMM[axis];
-		Printer::destinationMMLast[axis] = Printer::destinationMM[axis] = mm;
-	}
-
 	static INLINE void setEAxisSteps(int32_t e) {
 		//G92 Ex:
+		// Vorsicht, currentSteps[E_AXIS] wäre Overflow.
 		Printer::destinationMMLast[E_AXIS] = Printer::destinationMM[E_AXIS] = e * axisMMPerSteps[E_AXIS];
 	}
 

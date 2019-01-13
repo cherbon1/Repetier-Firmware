@@ -1974,7 +1974,6 @@ long PrintLine::performMove(PrintLine* move, char forQueue)
 			Printer::stopDirectAxis(E_AXIS);
             move->stepsRemaining = 0;
             move->task           = TASK_NO_TASK;
-            Commands::printCurrentPosition();
         }
 
         char    nIdle = 1;

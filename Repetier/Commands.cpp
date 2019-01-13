@@ -139,9 +139,11 @@ void Commands::waitUntilEndOfAllMoves()
 
 void Commands::printCurrentPosition()
 {
-	//TODO: Stimmt das ??
-	float x = Printer::currentXSteps * Printer::axisMMPerSteps[X_AXIS];
-	float y = Printer::currentYSteps * Printer::axisMMPerSteps[Y_AXIS];
+	// Wir zeigen dem Repetier-Host wo wir gerade stehen.
+	// Hier ist die reine GCode-Position interessant, sonst würde das Einrechnen des GCode-Origin auch keinen Sinn machen.
+	float x = Printer::currentSteps[X_AXIS] * Printer::axisMMPerSteps[X_AXIS];
+	float y = Printer::currentSteps[Y_AXIS] * Printer::axisMMPerSteps[Y_AXIS];
+	// Z bleibt ein Sonderfall. Normalerweise auch hier GCode-Position
 	float z = Printer::currentZPositionMM();
 
     x += Printer::originOffsetMM[X_AXIS];

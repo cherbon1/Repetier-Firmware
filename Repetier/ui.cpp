@@ -1101,25 +1101,33 @@ void UIDisplay::parse(char *txt,bool ram)
             }
             case 'h':
             {
-                if(c2=='x' && col<MAX_COLS)                                                                             // %hx : x homed
-                {
-                    if(Printer::flag3 & PRINTER_FLAG3_X_HOMED) printCols[col++]=' ';
+				if (c2 == 'x' && col<MAX_COLS)                                                                                  // %hx : x homed
+				{
+					if (Printer::flag3 & PRINTER_FLAG3_X_HOMED) printCols[col++] = '*';
+				}
+				else if (c2 == 'y' && col<MAX_COLS)                                                                             // %hy : y homed
+				{
+					if (Printer::flag3 & PRINTER_FLAG3_Y_HOMED) printCols[col++] = '*';
+				}
+				else if (c2 == 'z' && col<MAX_COLS)                                                                             // %hz : z homed
+				{
+					if (Printer::flag3 & PRINTER_FLAG3_Z_HOMED) printCols[col++] = '*';
+				}
+				else if (c2 == 'X' && col<MAX_COLS)                                                                             // %hX : x homed
+				{
+					if (Printer::flag3 & PRINTER_FLAG3_X_HOMED) printCols[col++] = ':';
 					else printCols[col++] = '?';
-                }
-                else if(c2=='y' && col<MAX_COLS)                                                                             // %hy : y homed
-                {
-                    if(Printer::flag3 & PRINTER_FLAG3_Y_HOMED) printCols[col++]=' ';
+				}
+				else if (c2 == 'Y' && col<MAX_COLS)                                                                             // %hY : y homed
+				{
+					if (Printer::flag3 & PRINTER_FLAG3_Y_HOMED) printCols[col++] = ':';
 					else printCols[col++] = '?';
-                }
-                else if(c2=='z' && col<MAX_COLS)                                                                             // %hz : z homed
-                {
-                    if(Printer::flag3 & PRINTER_FLAG3_Z_HOMED) printCols[col++]=' ';
+				}
+				else if (c2 == 'Z' && col<MAX_COLS)                                                                             // %hZ : z homed
+				{
+					if (Printer::flag3 & PRINTER_FLAG3_Z_HOMED) printCols[col++] = ':';
 					else printCols[col++] = '?';
-                }
-                else if(c2=='a' && col<MAX_COLS)                                                                             // %ha : all homed
-                {
-                    if(Printer::flag3 & PRINTER_FLAG3_X_HOMED && Printer::flag3 & PRINTER_FLAG3_Y_HOMED && Printer::flag3 & PRINTER_FLAG3_Z_HOMED) printCols[col++]='*';
-                }
+				}
                 break;
             }
             case 'l':
@@ -1475,7 +1483,10 @@ void UIDisplay::parse(char *txt,bool ram)
 						else
 						{
 							// Wenn nur CurrentSteps[Z_AXIS] ausgegeben wird, ist auch interssant, viel die differenz aller anderer versätze ist:
-							if (Printer::ZMode != Z_VALUE_MODE_Z_MIN) { //->Z_VALUE_MODE_LAYER
+							if (Printer::ZMode == Z_VALUE_MODE_Z_MIN) { //->Z_VALUE_MODE_LAYER
+								if (col<MAX_COLS) printCols[col++] = 'm';
+								if (col<MAX_COLS) printCols[col++] = 'm';
+							} else {
 								fvalue = (Printer::currentZSteps - Printer::currentSteps[Z_AXIS]) * Printer::axisMMPerSteps[Z_AXIS];
 								if (col<MAX_COLS) printCols[col++] = ' ';
 								addFloat(fvalue, 3, 2);
@@ -4572,7 +4583,6 @@ void UIDisplay::executeAction(int action)
                 }
                 exitmenu();
                 Printer::homeAxis(true,true,true);
-                Commands::printCurrentPosition();
                 break;
             }
             case UI_ACTION_HOME_X:
@@ -4594,7 +4604,6 @@ void UIDisplay::executeAction(int action)
                 }
                 exitmenu();
                 Printer::homeAxis(true,false,false);
-                Commands::printCurrentPosition();
                 break;
             }
             case UI_ACTION_HOME_Y:
@@ -4616,7 +4625,6 @@ void UIDisplay::executeAction(int action)
                 }
                 exitmenu();
                 Printer::homeAxis(false,true,false);
-                Commands::printCurrentPosition();
                 break;
             }
             case UI_ACTION_HOME_Z:
