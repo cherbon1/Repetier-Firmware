@@ -3169,7 +3169,7 @@ void startViscosityTest( int maxdigits = 10000, float maxfeedrate = 5.0f, float 
             break;
         }
     }
-
+#if SDSUPPORT
     if(sd.sdactive){
         char filename[] = "Visco000.csv"; //000 wird überschrieben mit zahl
         for(uint8_t z = 0; z < 255; z++){
@@ -3187,15 +3187,17 @@ void startViscosityTest( int maxdigits = 10000, float maxfeedrate = 5.0f, float 
         }
         sd.startWrite(filename);
     }
-
+#endif
     Com::printFLN( PSTR( "CSV-Logfile:START" ) );
 
     Com::printFLN( PSTR( ";Testing Filament..." ) );
     Com::printFLN( PSTR( ";Temperature [°C];e [mm/s];digits [1]" ) );
+#if SDSUPPORT
     if(sd.savetosd){
 		sd.writePSTR( PSTR( ";Temperature [°C];e [mm/s];digits [1]" ) );
         sd.writePSTR( Com::tNewline );
 	}
+#endif
     for(float T = (float)StartTemp; T <= EndTemp; ){
         //@Init the Temp is reached by preheat!
         for(float e=0.05; e<=maxfeedrate; e+=incrementfeedrate) { //iterate all points
@@ -3215,6 +3217,7 @@ void startViscosityTest( int maxdigits = 10000, float maxfeedrate = 5.0f, float 
             Com::printF( Com::tSemiColon, e, 3 , true ); //true = dezimalkomma, nicht punkt. Wegen Excel.
             Com::printFLN( Com::tSemiColon, extrudedigits );
 
+#if SDSUPPORT
             if(sd.savetosd){
                 sd.file.write((uint8_t)';');
 				/* float -> printField(float value, char term, uint8_t prec = 2) */
@@ -3226,6 +3229,7 @@ void startViscosityTest( int maxdigits = 10000, float maxfeedrate = 5.0f, float 
                 sd.file.printField(extrudedigits, 0);
                 sd.writePSTR(Com::tNewline);
             }
+#endif
 
             if(extrudedigits < g_nCurrentIdlePressure - maxdigits || extrudedigits > g_nCurrentIdlePressure + maxdigits || extrudedigits < -maxdigits || extrudedigits > maxdigits) {
 				Printer::queueRelativeMMCoordinates( 0, 0, 0, -0.5, 10, true, true ); //loose some force on dms
@@ -3260,7 +3264,9 @@ void startViscosityTest( int maxdigits = 10000, float maxfeedrate = 5.0f, float 
     Com::printFLN( PSTR( "CSV-Logfile:ENDE" ) );
     Com::printFLN( PSTR( "Copy and save this Log to *.csv-File for Excel." ) );
 
+#if SDSUPPORT
     sd.finishWrite();
+#endif
 
     if(StartTemp > 0) Extruder::setTemperatureForExtruder( 0, Extruder::current->id, true ); //wir schalten aus, aber auch wieder an.
     UI_STATUS_UPD( UI_TEXT_TEST_STRAIN_GAUGE_DONE ); //gives "Test Completed"

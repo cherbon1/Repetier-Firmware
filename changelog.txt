@@ -5,6 +5,9 @@ TODO:
 # test or rework milling functions
 # test arc-support while printing and not printing
 
+V 01.43.44.Mod (2019-01-13)
+- fix compilation errors when sdsupport is disabled with enabled sensibleviscosity feature. Thx @zero K
+
 V 01.43.43.Mod (2019-01-13)
 - fixed german translation text
 - fixed redefinition of some text (old version was not deleted once)
