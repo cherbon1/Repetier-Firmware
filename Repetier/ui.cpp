@@ -1403,8 +1403,7 @@ void UIDisplay::parse(char *txt,bool ram)
 
                 ivalue=(ivalue*100)/255;
                 addInt(ivalue,3);
-                if(col<MAX_COLS)
-                    printCols[col++]='%';
+                if (col < MAX_COLS) printCols[col++] = '%';
                 break;
             }
             case 'x':

@@ -524,12 +524,12 @@ void Printer::queueFloatCoordinates(float x, float y, float z, float e, float fe
 
 
   /** \brief Move printer the given number of steps. Puts the move into the queue. Used by e.g. homing commands. */
-void Printer::queueRelativeStepsCoordinates(long x, long y, long z, long e, float feedrate, bool waitEnd, bool checkEndstop)
+void Printer::queueRelativeStepsCoordinates(long dx, long dy, long dz, long de, float feedrate, bool waitEnd, bool checkEndstop)
 {
-	destinationMM[X_AXIS] += x * axisMMPerSteps[X_AXIS];
-	destinationMM[Y_AXIS] += y * axisMMPerSteps[Y_AXIS];
-	destinationMM[Z_AXIS] += z * axisMMPerSteps[Z_AXIS];
-	destinationMM[E_AXIS] += e * axisMMPerSteps[E_AXIS];
+	destinationMM[X_AXIS] += dx * axisMMPerSteps[X_AXIS];
+	destinationMM[Y_AXIS] += dy * axisMMPerSteps[Y_AXIS];
+	destinationMM[Z_AXIS] += dz * axisMMPerSteps[Z_AXIS];
+	destinationMM[E_AXIS] += de * axisMMPerSteps[E_AXIS];
 
 	PrintLine::prepareQueueMove(checkEndstop, !waitEnd, feedrate);
 	
@@ -539,12 +539,12 @@ void Printer::queueRelativeStepsCoordinates(long x, long y, long z, long e, floa
 } // queueRelativeStepsCoordinates
 
 /** \brief Move printer the given number of mm. Puts the move into the queue. */
-void Printer::queueRelativeMMCoordinates(float x, float y, float z, float e, float feedrate, bool waitEnd, bool checkEndstop)
+void Printer::queueRelativeMMCoordinates(float dx, float dy, float dz, float de, float feedrate, bool waitEnd, bool checkEndstop)
 {
-	destinationMM[X_AXIS] += x;
-	destinationMM[Y_AXIS] += y;
-	destinationMM[Z_AXIS] += z;
-	destinationMM[E_AXIS] += e;
+	destinationMM[X_AXIS] += dx;
+	destinationMM[Y_AXIS] += dy;
+	destinationMM[Z_AXIS] += dz;
+	destinationMM[E_AXIS] += de;
 
 	PrintLine::prepareQueueMove(checkEndstop, !waitEnd, feedrate);
 
@@ -1069,8 +1069,7 @@ void Printer::setup()
 #if FEATURE_MEMORY_POSITION
 void Printer::MemoryPosition()
 {
-    //https://github.com/repetier/Repetier-Firmware/blob/652d86aa5ad778222cab738f4448f6495bb85245/src/ArduinoAVR/Repetier/Printer.cpp#L1309
-    Commands::waitUntilEndOfAllMoves(); //MemoryPosition: Repetier hat hier schon geupdated aber alles auf CURRENT nicht auf LAST position? Macht das einen Unterschied?
+    Commands::waitUntilEndOfAllMoves(); 
 
 	Printer::memoryX = Printer::destinationMM[X_AXIS];
 	Printer::memoryY = Printer::destinationMM[Y_AXIS];

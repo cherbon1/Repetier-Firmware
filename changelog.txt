@@ -1,4 +1,6 @@
 !!! This branch rightnow is highly experimental !!! 
+# extrusion is not working well rightnow
+
 TODO:
 # test if extrusion amount is still ok after retracts / G92 E0
 # test origin scan, workpart scan
