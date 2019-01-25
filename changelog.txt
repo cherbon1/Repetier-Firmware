@@ -2,10 +2,21 @@
 # extrusion is not working well rightnow
 
 TODO:
+# milling mode: buttons for retract should steer speed
+# milling mode: feedrate should be visible within milling menu
+# printing mode: extrusion over digits protection should be avoided, cold extrusion limit removed. A boolean should unlock interrupt extrusion globally.
+# rethink const wait time on warmup because we have good PID controll these days.
+# multistepping within advance int
+# maybe acceleration smoothing
 # test if extrusion amount is still ok after retracts / G92 E0
 # test origin scan, workpart scan
 # test or rework milling functions
 # test arc-support while printing and not printing
+
+V 01.43.45.Mod (2019-01-13)
+- some minor refactoring
+- some interrupt protection
+- some more cleancode
 
 V 01.43.44.Mod (2019-01-13)
 - fix compilation errors when sdsupport is disabled with enabled sensibleviscosity feature. Thx @zero K

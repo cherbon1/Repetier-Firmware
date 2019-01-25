@@ -433,17 +433,31 @@ void Printer::addKurtWobbleFixOffset(bool absoluteXYCoordinates)
 #endif // FEATURE_Kurt67_WOBBLE_FIX
 
 inline bool isExtrusionAllowed(float Ecoordinate) {
-	return (
 #if MIN_EXTRUDER_TEMP > 30
-		Extruder::current->tempControl.currentTemperatureC >= MIN_EXTRUDER_TEMP &&
+	if (Extruder::current->tempControl.currentTemperatureC < MIN_EXTRUDER_TEMP) {
+		Com::printFLN(PSTR("No E: 1"));
+		return false;
+	}
 #endif // MIN_EXTRUDER_TEMP > 30
-		fabs(Ecoordinate) * Printer::menuExtrusionFactor
+
 #if FEATURE_DIGIT_FLOW_COMPENSATION
-		* Printer::dynamicExtrusionFactor
+	if (fabs(Ecoordinate) * Printer::menuExtrusionFactor * Printer::dynamicExtrusionFactor > EXTRUDE_MAXLENGTH) {
+		Com::printFLN(PSTR("No E: 21"));
+		return false;
+	}
+#else
+	if (fabs(Ecoordinate) * Printer::menuExtrusionFactor > EXTRUDE_MAXLENGTH) {
+		Com::printFLN(PSTR("No E: 22"));
+		return false;
+	}
 #endif // FEATURE_DIGIT_FLOW_COMPENSATION
-		<= EXTRUDE_MAXLENGTH
-		&& !Printer::debugDryrun()
-		);
+
+	if (Printer::debugDryrun()) {
+		Com::printFLN(PSTR("No E: 3"));
+		return false;
+	}
+
+	return true;
 }
 
 /**
@@ -458,6 +472,8 @@ For the computation of the destination, the following facts are considered:
 */
 bool Printer::queueGCodeCoordinates(GCode *com)
 {
+	InterruptProtectedBlock noInts;
+	bool isXYZMove = !com->hasNoXYZ();
 	if (relativeCoordinateMode)
 	{
 		if (com->hasX()) destinationMM[X_AXIS] += convertToMM(com->X);
@@ -470,13 +486,12 @@ bool Printer::queueGCodeCoordinates(GCode *com)
 		if (com->hasY()) destinationMM[Y_AXIS] = convertToMM(com->Y) - Printer::originOffsetMM[Y_AXIS];
 		if (com->hasZ()) destinationMM[Z_AXIS] = convertToMM(com->Z) - Printer::originOffsetMM[Z_AXIS];
 	}
+	noInts.unprotect();
 
-#if FEATURE_Kurt67_WOBBLE_FIX
-	addKurtWobbleFixOffset(relativeCoordinateMode);
-#endif // FEATURE_Kurt67_WOBBLE_FIX
-
-	if (com->hasE() && isExtrusionAllowed(com->E))
+	bool isEMove = com->hasE() && isExtrusionAllowed(com->E);
+	if (isEMove)
 	{
+		noInts.protect();
 		if (relativeCoordinateMode || relativeExtruderCoordinateMode)
 		{
 			destinationMM[E_AXIS] += convertToMM(com->E);
@@ -485,6 +500,7 @@ bool Printer::queueGCodeCoordinates(GCode *com)
 		{
 			destinationMM[E_AXIS] = convertToMM(com->E);
 		}
+		noInts.unprotect();
 	}
 
 	if (com->hasF())
@@ -495,7 +511,21 @@ bool Printer::queueGCodeCoordinates(GCode *com)
 			Printer::feedrate = com->F * (float)Printer::feedrateMultiply * 0.00016666666f;
 	}
 
-	return !com->hasNoXYZ() || com->hasE(); // ignore unproductive moves
+#if FEATURE_Kurt67_WOBBLE_FIX
+	if (isXYZMove) {
+		addKurtWobbleFixOffset(relativeCoordinateMode);
+	}
+#endif // FEATURE_Kurt67_WOBBLE_FIX
+
+	if (isXYZMove || isEMove)
+	{
+		PrintLine::prepareQueueMove(ALWAYS_CHECK_ENDSTOPS, true, Printer::feedrate);
+
+		return true;
+	}
+
+	// report back moves which do not turn steppers
+	return false;
 } // queueGCodeCoordinates
 
 /** 
@@ -506,6 +536,7 @@ bool Printer::queueGCodeCoordinates(GCode *com)
  */
 void Printer::queueFloatCoordinates(float x, float y, float z, float e, float feedrate)
 {
+	InterruptProtectedBlock noInts;
     if (x == IGNORE_COORDINATE) x = destinationMM[X_AXIS];
     if (y == IGNORE_COORDINATE) y = destinationMM[Y_AXIS];
 	if (z == IGNORE_COORDINATE) z = destinationMM[Z_AXIS];
@@ -516,6 +547,7 @@ void Printer::queueFloatCoordinates(float x, float y, float z, float e, float fe
 	destinationMM[Y_AXIS] = y;
 	destinationMM[Z_AXIS] = z;
 	destinationMM[E_AXIS] = e;
+	noInts.unprotect();
 
     PrintLine::prepareQueueMove(ALWAYS_CHECK_ENDSTOPS, true, feedrate);
 
@@ -526,10 +558,12 @@ void Printer::queueFloatCoordinates(float x, float y, float z, float e, float fe
   /** \brief Move printer the given number of steps. Puts the move into the queue. Used by e.g. homing commands. */
 void Printer::queueRelativeStepsCoordinates(long dx, long dy, long dz, long de, float feedrate, bool waitEnd, bool checkEndstop)
 {
+	InterruptProtectedBlock noInts;
 	destinationMM[X_AXIS] += dx * axisMMPerSteps[X_AXIS];
 	destinationMM[Y_AXIS] += dy * axisMMPerSteps[Y_AXIS];
 	destinationMM[Z_AXIS] += dz * axisMMPerSteps[Z_AXIS];
 	destinationMM[E_AXIS] += de * axisMMPerSteps[E_AXIS];
+	noInts.unprotect();
 
 	PrintLine::prepareQueueMove(checkEndstop, !waitEnd, feedrate);
 	
@@ -541,10 +575,12 @@ void Printer::queueRelativeStepsCoordinates(long dx, long dy, long dz, long de, 
 /** \brief Move printer the given number of mm. Puts the move into the queue. */
 void Printer::queueRelativeMMCoordinates(float dx, float dy, float dz, float de, float feedrate, bool waitEnd, bool checkEndstop)
 {
+	InterruptProtectedBlock noInts;
 	destinationMM[X_AXIS] += dx;
 	destinationMM[Y_AXIS] += dy;
 	destinationMM[Z_AXIS] += dz;
 	destinationMM[E_AXIS] += de;
+	noInts.unprotect();
 
 	PrintLine::prepareQueueMove(checkEndstop, !waitEnd, feedrate);
 
@@ -989,6 +1025,14 @@ void Printer::setup()
     HAL::showStartReason();
     Extruder::initExtruder();
 
+#if HEATED_BED_HEATER_PIN>-1
+	SET_OUTPUT(HEATED_BED_HEATER_PIN);
+	WRITE(HEATED_BED_HEATER_PIN, HEATER_PINS_INVERTED);
+	Extruder::initHeatedBed();
+#endif // HEATED_BED_HEATER_PIN>-1
+
+	HAL::analogStart();
+
     // configure all DRV8711
     drv8711Init();
 
@@ -1058,11 +1102,6 @@ void Printer::setup()
     g_unlock_movement = 0;
 #endif //FEATURE_UNLOCK_MOVEMENT
 
-    // FEATURE_WATCHDOG
-    if( Printer::debugInfo() )
-    {
-        Com::printFLN(Com::tStartWatchdog);
-    }
     HAL::startWatchdog();
 } // setup()
 

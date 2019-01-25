@@ -705,6 +705,31 @@ ISR(WDT_vect)
     execute16msPeriodical = 1; //Tell commandloop that 16ms have passed
 }
 
+// Watchdog support FEATURE_WATCHDOG
+void HAL::startWatchdog()
+{
+	Com::printFLN(Com::tStartWatchdog);
+	// external watchdog
+	SET_OUTPUT(WATCHDOG_PIN);
+	g_bPingWatchdog = 1; //allow pinging
+	tellWatchdogOk(); //Nibbels: Init für g_uLastCommandLoop
+	pingWatchdog(); //Nibbels: Hier macht der mehr sinn!
+	HAL::WDT_Init(); //Nibbels: use watchdogtimer to test var and trigger
+} // startWatchdog
+
+void HAL::stopWatchdog()
+{
+	g_bPingWatchdog = 0; //disallow pinging
+						 // external watchdog
+	WRITE(WATCHDOG_PIN, LOW); //Nibbels: In case you stop the watchdog it has to be set floating. thatwhy disable internal pullup as this will make the state like OUTPUT-high. This is not really needed as this function does not do anything when starting the arduino. rightnow at start it sets a pin to input which is already input.
+	SET_INPUT(WATCHDOG_PIN);
+} // stopWatchdog
+
+void HAL::tellWatchdogOk()
+{
+	g_uLastCommandLoop = HAL::timeInMilliseconds();
+} // pingWatchdog
+
 // ================== Interrupt handling ======================
 /** \brief Sets the timer 1 compare value to delay ticks.
 This function sets the OCR1A compare counter to get the next interrupt

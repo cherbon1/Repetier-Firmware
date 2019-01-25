@@ -347,15 +347,6 @@ void Extruder::initExtruder()
         act->tempControl.lastTemperatureUpdate = HAL::timeInMilliseconds();
         act->tempControl.updateTempControlVars();
     }
-
-#if HEATED_BED_HEATER_PIN>-1
-    SET_OUTPUT(HEATED_BED_HEATER_PIN);
-    WRITE(HEATED_BED_HEATER_PIN,HEATER_PINS_INVERTED);
-    Extruder::initHeatedBed();
-#endif // HEATED_BED_HEATER_PIN>-1
-
-    HAL::analogStart();
-
 } // initExtruder
 
 

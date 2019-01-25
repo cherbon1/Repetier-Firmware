@@ -727,29 +727,9 @@ public:
     static void WDT_Init(void);
 
     // Watchdog support FEATURE_WATCHDOG
-    inline static void startWatchdog()
-    {
-        // external watchdog
-        SET_OUTPUT(WATCHDOG_PIN);
-        g_bPingWatchdog = 1; //allow pinging
-        tellWatchdogOk(); //Nibbels: Init für g_uLastCommandLoop
-        pingWatchdog(); //Nibbels: Hier macht der mehr sinn!
-        HAL::WDT_Init(); //Nibbels: use watchdogtimer to test var and trigger
-    } // startWatchdog
-
-    inline static void stopWatchdog()
-    {
-        g_bPingWatchdog = 0; //disallow pinging
-        // external watchdog
-        WRITE(WATCHDOG_PIN,LOW); //Nibbels: In case you stop the watchdog it has to be set floating. thatwhy disable internal pullup as this will make the state like OUTPUT-high. This is not really needed as this function does not do anything when starting the arduino. rightnow at start it sets a pin to input which is already input.
-        SET_INPUT(WATCHDOG_PIN);
-    } // stopWatchdog
-
-    inline static void tellWatchdogOk()
-    {
-        g_uLastCommandLoop = HAL::timeInMilliseconds();
-    } // pingWatchdog
-
+	static void startWatchdog();
+	static void stopWatchdog();
+	static void tellWatchdogOk();
     inline static void pingWatchdog()
     {
         if( !g_bPingWatchdog )

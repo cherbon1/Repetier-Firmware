@@ -407,24 +407,13 @@ void Commands::executeGCode(GCode *com)
       switch(com->G)
       {
         case 0: // G0 -> G1
-        {
-            if(!isMovingAllowed(PSTR("G0")))
-            {
-                break;
-            }
-
-            // fall through
-        }
         case 1: // G1
         {
-            if(!isMovingAllowed(PSTR("G1")))
+            if(isMovingAllowed(PSTR("G0/1")))
             {
-                break;
+				Printer::queueGCodeCoordinates(com); // For X Y Z E F
             }
-            if(Printer::queueGCodeCoordinates(com)) // For X Y Z E F
-            {
-                PrintLine::prepareQueueMove(ALWAYS_CHECK_ENDSTOPS, true, Printer::feedrate);
-            }
+
             break;
         }
 

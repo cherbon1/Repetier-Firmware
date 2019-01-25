@@ -1095,24 +1095,32 @@ public:
     static void updateAdvanceFlags();
 
 	static INLINE void setXAxisSteps(int32_t x) {
+		InterruptProtectedBlock noInts;
 		//G92 Xx:
 		Printer::currentSteps[X_AXIS] = x;
 		Printer::destinationMMLast[X_AXIS] = Printer::destinationMM[X_AXIS] = x * axisMMPerSteps[X_AXIS];
+		noInts.unprotect();
 	}
 	static INLINE void setYAxisSteps(int32_t y) {
+		InterruptProtectedBlock noInts;
 		//G92 Yx:
 		Printer::currentSteps[Y_AXIS] = y;
 		Printer::destinationMMLast[Y_AXIS] = Printer::destinationMM[Y_AXIS] = y * axisMMPerSteps[Y_AXIS];
+		noInts.unprotect();
 	}
 	static INLINE void setZAxisSteps(int32_t z) {
+		InterruptProtectedBlock noInts;
 		//G92 Zx:
 		Printer::currentSteps[Z_AXIS] = z;
 		Printer::destinationMMLast[Z_AXIS] = Printer::destinationMM[Z_AXIS] = z * axisMMPerSteps[Z_AXIS];
+		noInts.unprotect();
 	}
 	static INLINE void setEAxisSteps(int32_t e) {
+		InterruptProtectedBlock noInts;
 		//G92 Ex:
 		// Vorsicht, currentSteps[E_AXIS] wäre Overflow.
 		Printer::destinationMMLast[E_AXIS] = Printer::destinationMM[E_AXIS] = e * axisMMPerSteps[E_AXIS];
+		noInts.unprotect();
 	}
 
 	static INLINE void stopDirectAxis(uint8_t axis) {

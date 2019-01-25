@@ -66,7 +66,7 @@ FSTRINGVALUE(Com::tGot," got ")
 FSTRINGVALUE(Com::tSkip,"skip ")
 FSTRINGVALUE(Com::tBLK,"BLK ")
 FSTRINGVALUE(Com::tStart,"start")                   // do not change "start" to "Start" because some applications might not be able to detect "Start" as "start"
-FSTRINGVALUE(Com::tStartWatchdog,"start Watchdog")
+FSTRINGVALUE(Com::tStartWatchdog,"Start Watchdog")
 FSTRINGVALUE(Com::tPowerUp,"PowerUp")
 FSTRINGVALUE(Com::tExternalReset,"External Reset")
 FSTRINGVALUE(Com::tBrownOut,"Brown out Reset")

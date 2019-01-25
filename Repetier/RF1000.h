@@ -799,9 +799,9 @@ extruder steps are executed. This is to prevent your extruder to move unless the
 is at least molten. After havong some complains that the extruder does not work, I leave
 it 0 as default. */
 #if EXTRUDER_ALLOW_COLD_MOVE
-  #define MIN_EXTRUDER_TEMP                   0
+  #define MIN_EXTRUDER_TEMP                   0                                                                        // [°C]
 #else
-  #define MIN_EXTRUDER_TEMP                   80
+  #define MIN_EXTRUDER_TEMP                   80                                                                       // [°C]
 #endif
 /** \brief Enable advance algorithm.
 Without a correct adjusted advance algorithm, you get blobs at points, where acceleration changes. The

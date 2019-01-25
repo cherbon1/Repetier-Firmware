@@ -962,7 +962,7 @@ we use blocks of 2 kByte size for the structure of our EEPROM
  * \brief Prevent extrusions longer then x mm for one command. This is especially important if you abort a print. Then the
  * extrusion position might be at any value like 23344. If you then have an G1 E-2 it will roll back 23 meter!
  */
-#define EXTRUDE_MAXLENGTH                   100
+#define EXTRUDE_MAXLENGTH                   100.0f
 
 /**
  * \brief Set PID scaling
