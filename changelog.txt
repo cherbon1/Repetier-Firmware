@@ -5,7 +5,6 @@ TODO:
 # milling mode: buttons for retract should steer speed
 # milling mode: feedrate should be visible within milling menu
 # printing mode: extrusion over digits protection should be avoided, cold extrusion limit removed. A boolean should unlock interrupt extrusion globally.
-# rethink const wait time on warmup because we have good PID controll these days.
 # multistepping within advance int
 # maybe acceleration smoothing
 # test if extrusion amount is still ok after retracts / G92 E0
@@ -13,7 +12,12 @@ TODO:
 # test or rework milling functions
 # test arc-support while printing and not printing
 
-V 01.43.45.Mod (2019-01-13)
+V 01.43.46.Mod (2019-01-25)
+- removed constant waiting time after heatup. We have nice pid control which does not need that. This avoids too much oozing at print start.
+- defect temp sensors now abort waiting for temp in M109 and M190
+- removed autoprint for temperatures as hosts send M105 for this
+
+V 01.43.45.Mod (2019-01-25)
 - some minor refactoring
 - some interrupt protection
 - some more cleancode

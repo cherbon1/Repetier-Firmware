@@ -86,7 +86,7 @@ void Commands::checkForPeriodicalActions(enum FirmwareState state)
     if (execute100msPeriodical) {
       execute100msPeriodical = 0;
       Extruder::manageTemperatures();
-      Commands::printTemperatures(); //selfcontrolling timediff
+      //Commands::printTemperatures(); //selfcontrolling timediff
 #if defined(SDCARDDETECT) && SDCARDDETECT>-1 && defined(SDSUPPORT) && SDSUPPORT
       sd.automount();
 #endif // defined(SDCARDDETECT) && SDCARDDETECT>-1 && defined(SDSUPPORT) && SDSUPPORT
@@ -904,16 +904,20 @@ void Commands::executeGCode(GCode *com)
             {
                 if( isSupportedMCommand( com->M, OPERATING_MODE_PRINT ) )
                 {
+					previousMillisCmd = HAL::timeInMilliseconds(); //prevent inactive shutdown of steppers/temps
 #if NUM_EXTRUDER>0
-                    if(Printer::isAnyTempsensorDefect()){
+                    if (Printer::isAnyTempsensorDefect()) {
                         reportTempsensorAndHeaterErrors();
                         break;
                     }
-                    previousMillisCmd = HAL::timeInMilliseconds(); //prevent inactive shutdown of steppers/temps
-                    if(Printer::debugDryrun()) break;
+					if (Printer::debugDryrun()) { 
+						break; 
+					}
+
                     Printer::waitMove = 1; //brauche ich das, wenn ich sowieso warte bis der movecache leer ist?
                     g_uStartOfIdle = 0; //M109
                     Commands::waitUntilEndOfAllMoves(); //M109
+
                     Extruder *actExtruder = Extruder::current;
                     if (com->hasT() && com->T<NUM_EXTRUDER) actExtruder = &extruder[com->T];
                     if (com->hasS()) Extruder::setTemperatureForExtruder(com->S,actExtruder->id,com->hasF() && com->F>0);
@@ -928,15 +932,13 @@ void Commands::executeGCode(GCode *com)
 #if RETRACT_DURING_HEATUP
                     uint8_t     retracted = 0;
 #endif // RETRACT_DURING_HEATUP
-                    millis_t    waituntil   = 0;
-                    millis_t    currentTime;
+                    millis_t    currentTime = HAL::timeInMilliseconds();
                     bool        isTempReached;
                     bool        longTempTime = false; // random init
                     bool        dirRising = true;     // random init
                     float       settarget = -1;       // random init in °C
 
-                    do
-                    {
+                    do {
                         Commands::printTemperatures();
                         Commands::checkForPeriodicalActions( WaitHeater );
 
@@ -952,14 +954,11 @@ void Commands::executeGCode(GCode *com)
                             }
                         }
 
-                        currentTime = HAL::timeInMilliseconds();
-                        isTempReached = (dirRising ? actExtruder->tempControl.currentTemperatureC >= actExtruder->tempControl.targetTemperatureC - TEMP_TOLERANCE
-                                                   : actExtruder->tempControl.currentTemperatureC <= actExtruder->tempControl.targetTemperatureC + TEMP_TOLERANCE);
+						isTempReached = fabs(actExtruder->tempControl.targetTemperatureC - actExtruder->tempControl.currentTemperatureC) < TEMP_TOLERANCE;
 
 #if RETRACT_DURING_HEATUP
-                        if( dirRising ){
-                            if (!retracted
-                                && longTempTime
+                        if (!retracted && dirRising) {
+                            if ( longTempTime
                                 && actExtruder == Extruder::current
                                 && actExtruder->waitRetractUnits > 0
                                 && actExtruder->tempControl.currentTemperatureC >= actExtruder->waitRetractTemperature)
@@ -969,20 +968,22 @@ void Commands::executeGCode(GCode *com)
                             }
                         }
 #endif // RETRACT_DURING_HEATUP
-                        if( !dirRising ){
-                            if( actExtruder->tempControl.currentTemperatureC <= MAX_ROOM_TEMPERATURE ){
-                                isTempReached = true;
+                        if (!dirRising) {
+                            if (actExtruder->tempControl.currentTemperatureC <= MAX_ROOM_TEMPERATURE){
+								break;
                                 //never wait longer than reaching lowest allowed temperature.
                                 //This might still be a long-run-bug if you have heated chamber/hot summer and wrong settings in MAX_ROOM_TEMPERATURE!
                             }
                         }
-
-                        if(waituntil == 0 && isTempReached) //waituntil bleibt 0 bis temperatur einmal erreicht.
-                            {
-                                waituntil = currentTime+15000UL; // now wait 15s for temp. to stabalize
-                            }
-                    }
-                    while(waituntil==0 || (waituntil!=0 && (millis_t)(waituntil-currentTime)<2000000000UL));
+						if (abs(HAL::timeInMilliseconds() - currentTime) > 300000) {
+							/* Aufheizen dauert nie länger als 5 Minuten */
+							break;
+						}
+						if (Printer::isAnyTempsensorDefect()) {
+							/* Temp sensor decoupled oder defekt? abort. */
+							break;
+						}
+                    } while(!isTempReached);
 
 #if RETRACT_DURING_HEATUP
                     if (retracted && actExtruder==Extruder::current)
@@ -1016,7 +1017,7 @@ void Commands::executeGCode(GCode *com)
                     bool    dirRising = true; // random init
                     float   settarget = -1;   // random init in °C
 
-                    while( fabs(heatedBedController.currentTemperatureC - heatedBedController.targetTemperatureC) > TEMP_TOLERANCE )
+                    while (fabs(heatedBedController.currentTemperatureC - heatedBedController.targetTemperatureC) > TEMP_TOLERANCE)
                     {
                         //Init und Anpassung an die neue Situation falls der Bediener am Display-Menü des Druckers während Aufheizzeit was umstellt.
                         if(settarget != heatedBedController.targetTemperatureC){
@@ -1031,7 +1032,8 @@ void Commands::executeGCode(GCode *com)
 
                         Commands::printTemperatures();
                         Commands::checkForPeriodicalActions( WaitHeater );
-                        if( !dirRising && heatedBedController.currentTemperatureC <= MAX_ROOM_TEMPERATURE ) break;
+						if (!dirRising && heatedBedController.currentTemperatureC <= MAX_ROOM_TEMPERATURE) break;
+						if (Printer::isAnyTempsensorDefect()) break;
                     }
 
                     Printer::waitMove = 0;
