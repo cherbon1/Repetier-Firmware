@@ -2029,18 +2029,18 @@ void UIDisplay::parse(char *txt,bool ram)
                     break;
                 }
 #endif //FEATURE_EMERGENCY_PAUSE
-#if FEATURE_EMERGENCY_STOP_ALL
-                if(c2=='L')                                                                             // %pL : g_nZEmergencyStopAllMin [1700/kg]
+#if FEATURE_EMERGENCY_STOP_Z_AND_E
+                if(c2=='L')                                                                             // %pL : g_nEmergencyStopZAndEMin [1700/kg]
                 {
-                    addLong(g_nZEmergencyStopAllMin,6);
+                    addLong(g_nEmergencyStopZAndEMin,6);
                     break;
                 }
-                if(c2=='H')                                                                             // %pH : g_nZEmergencyStopAllMax [1700/kg]
+                if(c2=='H')                                                                             // %pH : g_nEmergencyStopZAndEMax [1700/kg]
                 {
-                    addLong(g_nZEmergencyStopAllMax,6);
+                    addLong(g_nEmergencyStopZAndEMax,6);
                     break;
                 }
-#endif // FEATURE_EMERGENCY_STOP_ALL
+#endif // FEATURE_EMERGENCY_STOP_Z_AND_E
                 break;
             }
             case 'P':
@@ -3935,26 +3935,26 @@ void UIDisplay::nextPreviousAction(int8_t next)
         }
 #endif //FEATURE_EMERGENCY_PAUSE
 
-#if FEATURE_EMERGENCY_STOP_ALL
+#if FEATURE_EMERGENCY_STOP_Z_AND_E
         case UI_ACTION_EMERGENCY_ZSTOP_MIN:
         {
-            INCREMENT_MIN_MAX(g_nZEmergencyStopAllMin,200,EMERGENCY_STOP_DIGITS_MIN,g_nZEmergencyStopAllMax);
+            INCREMENT_MIN_MAX(g_nEmergencyStopZAndEMin,200,EMERGENCY_STOP_DIGITS_MIN,g_nEmergencyStopZAndEMax);
 #if FEATURE_AUTOMATIC_EEPROM_UPDATE
-            HAL::eprSetInt16( EPR_RF_EMERGENCYZSTOPDIGITSMIN, g_nZEmergencyStopAllMin );
+            HAL::eprSetInt16( EPR_RF_EMERGENCYZSTOPDIGITSMIN, g_nEmergencyStopZAndEMin );
             EEPROM::updateChecksum();
 #endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
             break;
         }
         case UI_ACTION_EMERGENCY_ZSTOP_MAX:
         {
-            INCREMENT_MIN_MAX(g_nZEmergencyStopAllMax,200,g_nZEmergencyStopAllMin,EMERGENCY_STOP_DIGITS_MAX);
+            INCREMENT_MIN_MAX(g_nEmergencyStopZAndEMax,200,g_nEmergencyStopZAndEMin,EMERGENCY_STOP_DIGITS_MAX);
 #if FEATURE_AUTOMATIC_EEPROM_UPDATE
-            HAL::eprSetInt16( EPR_RF_EMERGENCYZSTOPDIGITSMAX, g_nZEmergencyStopAllMax );
+            HAL::eprSetInt16( EPR_RF_EMERGENCYZSTOPDIGITSMAX, g_nEmergencyStopZAndEMax );
             EEPROM::updateChecksum();
 #endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
             break;
         }
-#endif //FEATURE_EMERGENCY_STOP_ALL
+#endif //FEATURE_EMERGENCY_STOP_Z_AND_E
 
 #if FEATURE_SENSIBLE_PRESSURE
         case UI_ACTION_SENSEOFFSET_DIGITS:

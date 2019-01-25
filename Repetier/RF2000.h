@@ -792,16 +792,6 @@ if you are printing many very short segments at high speed.*/
 // ##   Extruder control
 // ##########################################################################################
 
-/* \brief Minimum temperature for extruder operation
-This is a saftey value. If your extruder temperature is below this temperature, no
-extruder steps are executed. This is to prevent your extruder to move unless the filament
-is at least molten. After havong some complains that the extruder does not work, I leave
-it 0 as default. */
-#if EXTRUDER_ALLOW_COLD_MOVE
-  #define MIN_EXTRUDER_TEMP                   0                                                                        // [°C]
-#else
-  #define MIN_EXTRUDER_TEMP                   80                                                                       // [°C]
-#endif
 /** \brief Enable advance algorithm.
 Without a correct adjusted advance algorithm, you get blobs at points, where acceleration changes. The
 effect increases with speed and acceleration difference. Using the advance method decreases this effect.

@@ -116,7 +116,7 @@
 #define XYZ_POSITION_BUTTON_DIRECTION       1                                                   // 1 = on, 0 = off
 
 /** \brief Enables/disables the emergency stop in case of too high pressure */
-#define FEATURE_EMERGENCY_STOP_ALL          1                                                   // 1 = on, 0 = off
+#define FEATURE_EMERGENCY_STOP_Z_AND_E          1                                                   // 1 = on, 0 = off
 
 /** \brief Enables/disables the set to x/y origin feature */
 #define FEATURE_SET_TO_XY_ORIGIN            1                                                   // 1 = on, 0 = off
@@ -399,7 +399,7 @@ Overridden if EEPROM activated. */
 // ##########################################################################################
 
 /** \brief The following script allows to configure the exact behavior of the automatic object output */
-#define OUTPUT_OBJECT_SCRIPT_PRINT          "G21\nG92 E0\nG1 E-" xstr(SCRIPT_RETRACT_MM) "\nG92 E0\nG90\nG1 Z200 F540\nG1 Y245 F4800"
+#define OUTPUT_OBJECT_SCRIPT_PRINT          "G21\nG92 E0\nG1 E-" xstr(SCRIPT_RETRACT_MM) "\nG4 P100\nG92 E0\nG90\nG1 Z200 F540\nG1 Y245 F4800"
 #define OUTPUT_OBJECT_SCRIPT_MILL           "G28 Z0\nG21\nG91\nG1 Y245 F4800"
 
 // ##########################################################################################
@@ -441,8 +441,8 @@ Overridden if EEPROM activated. */
  * @ ca. +- 15000 the sensors tend to start bending
  * With RF1.37r2.Mod the Emergency-Pause-Features limits can be changed in EEPROM and Printers Menu. Here are the absolute maximum limits:
  */
-#define EMERGENCY_PAUSE_DIGITS_MIN          -15000
-#define EMERGENCY_PAUSE_DIGITS_MAX          15000
+#define EMERGENCY_PAUSE_DIGITS_MIN          -15000                                 // [digits]
+#define EMERGENCY_PAUSE_DIGITS_MAX           15000                                 // [digits]
 
 /** \brief Specifies the interval at which the pressure check shall be performed, in [ms] */
 #define EMERGENCY_PAUSE_INTERVAL            100
@@ -457,15 +457,18 @@ Overridden if EEPROM activated. */
 // ##   configuration of the emergency stop functionality
 // ##########################################################################################
 
-#if FEATURE_EMERGENCY_STOP_ALL
+#if FEATURE_EMERGENCY_STOP_Z_AND_E
 
 /**
- * \brief Specifies the pressure at which the emergency stop shall be performed, in [digits]
- * With RF1.37r6.Mod the Emergency-ZStop-Features limits can be changed in EEPROM and Printers Menu. Here are the absolute maximum limits:
+ * \brief 
+ * Specifies the pressure at which 
+ * - the z emergency stop shall be performed
+ * - extrusion is forbidden
+ * 
  * Do not set them to Zero.
  */
-#define EMERGENCY_STOP_DIGITS_MIN           -10000
-#define EMERGENCY_STOP_DIGITS_MAX           10000
+#define EMERGENCY_STOP_DIGITS_MIN           -12500                                 // [digits]
+#define EMERGENCY_STOP_DIGITS_MAX            12500                                 // [digits]
 
 /** \brief Specifies the interval at which the pressure check shall be performed, in [ms] */
 #define EMERGENCY_STOP_INTERVAL             10
@@ -473,7 +476,7 @@ Overridden if EEPROM activated. */
 /** \brief Specifies the number of pressure values which shall be averaged. The emergency stop can be detected each EMERGENCY_STOP_INTERVAL * EMERGENCY_STOP_CHECKS [ms] */
 #define EMERGENCY_STOP_CHECKS               3
 
-#endif // FEATURE_EMERGENCY_STOP_ALL
+#endif // FEATURE_EMERGENCY_STOP_Z_AND_E
 
 
 // ##########################################################################################

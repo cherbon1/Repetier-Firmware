@@ -433,13 +433,6 @@ void Printer::addKurtWobbleFixOffset(bool absoluteXYCoordinates)
 #endif // FEATURE_Kurt67_WOBBLE_FIX
 
 inline bool isExtrusionAllowed(float Ecoordinate) {
-#if MIN_EXTRUDER_TEMP > MAX_ROOM_TEMPERATURE
-	if (Extruder::current->tempControl.currentTemperatureC < MIN_EXTRUDER_TEMP) {
-		Com::printFLN(PSTR("No E: 1"));
-		return false;
-	}
-#endif // MIN_EXTRUDER_TEMP > MAX_ROOM_TEMPERATURE
-
 #if FEATURE_DIGIT_FLOW_COMPENSATION
 	if (fabs(Ecoordinate) * Printer::menuExtrusionFactor * Printer::dynamicExtrusionFactor > EXTRUDE_MAXLENGTH) {
 		Com::printFLN(PSTR("No E: 21"));

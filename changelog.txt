@@ -4,13 +4,20 @@
 TODO:
 # milling mode: buttons for retract should steer speed
 # milling mode: feedrate should be visible within milling menu
-# printing mode: extrusion over digits protection should be avoided, cold extrusion limit removed. A boolean should unlock interrupt extrusion globally.
 # multistepping within advance int
 # maybe acceleration smoothing
 # test if extrusion amount is still ok after retracts / G92 E0
 # test origin scan, workpart scan
 # test or rework milling functions
 # test arc-support while printing and not printing
+# remove debug output when extrusion is forbidden by function isExtrusionAllowed()
+
+V 01.43.47.Mod (2019-01-25)
+- The pressure value of the "z-emergency stop" limit now controls if extrusion is allowed
+- The minimum extrusion temperature (80°C) has been totally removed and replaced by digit/pressure control
+- This output object hack that z-emergency block is disabled while executing the output object script has been removed 
+   because in the meanwhile we have a proper retract to lower any high pressure before driving z down.
+- Added 100ms wait (\nG4 P100) after pressure release within output object script before driving the bed down
 
 V 01.43.46.Mod (2019-01-25)
 - removed constant waiting time after heatup. We have nice pid control which does not need that. This avoids too much oozing at print start.

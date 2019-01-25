@@ -1726,11 +1726,23 @@ long PrintLine::performMove(PrintLine* move, char forQueue)
 
         if(move->isEMove())
         {
-            if((move->error[E_AXIS] -= move->delta[E_AXIS]) < 0
+			bool doStep = (move->error[E_AXIS] -= move->delta[E_AXIS]) < 0;
+
 #if FEATURE_HEAT_BED_Z_COMPENSATION
-            || compensatedPositionPushE
+			if (compensatedPositionPushE) {
+				doStep = true;
+			}
 #endif // FEATURE_HEAT_BED_Z_COMPENSATION
-            ) //we want to push some E step out if it is planned OR needed because of ZCMP-E-Compensation
+
+			// Active pressure is to high to extrude
+			if (g_nEmergencyESkip) {
+				doStep = false;
+				//count step as done, we wont need it later.
+				if (forQueue)  move->error[E_AXIS] += queueError;
+				else           move->error[E_AXIS] += directError;
+			}
+
+            if(doStep)
             {
 #if USE_ADVANCE
                 if(Printer::isAdvanceActivated()) // Use interrupt for movement

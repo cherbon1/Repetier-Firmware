@@ -189,10 +189,11 @@ long            g_nEmergencyPauseDigitsMin  = EMERGENCY_PAUSE_DIGITS_MIN; //shor
 long            g_nEmergencyPauseDigitsMax  = EMERGENCY_PAUSE_DIGITS_MAX; //short reicht eigentlich
 #endif // FEATURE_EMERGENCY_PAUSE
 
-#if FEATURE_EMERGENCY_STOP_ALL
-short            g_nZEmergencyStopAllMin  = EMERGENCY_STOP_DIGITS_MIN;
-short            g_nZEmergencyStopAllMax  = EMERGENCY_STOP_DIGITS_MAX;
-#endif //FEATURE_EMERGENCY_STOP_ALL
+#if FEATURE_EMERGENCY_STOP_Z_AND_E
+short            g_nEmergencyStopZAndEMin  = EMERGENCY_STOP_DIGITS_MIN;
+short            g_nEmergencyStopZAndEMax  = EMERGENCY_STOP_DIGITS_MAX;
+bool             g_nEmergencyESkip = false;
+#endif //FEATURE_EMERGENCY_STOP_Z_AND_E
 
 #if FEATURE_SENSIBLE_PRESSURE
 /* brief: This is for correcting too close Z at first layer, see FEATURE_SENSIBLE_PRESSURE // Idee Wessix, coded by Nibbels  */
@@ -213,11 +214,7 @@ bool            g_nDigitZCompensationDigits_active = true;
  short          g_nDigitFlowCompensation_Fmax = short(abs(EMERGENCY_PAUSE_DIGITS_MAX)); //mögliche Standardwerte -> z.b. gut wenn das die pause-digits sind.
  #endif // FEATURE_DIGIT_FLOW_COMPENSATION
 #endif // FEATURE_DIGIT_Z_COMPENSATION
-
-#if FEATURE_EMERGENCY_STOP_ALL
-millis_t        uLastZPressureTime_IgnoreUntil = 0;
-#endif // FEATURE_EMERGENCY_STOP_ALL
-
+ 
 #if FEATURE_FIND_Z_ORIGIN
 volatile unsigned char g_nFindZOriginStatus = 0;
 long            g_nZOriginPosition[3]       = { 0, 0, 0 };
@@ -3066,11 +3063,11 @@ void startViscosityTest( int maxdigits = 10000, float maxfeedrate = 5.0f, float 
     previousMillisCmd = HAL::timeInMilliseconds(); //prevent inactive shutdown of steppers/temps
     Com::printFLN( PSTR( "startViscosityTest(): started" ) );
 
-    if(refill_digit_limit > (int)(g_nZEmergencyStopAllMax*0.8) ) refill_digit_limit = (int)(g_nZEmergencyStopAllMax*0.2);
+    if(refill_digit_limit > (int)(g_nEmergencyStopZAndEMax*0.8) ) refill_digit_limit = (int)(g_nEmergencyStopZAndEMax*0.2);
     if(refill_digit_limit < 50) refill_digit_limit = 50;
     Com::printFLN( PSTR( "Refill NozzleDigitsDelta = " ) , refill_digit_limit );
 
-    if(maxdigits > (int)(g_nZEmergencyStopAllMax*0.8) ) maxdigits = (int)(g_nZEmergencyStopAllMax*0.8);
+    if(maxdigits > (int)(g_nEmergencyStopZAndEMax*0.8) ) maxdigits = (int)(g_nEmergencyStopZAndEMax*0.8);
     if(maxdigits < 1000) maxdigits = 1000;
     Com::printFLN( PSTR( "Test DigitsMax = " ) , maxdigits );
 
@@ -6206,11 +6203,11 @@ void recalculateZCompensation( void )
 
 void handleStrainGaugeFeatures(millis_t uTime){
 	/* Change: 09_06_2017 Never read straingauge twice in a row: test if this helps avoiding my watchdog problem
-           Thatwhy I bring the statics up and preread the value for both FEATURE_EMERGENCY_PAUSE and FEATURE_EMERGENCY_STOP_ALL */
+           Thatwhy I bring the statics up and preread the value for both FEATURE_EMERGENCY_PAUSE and FEATURE_EMERGENCY_STOP_Z_AND_E */
 /* Update: 19_06_2017 This is really nice and clean but it has not been the problem. */
-#if FEATURE_EMERGENCY_PAUSE || FEATURE_EMERGENCY_STOP_ALL
+#if FEATURE_EMERGENCY_PAUSE || FEATURE_EMERGENCY_STOP_Z_AND_E
     bool i_need_strain_value = 0;
-#endif //FEATURE_EMERGENCY_PAUSE || FEATURE_EMERGENCY_STOP_ALL
+#endif //FEATURE_EMERGENCY_PAUSE || FEATURE_EMERGENCY_STOP_Z_AND_E
 
 #if FEATURE_SENSIBLE_PRESSURE
     static millis_t        nSensiblePressureTime   = 0;
@@ -6232,7 +6229,7 @@ void handleStrainGaugeFeatures(millis_t uTime){
     }
 #endif // FEATURE_EMERGENCY_PAUSE
 
-#if FEATURE_EMERGENCY_STOP_ALL
+#if FEATURE_EMERGENCY_STOP_Z_AND_E
     static millis_t        uLastZPressureTime        = 0;
     static long            nZPressureSum             = 0;
     static char            nZPressureChecks          = 0;
@@ -6240,14 +6237,14 @@ void handleStrainGaugeFeatures(millis_t uTime){
     {
         i_need_strain_value = 1;
     }
-#endif // FEATURE_EMERGENCY_STOP_ALL
+#endif // FEATURE_EMERGENCY_STOP_Z_AND_E
 
-#if FEATURE_EMERGENCY_PAUSE || FEATURE_EMERGENCY_STOP_ALL || FEATURE_SENSIBLE_PRESSURE
+#if FEATURE_EMERGENCY_PAUSE || FEATURE_EMERGENCY_STOP_Z_AND_E || FEATURE_SENSIBLE_PRESSURE
     static short pressure = 0;
     if( i_need_strain_value ){
         pressure = readStrainGauge( ACTIVE_STRAIN_GAUGE );
     }
-#endif //FEATURE_EMERGENCY_PAUSE || FEATURE_EMERGENCY_STOP_ALL || FEATURE_SENSIBLE_PRESSURE
+#endif //FEATURE_EMERGENCY_PAUSE || FEATURE_EMERGENCY_STOP_Z_AND_E || FEATURE_SENSIBLE_PRESSURE
 
     short           nPressure;
 #if FEATURE_SENSIBLE_PRESSURE
@@ -6409,53 +6406,40 @@ void handleStrainGaugeFeatures(millis_t uTime){
 #endif // FEATURE_EMERGENCY_PAUSE
 
 
-#if FEATURE_EMERGENCY_STOP_ALL
+#if FEATURE_EMERGENCY_STOP_Z_AND_E
     if( (uTime - uLastZPressureTime) > EMERGENCY_STOP_INTERVAL ) //jede 10ms -> das macht hier drin überhaupt garkeinen sinn.
     {
         uLastZPressureTime = uTime;
 
-        if( Printer::stepperDirection[Z_AXIS] && !Extruder::current->stepperDirection )
+        // this check shall be done only when there is some moving into z-direction in progress and the extruder is not doing anything
+        nZPressureSum    += pressure; //readStrainGauge( ACTIVE_STRAIN_GAUGE );
+        nZPressureChecks += 1;
+
+        if( nZPressureChecks == EMERGENCY_STOP_CHECKS )
         {
-            // this check shall be done only when there is some moving into z-direction in progress and the extruder is not doing anything
-            nZPressureSum    += pressure; //readStrainGauge( ACTIVE_STRAIN_GAUGE );
-            nZPressureChecks += 1;
+            nPressure        = (short)(nZPressureSum / nZPressureChecks);
 
-            if( nZPressureChecks == EMERGENCY_STOP_CHECKS )
-            {
-                nPressure        = (short)(nZPressureSum / nZPressureChecks);
-
-                nZPressureSum    = 0;
-                nZPressureChecks = 0;
-
-                if(uLastZPressureTime_IgnoreUntil < uTime){
-                    if( (nPressure < g_nZEmergencyStopAllMin) ||
-                        (nPressure > g_nZEmergencyStopAllMax) )
-                    {
-                        // the pressure is outside the allowed range, we must perform the emergency stop
-                        doEmergencyStop( STOP_BECAUSE_OF_Z_BLOCK );
-                    }
-                }else{
-                    //Manchmal ist es bescheuert, wenn man das niedrige er Limit hat. OutputObject z.B. bei einem Druck der mit kleiner Nozzle und Digits ~ 5000...9000
-                    //  uLastZPressureTime_IgnoreUntil = HAL::timeInMilliseconds() + 1000; setzt diese scharfe prüfung z.b. für 1s ausser kraft und lässt mehr zu.
-                    //Das ist besser als Nutzer, die das Limit über die Config voll aushebeln.
-                    //31_07_17----> wurde in der config verändert und es gibt einen gcode
-                    if( (nPressure < RMath::min(EMERGENCY_STOP_DIGITS_MIN,g_nZEmergencyStopAllMin) ) ||
-                        (nPressure > RMath::max(EMERGENCY_STOP_DIGITS_MAX,g_nZEmergencyStopAllMax) ) )
-                    {
-                        // the pressure is outside the allowed range, we must perform the emergency stop
-                        doEmergencyStop( STOP_BECAUSE_OF_Z_BLOCK );
-                    }
-                }
-
-            }
-        }
-        else
-        {
             nZPressureSum    = 0;
             nZPressureChecks = 0;
+
+			if (nPressure < g_nEmergencyStopZAndEMin ||	g_nEmergencyStopZAndEMax < nPressure)
+			{
+				// Forbid Extrusion at high levels
+				g_nEmergencyESkip = true;
+
+				// Block if we are driving Z rightnow
+				if (Printer::stepperDirection[Z_AXIS] && !Extruder::current->stepperDirection)
+				{
+                    // the pressure is outside the allowed range, we must perform the emergency stop
+                    doEmergencyStop( STOP_BECAUSE_OF_Z_BLOCK );
+				}
+			}
+			else {
+				g_nEmergencyESkip = false;
+			}
         }
     }
-#endif // FEATURE_EMERGENCY_STOP_ALL
+#endif // FEATURE_EMERGENCY_STOP_Z_AND_E
 }
 
 void handlePauseTime(millis_t uTime){
@@ -6779,7 +6763,6 @@ void outputObject( bool showerrors )
     UI_STATUS_UPD( UI_TEXT_OUTPUTTING_OBJECT );
     Com::printFLN( PSTR( "outputObject" ) );
     Commands::printCurrentPosition();
-    uLastZPressureTime_IgnoreUntil = HAL::timeInMilliseconds()+60000L;
 
 #if FAN_PIN>-1 && FEATURE_FAN_CONTROL
     // disable the fan
@@ -6801,7 +6784,6 @@ void outputObject( bool showerrors )
 
     // disable all steppers
     Printer::disableAllSteppersNow();
-    uLastZPressureTime_IgnoreUntil = 0;
 
     g_uStartOfIdle = HAL::timeInMilliseconds(); //outputobject ends
 } // outputObject
@@ -8328,11 +8310,11 @@ void processCommand( GCode* pCommand )
             }
 #endif // FEATURE_EMERGENCY_PAUSE
 
-#if FEATURE_EMERGENCY_STOP_ALL
+#if FEATURE_EMERGENCY_STOP_Z_AND_E
             case 3076: // M3076 [S] [P] - configure the emergency stop digits
             {
-                long    nMin = g_nZEmergencyStopAllMin;
-                long    nMax = g_nZEmergencyStopAllMax;
+                long    nMin = g_nEmergencyStopZAndEMin;
+                long    nMax = g_nEmergencyStopZAndEMax;
 
                 if( pCommand->hasS() )
                 {
@@ -8347,8 +8329,8 @@ void processCommand( GCode* pCommand )
 
                 if( nMin == 0 && nMax == 0 )
                 {
-                    g_nZEmergencyStopAllMin = 0;
-                    g_nZEmergencyStopAllMax = 0;
+                    g_nEmergencyStopZAndEMin = 0;
+                    g_nEmergencyStopZAndEMax = 0;
 
                     if( Printer::debugInfo() )
                     {
@@ -8357,18 +8339,18 @@ void processCommand( GCode* pCommand )
                 }
                 else if( nMin < nMax && nMin >= -32768 && nMax <= 32767 )
                 {
-                    g_nZEmergencyStopAllMin = (short)nMin;
-                    g_nZEmergencyStopAllMax = (short)nMax;
+                    g_nEmergencyStopZAndEMin = (short)nMin;
+                    g_nEmergencyStopZAndEMax = (short)nMax;
 
                     if( Printer::debugInfo() )
                     {
-                        Com::printF( PSTR( "M3076: new min: " ), (int)g_nZEmergencyStopAllMin );
-                        Com::printF( PSTR( " [digits], new max: " ), (int)g_nZEmergencyStopAllMax );
+                        Com::printF( PSTR( "M3076: new min: " ), (int)g_nEmergencyStopZAndEMin );
+                        Com::printF( PSTR( " [digits], new max: " ), (int)g_nEmergencyStopZAndEMax );
                         Com::printFLN( PSTR( " [digits]" ) );
                     }
 #if FEATURE_AUTOMATIC_EEPROM_UPDATE
-                    HAL::eprSetInt16( EPR_RF_EMERGENCYZSTOPDIGITSMAX, g_nZEmergencyStopAllMax );
-                    HAL::eprSetInt16( EPR_RF_EMERGENCYZSTOPDIGITSMIN, g_nZEmergencyStopAllMin );
+                    HAL::eprSetInt16( EPR_RF_EMERGENCYZSTOPDIGITSMAX, g_nEmergencyStopZAndEMax );
+                    HAL::eprSetInt16( EPR_RF_EMERGENCYZSTOPDIGITSMIN, g_nEmergencyStopZAndEMin );
                     EEPROM::updateChecksum();
 #endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
                 }
@@ -8384,7 +8366,7 @@ void processCommand( GCode* pCommand )
 
                 break;
             }
-#endif // FEATURE_EMERGENCY_STOP_ALL
+#endif // FEATURE_EMERGENCY_STOP_Z_AND_E
 
             case 3079: // M3079 - output the printed object
             {

@@ -643,10 +643,11 @@ extern long             g_nEmergencyPauseDigitsMin;  //short reicht eigentlich
 extern long             g_nEmergencyPauseDigitsMax;  //short reicht eigentlich
 #endif // FEATURE_EMERGENCY_PAUSE
 
-#if FEATURE_EMERGENCY_STOP_ALL
-extern short             g_nZEmergencyStopAllMin;
-extern short             g_nZEmergencyStopAllMax;
-#endif //FEATURE_EMERGENCY_STOP_ALL
+#if FEATURE_EMERGENCY_STOP_Z_AND_E
+extern short             g_nEmergencyStopZAndEMin;
+extern short             g_nEmergencyStopZAndEMax;
+extern bool              g_nEmergencyESkip;
+#endif //FEATURE_EMERGENCY_STOP_Z_AND_E
 
 #if FEATURE_SENSIBLE_PRESSURE
 /* brief: This is for correcting too close Z at first layer, see FEATURE_SENSIBLE_PRESSURE // Idee Wessix, coded by Nibbels  */

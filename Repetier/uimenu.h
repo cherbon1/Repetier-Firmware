@@ -170,8 +170,8 @@ List of placeholder:
 %pz : mode of the Position Z menu
 %pl : g_nEmergencyPauseDigitsMin [1700/kg]
 %ph : g_nEmergencyPauseDigitsMax [1700/kg]
-%pL : g_nZEmergencyStopAllMin [1700/kg]
-%pH : g_nZEmergencyStopAllMax [1700/kg]
+%pL : g_nEmergencyStopZAndEMin [1700/kg]
+%pH : g_nEmergencyStopZAndEMax [1700/kg]
 %HB : active heat bed z matrix
 %HO : active heat bed min z offset in um
 %WP : active work part z matrix
@@ -942,7 +942,7 @@ UI_MENU_ACTIONSELECTOR_FILTER(ui_menu_extruder_offset_y,UI_TEXT_EXTRUDER_OFFSET_
 #endif //FEATURE_EMERGENCY_PAUSE
 
 /** \brief Configuration->DMS-Features->Emergency Z-Stop */
-#if FEATURE_EMERGENCY_STOP_ALL
+#if FEATURE_EMERGENCY_STOP_Z_AND_E
  UI_MENU_CHANGEACTION( ui_menu_emergency_zstop_min, UI_TEXT_EMERGENCY_ZSTOP_MIN, UI_ACTION_EMERGENCY_ZSTOP_MIN )
  UI_MENU_CHANGEACTION( ui_menu_emergency_zstop_max, UI_TEXT_EMERGENCY_ZSTOP_MAX, UI_ACTION_EMERGENCY_ZSTOP_MAX )
 
@@ -953,10 +953,10 @@ UI_MENU_ACTIONSELECTOR_FILTER(ui_menu_extruder_offset_y,UI_TEXT_EXTRUDER_OFFSET_
  #define UI_MENU_CONFIGURATION_EMERGENCY_ZSTOP_COND &ui_menu_conf_emerg_zstop,
  #define UI_MENU_CONFIGURATION_EMERGENCY_ZSTOP_COUNT 1
 
-#else //FEATURE_EMERGENCY_STOP_ALL
+#else //FEATURE_EMERGENCY_STOP_Z_AND_E
  #define UI_MENU_CONFIGURATION_EMERGENCY_ZSTOP_COND
  #define UI_MENU_CONFIGURATION_EMERGENCY_ZSTOP_COUNT 0
-#endif //FEATURE_EMERGENCY_STOP_ALL
+#endif //FEATURE_EMERGENCY_STOP_Z_AND_E
 
 /** \brief Configuration->DMS-Features->Zero Digits ON OFF */
 #if FEATURE_ZERO_DIGITS

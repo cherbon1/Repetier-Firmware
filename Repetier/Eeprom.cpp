@@ -285,10 +285,10 @@ ich glaube gesehen zu haben, dass acceleration und feedrates nicht neu eingelese
     g_nEmergencyPauseDigitsMax = EMERGENCY_PAUSE_DIGITS_MAX;
     g_nEmergencyPauseDigitsMin = EMERGENCY_PAUSE_DIGITS_MIN;
 #endif // FEATURE_EMERGENCY_PAUSE
-#if FEATURE_EMERGENCY_STOP_ALL
-    g_nZEmergencyStopAllMin = EMERGENCY_STOP_DIGITS_MIN; //limit to value in config.
-    g_nZEmergencyStopAllMax = EMERGENCY_STOP_DIGITS_MAX; //limit to value in config.
-#endif // FEATURE_EMERGENCY_STOP_ALL
+#if FEATURE_EMERGENCY_STOP_Z_AND_E
+    g_nEmergencyStopZAndEMin = EMERGENCY_STOP_DIGITS_MIN; //limit to value in config.
+    g_nEmergencyStopZAndEMax = EMERGENCY_STOP_DIGITS_MAX; //limit to value in config.
+#endif // FEATURE_EMERGENCY_STOP_Z_AND_E
 
 #if FEATURE_RGB_LIGHT_EFFECTS
     Printer::RGBLightMode = RGB_MODE_AUTOMATIC;
@@ -557,11 +557,11 @@ void EEPROM::storeDataIntoEEPROM(uint8_t corrupted)
     HAL::eprSetInt32( EPR_RF_EMERGENCYPAUSEDIGITSMAX, g_nEmergencyPauseDigitsMax );
 #endif // FEATURE_EMERGENCY_PAUSE
 
-#if FEATURE_EMERGENCY_STOP_ALL
-    HAL::eprSetInt16( EPR_RF_EMERGENCYZSTOPDIGITSMIN, g_nZEmergencyStopAllMin );
-    HAL::eprSetInt16( EPR_RF_EMERGENCYZSTOPDIGITSMAX, g_nZEmergencyStopAllMax );
+#if FEATURE_EMERGENCY_STOP_Z_AND_E
+    HAL::eprSetInt16( EPR_RF_EMERGENCYZSTOPDIGITSMIN, g_nEmergencyStopZAndEMin );
+    HAL::eprSetInt16( EPR_RF_EMERGENCYZSTOPDIGITSMAX, g_nEmergencyStopZAndEMax );
 
-#endif // FEATURE_EMERGENCY_STOP_ALL
+#endif // FEATURE_EMERGENCY_STOP_Z_AND_E
     HAL::eprSetByte( EPR_RF_MOTOR_CURRENT+X_AXIS, Printer::motorCurrent[X_AXIS] );
     HAL::eprSetByte( EPR_RF_MOTOR_CURRENT+Y_AXIS, Printer::motorCurrent[Y_AXIS] );
     HAL::eprSetByte( EPR_RF_MOTOR_CURRENT+Z_AXIS, Printer::motorCurrent[Z_AXIS] );
@@ -1068,24 +1068,24 @@ void EEPROM::readDataFromEEPROM()
     caliper_collect_adjust = HAL::eprGetByte( EPR_RF_CAL_ADJUST );
 #endif //FEATURE_READ_CALIPER
 
-#if FEATURE_EMERGENCY_STOP_ALL
-    g_nZEmergencyStopAllMin = (short)constrain( HAL::eprGetInt16( EPR_RF_EMERGENCYZSTOPDIGITSMIN ) , EMERGENCY_STOP_DIGITS_MIN , EMERGENCY_STOP_DIGITS_MAX ); //limit to value in config.
-    g_nZEmergencyStopAllMax = (short)constrain( HAL::eprGetInt16( EPR_RF_EMERGENCYZSTOPDIGITSMAX ) , EMERGENCY_STOP_DIGITS_MIN , EMERGENCY_STOP_DIGITS_MAX ); //limit to value in config.
-    if(g_nZEmergencyStopAllMin == 0){
-        g_nZEmergencyStopAllMin = EMERGENCY_STOP_DIGITS_MIN;
+#if FEATURE_EMERGENCY_STOP_Z_AND_E
+    g_nEmergencyStopZAndEMin = (short)constrain( HAL::eprGetInt16( EPR_RF_EMERGENCYZSTOPDIGITSMIN ) , EMERGENCY_STOP_DIGITS_MIN , EMERGENCY_STOP_DIGITS_MAX ); //limit to value in config.
+    g_nEmergencyStopZAndEMax = (short)constrain( HAL::eprGetInt16( EPR_RF_EMERGENCYZSTOPDIGITSMAX ) , EMERGENCY_STOP_DIGITS_MIN , EMERGENCY_STOP_DIGITS_MAX ); //limit to value in config.
+    if(g_nEmergencyStopZAndEMin == 0){
+        g_nEmergencyStopZAndEMin = EMERGENCY_STOP_DIGITS_MIN;
 #if FEATURE_AUTOMATIC_EEPROM_UPDATE
-        HAL::eprSetInt16( EPR_RF_EMERGENCYZSTOPDIGITSMIN, g_nZEmergencyStopAllMin );
+        HAL::eprSetInt16( EPR_RF_EMERGENCYZSTOPDIGITSMIN, g_nEmergencyStopZAndEMin );
         change = true;
 #endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
     }
-    if(g_nZEmergencyStopAllMax == 0){
-        g_nZEmergencyStopAllMax = EMERGENCY_STOP_DIGITS_MAX;
+    if(g_nEmergencyStopZAndEMax == 0){
+        g_nEmergencyStopZAndEMax = EMERGENCY_STOP_DIGITS_MAX;
 #if FEATURE_AUTOMATIC_EEPROM_UPDATE
-        HAL::eprSetInt16( EPR_RF_EMERGENCYZSTOPDIGITSMAX, g_nZEmergencyStopAllMax );
+        HAL::eprSetInt16( EPR_RF_EMERGENCYZSTOPDIGITSMAX, g_nEmergencyStopZAndEMax );
         change = true;
 #endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
     }
-#endif // FEATURE_EMERGENCY_STOP_ALL
+#endif // FEATURE_EMERGENCY_STOP_Z_AND_E
 
 #if FEATURE_ZERO_DIGITS
     Printer::g_pressure_offset_active = ( HAL::eprGetByte( EPR_RF_ZERO_DIGIT_STATE) > 1 ? false : true ); //2 ist false, < 1 ist true
@@ -1437,10 +1437,10 @@ void EEPROM::writeSettings()
 	writeLong(EPR_RF_EMERGENCYPAUSEDIGITSMAX, Com::tEPRPrinterEPR_RF_EmergencyPauseDigitsMax);
 #endif //FEATURE_EMERGENCY_PAUSE
 
-#if FEATURE_EMERGENCY_STOP_ALL
+#if FEATURE_EMERGENCY_STOP_Z_AND_E
 	writeInt(EPR_RF_EMERGENCYZSTOPDIGITSMIN, Com::tEPRPrinterEPR_RF_EmergencyStopAllMin);
 	writeInt(EPR_RF_EMERGENCYZSTOPDIGITSMAX, Com::tEPRPrinterEPR_RF_EmergencyStopAllMax);
-#endif //FEATURE_EMERGENCY_STOP_ALL
+#endif //FEATURE_EMERGENCY_STOP_Z_AND_E
 
 #if FEATURE_HEAT_BED_Z_COMPENSATION
 	writeByte(EPR_RF_MOD_ZOS_SCAN_POINT_X, Com::tEPRPrinterMOD_ZOS_SCAN_POINT_X);

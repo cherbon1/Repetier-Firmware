@@ -285,10 +285,10 @@ FSTRINGVALUE(Com::tEPRPrinterEPR_RF_EmergencyPauseDigitsMin,"Emergency-Pause min
 FSTRINGVALUE(Com::tEPRPrinterEPR_RF_EmergencyPauseDigitsMax,"Emergency-Pause max [Digits 0=off]")
 #endif //FEATURE_EMERGENCY_PAUSE
 
-#if FEATURE_EMERGENCY_STOP_ALL
+#if FEATURE_EMERGENCY_STOP_Z_AND_E
 FSTRINGVALUE(Com::tEPRPrinterEPR_RF_EmergencyStopAllMin,"Z-Emergency-Stop min [Digits]")
 FSTRINGVALUE(Com::tEPRPrinterEPR_RF_EmergencyStopAllMax,"Z-Emergency-Stop max [Digits]")
-#endif //FEATURE_EMERGENCY_STOP_ALL
+#endif //FEATURE_EMERGENCY_STOP_Z_AND_E
 #if FEATURE_DIGIT_Z_COMPENSATION
 FSTRINGVALUE(Com::tEPRZDIGIT_CMP_STATE,"Digit compensation [1=ON 2=OFF]")
 #endif // FEATURE_DIGIT_Z_COMPENSATION
