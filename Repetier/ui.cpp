@@ -3284,20 +3284,8 @@ void UIDisplay::nextPreviousAction(int8_t next)
         }
         case UI_ACTION_EPOSITION:
         {
-#if EXTRUDER_ALLOW_COLD_MOVE
 			Printer::queueRelativeMMCoordinates(0, 0, 0, (float)increment/Printer::menuExtrusionFactor, UI_SET_EXTRUDER_FEEDRATE, true, false); //klappt nicht in Pause!!
             Commands::printCurrentPosition();
-#else
-            if( Extruder::current->tempControl.targetTemperatureC > UI_SET_MIN_EXTRUDER_TEMP )
-            {
-				Printer::queueRelativeMMCoordinates(0,0,0, (float)increment/Printer::menuExtrusionFactor, UI_SET_EXTRUDER_FEEDRATE, true, false);
-                Commands::printCurrentPosition();
-            }
-            else
-            {
-                showError( (void*)ui_text_extruder, (void*)ui_text_operation_denied );
-            }
-#endif // EXTRUDER_ALLOW_COLD_MOVE
             break;
         }
         case UI_ACTION_HEATED_BED_TEMP:

@@ -11015,15 +11015,6 @@ extern void processButton( int nAction )
                 Commands::changeFeedrateMultiply(Printer::feedrateMultiply + 1);
                 beep(1,4);
             } else {
-    #if !EXTRUDER_ALLOW_COLD_MOVE
-                if( Extruder::current->tempControl.currentTemperatureC < UI_SET_MIN_EXTRUDER_TEMP )
-                {
-                    // we do not allow to move the extruder in case it is not heated up enough
-                    showError( (void*)ui_text_extruder, (void*)ui_text_operation_denied );
-                    break;
-                }
-    #endif // !EXTRUDER_ALLOW_COLD_MOVE
-
                 if( uint32_t(abs(Printer::directDestinationSteps[E_AXIS] - Printer::directCurrentSteps[E_AXIS])) <= (g_nManualSteps[E_AXIS]>>1) )
                 {
                     // we are printing at the moment - use direct steps
@@ -11053,15 +11044,6 @@ extern void processButton( int nAction )
                 Commands::changeFeedrateMultiply(Printer::feedrateMultiply - 1);
                 beep(1,4);
             }else{
-                //we are sonewhere "normal"
-    #if !EXTRUDER_ALLOW_COLD_MOVE
-                if( Extruder::current->tempControl.currentTemperatureC < UI_SET_MIN_EXTRUDER_TEMP )
-                {
-                    showError( (void*)ui_text_extruder, (void*)ui_text_operation_denied );
-                    break;
-                }
-    #endif // !EXTRUDER_ALLOW_COLD_MOVE
-
                 if( uint32_t(abs(Printer::directDestinationSteps[E_AXIS] - Printer::directCurrentSteps[E_AXIS])) <= (g_nManualSteps[E_AXIS]>>1) )
                 {
                     // we are printing at the moment - use direct steps

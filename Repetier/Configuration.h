@@ -171,9 +171,6 @@
 /** \brief Maximal temperature which can be set for the extruder */
 #define EXTRUDER_MAX_TEMP                   275
 
-/** \brief Extruder allow cold movement which can be set for the extruder */
-#define EXTRUDER_ALLOW_COLD_MOVE            0
-
 // ##########################################################################################
 // ##   Hotend V1
 // ##########################################################################################

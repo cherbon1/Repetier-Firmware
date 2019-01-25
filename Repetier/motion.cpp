@@ -1424,6 +1424,15 @@ void PrintLine::performDirectSteps( void )
         uint16_t fastest = 65535; //steps/mm*1 -> steps/s sind im bereich um 150 bis 3000 -> man kann bis grob 10mm/s per uint16_t rechnen.
         uint8_t axis = 255;
         if(e_needed){
+			if (g_nEmergencyESkip) {
+				if (Printer::directCurrentSteps[E_AXIS] < Printer::directDestinationSteps[E_AXIS]) {
+					Printer::directCurrentSteps[E_AXIS]++;
+				}
+				else {
+					Printer::directCurrentSteps[E_AXIS]--;
+				}
+				return;
+			}
             if(uint16_t(Printer::axisStepsPerMM[E_AXIS]) /* x 1mm/s = Steps/s */ < fastest){
                 fastest = uint16_t(Printer::axisStepsPerMM[E_AXIS]/* x 1mm/s = Steps/s */);
                 axis = E_AXIS;
