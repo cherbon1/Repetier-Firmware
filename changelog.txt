@@ -11,6 +11,9 @@ TODO:
 # test arc-support while printing and not printing
 # remove debug output when extrusion is forbidden by function isExtrusionAllowed()
 
+V 01.43.49.Mod (2019-01-27)
+- Reset z-compensation scale shift when disabling z-Steppers before(!) z-unhome to prevent moving back to the uncompensated position. Thx @AtlonXP
+
 V 01.43.48.Mod (2019-01-25)
 - Limit advanceL to 0 or more than 20 to prevent possible numeric problemes https://github.com/repetier/Repetier-Firmware/issues/837#issuecomment-455852008
 - added 10% more interval spacing

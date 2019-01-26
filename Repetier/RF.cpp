@@ -6670,8 +6670,7 @@ void handleStopPrint(millis_t uTime) {
         {
             g_uBlockCommands = 0;
             // output the object
-            outputObject(false); //in g_uBlockCommands > 1
-			
+            outputObject(false); //in g_uBlockCommands > 1			
         }
     }
 }

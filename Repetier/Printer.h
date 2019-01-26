@@ -354,6 +354,15 @@ public:
     /** \brief Disable stepper motor for z direction. */
     static INLINE void disableZStepper()
     {
+		InterruptProtectedBlock noInts;
+#if FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
+		Printer::compensatedPositionTargetStepsZ =
+			Printer::compensatedPositionCurrentStepsZ =
+			Printer::endZCompensationStep =
+			g_nZScanZPosition = 0;
+#endif // FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
+		noInts.unprotect();
+
         // when the stepper is disabled we loose our home position because somebody else can move our mechanical parts
         setHomed( -1 , -1 , false ); // disable CMP mit wait ist bei unhome Z mit drin. //Printer::disableCMPnow(true); //fahre vom heizbett auf 0 bevor stepper aus.
 
@@ -373,18 +382,10 @@ public:
         Printer::lastZDirection = 0;
 #endif // FEATURE_CONFIGURABLE_Z_ENDSTOPS
 
-		InterruptProtectedBlock noInts;
-
+		noInts.protect();
 		Printer::setZAxisSteps(0);
 		Printer::currentZSteps = 0;
 		Printer::resetDirectAxis(Z_AXIS);
-
-#if FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
-		Printer::compensatedPositionTargetStepsZ =
-			Printer::compensatedPositionCurrentStepsZ =
-			Printer::endZCompensationStep =
-			g_nZScanZPosition = 0;
-#endif // FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
 
 #if FEATURE_HEAT_BED_Z_COMPENSATION
 		Printer::queuePositionZLayerLast = 0;
@@ -983,12 +984,10 @@ public:
     static INLINE void markAllSteppersDisabled()
     {
         flag0 |= PRINTER_FLAG0_STEPPER_DISABLED;
-        // when the stepper is disabled we loose our home position because somebody else can move our mechanical parts
-        setHomed( false, false, false ); //mag sein, dass wir das nicht brauchen, weil sowieso die einzelnen stepper deaktiviert werden müssen.
-		
+
 #if FAN_BOARD_PIN>-1
-		pwm_pos[NUM_EXTRUDER+1] = 0;
-#endif // FAN_BOARD_PIN
+		pwm_pos[NUM_EXTRUDER + 1] = 0;
+#endif // FAN_BOARD_PIN	
     } // markAllSteppersDisabled
 
     static INLINE void unmarkAllSteppersDisabled()
@@ -1005,14 +1004,14 @@ public:
 		if( !areAllSteppersDisabled() ){
 			UI_STATUS_UPD(UI_TEXT_STEPPER_DISABLED);
 		}
-        markAllSteppersDisabled();
 #if FEATURE_UNLOCK_MOVEMENT
         Printer::g_unlock_movement = 0; //again lock movement until homing or keypress or another print happens. --> toooooo much? Ich aktiviers: http://www.rf1000.de/viewtopic.php?f=70&t=2282
 #endif //FEATURE_UNLOCK_MOVEMENT
         disableXStepper();
         disableYStepper();
         disableZStepper();
-        Extruder::disableAllExtruders();		
+		markAllSteppersDisabled();
+        Extruder::disableAllExtruders();
     } // disableAllSteppersNow
 
     static INLINE void setSomeTempsensorDefect(bool defect)
