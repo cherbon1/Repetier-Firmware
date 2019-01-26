@@ -4,13 +4,19 @@
 TODO:
 # milling mode: buttons for retract should steer speed
 # milling mode: feedrate should be visible within milling menu
-# multistepping within advance int
 # maybe acceleration smoothing
 # test if extrusion amount is still ok after retracts / G92 E0
 # test origin scan, workpart scan
 # test or rework milling functions
 # test arc-support while printing and not printing
 # remove debug output when extrusion is forbidden by function isExtrusionAllowed()
+
+V 01.43.48.Mod (2019-01-25)
+- Limit advanceL to 0 or more than 20 to prevent possible numeric problemes https://github.com/repetier/Repetier-Firmware/issues/837#issuecomment-455852008
+- added 10% more interval spacing
+- Add 512 interval spacing when advance is activated
+- Advance extrusion interrupt is now able to multistep 4x of active normal stepping. That should speed up extrusion alot.
+- minor cleanup
 
 V 01.43.47.Mod (2019-01-25)
 - The pressure value of the "z-emergency stop" limit now controls if extrusion is allowed

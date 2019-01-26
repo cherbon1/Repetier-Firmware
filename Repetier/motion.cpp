@@ -1966,6 +1966,10 @@ long PrintLine::performMove(PrintLine* move, char forQueue)
 	//we know that next time will be a (as example) double or quad step so we let pass twice the time and set the stepsPerTimerCall accordingly.
 	Printer::stepsPerTimerCall = 1;
 	unsigned long one_interval = interval;
+	uint16_t minInterval = Printer::stepsPackingMinInterval;
+	if (Printer::isAdvanceActivated()) {
+		minInterval += 512;
+	}
 	while (interval < Printer::stepsPackingMinInterval) {
 		interval += one_interval;
 		Printer::stepsPerTimerCall += 1;

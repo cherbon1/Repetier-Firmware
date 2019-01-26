@@ -760,10 +760,10 @@ additional stepper interrupts with all it's overhead. As a result you can gain h
 
 STEP_PACKING_MIN_INTERVAL can be changed in Menu-> Configuration->Stepper->DblFq:
 */
-#define STEP_PACKING_MIN_INTERVAL           2900 // (F_CPU / safe Steprate)
+#define STEP_PACKING_MIN_INTERVAL           3300 // (F_CPU / safe Steprate)
 
-#define MIN_STEP_PACKING_MIN_INTERVAL       2900
-#define MAX_STEP_PACKING_MIN_INTERVAL       4000
+#define MIN_STEP_PACKING_MIN_INTERVAL       3300
+#define MAX_STEP_PACKING_MIN_INTERVAL       5000
 
 /** \brief If you reach STEP_PACKING_MIN_INTERVAL the firmware will do 2, 3 or 4... steps with nearly no delay. That can be too fast
 for some printers causing an early stall. */

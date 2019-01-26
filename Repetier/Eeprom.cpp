@@ -916,6 +916,9 @@ void EEPROM::readDataFromEEPROM()
         e->advanceK = HAL::eprGetFloat(o+EPR_EXTRUDER_ADVANCE_K);
 #endif // ENABLE_QUADRATIC_ADVANCE
         e->advanceL = HAL::eprGetFloat(o+EPR_EXTRUDER_ADVANCE_L);
+		if (e->advanceL > 0 && e->advanceL < 20) {
+			e->advanceL = 20;
+		} 
 #endif // USE_ADVANCE
 
         if(version>1)

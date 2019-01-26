@@ -3299,7 +3299,6 @@ void UIDisplay::nextPreviousAction(int8_t next)
             else if(tmp>UI_SET_MAX_HEATED_BED_TEMP) tmp = UI_SET_MAX_HEATED_BED_TEMP;
             Extruder::setHeatedBedTemperature(tmp);
 #endif // HAVE_HEATED_BED
-
             break;
         }
         case UI_ACTION_EXTRUDER0_TEMP:
@@ -3323,7 +3322,6 @@ void UIDisplay::nextPreviousAction(int8_t next)
             else if(tmp>UI_SET_MAX_EXTRUDER_TEMP) tmp = UI_SET_MAX_EXTRUDER_TEMP;
             Extruder::setTemperatureForExtruder(tmp,1);
 #endif // NUM_EXTRUDER>1
-
             break;
         }
 
@@ -3405,7 +3403,6 @@ void UIDisplay::nextPreviousAction(int8_t next)
             HAL::eprSetInt32(EPR_STEPPER_INACTIVE_TIME,stepperInactiveTime);
             EEPROM::updateChecksum();
 #endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
-
             break;
         }
         case UI_ACTION_MAX_INACTIVE:
@@ -3417,7 +3414,6 @@ void UIDisplay::nextPreviousAction(int8_t next)
             HAL::eprSetInt32(EPR_MAX_INACTIVE_TIME,maxInactiveTime);
             EEPROM::updateChecksum();
 #endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
-
             break;
         }
         case UI_ACTION_PRINT_ACCEL_X:
@@ -3429,7 +3425,6 @@ void UIDisplay::nextPreviousAction(int8_t next)
             HAL::eprSetFloat(EPR_X_MAX_ACCEL, Printer::maxAccelerationMMPerSquareSecond[X_AXIS]);
             EEPROM::updateChecksum();
 #endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
-
             break;
         }
         case UI_ACTION_PRINT_ACCEL_Y:
@@ -3441,7 +3436,6 @@ void UIDisplay::nextPreviousAction(int8_t next)
             HAL::eprSetFloat(EPR_Y_MAX_ACCEL, Printer::maxAccelerationMMPerSquareSecond[Y_AXIS]);
             EEPROM::updateChecksum();
 #endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
-
             break;
         }
         case UI_ACTION_PRINT_ACCEL_Z:
@@ -3453,7 +3447,6 @@ void UIDisplay::nextPreviousAction(int8_t next)
             HAL::eprSetFloat(EPR_Z_MAX_ACCEL, Printer::maxAccelerationMMPerSquareSecond[Z_AXIS]);
             EEPROM::updateChecksum();
 #endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
-
             break;
         }
         case UI_ACTION_MOVE_ACCEL_X:
@@ -3465,7 +3458,6 @@ void UIDisplay::nextPreviousAction(int8_t next)
             HAL::eprSetFloat(EPR_X_MAX_TRAVEL_ACCEL, Printer::maxTravelAccelerationMMPerSquareSecond[X_AXIS]);
             EEPROM::updateChecksum();
 #endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
-
             break;
         }
         case UI_ACTION_MOVE_ACCEL_Y:
@@ -3477,7 +3469,6 @@ void UIDisplay::nextPreviousAction(int8_t next)
             HAL::eprSetFloat(EPR_Y_MAX_TRAVEL_ACCEL, Printer::maxTravelAccelerationMMPerSquareSecond[Y_AXIS]);
             EEPROM::updateChecksum();
 #endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
-
             break;
         }
         case UI_ACTION_MOVE_ACCEL_Z:
@@ -3489,7 +3480,6 @@ void UIDisplay::nextPreviousAction(int8_t next)
             HAL::eprSetFloat(EPR_Z_MAX_TRAVEL_ACCEL, Printer::maxTravelAccelerationMMPerSquareSecond[Z_AXIS]);
             EEPROM::updateChecksum();
 #endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
-
             break;
         }
         case UI_ACTION_MAX_JERK:
@@ -3500,7 +3490,6 @@ void UIDisplay::nextPreviousAction(int8_t next)
             HAL::eprSetFloat(EPR_MAX_XYJERK, Printer::maxXYJerk);
             EEPROM::updateChecksum();
 #endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
-
             break;
         }
         case UI_ACTION_MAX_ZJERK:
@@ -3511,7 +3500,6 @@ void UIDisplay::nextPreviousAction(int8_t next)
             HAL::eprSetFloat(EPR_MAX_ZJERK, Printer::maxZJerk);
             EEPROM::updateChecksum();
 #endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
-
             break;
         }
 #if FEATURE_READ_CALIPER
@@ -3598,7 +3586,6 @@ void UIDisplay::nextPreviousAction(int8_t next)
 #endif // FEATURE_MILLING_MODE
             EEPROM::updateChecksum();
 #endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
-
             break;
         }
         case UI_ACTION_HOMING_FEEDRATE_Z:
@@ -3620,7 +3607,6 @@ void UIDisplay::nextPreviousAction(int8_t next)
 #endif // FEATURE_MILLING_MODE
             EEPROM::updateChecksum();
 #endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
-
             break;
         }
         case UI_ACTION_MAX_FEEDRATE_X:
@@ -3631,7 +3617,6 @@ void UIDisplay::nextPreviousAction(int8_t next)
             HAL::eprSetFloat(EPR_X_MAX_FEEDRATE,Printer::maxFeedrate[X_AXIS]);
             EEPROM::updateChecksum();
 #endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
-
             break;
         }
         case UI_ACTION_MAX_FEEDRATE_Y:
@@ -3642,7 +3627,6 @@ void UIDisplay::nextPreviousAction(int8_t next)
         HAL::eprSetFloat(EPR_Y_MAX_FEEDRATE,Printer::maxFeedrate[Y_AXIS]);
         EEPROM::updateChecksum();
 #endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
-
             break;
         }
         case UI_ACTION_MAX_FEEDRATE_Z:
@@ -3653,7 +3637,6 @@ void UIDisplay::nextPreviousAction(int8_t next)
             HAL::eprSetFloat(EPR_Z_MAX_FEEDRATE,Printer::maxFeedrate[Z_AXIS]);
             EEPROM::updateChecksum();
 #endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
-
             break;
         }
         case UI_ACTION_BAUDRATE:
@@ -3685,7 +3668,6 @@ void UIDisplay::nextPreviousAction(int8_t next)
             EEPROM::updateChecksum();
 #endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
 #endif // EEPROM_MODE!=0
-
             break;
         }
 
@@ -3751,7 +3733,6 @@ void UIDisplay::nextPreviousAction(int8_t next)
             EEPROM::updateChecksum();
 #endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
            }
-
            break;
         }
 
@@ -3764,15 +3745,24 @@ void UIDisplay::nextPreviousAction(int8_t next)
 #else
 			uint8_t eNr = 0;
 #endif //NUM_EXTRUDER > 1
-            float step = (extruder[eNr].advanceL < 20.0f) ? 1.0f : ((extruder[eNr].advanceL < 50.0f) ? 5.0f : 10.0f);
-            INCREMENT_MIN_MAX(extruder[eNr].advanceL, step, 0.0f, 250.0f); //Nibbels TODO gute Werte zulassen? Ist Step 1 ok? -> 60 war zu wenig.
+            float step = (extruder[eNr].advanceL < 30.0f) ? 1.0f : ((extruder[eNr].advanceL < 50.0f) ? 5.0f : 10.0f);
+            INCREMENT_MIN_MAX(extruder[eNr].advanceL, step, 0.0f, 250.0f);
+			// advance < 20 might be problematic
+			// https://github.com/repetier/Repetier-Firmware/issues/837#issuecomment-455852008
+			if (extruder[eNr].advanceL < 20.0f) {
+				if (increment > 0) {
+					extruder[eNr].advanceL = 20;
+				}
+				else {
+					extruder[eNr].advanceL = 0;
+				}
+			}
             Printer::updateAdvanceFlags();
 
 #if FEATURE_AUTOMATIC_EEPROM_UPDATE
             HAL::eprSetFloat(EEPROM::getExtruderOffset(eNr)+EPR_EXTRUDER_ADVANCE_L, extruder[eNr].advanceL);
             EEPROM::updateChecksum();
 #endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
-
             break;
         }
 #endif //USE_ADVANCE
@@ -3792,7 +3782,6 @@ void UIDisplay::nextPreviousAction(int8_t next)
             HAL::eprSetFloat(EEPROM::getExtruderOffset(eNr)+EPR_EXTRUDER_MAX_ACCELERATION, extruder[eNr].maxAcceleration);
             EEPROM::updateChecksum();
 #endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
-
             break;
         }
 
@@ -3811,7 +3800,6 @@ void UIDisplay::nextPreviousAction(int8_t next)
             HAL::eprSetFloat(EEPROM::getExtruderOffset(eNr)+EPR_EXTRUDER_MAX_FEEDRATE, extruder[eNr].maxFeedrate);
             EEPROM::updateChecksum();
 #endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
-
             break;
         }
 
@@ -3830,7 +3818,6 @@ void UIDisplay::nextPreviousAction(int8_t next)
             HAL::eprSetFloat(EEPROM::getExtruderOffset(eNr)+EPR_EXTRUDER_MAX_START_FEEDRATE, extruder[eNr].maxEJerk);
             EEPROM::updateChecksum();
 #endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
-
             break;
         }
 		

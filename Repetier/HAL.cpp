@@ -1178,31 +1178,38 @@ allowable speed for the extruder.
 ISR(EXTRUDER_TIMER_VECTOR)
 {
     uint8_t timer = EXTRUDER_OCR;
-    if(!Printer::isAdvanceActivated()) return; // currently no need
-    if(Printer::extruderStepsNeeded > 0 && extruderLastDirection != 1)
+    if (!Printer::isAdvanceActivated()) return; // currently no need
+
+    if (Printer::extruderStepsNeeded > 0 && extruderLastDirection != 1)
     {
-        if(Printer::extruderStepsNeeded >= ADVANCE_DIR_FILTER_STEPS)
+        if (Printer::extruderStepsNeeded >= ADVANCE_DIR_FILTER_STEPS)
         {
             Extruder::setDirection(true);
             extruderLastDirection = 1;
             timer += 40; // Add some more wait time to prevent blocking
         }
     }
-    else if(Printer::extruderStepsNeeded < 0 && extruderLastDirection != -1)
+    else if (Printer::extruderStepsNeeded < 0 && extruderLastDirection != -1)
     {
-        if(-Printer::extruderStepsNeeded >= ADVANCE_DIR_FILTER_STEPS)
+        if (-Printer::extruderStepsNeeded >= ADVANCE_DIR_FILTER_STEPS)
         {
             Extruder::setDirection(false);
             extruderLastDirection = -1;
             timer += 40; // Add some more wait time to prevent blocking
         }
     }
-    else if(Printer::extruderStepsNeeded != 0)
+    else if (Printer::extruderStepsNeeded != 0)
     {
-        Extruder::step();
-        Printer::extruderStepsNeeded -= extruderLastDirection;
-        Printer::insertStepperHighDelay();
-        Extruder::unstep();
+		int max_loops = Printer::extruderStepsNeeded;
+		int relative_speed = (Printer::stepsPerTimerCall << 2);
+		if (max_loops > relative_speed) max_loops = relative_speed;
+
+		for (uint8_t i = 0; i < max_loops; i++) {
+			Extruder::step();
+			Printer::extruderStepsNeeded -= extruderLastDirection;
+			Printer::insertStepperHighDelay();
+			Extruder::unstep();
+		}
     }
     EXTRUDER_OCR = timer + Printer::maxExtruderSpeed;
 }
