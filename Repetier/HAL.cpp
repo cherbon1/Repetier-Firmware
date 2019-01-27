@@ -968,54 +968,54 @@ ISR(PWM_TIMER_VECTOR)
 #endif
     PWM_OCR += 64;
 
-    if(pwm_count_heater == 0)
+    if (pwm_count_heater == 0)
     {
 #if EXT0_HEATER_PIN>-1
-        if((pwm_pos_set[0] = (pwm_pos[0] & HEATER_PWM_MASK)) > 0) WRITE(EXT0_HEATER_PIN,!HEATER_PINS_INVERTED);
+        if ((pwm_pos_set[0] = (pwm_pos[0] & HEATER_PWM_MASK)) > 0) WRITE(EXT0_HEATER_PIN,!HEATER_PINS_INVERTED);
 #endif // EXT0_HEATER_PIN>-1
 
 #if defined(EXT1_HEATER_PIN) && EXT1_HEATER_PIN>-1 && NUM_EXTRUDER>1
-        if((pwm_pos_set[1] = (pwm_pos[1] & HEATER_PWM_MASK)) > 0) WRITE(EXT1_HEATER_PIN,!HEATER_PINS_INVERTED);
+        if ((pwm_pos_set[1] = (pwm_pos[1] & HEATER_PWM_MASK)) > 0) WRITE(EXT1_HEATER_PIN,!HEATER_PINS_INVERTED);
 #endif // defined(EXT1_HEATER_PIN) && EXT1_HEATER_PIN>-1 && NUM_EXTRUDER>1
 
 #if HEATED_BED_HEATER_PIN>-1 && HAVE_HEATED_BED
-        if((pwm_pos_set[NUM_EXTRUDER] = (pwm_pos[NUM_EXTRUDER] & HEATER_PWM_MASK)) > 0) WRITE(HEATED_BED_HEATER_PIN, !HEATER_PINS_INVERTED);
+        if ((pwm_pos_set[NUM_EXTRUDER] = (pwm_pos[NUM_EXTRUDER] & HEATER_PWM_MASK)) > 0) WRITE(HEATED_BED_HEATER_PIN, !HEATER_PINS_INVERTED);
 #endif // HEATED_BED_HEATER_PIN>-1 && HAVE_HEATED_BED
     }
 
-    if(pwm_count_cooler == 0)
+    if (pwm_count_cooler == 0)
     {
 #if EXT0_HEATER_PIN>-1 && EXT0_EXTRUDER_COOLER_PIN>-1
-        if((pwm_cooler_pos_set[0] = extruder[0].coolerPWM) > 0) WRITE(EXT0_EXTRUDER_COOLER_PIN,1);
+        if ((pwm_cooler_pos_set[0] = extruder[0].coolerPWM) > 0) WRITE(EXT0_EXTRUDER_COOLER_PIN,1);
 #endif // EXT0_HEATER_PIN>-1 && EXT0_EXTRUDER_COOLER_PIN>-1
 
 #if defined(EXT1_HEATER_PIN) && EXT1_HEATER_PIN>-1 && NUM_EXTRUDER>1
  #if EXT1_EXTRUDER_COOLER_PIN>-1 && EXT1_EXTRUDER_COOLER_PIN != EXT0_EXTRUDER_COOLER_PIN
-        if((pwm_cooler_pos_set[1] = extruder[1].coolerPWM) > 0) WRITE(EXT1_EXTRUDER_COOLER_PIN,1);
+        if ((pwm_cooler_pos_set[1] = extruder[1].coolerPWM) > 0) WRITE(EXT1_EXTRUDER_COOLER_PIN,1);
  #endif // EXT1_EXTRUDER_COOLER_PIN>-1 && EXT1_EXTRUDER_COOLER_PIN!=EXT0_EXTRUDER_COOLER_PIN
 #endif // defined(EXT1_HEATER_PIN) && EXT1_HEATER_PIN>-1 && NUM_EXTRUDER>1
 
 #if FAN_BOARD_PIN>-1
-        if((pwm_pos_set[NUM_EXTRUDER+1] = (pwm_pos[NUM_EXTRUDER+1] & COOLER_PWM_MASK)) > 0) WRITE(FAN_BOARD_PIN,1);
+        if ((pwm_pos_set[NUM_EXTRUDER+1] = (pwm_pos[NUM_EXTRUDER+1] & COOLER_PWM_MASK)) > 0) WRITE(FAN_BOARD_PIN,1);
 #endif // FAN_BOARD_PIN>-1
     }
 
 #if EXT0_HEATER_PIN>-1
-    if(pwm_pos_set[0] == pwm_count_heater && pwm_pos_set[0]!=HEATER_PWM_MASK) WRITE(EXT0_HEATER_PIN,HEATER_PINS_INVERTED);
+    if (pwm_pos_set[0] == pwm_count_heater && pwm_pos_set[0]!=HEATER_PWM_MASK) WRITE(EXT0_HEATER_PIN,HEATER_PINS_INVERTED);
 #if EXT0_EXTRUDER_COOLER_PIN>-1
-    if(pwm_cooler_pos_set[0] == pwm_count_cooler && pwm_cooler_pos_set[0]!=255) WRITE(EXT0_EXTRUDER_COOLER_PIN,0);
+    if (pwm_cooler_pos_set[0] == pwm_count_cooler && pwm_cooler_pos_set[0]!=255) WRITE(EXT0_EXTRUDER_COOLER_PIN,0);
 #endif // #if EXT0_EXTRUDER_COOLER_PIN>-1
 #endif // #if EXT0_HEATER_PIN>-1
 
 #if defined(EXT1_HEATER_PIN) && EXT1_HEATER_PIN>-1 && NUM_EXTRUDER>1
-    if(pwm_pos_set[1] == pwm_count_heater && pwm_pos_set[1]!=HEATER_PWM_MASK) WRITE(EXT1_HEATER_PIN,HEATER_PINS_INVERTED);
+    if (pwm_pos_set[1] == pwm_count_heater && pwm_pos_set[1]!=HEATER_PWM_MASK) WRITE(EXT1_HEATER_PIN,HEATER_PINS_INVERTED);
 #if EXT1_EXTRUDER_COOLER_PIN>-1 && EXT1_EXTRUDER_COOLER_PIN!=EXT0_EXTRUDER_COOLER_PIN
-    if(pwm_cooler_pos_set[1] == pwm_count_cooler && pwm_cooler_pos_set[1]!=255) WRITE(EXT1_EXTRUDER_COOLER_PIN,0);
+    if (pwm_cooler_pos_set[1] == pwm_count_cooler && pwm_cooler_pos_set[1]!=255) WRITE(EXT1_EXTRUDER_COOLER_PIN,0);
 #endif // EXT1_EXTRUDER_COOLER_PIN>-1 && EXT1_EXTRUDER_COOLER_PIN!=EXT0_EXTRUDER_COOLER_PIN
 #endif // defined(EXT1_HEATER_PIN) && EXT1_HEATER_PIN>-1 && NUM_EXTRUDER>1
 
 #if HEATED_BED_HEATER_PIN>-1 && HAVE_HEATED_BED
-    if(pwm_pos_set[NUM_EXTRUDER] == pwm_count_heater && pwm_pos_set[NUM_EXTRUDER] != HEATER_PWM_MASK) WRITE(HEATED_BED_HEATER_PIN,HEATER_PINS_INVERTED);
+    if (pwm_pos_set[NUM_EXTRUDER] == pwm_count_heater && pwm_pos_set[NUM_EXTRUDER] != HEATER_PWM_MASK) WRITE(HEATED_BED_HEATER_PIN,HEATER_PINS_INVERTED);
 #endif // HEATED_BED_HEATER_PIN>-1 && HAVE_HEATED_BED
 
 #if FAN_BOARD_PIN>-1
@@ -1031,9 +1031,9 @@ ISR(PWM_TIMER_VECTOR)
     /**
     PART FAN SPEED CONTROL
     */
-    if(part_fan_frequency_modulation == PART_FAN_MODE_PDM){
+    if (part_fan_frequency_modulation == PART_FAN_MODE_PDM) {
         pulseDensityModulate(FAN_PIN, (fanKickstart ? 255 : pwm_pos[NUM_EXTRUDER+2]), pwm_pos_set[NUM_EXTRUDER+2], false);
-    }else{
+    } else {
         // divide part fan 15.3Hz PWM by factor:
         static int counterSpeed15_3Div = 0;
         if(++counterSpeed15_3Div >= part_fan_pwm_speed){
@@ -1061,7 +1061,7 @@ ISR(PWM_TIMER_VECTOR)
 
     static int counter100Periodical = 0; // Approximate a 100ms timer :: blocks pingwatchdog s commandloop if not working
 	counter100Periodical++;
-    if(counter100Periodical == 196) //halbe 100ms Zeit -> Ping 50ms
+    if (counter100Periodical == 196) //halbe 100ms Zeit -> Ping 50ms
     {
         execute50msPeriodical = 1;
     }
@@ -1077,7 +1077,7 @@ ISR(PWM_TIMER_VECTOR)
 #endif // FEATURE_RGB_LIGHT_EFFECTS
 
     static char counter10Periodical = 0; // Approximate a 10ms timer :: blocks pingwatchdog s commandloop if not working
-    if(++counter10Periodical >= 39)
+    if (++counter10Periodical >= 39)
     {
         counter10Periodical = 0;
         execute10msPeriodical = 1;
@@ -1094,10 +1094,10 @@ ISR(PWM_TIMER_VECTOR)
 
     // read analog values
 #if ANALOG_INPUTS>0
-    if((ADCSRA & _BV(ADSC))==0)   // Conversion finished?
+    if ((ADCSRA & _BV(ADSC))==0)   // Conversion finished?
     {
         osAnalogInputBuildup[osAnalogInputPos] += ADCW;
-        if(++osAnalogInputCounter[osAnalogInputPos]>=_BV(ANALOG_INPUT_SAMPLE))
+        if (++osAnalogInputCounter[osAnalogInputPos]>=_BV(ANALOG_INPUT_SAMPLE))
         {
 #if ANALOG_INPUT_BITS+ANALOG_INPUT_SAMPLE<12
             osAnalogInputValues[osAnalogInputPos] =
@@ -1119,12 +1119,12 @@ ISR(PWM_TIMER_VECTOR)
             osAnalogInputBuildup[osAnalogInputPos] = 0;
             osAnalogInputCounter[osAnalogInputPos] = 0;
             // Start next conversion
-            if(osAnalogInputPos < ANALOG_INPUTS-1) osAnalogInputPos++;
+            if (osAnalogInputPos < ANALOG_INPUTS-1) osAnalogInputPos++;
             else osAnalogInputPos = 0;
             uint8_t channel = pgm_read_byte(&osAnalogInputChannels[osAnalogInputPos]);
 
 #if defined(ADCSRB) && defined(MUX5)
-            if(channel & 8)  // Reading channel 0-7 or 8-15?
+            if (channel & 8)  // Reading channel 0-7 or 8-15?
                 ADCSRB |= _BV(MUX5);
             else
                 ADCSRB &= ~_BV(MUX5);
@@ -1139,7 +1139,7 @@ ISR(PWM_TIMER_VECTOR)
     UI_FAST; // Short timed user interface action
 
 #if FEATURE_RGB_LIGHT_EFFECTS
-    if( rgb_10ms_change_should_be_now )
+    if ( rgb_10ms_change_should_be_now )
     {
         char    change = 0;
         if( g_uRGBTargetR > g_uRGBCurrentR )        { g_uRGBCurrentR ++; change = 1; }

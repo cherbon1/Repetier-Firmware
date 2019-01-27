@@ -5467,33 +5467,32 @@ void UIDisplay::fastAction()
     {
         flags |= UI_FLAG_KEY_TEST_RUNNING;
 
-            int16_t nextAction = 0;
-            uid.ui_check_keys(nextAction);
+        int16_t nextAction = 0;
+        uid.ui_check_keys(nextAction);
 
-            if(lastButtonAction!=nextAction)
+        if (lastButtonAction != nextAction)
+        {
+            lastButtonStart = HAL::timeInMilliseconds();
+            lastButtonAction = nextAction;
+            flags |= UI_FLAG_FAST_KEY_ACTION;
+            if( nextAction == UI_ACTION_RF_CONTINUE )
             {
-                lastButtonStart = HAL::timeInMilliseconds();
-                lastButtonAction = nextAction;
-                flags |= UI_FLAG_FAST_KEY_ACTION;
-                if( nextAction == UI_ACTION_RF_CONTINUE )
-                {
-                    g_nContinueButtonPressed = 1;
-                }
+                g_nContinueButtonPressed = 1;
             }
+        }
 
-            if(!nextAction)
+        if (!nextAction)
+        {
+            // no key is pressed at the moment
+            if (PrintLine::direct.task == TASK_MOVE_FROM_BUTTON)
             {
-                // no key is pressed at the moment
-                if(PrintLine::direct.task == TASK_MOVE_FROM_BUTTON)
-                {
-                    // the current direct movement has been started via a hardware or menu button - these movements shall be stopped as soon as the button is released
-                    PrintLine::stopDirectMove();
-                }
+                // the current direct movement has been started via a hardware or menu button - these movements shall be stopped as soon as the button is released
+                PrintLine::stopDirectMove();
             }
+        }
 
         flags &= ~UI_FLAG_KEY_TEST_RUNNING;
     }
-    noInts.unprotect();
 #endif //  UI_HAS_KEYS==1
 } // fastAction
 
