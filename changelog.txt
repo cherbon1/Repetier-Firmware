@@ -7,6 +7,9 @@ TODO:
 # test or rework milling functions
 # test arc-support while printing and not printing
 
+V 01.43.53.Mod (2019-01-27)
+- endstop hardening for directStepping
+
 V 01.43.52.Mod (2019-01-27)
 - removed M3007 and M3008 because we have a well working automatic adjustment for zcompensation limits
 - removed options for automatic adjustments of zcompensation borders - it has to be always on

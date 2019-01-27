@@ -1624,6 +1624,20 @@ void PrintLine::performDirectSteps( void )
             {
                 HAL::delayMicroseconds( EXTENDED_BUTTONS_STEPPER_DELAY );
 
+				if ((nDirectionX > 1 && Printer::isXMaxEndstopHit()) || (nDirectionX < 1 && Printer::isXMinEndstopHit())) {
+					Printer::directDestinationSteps[X_AXIS] = Printer::directCurrentSteps[X_AXIS];
+					nDirectionX = 0;
+				}
+				if ((nDirectionY > 1 && Printer::isYMaxEndstopHit()) || (nDirectionY < 1 && Printer::isYMinEndstopHit())) {
+					Printer::directDestinationSteps[Y_AXIS] = Printer::directCurrentSteps[Y_AXIS];
+					nDirectionY = 0;
+				}
+				if ((nDirectionZ > 1 && Printer::isZMaxEndstopHit()) 
+					|| (nDirectionZ < 1 && Printer::isZMinEndstopHit() && Printer::currentZSteps <= -1 * long(Printer::maxZOverrideSteps))) {
+					Printer::directDestinationSteps[Z_AXIS] = Printer::directCurrentSteps[Z_AXIS];
+					nDirectionZ = 0;
+				}
+
                 if( nDirectionX ) Printer::startXStep();
                 if( nDirectionY ) Printer::startYStep();
                 if( nDirectionZ ) Printer::startZStep();
