@@ -1,15 +1,15 @@
 !!! This branch rightnow is highly experimental !!! 
-# extrusion is not working well rightnow
 
 TODO:
 # milling mode: buttons for retract should steer speed
 # milling mode: feedrate should be visible within milling menu
 # maybe acceleration smoothing
-# test if extrusion amount is still ok after retracts / G92 E0
 # test origin scan, workpart scan
 # test or rework milling functions
 # test arc-support while printing and not printing
-# remove debug output when extrusion is forbidden by function isExtrusionAllowed()
+
+V 01.43.51.Mod (2019-01-27)
+- repair of function isExtrusionAllowed() in respect to absolute or relative coordinates
 
 V 01.43.50.Mod (2019-01-27)
 - some tweaking for printTemperatures();

@@ -432,21 +432,25 @@ void Printer::addKurtWobbleFixOffset(bool absoluteXYCoordinates)
 } // addKurtWobbleFixOffset
 #endif // FEATURE_Kurt67_WOBBLE_FIX
 
-inline bool isExtrusionAllowed(float Ecoordinate) {
+inline bool isExtrusionAllowed(float e) {
+	// calculate total amount of extrusion respecting coordinate mode
+	float de = e;
+	if (!Printer::relativeCoordinateMode && !Printer::relativeExtruderCoordinateMode)
+	{
+		de = e - Printer::destinationMM[E_AXIS];
+	}
+
 #if FEATURE_DIGIT_FLOW_COMPENSATION
-	if (fabs(Ecoordinate) * Printer::menuExtrusionFactor * Printer::dynamicExtrusionFactor > EXTRUDE_MAXLENGTH) {
-		Com::printFLN(PSTR("No E: 21"));
+	if (fabs(de) * Printer::menuExtrusionFactor * Printer::dynamicExtrusionFactor > EXTRUDE_MAXLENGTH) {
 		return false;
 	}
 #else
-	if (fabs(Ecoordinate) * Printer::menuExtrusionFactor > EXTRUDE_MAXLENGTH) {
-		Com::printFLN(PSTR("No E: 22"));
+	if (fabs(de) * Printer::menuExtrusionFactor > EXTRUDE_MAXLENGTH) {
 		return false;
 	}
 #endif // FEATURE_DIGIT_FLOW_COMPENSATION
 
 	if (Printer::debugDryrun()) {
-		Com::printFLN(PSTR("No E: 3"));
 		return false;
 	}
 
@@ -481,17 +485,18 @@ bool Printer::queueGCodeCoordinates(GCode *com)
 	}
 	noInts.unprotect();
 
-	bool isEMove = com->hasE() && isExtrusionAllowed(com->E);
+	float e = convertToMM(com->E);
+	bool isEMove = com->hasE() && isExtrusionAllowed(e);
 	if (isEMove)
 	{
 		noInts.protect();
 		if (relativeCoordinateMode || relativeExtruderCoordinateMode)
 		{
-			destinationMM[E_AXIS] += convertToMM(com->E);
+			destinationMM[E_AXIS] += e;
 		}
 		else //absolute Coordinate Mode
 		{
-			destinationMM[E_AXIS] = convertToMM(com->E);
+			destinationMM[E_AXIS] = e;
 		}
 		noInts.unprotect();
 	}
