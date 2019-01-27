@@ -123,7 +123,7 @@ void PrintLine::prepareQueueMove(uint8_t check_endstops,uint8_t pathOptimize, fl
 			float axisDistanceFactor = Printer::menuExtrusionFactor;
  #endif // FEATURE_DIGIT_FLOW_COMPENSATION
 			p->delta[E_AXIS] = lroundf(axisDistanceUnscaledMM * axisDistanceFactor * Printer::axisStepsPerMM[E_AXIS]);
-			axisDistanceMM[E_AXIS] = p->delta[E_AXIS] * Printer::axisMMPerSteps[E_AXIS];
+			axisDistanceMM[E_AXIS] = float(p->delta[E_AXIS]) * Printer::axisMMPerSteps[E_AXIS];
 			Printer::filamentPrinted += axisDistanceMM[E_AXIS];
 
 			//Update calculated coordinate using the unscaled e-move distance.
@@ -131,7 +131,7 @@ void PrintLine::prepareQueueMove(uint8_t check_endstops,uint8_t pathOptimize, fl
         }
 		else {
 			p->delta[axis] = lroundf(axisDistanceUnscaledMM * Printer::axisStepsPerMM[axis]);
-			axisDistanceMM[axis] = p->delta[axis] * Printer::axisMMPerSteps[axis];
+			axisDistanceMM[axis] = float(p->delta[axis]) * Printer::axisMMPerSteps[axis];
 
 			//Update calculated coordinate by move distance.
 			Printer::destinationMMLast[axis] += axisDistanceMM[axis];
