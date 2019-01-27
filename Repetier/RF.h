@@ -579,9 +579,6 @@ extern  long            g_offsetZCompensationSteps; // this is the minimal dista
 extern  short           g_ZCompensationMax;
 extern  long            g_minZCompensationSteps;
 extern  long            g_maxZCompensationSteps;
-#if AUTOADJUST_MIN_MAX_ZCOMP
-extern  bool            g_auto_minmaxZCompensationSteps;
-#endif //AUTOADJUST_MIN_MAX_ZCOMP
 extern  long            g_diffZCompensationSteps;
 extern  volatile unsigned char g_nHeatBedScanStatus;
 extern  char            g_nActiveHeatBed;

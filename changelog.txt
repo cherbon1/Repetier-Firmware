@@ -3,10 +3,14 @@
 TODO:
 # milling mode: buttons for retract should steer speed
 # milling mode: feedrate should be visible within milling menu
-# maybe acceleration smoothing
 # test origin scan, workpart scan
 # test or rework milling functions
 # test arc-support while printing and not printing
+
+V 01.43.52.Mod (2019-01-27)
+- removed M3007 and M3008 because we have a well working automatic adjustment for zcompensation limits
+- removed options for automatic adjustments of zcompensation borders - it has to be always on
+- changed startline height to 0.352mm to prevent using this special height as first layer height. (which might corrupt senseoffset results for new users)
 
 V 01.43.51.Mod (2019-01-27)
 - repair of function isExtrusionAllowed() in respect to absolute or relative coordinates
