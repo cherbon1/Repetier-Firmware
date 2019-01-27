@@ -86,7 +86,7 @@ void Commands::checkForPeriodicalActions(enum FirmwareState state)
     if (execute100msPeriodical) {
       execute100msPeriodical = 0;
       Extruder::manageTemperatures();
-      //Commands::printTemperatures(); //selfcontrolling timediff
+	  if (state == WaitHeater) Commands::printTemperatures(); //selfcontrolling timediff
 #if defined(SDCARDDETECT) && SDCARDDETECT>-1 && defined(SDSUPPORT) && SDSUPPORT
       sd.automount();
 #endif // defined(SDCARDDETECT) && SDCARDDETECT>-1 && defined(SDSUPPORT) && SDSUPPORT
@@ -164,7 +164,6 @@ void Commands::printTemperatures(bool showRaw)
     if( (now - lastTemperatureSignal) > 1000 ){
         lastTemperatureSignal = now;
 
-
         Com::printF(Com::tTColon,Extruder::current->tempControl.currentTemperatureC,1);
         Com::printF(Com::tSpaceSlash,Extruder::current->tempControl.targetTemperatureC,0);
         // Show output of autotune when tuning!
@@ -221,8 +220,7 @@ void Commands::printTemperatures(bool showRaw)
 #endif // FEATURE_ZERO_DIGITS
         Com::printF(Com::tSpaceAtColon,0); //Ziel ^^, nein ich halte mich nur an die PWM-Syntax
 #endif //FEATURE_PRINT_PRESSURE
-
-    Com::println();
+		Com::println();
     }
 } // printTemperatures
 
@@ -939,7 +937,6 @@ void Commands::executeGCode(GCode *com)
                     float       settarget = -1;       // random init in °C
 
                     do {
-                        Commands::printTemperatures();
                         Commands::checkForPeriodicalActions( WaitHeater );
 
                         //Anpassung an die neue Situation falls der Bediener am Display-Menü des Druckers während Aufheizzeit was umstellt.
@@ -1030,7 +1027,6 @@ void Commands::executeGCode(GCode *com)
                             }
                         }
 
-                        Commands::printTemperatures();
                         Commands::checkForPeriodicalActions( WaitHeater );
 						if (!dirRising && heatedBedController.currentTemperatureC <= MAX_ROOM_TEMPERATURE) break;
 						if (Printer::isAnyTempsensorDefect()) break;
@@ -1052,7 +1048,6 @@ void Commands::executeGCode(GCode *com)
                         while(!allReached)
                         {
                             allReached = true;
-                            Commands::printTemperatures();
                             Commands::checkForPeriodicalActions( WaitHeater );
 
                             for( uint8_t h=0; h<NUM_TEMPERATURE_LOOPS; h++ )

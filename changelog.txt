@@ -11,6 +11,9 @@ TODO:
 # test arc-support while printing and not printing
 # remove debug output when extrusion is forbidden by function isExtrusionAllowed()
 
+V 01.43.50.Mod (2019-01-27)
+- some tweaking for printTemperatures();
+
 V 01.43.49.Mod (2019-01-27)
 - Reset z-compensation scale shift when disabling z-Steppers before(!) z-unhome to prevent moving back to the uncompensated position. Thx @AtlonXP
 

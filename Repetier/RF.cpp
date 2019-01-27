@@ -3106,7 +3106,6 @@ void startViscosityTest( int maxdigits = 10000, float maxfeedrate = 5.0f, float 
         while(!allReached)
         {
             allReached = true;
-            Commands::printTemperatures();
             Commands::checkForPeriodicalActions( WaitHeater );
 
             for( uint8_t h=0; h<NUM_TEMPERATURE_LOOPS; h++ )
@@ -3243,7 +3242,6 @@ void startViscosityTest( int maxdigits = 10000, float maxfeedrate = 5.0f, float 
             while(!allReached)
             {
                 allReached = true;
-                Commands::printTemperatures();
                 Commands::checkForPeriodicalActions( WaitHeater );
 
                 for( uint8_t h=0; h<NUM_TEMPERATURE_LOOPS; h++ )

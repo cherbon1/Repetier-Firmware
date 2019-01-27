@@ -1051,7 +1051,6 @@ void TemperatureController::waitForTargetTemperature(uint8_t plus_temp_tolerance
     }
     g_uStartOfIdle = 0; //start waitForTargetTemperature
     while(true) {
-        Commands::printTemperatures();
         Commands::checkForPeriodicalActions( WaitHeater );
         if( fabs(targetTemperatureC - currentTemperatureC) <= TEMP_TOLERANCE + plus_temp_tolerance ) break;
         if( !dirRising && currentTemperatureC < MAX_ROOM_TEMPERATURE ) break;
@@ -1232,10 +1231,7 @@ see also: http://www.mstarlabs.com/control/znrule.html
             showError( (void*)ui_text_autodetect_pid, (void*)ui_text_temperature_wrong );
             autotuneIndex = 255;
             break;
-        }
-
-        Commands::printTemperatures();
-
+        }		
         if(((time - t1) + (time - t2)) > (10L*60L*1000L*2L))   // 20 Minutes
         {
             Com::printErrorFLN(Com::tAPIDFailedTimeout);
