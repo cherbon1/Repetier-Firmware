@@ -1,7 +1,6 @@
 !!! This branch rightnow is highly experimental !!! 
 
 TODO:
-# pause: fix/research weird behaviour while pause moves during start line M3912. probably button double function.
 # pause: cleanup continue modi
 # pause: put extrusion recovery at end of moves
 # milling mode: retest all pause functionality
@@ -11,6 +10,9 @@ TODO:
 # milling mode: test origin scan, workpart scan
 # milling mode: test or rework milling functions
 # arc-support: test circles while printing and not printing
+
+V 01.43.55.Mod (2019-01-29)
+- updated SdFat to 1.0.16 but probably nothing changed for us.
 
 V 01.43.54.Mod (2019-01-28)
 - Default microsteps setting for Z axis is now 16 instead of 32. Therefore the resolution is now 1280 steps/mm = 0.8um instead of 2560 steps/mm.
