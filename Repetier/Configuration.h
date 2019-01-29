@@ -66,7 +66,7 @@
  * IMPORTANT: With mode <>0 some changes in Configuration.h are not set any more, as they are
  *            taken from the EEPROM.
  */
-#define EEPROM_MODE                         144
+#define EEPROM_MODE                         44
 
 
 // ##########################################################################################
@@ -232,7 +232,7 @@
  * Change your EEPROMs Steps/mm accordingly if you change RF_MICRO_STEPS_ in this configuration. Steps/mm are autoadjusted if you use FEATURE_ADJUSTABLE_MICROSTEPSs Menu!
  */
 
-#define RF_MICRO_STEPS_Z                    32                                                   // standard/best 32 or 16
+#define RF_MICRO_STEPS_Z                    16                                                   // standard/best 32 or 16
 #define RF_MICRO_STEPS_XY                   32                                                   // standard/best 32 or 64
 #define RF_MICRO_STEPS_E                    32                                                   // standard/best 32 or 64 (or 128?? --> untested!)
 

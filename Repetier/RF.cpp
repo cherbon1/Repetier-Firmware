@@ -6943,6 +6943,11 @@ void pausePrint( void )
                 return;
             }
             if( Printer::debugErrors() ) Com::printFLN( PSTR( "pausing..." ) );
+			// Reset revert count coordinates at first pause signal
+			g_nContinueSteps[X_AXIS] = 0;
+			g_nContinueSteps[Y_AXIS] = 0;
+			g_nContinueSteps[Z_AXIS] = 0;
+			g_nContinueSteps[E_AXIS] = 0;
             g_pauseMode   = PAUSE_MODE_PAUSED;
             g_uStartOfIdle  = 0; //pause1
             uid.exitmenu();
@@ -7045,12 +7050,8 @@ void continuePrint( void )
 #endif // FEATURE_MILLING_MODE
             // process the extruder only in case we are in mode "print"
 			continuePrintLoadTemperatures(0);
-
-            if( g_nContinueSteps[E_AXIS] )
-            {
-                // continue to take back retract for pause
-                waitforPauseStatus_fromButton(PAUSE_STATUS_PREPARE_CONTINUE1);
-            }
+            // continue to take back retract for pause
+            waitforPauseStatus_fromButton(PAUSE_STATUS_PREPARE_CONTINUE1);
 #if FEATURE_MILLING_MODE
         }
 #endif // FEATURE_MILLING_MODE
@@ -7132,7 +7133,6 @@ void determinePausePosition( void )
 #endif // FEATURE_MILLING_MODE
 		// in operating mode "print", pausing drives from the current position downwards the specified g_nPauseSteps[Z_AXIS]
 		Printer::directDestinationSteps[Z_AXIS] += g_nPauseSteps[Z_AXIS];
-		g_nContinueSteps[Z_AXIS] =                -g_nPauseSteps[Z_AXIS];
 #if FEATURE_MILLING_MODE
     }
     else //Printer::operatingMode == OPERATING_MODE_MILL
@@ -7140,25 +7140,18 @@ void determinePausePosition( void )
         // in operating mode "mill", we must move only into z direction first in order to get the tool out of the work part
         if( g_pauseStatus == PAUSE_STATUS_GOTO_PAUSE2 || g_pauseStatus == PAUSE_STATUS_TASKGOTO_PAUSE_2 )
         {
-            g_nContinueSteps[X_AXIS] = 0;
-            g_nContinueSteps[Y_AXIS] = 0;
-
 			// in operating mode "mill", pausing drives from the current position downwards the specified g_nPauseSteps[Z_AXIS] + currentSteps[Z_AXIS] because we must drive the tool out of the work part before we can move into x or y direction
 			long Temp = g_nPauseSteps[Z_AXIS];
 			Temp -= Printer::currentSteps[Z_AXIS]; // in operating mode "mill", the bed/work part moves upwards while the milling is in progress - Printer::currentSteps[Z_AXIS] is negative
 
 			Printer::directDestinationSteps[Z_AXIS] += Temp;
-			g_nContinueSteps[Z_AXIS] = -Temp;
             return;
         }
     }
 #endif // FEATURE_MILLING_MODE
 
 	Printer::directDestinationSteps[Y_AXIS] += g_nPauseSteps[Y_AXIS];
-	g_nContinueSteps[Y_AXIS] =                -g_nPauseSteps[Y_AXIS];
-
 	Printer::directDestinationSteps[X_AXIS] += g_nPauseSteps[X_AXIS];
-	g_nContinueSteps[X_AXIS] =                -g_nPauseSteps[X_AXIS];
 } // determinePausePosition
 
 void setExtruderCurrent( uint8_t nr, uint8_t current )
@@ -11041,7 +11034,13 @@ bool isAnyScanRunning() {
 
 void nextPreviousXAction( int8_t increment )
 {
-    if (Printer::processAsDirectSteps() || isAnyScanRunning())
+	bool moveKosys = Printer::moveKosys;
+
+	if (g_pauseStatus == PAUSE_STATUS_PAUSED && (g_pauseMode == PAUSE_MODE_PAUSED || g_pauseMode == PAUSE_MODE_PAUSED_AND_MOVED)) 
+	{
+		moveKosys = KOSYS_DIRECTOFFSET;
+	}
+    else if (Printer::processAsDirectSteps() || isAnyScanRunning())
     {
         // this operation is not allowed while a printing/milling/scanning is in progress
         return;
@@ -11076,7 +11075,7 @@ void nextPreviousXAction( int8_t increment )
 				steps = -Printer::currentXSteps;
 			}
 
-			if (Printer::moveKosys == KOSYS_GCODE)
+			if (moveKosys == KOSYS_GCODE)
 			{
 				Printer::queueRelativeStepsCoordinates(steps, 0, 0, 0, Printer::homingFeedrate[X_AXIS], true, ALWAYS_CHECK_ENDSTOPS);
 				Commands::printCurrentPosition();
@@ -11102,7 +11101,7 @@ void nextPreviousXAction( int8_t increment )
 				return;
 			}
 
-			if (Printer::moveKosys == KOSYS_GCODE)
+			if (moveKosys == KOSYS_GCODE)
 			{
 				Printer::queueRelativeMMCoordinates(distanceMM * increment, 0, 0, 0, Printer::homingFeedrate[X_AXIS], true, ALWAYS_CHECK_ENDSTOPS);
 				Commands::printCurrentPosition();
@@ -11135,7 +11134,13 @@ void nextPreviousXAction( int8_t increment )
 
 void nextPreviousYAction( int8_t increment )
 {
-    if (Printer::processAsDirectSteps() || isAnyScanRunning())
+	bool moveKosys = Printer::moveKosys;
+
+	if (g_pauseStatus == PAUSE_STATUS_PAUSED && (g_pauseMode == PAUSE_MODE_PAUSED || g_pauseMode == PAUSE_MODE_PAUSED_AND_MOVED)) 
+	{
+		moveKosys = KOSYS_DIRECTOFFSET;
+	}
+	else if (Printer::processAsDirectSteps() || isAnyScanRunning())
     {
         // this operation is not allowed while a printing/milling/scanning is in progress
         return;
@@ -11170,7 +11175,7 @@ void nextPreviousYAction( int8_t increment )
 				steps = -Printer::currentYSteps;
             }
 
-			if (Printer::moveKosys == KOSYS_GCODE)
+			if (moveKosys == KOSYS_GCODE)
 			{
 				Printer::queueRelativeStepsCoordinates(0, steps, 0, 0, Printer::homingFeedrate[Y_AXIS], true, ALWAYS_CHECK_ENDSTOPS);
 				Commands::printCurrentPosition();
@@ -11197,7 +11202,7 @@ void nextPreviousYAction( int8_t increment )
 				return;
 			}
 
-			if (Printer::moveKosys == KOSYS_GCODE)
+			if (moveKosys == KOSYS_GCODE)
 			{
 				Printer::queueRelativeMMCoordinates(0, distanceMM * increment, 0, 0, Printer::homingFeedrate[Y_AXIS], true, ALWAYS_CHECK_ENDSTOPS); 
 				Commands::printCurrentPosition();
@@ -11249,11 +11254,7 @@ void nextPreviousZAction( int8_t increment )
     previousMillisCmd = HAL::timeInMilliseconds(); //prevent inactive shutdown of steppers/temps
 
 	char moveMode = Printer::moveMode[Z_AXIS];
-    if (Printer::processAsDirectSteps())
-    {
-        // in case we are printing/milling at the moment, only the single step movements are allowed
-        moveMode = MOVE_MODE_SINGLE_STEPS;
-    }
+	bool isPaused = g_pauseStatus == PAUSE_STATUS_PAUSED && (g_pauseMode == PAUSE_MODE_PAUSED || g_pauseMode == PAUSE_MODE_PAUSED_AND_MOVED);
 
     if (uid.lastButtonAction == UI_ACTION_RF_HEAT_BED_DOWN || uid.lastButtonAction == UI_ACTION_RF_HEAT_BED_UP)
 	{
@@ -11268,6 +11269,16 @@ void nextPreviousZAction( int8_t increment )
         }else{
             moveMode = MOVE_MODE_SINGLE_MOVE;
         }
+    }
+
+	if (isPaused)
+	{
+		moveMode = MOVE_MODE_SINGLE_MOVE;
+	}
+	else if (Printer::processAsDirectSteps())
+    {
+        // in case we are printing/milling at the moment, only the single step movements are allowed
+        moveMode = MOVE_MODE_SINGLE_STEPS;
     }
 
     //Limits für die Bewegung in Z
@@ -11303,6 +11314,16 @@ void nextPreviousZAction( int8_t increment )
                 showInformation((void*)ui_text_z_axis, (void*)ui_text_min_reached);
 				return;
             }
+
+			if (isPaused && increment < 0) {
+				if (g_nContinueSteps[Z_AXIS] >= 0) {
+					return;
+				}
+				if (g_nContinueSteps[Z_AXIS] - steps > 0) {
+					// We are very close, go to 0
+					steps = g_nContinueSteps[Z_AXIS];
+				}
+			}
 
 			//Z should be direct, because we have scan origin and z-origin to set coordinates and while printing gcode coordinate system is senseless.
 
@@ -11387,6 +11408,17 @@ void nextPreviousZAction( int8_t increment )
 			//errate homed möglichst den erzwungenen stop-punkt wegen dem bonus der decelleration
 			if (increment < 0) steps = (Printer::isAxisHomed(Z_AXIS) ? -Printer::currentZSteps : -Printer::maxSoftEndstopSteps[Z_AXIS]);
 			else               steps = (Printer::isAxisHomed(Z_AXIS) ? Printer::maxSoftEndstopSteps[Z_AXIS] - Printer::currentZSteps : Printer::maxSoftEndstopSteps[Z_AXIS]);
+			
+			if (isPaused && increment < 0) {
+				// z limit at part pause position
+				if (g_nContinueSteps[Z_AXIS] >= 0) {
+					return;
+				}
+				// place deceleration end at z pause position limit
+				if (g_nContinueSteps[Z_AXIS] - steps > 0) {
+					steps = g_nContinueSteps[Z_AXIS];
+				}
+			}
 
 			Printer::offsetRelativeStepsCoordinates(0, 0, steps, 0, TASK_MOVE_FROM_BUTTON);
             break;
@@ -11834,7 +11866,6 @@ void cleanupEPositions( void )
 	Printer::setEAxisSteps(0);
 	Printer::resetDirectAxis(E_AXIS);
 
-    g_nContinueSteps[E_AXIS] = 0;
     g_pauseStatus            = PAUSE_STATUS_NONE;
     g_pauseMode              = PAUSE_MODE_NONE;
     g_uPauseTime             = 0;

@@ -1885,6 +1885,8 @@ void UIDisplay::parse(char *txt,bool ram)
             }
             case 'p':
             {
+				bool isPaused = g_pauseStatus == PAUSE_STATUS_PAUSED && (g_pauseMode == PAUSE_MODE_PAUSED || g_pauseMode == PAUSE_MODE_PAUSED_AND_MOVED);
+
                 if(c2=='x')                                                                             // %px: mode of the Position X menu
                 {
                     switch( Printer::moveMode[X_AXIS] )
@@ -1916,7 +1918,7 @@ void UIDisplay::parse(char *txt,bool ram)
                             break;
                         }
                     }
-					if (Printer::moveMode[X_AXIS] == MOVE_MODE_SINGLE_MOVE || Printer::moveKosys == KOSYS_DIRECTOFFSET)
+					if (Printer::moveMode[X_AXIS] == MOVE_MODE_SINGLE_MOVE || Printer::moveKosys == KOSYS_DIRECTOFFSET || isPaused /*we are in pause position menu*/ )
 					{
 						addStringP(PSTR(" ("));
 						addStringP(PSTR(UI_TEXT_MOVE_MODE_OFFSET));
@@ -1960,7 +1962,7 @@ void UIDisplay::parse(char *txt,bool ram)
                             break;
                         }
                     }
-					if (Printer::moveMode[Y_AXIS] == MOVE_MODE_SINGLE_MOVE || Printer::moveKosys == KOSYS_DIRECTOFFSET)
+					if (Printer::moveMode[Y_AXIS] == MOVE_MODE_SINGLE_MOVE || Printer::moveKosys == KOSYS_DIRECTOFFSET || isPaused /*we are in pause position menu Y*/)
 					{
 						addStringP(PSTR(" ("));
 						addStringP(PSTR(UI_TEXT_MOVE_MODE_OFFSET));
@@ -1975,38 +1977,46 @@ void UIDisplay::parse(char *txt,bool ram)
                 }
                 if(c2=='z')                                                                             // %pz: mode of the Position Z menu
                 {
-                    switch( Printer::moveMode[Z_AXIS] )
-                    {
-                        case MOVE_MODE_SINGLE_STEPS:
-                        {
-							addFloat(g_nManualSteps[Z_AXIS] * Printer::axisMMPerSteps[Z_AXIS] * 1000.0f, 1, 1);
-							addStringP(PSTR(" um"));
-                            break;
-                        }
-                        case MOVE_MODE_1_MM:
-                        {
-                            addStringP(PSTR(UI_TEXT_MOVE_MODE_1_MM));
-                            break;
-                        }
-                        case MOVE_MODE_10_MM:
-                        {
-                            addStringP(PSTR(UI_TEXT_MOVE_MODE_10_MM));
-                            break;
-                        }
-                        case MOVE_MODE_50_MM:
-                        {
-                            addStringP(PSTR(UI_TEXT_MOVE_MODE_50_MM));
-                            break;
-                        }
-                        case MOVE_MODE_SINGLE_MOVE:
-                        {
-                            addStringP(PSTR(UI_TEXT_MOVE_MODE_SINGLE_MOVE));
-                            break;
-                        }
-                    }
+					if (isPaused /*we are in pause position menu Z*/)
+					{
+						addStringP(PSTR(UI_TEXT_MOVE_MODE_SINGLE_MOVE));
+					}
+					else
+					{
+						switch( Printer::moveMode[Z_AXIS] )
+						{
+							case MOVE_MODE_SINGLE_STEPS:
+							{
+								addFloat(g_nManualSteps[Z_AXIS] * Printer::axisMMPerSteps[Z_AXIS] * 1000.0f, 1, 1);
+								addStringP(PSTR(" um"));
+								break;
+							}
+							case MOVE_MODE_1_MM:
+							{
+								addStringP(PSTR(UI_TEXT_MOVE_MODE_1_MM));
+								break;
+							}
+							case MOVE_MODE_10_MM:
+							{
+								addStringP(PSTR(UI_TEXT_MOVE_MODE_10_MM));
+								break;
+							}
+							case MOVE_MODE_50_MM:
+							{
+								addStringP(PSTR(UI_TEXT_MOVE_MODE_50_MM));
+								break;
+							}
+							case MOVE_MODE_SINGLE_MOVE:
+							{
+								addStringP(PSTR(UI_TEXT_MOVE_MODE_SINGLE_MOVE));
+								break;
+							}
+						}
+					}
+
 					// Z axis is always direct offset move because gcode does not make sense here.
 
-					//if (Printer::moveMode[Z_AXIS] == MOVE_MODE_SINGLE_MOVE || Printer::moveKosys == KOSYS_DIRECTOFFSET)
+					//if (Printer::moveMode[Z_AXIS] == MOVE_MODE_SINGLE_MOVE || Printer::moveKosys == KOSYS_DIRECTOFFSET || isPaused /*we are in pause position menu Z*/)
 					//{
 					addStringP(PSTR(" ("));
 					addStringP(PSTR(UI_TEXT_MOVE_MODE_OFFSET));

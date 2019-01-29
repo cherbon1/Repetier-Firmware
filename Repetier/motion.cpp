@@ -1105,7 +1105,6 @@ long PrintLine::performPauseCheck(){
                        if( g_nPauseSteps[E_AXIS] )
                        {
 						   Printer::offsetRelativeStepsCoordinates(0, 0, 0, -g_nPauseSteps[E_AXIS], TASK_PAUSE_PRINT);
-                           g_nContinueSteps[E_AXIS] =                    g_nPauseSteps[E_AXIS];
                        }
 #if FEATURE_MILLING_MODE
                     }
@@ -1123,10 +1122,7 @@ long PrintLine::performPauseCheck(){
                 }
                 case PAUSE_STATUS_PREPARE_CONTINUE1: //extrude at continue from normal pause
                 {
-                    if( g_nContinueSteps[E_AXIS] )
-                    {
-						Printer::offsetRelativeStepsCoordinates(0, 0, 0, g_nContinueSteps[E_AXIS], TASK_PAUSE_PRINT);
-                    }
+					Printer::offsetRelativeStepsCoordinates(g_nContinueSteps[X_AXIS], g_nContinueSteps[Y_AXIS], g_nContinueSteps[Z_AXIS], g_nContinueSteps[E_AXIS], TASK_PAUSE_PRINT);
                     g_pauseStatus = PAUSE_STATUS_PAUSED;
                     break;
                 }
@@ -1215,6 +1211,7 @@ long PrintLine::performQueueMove()
                     {
                         g_pauseMode     = PAUSE_MODE_PAUSED;
                         g_pauseStatus   = PAUSE_STATUS_TASKGOTO_PAUSE_1;
+						// Reset revert count coordinates at first pause signal
                         g_nContinueSteps[X_AXIS] = 0;
                         g_nContinueSteps[Y_AXIS] = 0;
                         g_nContinueSteps[Z_AXIS] = 0;
@@ -1227,7 +1224,6 @@ long PrintLine::performQueueMove()
                             if( g_nPauseSteps[E_AXIS] )
                             {
 								Printer::offsetRelativeStepsCoordinates(0, 0, 0, -g_nPauseSteps[E_AXIS], TASK_PAUSE_PRINT);
-								g_nContinueSteps[E_AXIS] = g_nPauseSteps[E_AXIS];
                             }
 #if FEATURE_MILLING_MODE
                         }
@@ -1253,7 +1249,6 @@ long PrintLine::performQueueMove()
                     {
                         g_pauseMode     = PAUSE_MODE_PAUSED_AND_MOVED;
                         g_pauseStatus   = PAUSE_STATUS_TASKGOTO_PAUSE_2;
-                        g_nContinueSteps[E_AXIS] = 0;
                         if( g_pauseMode == PAUSE_MODE_NONE ) //retract nur wenn nicht bereits in pause 1 passiert.
                         {
 #if FEATURE_MILLING_MODE
@@ -1265,7 +1260,6 @@ long PrintLine::performQueueMove()
                                 if( g_nPauseSteps[E_AXIS] )
                                 {
                                     Printer::directDestinationSteps[E_AXIS] -= g_nPauseSteps[E_AXIS];
-                                    g_nContinueSteps[E_AXIS]                   =  g_nPauseSteps[E_AXIS];
                                 }
 #if FEATURE_MILLING_MODE
                             }
@@ -1479,6 +1473,7 @@ void PrintLine::performDirectSteps( void )
             if( Printer::isAdvanceActivated() && abs(Printer::extruderStepsNeeded) < 500 ) // Use interrupt for movement but dont just sum up the advance too fast.
             {
                 Printer::extruderStepsNeeded--;
+				g_nContinueSteps[E_AXIS]++;
                 Printer::directCurrentSteps[E_AXIS] --;
             }
             else
@@ -1499,6 +1494,7 @@ void PrintLine::performDirectSteps( void )
                 Printer::insertStepperHighDelay();
                 Extruder::unstep();
                 Printer::directCurrentSteps[E_AXIS] --;
+				g_nContinueSteps[E_AXIS]++;
 
                 if( Printer::directCurrentSteps[E_AXIS] == Printer::directDestinationSteps[E_AXIS] )
                 {
@@ -1648,6 +1644,7 @@ void PrintLine::performDirectSteps( void )
                 {
                     Printer::endXStep();
                     Printer::directCurrentSteps[X_AXIS] += nDirectionX;
+					g_nContinueSteps[X_AXIS] -= nDirectionX;
                     if( Printer::directCurrentSteps[X_AXIS] == Printer::directDestinationSteps[X_AXIS] )
                     {
                         // we have finished to move in x-direction
@@ -1659,6 +1656,7 @@ void PrintLine::performDirectSteps( void )
                 {
                     Printer::endYStep();
                     Printer::directCurrentSteps[Y_AXIS] += nDirectionY;
+					g_nContinueSteps[Y_AXIS] -= nDirectionY;
                     if( Printer::directCurrentSteps[Y_AXIS] == Printer::directDestinationSteps[Y_AXIS] )
                     {
                         // we have finished to move in y-direction
@@ -1670,6 +1668,7 @@ void PrintLine::performDirectSteps( void )
                 {
                     Printer::endZStep();
                     Printer::directCurrentSteps[Z_AXIS] += nDirectionZ;
+					g_nContinueSteps[Z_AXIS] -= nDirectionZ;
                     if( Printer::directCurrentSteps[Z_AXIS] == Printer::directDestinationSteps[Z_AXIS] )
                     {
                         // we have finished to move in z-direction
@@ -1695,6 +1694,7 @@ void PrintLine::performDirectSteps( void )
                 if( Printer::isAdvanceActivated() && abs(Printer::extruderStepsNeeded) < 500 ) // Use interrupt for movement but dont just sum up the advance too fast.
                 {
                     Printer::extruderStepsNeeded++;
+					g_nContinueSteps[E_AXIS]--;
                     Printer::directCurrentSteps[E_AXIS] ++;
                 }
                 else
@@ -1714,6 +1714,7 @@ void PrintLine::performDirectSteps( void )
                         Printer::insertStepperHighDelay();
                         Extruder::unstep();
                         Printer::directCurrentSteps[E_AXIS] ++;
+						g_nContinueSteps[E_AXIS]--;
 
                         if( Printer::directCurrentSteps[E_AXIS] == Printer::directDestinationSteps[E_AXIS] )
                         {
@@ -1748,7 +1749,7 @@ long PrintLine::performMove(PrintLine* move, char forQueue)
         if(move->isEMove())
         {
 			bool doStep = (move->error[E_AXIS] -= move->delta[E_AXIS]) < 0;
-
+			
 #if FEATURE_HEAT_BED_Z_COMPENSATION
 			if (compensatedPositionPushE) {
 				doStep = true;
@@ -1797,7 +1798,10 @@ long PrintLine::performMove(PrintLine* move, char forQueue)
 #endif // FEATURE_HEAT_BED_Z_COMPENSATION
                     //only count step if it is not caused by ZCMP-E-Compensation
                     if( forQueue )  move->error[E_AXIS] += queueError;
-                    else            move->error[E_AXIS] += directError;
+					else {
+						g_nContinueSteps[E_AXIS] -= (move->isEPositiveMove() ? 1 : -1);
+						move->error[E_AXIS] += directError;
+					}
 #if FEATURE_HEAT_BED_Z_COMPENSATION
                 }else{
                     //never count or update queue/direct steps if we are smuggling a step amongst others because of ZCMP-E-Compensation
@@ -1821,7 +1825,9 @@ long PrintLine::performMove(PrintLine* move, char forQueue)
                 else
                 {
                     move->error[X_AXIS] += directError;
-                    Printer::directCurrentSteps[X_AXIS] += (Printer::getXDirectionIsPos() ? 1 : -1);
+					int8_t dir = (Printer::getXDirectionIsPos() ? 1 : -1);
+					g_nContinueSteps[X_AXIS] -= dir;
+                    Printer::directCurrentSteps[X_AXIS] += dir;
                 }
             }
         }
@@ -1839,7 +1845,9 @@ long PrintLine::performMove(PrintLine* move, char forQueue)
                 else
                 {
                     move->error[Y_AXIS] += directError;
-                    Printer::directCurrentSteps[Y_AXIS] += (Printer::getYDirectionIsPos() ? 1 : -1);
+					int8_t dir = (Printer::getYDirectionIsPos() ? 1 : -1);
+					g_nContinueSteps[Y_AXIS] -= dir;
+                    Printer::directCurrentSteps[Y_AXIS] += dir;
                 }
             }
         }
@@ -1891,6 +1899,7 @@ long PrintLine::performMove(PrintLine* move, char forQueue)
                     else
                     {
                         move->error[Z_AXIS] += directError;
+						g_nContinueSteps[Z_AXIS] -= dir;
                         Printer::directCurrentSteps[Z_AXIS] += dir;
                     }
                     // Note: There is no need to check whether we are past the z-min endstop here because G-Codes typically are not able to go past the z-min endstop anyways.

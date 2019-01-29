@@ -2053,11 +2053,6 @@ void Printer::stopPrint() //function for aborting USB and SD-Prints
     if( g_pauseStatus != PAUSE_STATUS_NONE )
     {
         // the printing is paused at the moment
-        g_nContinueSteps[X_AXIS] = 0;
-        g_nContinueSteps[Y_AXIS] = 0;
-        g_nContinueSteps[Z_AXIS] = 0;
-        g_nContinueSteps[E_AXIS] = 0;
-
         g_uPauseTime  = 0;
         g_pauseStatus = PAUSE_STATUS_NONE;
         g_pauseMode   = PAUSE_MODE_NONE;

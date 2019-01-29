@@ -1,11 +1,26 @@
 !!! This branch rightnow is highly experimental !!! 
 
 TODO:
+# pause: fix/research weird behaviour while pause moves during start line M3912. probably button double function.
+# pause: cleanup continue modi
+# pause: put extrusion recovery at end of moves
+# milling mode: retest all pause functionality
+# milling mode: test move while pause in respect to z-first and z direction
 # milling mode: buttons for retract should steer speed
 # milling mode: feedrate should be visible within milling menu
-# test origin scan, workpart scan
-# test or rework milling functions
-# test arc-support while printing and not printing
+# milling mode: test origin scan, workpart scan
+# milling mode: test or rework milling functions
+# arc-support: test circles while printing and not printing
+
+V 01.43.54.Mod (2019-01-28)
+- Default microsteps setting for Z axis is now 16 instead of 32. Therefore the resolution is now 1280 steps/mm = 0.8um instead of 2560 steps/mm.
+- Changed EEPROM-Mode to 44 to prevent wrong microsteps vs. steps/mm settings.
+- The strategy for finding back from printing pause is now changed
+   in a way that we can move the bed and print head while being paused
+   and the printer will find back to continue its print.
+- Support for free for positioning while a print ist paused.
+   We dont allow to move the print head lower than the startposition of the pause to avoid crashes with the unfinished part.
+- New Menu "Pause Position" -> X Position, Y-Position, Z-Position, Z-Step size
 
 V 01.43.53.Mod (2019-01-27)
 - endstop hardening for directStepping

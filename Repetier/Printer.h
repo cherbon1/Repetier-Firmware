@@ -305,7 +305,6 @@ public:
 		Printer::currentXSteps = 0;
 		Printer::resetDirectAxis(X_AXIS);
 
-		g_nContinueSteps[X_AXIS] = 0;
 		g_pauseStatus = PAUSE_STATUS_NONE;
 		g_pauseMode = PAUSE_MODE_NONE;
 		g_uPauseTime = 0;
@@ -340,7 +339,6 @@ public:
 		Printer::currentYSteps = 0;
 		Printer::resetDirectAxis(Y_AXIS);
 
-		g_nContinueSteps[Y_AXIS] = 0;
 		g_pauseStatus = PAUSE_STATUS_NONE;
 		g_pauseMode = PAUSE_MODE_NONE;
 		g_uPauseTime = 0;
@@ -399,7 +397,6 @@ public:
 		Printer::setZOriginSet(false); //flag wegen statusnachricht
 #endif // FEATURE_FIND_Z_ORIGIN
 
-		g_nContinueSteps[Z_AXIS] = 0;
 		g_pauseStatus = PAUSE_STATUS_NONE;
 		g_pauseMode = PAUSE_MODE_NONE;
 		g_uPauseTime = 0;
@@ -1123,11 +1120,6 @@ public:
 	}
 
 	static INLINE void stopDirectAxis(uint8_t axis) {
-		// if we saved rollback relative coordinates reduce them to the limited amount.
-		// those rollback coordinates are move-back-steps after pausing etc.
-		if (g_nContinueSteps[axis]) {
-			g_nContinueSteps[axis] -= (Printer::directCurrentSteps[axis] - Printer::directDestinationSteps[axis]);
-		}
 		Printer::directDestinationSteps[axis] = Printer::directCurrentSteps[axis];
 	}
 	static INLINE void resetDirectAxis(uint8_t axis) {
