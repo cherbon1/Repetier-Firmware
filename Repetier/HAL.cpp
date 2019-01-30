@@ -832,38 +832,38 @@ ISR(TIMER1_COMPA_vect)
     Printer::performZCompensation(); //no interrupttempering
 #endif // FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
 
-    if( Printer::allowDirectSteps() )
-    {
-        PrintLine::performDirectSteps(); //no interrupttempering
-    }
-
-    if(PrintLine::performPauseCheck()){
+    if (PrintLine::performWait())
+	{
+		HAL::forbidInterrupts();
         setTimer(1000);
         DEBUG_MEMORY;
         sbi(TIMSK1, OCIE1A);
+
         return;
     }
 
-    if(Printer::allowQueueMove())
-    {
-        setTimer(PrintLine::performQueueMove());
-        DEBUG_MEMORY;
-        sbi(TIMSK1, OCIE1A);
-        return;
-    }
-
-    if(Printer::allowDirectMove())
+    if (PrintLine::direct.task)
     {
         setTimer(PrintLine::performDirectMove());
         DEBUG_MEMORY;
         sbi(TIMSK1, OCIE1A);
+
         return;
     }
 
-    if(waitRelax == 0)
+    if (PrintLine::hasLines() && !g_pauseMode)
+    {
+        setTimer(PrintLine::performQueueMove());
+        DEBUG_MEMORY;
+        sbi(TIMSK1, OCIE1A);
+
+        return;
+    }
+
+    if (waitRelax == 0)
     {
 #if USE_ADVANCE
-        if(Printer::advanceStepsSet)
+        if (Printer::advanceStepsSet)
         {
             Printer::extruderStepsNeeded -= Printer::advanceStepsSet;
  #ifdef ENABLE_QUADRATIC_ADVANCE
@@ -872,9 +872,9 @@ ISR(TIMER1_COMPA_vect)
             Printer::advanceStepsSet = 0;
         }
 
-        if(!Printer::extruderStepsNeeded) if(DISABLE_E) Extruder::disableCurrentExtruderMotor();
+        if (!Printer::extruderStepsNeeded) if(DISABLE_E) Extruder::disableCurrentExtruderMotor();
 #else
-        if(DISABLE_E) Extruder::disableCurrentExtruderMotor();
+        if (DISABLE_E) Extruder::disableCurrentExtruderMotor();
 #endif // USE_ADVANCE
     }
     else waitRelax--;
@@ -1201,8 +1201,7 @@ ISR(EXTRUDER_TIMER_VECTOR)
     else if (Printer::extruderStepsNeeded != 0)
     {
 		int max_loops = Printer::extruderStepsNeeded;
-		int relative_speed = (Printer::stepsPerTimerCall << 2);
-		if (max_loops > relative_speed) max_loops = relative_speed;
+		if (max_loops > Printer::stepsPerTimerCall) max_loops = Printer::stepsPerTimerCall;
 
 		for (uint8_t i = 0; i < max_loops; i++) {
 			Extruder::step();

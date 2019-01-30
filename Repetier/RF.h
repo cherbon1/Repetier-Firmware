@@ -785,12 +785,9 @@ extern void outputObject( bool showerrors = true );
 extern void parkPrinter( void );
 #endif // FEATURE_PARK
 
-extern bool processingDirectMove();
-
-extern void waitforPauseStatus_fromButton();
 extern void pausePrint( void );
+extern void killPausePrint( void );
 extern void continuePrint( void );
-extern void determinePausePosition( void );
 extern void setExtruderCurrent( uint8_t nr, uint8_t current );
 extern void processCommand( GCode* pCommand );
 extern void queueTask( char task );

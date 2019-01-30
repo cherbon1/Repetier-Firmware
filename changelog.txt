@@ -1,8 +1,8 @@
 !!! This branch rightnow is highly experimental !!! 
 
 TODO:
-# pause: cleanup continue modi
-# pause: put extrusion recovery at end of moves
+# kann der !forQueue check weg?
+# remove advance for direct-queue?
 # milling mode: retest all pause functionality
 # milling mode: test move while pause in respect to z-first and z direction
 # milling mode: buttons for retract should steer speed
@@ -10,6 +10,15 @@ TODO:
 # milling mode: test origin scan, workpart scan
 # milling mode: test or rework milling functions
 # arc-support: test circles while printing and not printing
+# fan changes: move to performQueueMove() -> task
+
+V 01.43.56.Mod (2019-01-29)
+- cleanup of pause modi, simplification of code
+- directMove is now priority before queueMove
+- directMove and queueMove do not disturb each others stepper direction anymore
+- removed directSteps, replaced all usages by directMove
+- rewrote divided z-compensation steps into "start+end" and "pause"
+- possible extrusion/nozzle fill while continuing after print pause is now done when the print position is again reached.
 
 V 01.43.55.Mod (2019-01-29)
 - updated SdFat to 1.0.16 but probably nothing changed for us.

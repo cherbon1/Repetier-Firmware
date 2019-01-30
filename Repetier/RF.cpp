@@ -3453,13 +3453,6 @@ void recalculateHeatBedZCompensation( void )
     long            nNeededZCompensation = 0;
     float           nNeededZEPerc = 0.0f;
 
-    // -> weil evtl. bewegung in xy auch solange pausestatus da ist.
-    if( g_pauseStatus != PAUSE_STATUS_NONE && g_pauseStatus != PAUSE_STATUS_GOTO_PAUSE2 && g_pauseStatus != PAUSE_STATUS_TASKGOTO_PAUSE_2 )
-    {
-        // there is nothing to do at the moment
-        return;
-    }
-
     if( Printer::doHeatBedZCompensation )
     {
 		long nCurrentPositionStepsZ = Printer::currentSteps[Z_AXIS]; //direct muss hier egal sein, das ist nur das extruder und sonstige manual-offset.
@@ -4850,11 +4843,6 @@ void scanWorkPart( void )
 
 void doWorkPartZCompensation( void )
 {
-    if(g_pauseStatus != PAUSE_STATUS_NONE && g_pauseStatus != PAUSE_STATUS_GOTO_PAUSE2 && g_pauseStatus != PAUSE_STATUS_TASKGOTO_PAUSE_2){
-        // there is nothing to do at the moment
-        return;
-    }
-
     long nNeededZCompensation;
 
     if( Printer::doWorkPartZCompensation )
@@ -6783,100 +6771,124 @@ void outputObject( bool showerrors )
 } // outputObject
 
 void handlePauseStatus() {
+	if (PrintLine::direct.task)
+	{
+		// If any directMove is running we assume that the pause position has not been reached yet.
+		// This prevents a possible recursive loop because of wait cycles
+		return;
+	}
+
     switch( g_pauseStatus )
     {
-        case PAUSE_STATUS_TASKGOTO_PAUSE_1:
+		case PAUSE_MODE_NONE:
+		case PAUSE_STATUS_PAUSING:
+		{
+			return;
+		}
+
+        case PAUSE_STATUS_GOTO_PAUSE:
         {
-            if( (Printer::directDestinationSteps[E_AXIS] == Printer::directCurrentSteps[E_AXIS]) )
-            {
-                // we have reached the pause position - nothing except the extruder can have been moved
-                g_pauseStatus = PAUSE_STATUS_PAUSED;
-                g_uStartOfIdle = 0; //pause1
-                uid.exitmenu();
-                UI_STATUS_UPD( UI_TEXT_PAUSED );
-                Com::printFLN( PSTR("RequestPause:") ); //repetier
-                Com::printFLN( PSTR( "// action:pause" ) ); //octoprint
-                Printer::setMenuMode( MENU_MODE_PAUSED, true );
-            }
+			g_uStartOfIdle = 0; //pause1
+			Printer::setMenuMode(MENU_MODE_PAUSED, true);
+			UI_STATUS_UPD(UI_TEXT_PAUSING);
+			uid.exitmenu();
+			Com::printFLN(PSTR("RequestPause:")); //repetier
+			Com::printFLN(PSTR("// action:pause")); //octoprint
+
+			// Reset revert count coordinates at first pause signal
+			g_nContinueSteps[X_AXIS] = 0;
+			g_nContinueSteps[Y_AXIS] = 0;
+			g_nContinueSteps[Z_AXIS] = 0;
+			g_nContinueSteps[E_AXIS] = 0;
+
+			g_pauseStatus = PAUSE_STATUS_PAUSING;
+			Printer::offsetRelativeStepsCoordinates(0, 0, 0, -1 * abs(g_nPauseSteps[E_AXIS]));
+			UI_STATUS_UPD(UI_TEXT_PAUSED);
+
+			g_pauseStatus = PAUSE_STATUS_PAUSED;
             break;
         }
-        case PAUSE_STATUS_TASKGOTO_PAUSE_2:
+		case PAUSE_STATUS_GOTO_MOVED:
+		{
+			UI_STATUS_UPD(UI_TEXT_PAUSING);
+			uid.exitmenu();
+
+			g_pauseStatus = PAUSE_STATUS_PAUSING;
+			Printer::offsetRelativeStepsCoordinates(0, 0, abs(g_nPauseSteps[Z_AXIS]), 0);
+			Printer::offsetRelativeStepsCoordinates(g_nPauseSteps[X_AXIS], g_nPauseSteps[Y_AXIS], 0, 0);
+			UI_STATUS_UPD(UI_TEXT_PAUSED);
+
+			g_pauseStatus = PAUSE_STATUS_PAUSED;
+			break;
+		}
+
+        case PAUSE_STATUS_GOTO_PAUSE_AND_MOVE:
         {
-#if FEATURE_MILLING_MODE
-            // we have reached the pause position 1
-            if( Printer::operatingMode == OPERATING_MODE_MILL )
-            {
-                if( !processingDirectMove() )
-                {
-                    // in operating mode mill, we have 2 pause positions because we have to leave the work part before we shall move into x/y direction
-                    g_pauseStatus = PAUSE_STATUS_TASKGOTO_PAUSE_3;
-                    determinePausePosition();
-                    PrintLine::prepareDirectMove();
-                }
-            }
-            else
-            {
-#endif // FEATURE_MILLING_MODE
-                g_pauseStatus = PAUSE_STATUS_PAUSED;
-                g_uStartOfIdle = 0; //pause2
-                uid.exitmenu();
-                UI_STATUS_UPD( UI_TEXT_PAUSED );
-                Com::printFLN( PSTR("RequestPause:") ); //repetier
-                Com::printFLN( PSTR( "// action:pause" ) ); //octoprint
-                Printer::setMenuMode( MENU_MODE_PAUSED, true );
-#if FEATURE_MILLING_MODE
-            }
-#endif // FEATURE_MILLING_MODE
-            break;
+			g_uStartOfIdle = 0; //pause2
+			Printer::setMenuMode(MENU_MODE_PAUSED, true);
+			UI_STATUS_UPD(UI_TEXT_PAUSING);
+			uid.exitmenu();
+			Com::printFLN(PSTR("RequestPause:")); //repetier
+			Com::printFLN(PSTR("// action:pause")); //octoprint
+
+			// Reset revert count coordinates at first pause signal
+			g_nContinueSteps[X_AXIS] = 0;
+			g_nContinueSteps[Y_AXIS] = 0;
+			g_nContinueSteps[Z_AXIS] = 0;
+			g_nContinueSteps[E_AXIS] = 0;
+
+			g_pauseStatus = PAUSE_STATUS_PAUSING;
+			Printer::offsetRelativeStepsCoordinates(0, 0, 0, -1 * abs(g_nPauseSteps[E_AXIS]));
+			Printer::offsetRelativeStepsCoordinates(0, 0, abs(g_nPauseSteps[Z_AXIS]), 0);
+			Printer::offsetRelativeStepsCoordinates(g_nPauseSteps[X_AXIS], g_nPauseSteps[Y_AXIS], 0, 0);
+			UI_STATUS_UPD(UI_TEXT_PAUSED);
+
+			g_pauseStatus = PAUSE_STATUS_PAUSED;
+			break;
         }
-#if FEATURE_MILLING_MODE
-        case PAUSE_STATUS_TASKGOTO_PAUSE_3:
-        {
-            if( Printer::operatingMode == OPERATING_MODE_MILL )
-            {
-                if( !processingDirectMove() )
-                {
-                    g_pauseStatus = PAUSE_STATUS_PAUSED;
-                    g_uStartOfIdle = 0; //pause3
-                    uid.exitmenu();
-                    UI_STATUS_UPD( UI_TEXT_PAUSED );
-                    Com::printFLN( PSTR("RequestPause:") ); //repetier
-                    Com::printFLN( PSTR( "// action:pause" ) ); //octoprint
-                    Printer::setMenuMode( MENU_MODE_PAUSED, true );
-                }
-            }
-            break;
-        }
-#endif // FEATURE_MILLING_MODE
+
+		case PAUSE_STATUS_GOTO_CONTINUE: //Move back
+		{
+			g_pauseStatus = PAUSE_STATUS_PAUSING;
+			Printer::offsetRelativeStepsCoordinates(g_nContinueSteps[X_AXIS], g_nContinueSteps[Y_AXIS], 0, 0);
+			Printer::offsetRelativeStepsCoordinates(0, 0, g_nContinueSteps[Z_AXIS], 0);
+			Printer::offsetRelativeStepsCoordinates(0, 0, 0, g_nContinueSteps[E_AXIS]);
+
+			g_pauseStatus = PAUSE_STATUS_PAUSED;
+			break;
+		}
     }
 }
 
 void loopFeatures() //wird so aufgerufen, dass es ein ~100ms Takt sein sollte.
 {
     static char     nEntered = 0;
-    if( nEntered ) return; // do not enter more than once
-    nEntered ++;	
-	
-	millis_t uTime = HAL::timeInMilliseconds();
-	handleStopPrint(uTime);
-	handleStartPrint();
-	
-	handleStartStandby(uTime);	  
-	handleStrainGaugeFeatures(uTime);
+	if (!nEntered) {
+		nEntered++;
+
+		millis_t uTime = HAL::timeInMilliseconds();
+		handleStopPrint(uTime);
+		handleStartPrint();
+
+		handleStartStandby(uTime);
+		handleStrainGaugeFeatures(uTime);
 
 #if FEATURE_SERVICE_INTERVAL
-	handleServiceInterval(uTime);
+		handleServiceInterval(uTime);
 #endif // FEATURE_SERVICE_INTERVAL
 
-	handlePauseTime(uTime);
-    handlePauseStatus();
-	
+		handlePauseTime(uTime);
+
 #if FEATURE_RGB_LIGHT_EFFECTS
-    updateRGBLightStatus();
+		updateRGBLightStatus();
 #endif // FEATURE_RGB_LIGHT_EFFECTS
-	handleScanWorkTasks();
-	
-    nEntered --;    
+		handleScanWorkTasks();
+
+		nEntered--;
+	}
+
+	// There is recursiveness inside so we have to ignore the function if direct is processing
+	handlePauseStatus();
 } // loopFeatures
 
 #if FEATURE_PARK
@@ -6909,98 +6921,22 @@ void parkPrinter( void )
 } // parkPrinter
 #endif // FEATURE_PARK
 
-inline bool processingDirectMove(){
-    return  (
-             (Printer::directDestinationSteps[X_AXIS] != Printer::directCurrentSteps[X_AXIS]) ||
-             (Printer::directDestinationSteps[Y_AXIS] != Printer::directCurrentSteps[Y_AXIS]) ||
-             (Printer::directDestinationSteps[Z_AXIS] != Printer::directCurrentSteps[Z_AXIS]) ||
-             (Printer::directDestinationSteps[E_AXIS] != Printer::directCurrentSteps[E_AXIS]) ||
-              PrintLine::direct.stepsRemaining > 0
-            );
-}
-
-
-inline void waitforPauseStatus_fromButton(char Status){
-    g_pauseStatus = Status; //give job to interrupt //g_pauseStatus is volatile ;)
-    // wait until the current move is completed
-    // performQueueMove sees that pauseStatus is altered and switches to strategy + calculates direct move which has to end later + sets pause status to PAUSE_STATUS_PAUSED
-    while( g_pauseStatus != PAUSE_STATUS_PAUSED || PrintLine::direct.stepsRemaining ) //warte auf queue befehlsende
+inline void waitforPauseStatus_fromButton(){
+    // wait until the current move is completed this is done through looping features
+	// A Status which is not NONE and not PAUSED means that something should change rightnow.
+    while(g_pauseStatus != PAUSE_STATUS_PAUSED)
     {
         Commands::checkForPeriodicalActions( Paused );
     }
 }
 
-void pausePrint( void )
-{
-    if( g_pauseMode == PAUSE_MODE_NONE )
-    {
-        if( PrintLine::linesCount ) // the printing is not paused at the moment
-        {
-            if( !Printer::areAxisHomed() ) // this should never happen
-            {
-                if( Printer::debugErrors() ) Com::printFLN( PSTR( "pausePrint(): home position is unknown" ) );
-                showError( (void*)ui_text_pause, (void*)ui_text_home_unknown );
-                return;
-            }
-            if( Printer::debugErrors() ) Com::printFLN( PSTR( "pausing..." ) );
-			// Reset revert count coordinates at first pause signal
-			g_nContinueSteps[X_AXIS] = 0;
-			g_nContinueSteps[Y_AXIS] = 0;
-			g_nContinueSteps[Z_AXIS] = 0;
-			g_nContinueSteps[E_AXIS] = 0;
-            g_pauseMode   = PAUSE_MODE_PAUSED;
-            g_uStartOfIdle  = 0; //pause1
-            uid.exitmenu();
-            UI_STATUS_UPD( UI_TEXT_PAUSING );
-            Com::printFLN( PSTR("RequestPause:") ); //repetier
-            Com::printFLN( PSTR( "// action:pause" ) ); //octoprint
-            waitforPauseStatus_fromButton(PAUSE_STATUS_GOTO_PAUSE1);
-            g_uPauseTime    = HAL::timeInMilliseconds();
-            g_pauseBeepDone = 0;
-
-            if( Printer::debugInfo() ) Com::printFLN( PSTR( "pausePrint(): paused" ) );
-            UI_STATUS_UPD( UI_TEXT_PAUSED );
-            Printer::setMenuMode( MENU_MODE_PAUSED, true );
-        }
-        else
-        {
-            if( Printer::debugErrors() ) Com::printFLN( PSTR( "pausePrint(): nothing is printed" ) );
-            showError( (void*)ui_text_pause, (void*)ui_text_operation_denied );
-        }
-        return;
-    }
-
-    if( g_pauseMode == PAUSE_MODE_PAUSED )
-    {
-        g_pauseMode   = PAUSE_MODE_PAUSED_AND_MOVED;
-        g_uStartOfIdle  = 0; //pause2
-        uid.exitmenu();
-        UI_STATUS_UPD( UI_TEXT_PAUSING );
-        // in case the print is paused already, we move the printer head to the pause position
-        if( Printer::debugInfo() ) Com::printFLN( PSTR( "pausePrint(): moving..." ) );
-
-        waitforPauseStatus_fromButton(PAUSE_STATUS_GOTO_PAUSE2);
-#if FEATURE_MILLING_MODE
-        if( Printer::operatingMode == OPERATING_MODE_MILL )
-        { // we do not process the extruder in case we are not in operating mode "print"
-            waitforPauseStatus_fromButton(PAUSE_STATUS_GOTO_PAUSE3);
-        }
-#endif // FEATURE_MILLING_MODE
-
-        if( Printer::debugInfo() ) Com::printFLN( PSTR( "pausePrint(): position reached" ) );
-        UI_STATUS_UPD( UI_TEXT_PAUSED );
-        return;
-    }
-} // pausePrint
-
-
-void continuePrintLoadTemperatures(uint8_t plus_temp_tolerance){
+void continuePrintLoadTemperatures() {
 #if NUM_EXTRUDER > 0
 	g_pauseStatus = PAUSE_STATUS_HEATING;
 	bool wait = false;
-	for(uint8_t i = 0; i < NUM_EXTRUDER; i++){
-		setExtruderCurrent( i, Printer::motorCurrent[E_AXIS+i] );
-		if(extruder[i].tempControl.paused){ 
+	for (uint8_t i = 0; i < NUM_EXTRUDER; i++) {
+		setExtruderCurrent(i, Printer::motorCurrent[E_AXIS + i]);
+		if (extruder[i].tempControl.paused) {
 			// Setze Temperatur zurück auf Vor-Pause-Wert. Config aktuell nur über RFx000.h bei PAUSE_COOLDOWN
 			// Wird nicht zurückgesetzt, wenn Temperatur in Pause verändert wurde. dann ist ".pause === 0"
 			Extruder::setTemperatureForExtruder((float)extruder[i].tempControl.targetTemperatureC + (float)extruder[i].tempControl.paused, i);
@@ -7008,19 +6944,70 @@ void continuePrintLoadTemperatures(uint8_t plus_temp_tolerance){
 			wait = true;
 		}
 	}
-	if(wait){
-		for(uint8_t i = 0; i < NUM_EXTRUDER; i++) {
-			extruder[i].tempControl.waitForTargetTemperature(plus_temp_tolerance);
+	if (wait) {
+		for (uint8_t i = 0; i < NUM_EXTRUDER; i++) {
+			extruder[i].tempControl.waitForTargetTemperature(ADD_CONTINUE_AFTER_PAUSE_TEMP_TOLERANCE);
 		}
 	}
 #endif //NUM_EXTRUDER > 0
 }
 
+void pausePrint( void )
+{
+    if( g_pauseMode == PAUSE_MODE_NONE )
+    {
+        if( !PrintLine::linesCount ) // the printing is not paused at the moment
+        {
+			if (Printer::debugErrors()) Com::printFLN(PSTR("pausePrint(): nothing is printed"));
+			showError((void*)ui_text_pause, (void*)ui_text_operation_denied);
+
+			return;
+		}
+
+        if( !Printer::areAxisHomed() )
+        {
+            if( Printer::debugErrors() ) Com::printFLN( PSTR( "pausePrint(): home position is unknown" ) );
+            showError( (void*)ui_text_pause, (void*)ui_text_home_unknown );
+
+            return;
+        }
+
+        Com::printFLN( PSTR( "pausing..." ) );
+        g_pauseMode   = PAUSE_MODE_PAUSED;
+		g_pauseStatus = PAUSE_STATUS_GOTO_PAUSE;
+        waitforPauseStatus_fromButton();
+
+        return;
+    }
+
+    if( g_pauseMode == PAUSE_MODE_PAUSED )
+    {
+        g_pauseMode   = PAUSE_MODE_PAUSED_AND_MOVED;
+		g_pauseStatus = PAUSE_STATUS_GOTO_MOVED;
+		Com::printFLN(PSTR("moving to pause position..."));
+        waitforPauseStatus_fromButton();
+
+        UI_STATUS_UPD( UI_TEXT_PAUSED );
+        return;
+    }
+} // pausePrint
+
+void killPausePrint( void ) {
+	if (g_pauseStatus != PAUSE_STATUS_NONE)
+	{
+		// the printing is paused at the moment
+		g_uPauseTime = 0;
+		g_pauseStatus = PAUSE_STATUS_NONE;
+		g_pauseMode = PAUSE_MODE_NONE;
+	}
+	Printer::setMenuMode(MENU_MODE_PAUSED, false); //egal ob nicht gesetzt.
+}
 
 void continuePrint( void )
 {
     static char countplays = 1;
-    if(g_pauseMode == PAUSE_MODE_NONE || g_pauseStatus != PAUSE_STATUS_PAUSED){
+    if (!g_pauseMode)
+	{
         if(     !g_nHeatBedScanStatus
 #if FEATURE_ALIGN_EXTRUDERS
                 && !g_nAlignExtrudersStatus
@@ -7035,54 +7022,30 @@ void continuePrint( void )
         }
         return;
     }
-    countplays = 1;
+    countplays = 1; //reset counter
+
     g_uPauseTime = 0; //do not drop temps later
-    g_uStartOfIdle    = 0; //continueprint
+    g_uStartOfIdle = 0; //continueprint
     UI_STATUS_UPD( UI_TEXT_CONTINUING );
     BEEP_CONTINUE
     uid.exitmenu();
 
-    if( g_pauseMode == PAUSE_MODE_PAUSED )
+#if FEATURE_MILLING_MODE
+    if( Printer::operatingMode == OPERATING_MODE_PRINT )
     {
-#if FEATURE_MILLING_MODE
-        if( Printer::operatingMode == OPERATING_MODE_PRINT )
-        {
 #endif // FEATURE_MILLING_MODE
-            // process the extruder only in case we are in mode "print"
-			continuePrintLoadTemperatures(0);
-            // continue to take back retract for pause
-            waitforPauseStatus_fromButton(PAUSE_STATUS_PREPARE_CONTINUE1);
+		continuePrintLoadTemperatures();                
 #if FEATURE_MILLING_MODE
-        }
-#endif // FEATURE_MILLING_MODE
     }
-    else if( g_pauseMode == PAUSE_MODE_PAUSED_AND_MOVED )
-    {
-        // move to the continue position
-        if( Printer::debugInfo() ) Com::printFLN( PSTR( "continuePrint(): moving..." ) );
-#if FEATURE_MILLING_MODE
-        if( Printer::operatingMode == OPERATING_MODE_PRINT )
-        {
 #endif // FEATURE_MILLING_MODE
-			continuePrintLoadTemperatures(ADD_CONTINUE_AFTER_PAUSE_TEMP_TOLERANCE);                
-#if FEATURE_MILLING_MODE
-        }
-#endif // FEATURE_MILLING_MODE
-        waitforPauseStatus_fromButton(PAUSE_STATUS_PREPARE_CONTINUE2_1);
-#if FEATURE_MILLING_MODE
-        if( Printer::operatingMode == OPERATING_MODE_MILL && g_nContinueSteps[Z_AXIS] )
-        {
-            // we are in operating mode mill - get back into the work part now
-            waitforPauseStatus_fromButton(PAUSE_STATUS_PREPARE_CONTINUE2_2);
-        }
-#endif // FEATURE_MILLING_MODE
-    }
+	g_pauseStatus = PAUSE_STATUS_GOTO_CONTINUE;
+    waitforPauseStatus_fromButton();
 
     Com::printFLN( PSTR("RequestContinue:") ); //repetier
     Com::printFLN( PSTR( "// action:resume" ) ); //octoprint
     // wait until the next move is started
-    g_pauseMode   = PAUSE_MODE_NONE;
-    g_pauseStatus = PAUSE_STATUS_NONE;
+
+	killPausePrint();
 
     if( Printer::debugInfo() )  Com::printFLN( PSTR( "continuePrint(): waiting for next move" ) );
 
@@ -7106,10 +7069,8 @@ void continuePrint( void )
         }
     }
 
-    if( Printer::debugInfo() ){
-          if( timeout ) Com::printFLN( PSTR( "continuePrint(): the printing has been continued (timeout)" ) );
-          else Com::printFLN( PSTR( "continuePrint(): the printing has been continued" ) );
-    }
+    if( timeout ) Com::printFLN( PSTR( "The printing has been continued (timeout)" ) );
+    else Com::printFLN( PSTR( "The printing has been continued" ) );
 
 #if FEATURE_MILLING_MODE
     if( Printer::operatingMode == OPERATING_MODE_PRINT ) {
@@ -7122,37 +7083,8 @@ void continuePrint( void )
         UI_STATUS_UPD( UI_TEXT_MILL_POS );
     }
 #endif // FEATURE_MILLING_MODE
-    Printer::setMenuMode( MENU_MODE_PAUSED, false );
 } // continuePrint
 
-void determinePausePosition( void )
-{
-#if FEATURE_MILLING_MODE
-    if( Printer::operatingMode == OPERATING_MODE_PRINT )
-    {
-#endif // FEATURE_MILLING_MODE
-		// in operating mode "print", pausing drives from the current position downwards the specified g_nPauseSteps[Z_AXIS]
-		Printer::directDestinationSteps[Z_AXIS] += g_nPauseSteps[Z_AXIS];
-#if FEATURE_MILLING_MODE
-    }
-    else //Printer::operatingMode == OPERATING_MODE_MILL
-    {
-        // in operating mode "mill", we must move only into z direction first in order to get the tool out of the work part
-        if( g_pauseStatus == PAUSE_STATUS_GOTO_PAUSE2 || g_pauseStatus == PAUSE_STATUS_TASKGOTO_PAUSE_2 )
-        {
-			// in operating mode "mill", pausing drives from the current position downwards the specified g_nPauseSteps[Z_AXIS] + currentSteps[Z_AXIS] because we must drive the tool out of the work part before we can move into x or y direction
-			long Temp = g_nPauseSteps[Z_AXIS];
-			Temp -= Printer::currentSteps[Z_AXIS]; // in operating mode "mill", the bed/work part moves upwards while the milling is in progress - Printer::currentSteps[Z_AXIS] is negative
-
-			Printer::directDestinationSteps[Z_AXIS] += Temp;
-            return;
-        }
-    }
-#endif // FEATURE_MILLING_MODE
-
-	Printer::directDestinationSteps[Y_AXIS] += g_nPauseSteps[Y_AXIS];
-	Printer::directDestinationSteps[X_AXIS] += g_nPauseSteps[X_AXIS];
-} // determinePausePosition
 
 void setExtruderCurrent( uint8_t nr, uint8_t current )
 {
@@ -9047,66 +8979,6 @@ void processCommand( GCode* pCommand )
                             reportTempsensorAndHeaterErrors();
                             break;
                         }
-                        case 6:
-                        {
-                            Com::printF( PSTR( "nCPS X;" ),   Printer::currentSteps[X_AXIS] );
-                            Com::printF( Com::tSemiColon,         Printer::currentSteps[X_AXIS] / Printer::axisStepsPerMM[X_AXIS] );
-                            Com::printF( PSTR( "; nCPS Y;" ), Printer::currentSteps[Y_AXIS] );
-                            Com::printFLN( Com::tSemiColon,       Printer::currentSteps[Y_AXIS] / Printer::axisStepsPerMM[Y_AXIS] );
-
-                            Com::printF( PSTR( "; nCPS Z;" ), Printer::currentSteps[Z_AXIS] );
-                            Com::printF( Com::tSemiColon,         Printer::currentSteps[Z_AXIS] / Printer::axisStepsPerMM[Z_AXIS] );
-
-#if FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
-                            Com::printF( PSTR( "; zTZ;" ), Printer::compensatedPositionTargetStepsZ );
-                            Com::printFLN( PSTR( "; zCZ;" ), Printer::compensatedPositionCurrentStepsZ );
-#endif // FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
-
-                            Com::printF( PSTR( "; direct TZ;" ), Printer::directDestinationSteps[Z_AXIS] );
-                            Com::printFLN( PSTR( "; CZ;" ), Printer::directCurrentSteps[Z_AXIS] );
-
-//                          Com::printFLN( PSTR( "; Int32;" ), g_debugInt32 );
-
-                            Com::printF( PSTR( "; SDX;" ), Printer::stepperDirection[X_AXIS] );
-                            Com::printF( PSTR( "; SDY;" ), Printer::stepperDirection[Y_AXIS] );
-                            Com::printFLN( PSTR( "; SDZ;" ), Printer::stepperDirection[Z_AXIS] );
-
-
-                            #if FEATURE_HEAT_BED_Z_COMPENSATION && FEATURE_WORK_PART_Z_COMPENSATION
-                                if( !Printer::doHeatBedZCompensation && !Printer::doWorkPartZCompensation )
-                                {
-                                    Com::printFLN( PSTR( "; return 1;" ) );
-                                }
-                            #elif FEATURE_HEAT_BED_Z_COMPENSATION
-                                if( !Printer::doHeatBedZCompensation )
-                                {
-                                    Com::printFLN( PSTR( "; return heatbedz;" ) );
-                                }
-                            #elif FEATURE_WORK_PART_Z_COMPENSATION
-                                if( !Printer::doWorkPartZCompensation )
-                                {
-                                    Com::printFLN( PSTR( "; return workpart;" ) );
-                                }
-                            #endif // FEATURE_HEAT_BED_Z_COMPENSATION && FEATURE_WORK_PART_Z_COMPENSATION
-
-                                if( Printer::blockAll )
-                                {
-                                    // do not perform any compensation in case the moving is blocked
-                                    Com::printFLN( PSTR( "; return block;" ) );
-                                }
-                                if( PrintLine::direct.isZMove() )
-                                {
-                                    // do not perform any compensation in case the moving is blocked
-                                    Com::printFLN( PSTR( "; return directZ;" ), PrintLine::direct.stepsRemaining );
-                                }
-                                if( PrintLine::cur->isZMove() )
-                                {
-                                    // do not perform any compensation in case the moving is blocked
-                                    Com::printFLN( PSTR( "; return curZ;" ) );
-                                }
-
-                            break;
-                        }
 
 #if FEATURE_FIND_Z_ORIGIN
                         case 7:
@@ -9126,105 +8998,12 @@ void processCommand( GCode* pCommand )
                             Com::printFLN( PSTR( "debug level: "), Printer::debugLevel );
                             break;
                         }
-                        case 11:
-                        {
-#if FEATURE_MILLING_MODE
-                            Com::printFLN( PSTR( "operating mode= "), Printer::operatingMode );
-#endif // FEATURE_MILLING_MODE
 
-#if FEATURE_CONFIGURABLE_Z_ENDSTOPS
-                            Com::printF( PSTR( "Z endstop type= "), Printer::ZEndstopType );
-                            Com::printF( PSTR( ", Z-Min= "), Printer::isZMinEndstopHit() );
-                            Com::printF( PSTR( ", Z-Max= "), Printer::isZMaxEndstopHit() );
-                            Com::printF( PSTR( ", lastZDirection= "), Printer::lastZDirection );
-                            Com::printF( PSTR( ", endstopZMinHit= "), Printer::endstopZMinHit );
-                            Com::printF( PSTR( ", endstopZMaxHit= "), Printer::endstopZMaxHit );
-                            Com::printFLN( PSTR( ", ZEndstopUnknown= "), Printer::ZEndstopUnknown );
-#endif // FEATURE_CONFIGURABLE_Z_ENDSTOPS
-                            break;
-                        }
-                        case 12:
-                        {
-                            Com::printF( PSTR( "extruder= "), Extruder::current->id );
-                            Com::printF( PSTR( ", g_nHeatBedScanStatus= "), g_nHeatBedScanStatus );
-                            break;
-                        }
                         case 13:
                         {
                             Com::printFLN( PSTR( "LCD re-initialization") );
                             uid.initializeLCD();
-                        }
-
-                        case 14:
-                        {
-                            Com::printF( PSTR( "target = " ), Printer::directDestinationSteps[X_AXIS] );
-                            Com::printF( PSTR( "; " ), Printer::directDestinationSteps[Y_AXIS] );
-                            Com::printF( PSTR( "; " ), Printer::directDestinationSteps[Z_AXIS] );
-                            Com::printF( PSTR( "; " ), Printer::directDestinationSteps[E_AXIS] );
-                            Com::printF( PSTR( "; current = " ), Printer::directCurrentSteps[X_AXIS] );
-                            Com::printF( PSTR( "; " ), Printer::directCurrentSteps[Y_AXIS] );
-                            Com::printF( PSTR( "; " ), Printer::directCurrentSteps[Z_AXIS] );
-                            Com::printF( PSTR( "; " ), Printer::directCurrentSteps[E_AXIS] );
-                            Com::printFLN( PSTR( "; remaining = " ), PrintLine::direct.stepsRemaining );
-                            break;
-                        }
-
-                        case 16:
-                        {
-                            Com::printF( PSTR( "stepperDirection=" ), Printer::stepperDirection[X_AXIS] );
-                            Com::printF( Com::tSlash , Printer::stepperDirection[Y_AXIS] );
-                            Com::printFLN( Com::tSlash , Printer::stepperDirection[Z_AXIS] );
-                            break;
-                        }
-                        case 17:
-                        {
-                            if( pCommand->hasS() )
-                            {
-                                if( pCommand->S == 2 )
-                                {
-                                    // output in [steps]
-                                    Com::printF( PSTR( "nCPS Z;" ), Printer::currentSteps[Z_AXIS] );
-
-#if FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
-                                    Com::printF( PSTR( "; cCZ;" ), Printer::compensatedPositionCurrentStepsZ );
-                                    Com::printF( PSTR( "; sZP;" ), g_nZScanZPosition );
-#endif // FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
-
-#if FEATURE_FIND_Z_ORIGIN
-                                    Com::printF( PSTR( "; oZ;" ), g_nZOriginPosition[Z_AXIS] );
-#endif // FEATURE_FIND_Z_ORIGIN
-
-                                    Com::printF( PSTR( "; cPSZ;" ), Printer::directCurrentSteps[Z_AXIS] );
-
-#if FEATURE_WORK_PART_Z_COMPENSATION
-                                    Com::printF( PSTR( "; wpO;" ), getWorkPartOffset() );
-#endif // FEATURE_WORK_PART_Z_COMPENSATION
-
-                                    Com::println();
-
-                                    // output in [mm]
-                                    Com::printF( PSTR( "nCPS Z;" ), Printer::currentSteps[Z_AXIS] / Printer::axisStepsPerMM[Z_AXIS] );
-
-#if FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
-                                    Com::printF( PSTR( "; cCZ;" ), Printer::compensatedPositionCurrentStepsZ / Printer::axisStepsPerMM[Z_AXIS] );
-                                    Com::printF( PSTR( "; sZP;" ), g_nZScanZPosition / Printer::axisStepsPerMM[Z_AXIS] );
-#endif // FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
-
-#if FEATURE_FIND_Z_ORIGIN
-                                    Com::printF( PSTR( "; oZ;" ), g_nZOriginPosition[Z_AXIS] / Printer::axisStepsPerMM[Z_AXIS] );
-#endif // FEATURE_FIND_Z_ORIGIN
-
-                                    Com::printF( PSTR( "; cPSZ;" ), Printer::directCurrentSteps[Z_AXIS] / Printer::axisStepsPerMM[Z_AXIS] );
-
-#if FEATURE_WORK_PART_Z_COMPENSATION
-                                    Com::printF( PSTR( "; wpO;" ), getWorkPartOffset() / Printer::axisStepsPerMM[Z_AXIS] );
-#endif // FEATURE_WORK_PART_Z_COMPENSATION
-
-                                    Com::println();
-                                }
-                            }
-                            break;
-                        }
+                        }                        
                     }
                 }
 
@@ -10878,20 +10657,10 @@ extern void processButton( int nAction )
                 Commands::changeFeedrateMultiply(Printer::feedrateMultiply + 1);
                 beep(1,4);
             } else {
-                if( uint32_t(abs(Printer::directDestinationSteps[E_AXIS] - Printer::directCurrentSteps[E_AXIS])) <= (g_nManualSteps[E_AXIS]>>1) )
-                {
-                    // we are printing at the moment - use direct steps
+				Printer::offsetRelativeStepsCoordinates(0, 0, 0, int32_t(g_nManualSteps[E_AXIS]));
 
-                    Printer::unmarkAllSteppersDisabled(); //doesnt fit into Extruder::enable() because of forward declare -> TODO
-                    Extruder::enable();
-
-                    InterruptProtectedBlock noInts; //HAL::forbidInterrupts();
-                    Printer::directDestinationSteps[E_AXIS] += g_nManualSteps[E_AXIS];
-                    noInts.unprotect(); //HAL::allowInterrupts();
-
-                    //In case of double pause and in case we tempered with the retract, we dont want to drive the E-Axis back to some old location - that much likely causes emergency block.
-                    g_nContinueSteps[E_AXIS] = 0;
-                }
+                //In case of double pause and in case we tempered with the retract, we dont want to drive the E-Axis back to some old location - that much likely causes emergency block.
+                g_nContinueSteps[E_AXIS] = 0;
             }
             break;
         }
@@ -10907,20 +10676,10 @@ extern void processButton( int nAction )
                 Commands::changeFeedrateMultiply(Printer::feedrateMultiply - 1);
                 beep(1,4);
             }else{
-                if( uint32_t(abs(Printer::directDestinationSteps[E_AXIS] - Printer::directCurrentSteps[E_AXIS])) <= (g_nManualSteps[E_AXIS]>>1) )
-                {
-                    // we are printing at the moment - use direct steps
+				Printer::offsetRelativeStepsCoordinates(0, 0, 0, -1*int32_t(g_nManualSteps[E_AXIS]));
 
-                    Printer::unmarkAllSteppersDisabled(); //doesnt fit into Extruder::enable() because of forward declare -> TODO
-                    Extruder::enable();
-
-                    InterruptProtectedBlock noInts;
-                    Printer::directDestinationSteps[E_AXIS] -= g_nManualSteps[E_AXIS];
-                    noInts.unprotect();
-
-                    //In case of double pause and in case we tempered with the retract, we dont want to drive the E-Axis back to some old location - that much likely causes emergency block.
-                    g_nContinueSteps[E_AXIS] = 0;
-                }
+                //In case of double pause and in case we tempered with the retract, we dont want to drive the E-Axis back to some old location - that much likely causes emergency block.
+                g_nContinueSteps[E_AXIS] = 0;
             }
             break;
         }
@@ -11036,11 +10795,11 @@ void nextPreviousXAction( int8_t increment )
 {
 	bool moveKosys = Printer::moveKosys;
 
-	if (g_pauseStatus == PAUSE_STATUS_PAUSED && (g_pauseMode == PAUSE_MODE_PAUSED || g_pauseMode == PAUSE_MODE_PAUSED_AND_MOVED)) 
+	if (g_pauseMode)
 	{
 		moveKosys = KOSYS_DIRECTOFFSET;
 	}
-    else if (Printer::processAsDirectSteps() || isAnyScanRunning())
+    else if (PrintLine::linesCount || isAnyScanRunning())
     {
         // this operation is not allowed while a printing/milling/scanning is in progress
         return;
@@ -11082,9 +10841,9 @@ void nextPreviousXAction( int8_t increment )
 			}
 			else /*if (Printer::moveKosys == KOSYS_DIRECTOFFSET) */
 			{
-				Printer::enableXStepper();
-				Printer::directDestinationSteps[X_AXIS] += steps;
+				Printer::offsetRelativeStepsCoordinates(steps, 0, 0, 0);
 			}
+
             break;
         }	
 		case MOVE_MODE_1_MM:
@@ -11110,11 +10869,12 @@ void nextPreviousXAction( int8_t increment )
 			{
 				Printer::offsetRelativeStepsCoordinates(distanceMM * Printer::axisStepsPerMM[Y_AXIS] * increment, 0, 0, 0);
 			}
+
             break;
         }
         case MOVE_MODE_SINGLE_MOVE:
         {
-            if (PrintLine::direct.stepsRemaining)
+            if (PrintLine::direct.task)
             {
                 // we are moving already, there is nothing more to do
                 return;
@@ -11124,8 +10884,8 @@ void nextPreviousXAction( int8_t increment )
 			//errate homed möglichst den erzwungenen stop-punkt wegen dem bonus der decelleration
             if( increment < 0 ) steps = (Printer::isAxisHomed(X_AXIS) ? -Printer::currentXSteps : -Printer::maxSoftEndstopSteps[X_AXIS]);
             else                steps = (Printer::isAxisHomed(X_AXIS) ? Printer::maxSoftEndstopSteps[X_AXIS] - Printer::currentXSteps : Printer::maxSoftEndstopSteps[X_AXIS]);
-			Printer::offsetRelativeStepsCoordinates(steps, 0, 0, 0, TASK_MOVE_FROM_BUTTON);
 
+			Printer::offsetRelativeStepsCoordinates(steps, 0, 0, 0, TASK_MOVE_FROM_BUTTON);
             break;
         }	
     }
@@ -11136,11 +10896,11 @@ void nextPreviousYAction( int8_t increment )
 {
 	bool moveKosys = Printer::moveKosys;
 
-	if (g_pauseStatus == PAUSE_STATUS_PAUSED && (g_pauseMode == PAUSE_MODE_PAUSED || g_pauseMode == PAUSE_MODE_PAUSED_AND_MOVED)) 
+	if (g_pauseMode)
 	{
 		moveKosys = KOSYS_DIRECTOFFSET;
 	}
-	else if (Printer::processAsDirectSteps() || isAnyScanRunning())
+	else if (PrintLine::linesCount || isAnyScanRunning())
     {
         // this operation is not allowed while a printing/milling/scanning is in progress
         return;
@@ -11182,8 +10942,7 @@ void nextPreviousYAction( int8_t increment )
 			}
 			else /*if (Printer::moveKosys == KOSYS_DIRECTOFFSET) */
 			{
-				Printer::enableYStepper();
-				Printer::directDestinationSteps[Y_AXIS] += steps;
+				Printer::offsetRelativeStepsCoordinates(0, steps, 0, 0);
 			}
 
             break;
@@ -11216,7 +10975,7 @@ void nextPreviousYAction( int8_t increment )
         }
         case MOVE_MODE_SINGLE_MOVE:
         {
-            if (PrintLine::direct.stepsRemaining)
+            if (PrintLine::direct.task)
             {
                 // we are moving already, there is nothing more to do
                 return;
@@ -11254,7 +11013,6 @@ void nextPreviousZAction( int8_t increment )
     previousMillisCmd = HAL::timeInMilliseconds(); //prevent inactive shutdown of steppers/temps
 
 	char moveMode = Printer::moveMode[Z_AXIS];
-	bool isPaused = g_pauseStatus == PAUSE_STATUS_PAUSED && (g_pauseMode == PAUSE_MODE_PAUSED || g_pauseMode == PAUSE_MODE_PAUSED_AND_MOVED);
 
     if (uid.lastButtonAction == UI_ACTION_RF_HEAT_BED_DOWN || uid.lastButtonAction == UI_ACTION_RF_HEAT_BED_UP)
 	{
@@ -11271,11 +11029,11 @@ void nextPreviousZAction( int8_t increment )
         }
     }
 
-	if (isPaused)
+	if (g_pauseMode)
 	{
 		moveMode = MOVE_MODE_SINGLE_MOVE;
 	}
-	else if (Printer::processAsDirectSteps())
+	else if (PrintLine::linesCount)
     {
         // in case we are printing/milling at the moment, only the single step movements are allowed
         moveMode = MOVE_MODE_SINGLE_STEPS;
@@ -11315,7 +11073,7 @@ void nextPreviousZAction( int8_t increment )
 				return;
             }
 
-			if (isPaused && increment < 0) {
+			if (g_pauseMode && increment < 0) {
 				if (g_nContinueSteps[Z_AXIS] >= 0) {
 					return;
 				}
@@ -11333,8 +11091,7 @@ void nextPreviousZAction( int8_t increment )
 			//}
 			//else /*if (Printer::moveKosys == KOSYS_DIRECTOFFSET) */
 			//{
-				Printer::enableZStepper();
-				Printer::directDestinationSteps[Z_AXIS] += steps;
+				Printer::offsetRelativeStepsCoordinates(0, 0, steps, 0);
 			//}
 
             break;
@@ -11398,7 +11155,7 @@ void nextPreviousZAction( int8_t increment )
         }
         case MOVE_MODE_SINGLE_MOVE:
         {
-            if (PrintLine::direct.stepsRemaining)
+            if (PrintLine::direct.task)
             {
                 // we are moving already, there is nothing more to do
                 return;
@@ -11409,7 +11166,7 @@ void nextPreviousZAction( int8_t increment )
 			if (increment < 0) steps = (Printer::isAxisHomed(Z_AXIS) ? -Printer::currentZSteps : -Printer::maxSoftEndstopSteps[Z_AXIS]);
 			else               steps = (Printer::isAxisHomed(Z_AXIS) ? Printer::maxSoftEndstopSteps[Z_AXIS] - Printer::currentZSteps : Printer::maxSoftEndstopSteps[Z_AXIS]);
 			
-			if (isPaused && increment < 0) {
+			if (g_pauseMode && increment < 0) {
 				// z limit at part pause position
 				if (g_nContinueSteps[Z_AXIS] >= 0) {
 					return;
@@ -11865,11 +11622,6 @@ void cleanupEPositions( void )
 
 	Printer::setEAxisSteps(0);
 	Printer::resetDirectAxis(E_AXIS);
-
-    g_pauseStatus            = PAUSE_STATUS_NONE;
-    g_pauseMode              = PAUSE_MODE_NONE;
-    g_uPauseTime             = 0;
-    g_pauseBeepDone          = 0;
 
     noInts.unprotect();
 } // cleanupEPositions

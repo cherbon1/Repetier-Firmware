@@ -49,6 +49,9 @@
 #define KOSYS_GCODE                             true
 #define KOSYS_DIRECTOFFSET                      false
 
+#define DIR_QUEUE                               1
+#define DIR_DIRECT                              -1
+
 class Printer
 {
 public:
@@ -86,12 +89,12 @@ public:
     static uint16_t         stepsPackingMinInterval;
     static volatile unsigned long interval;                     // Last step duration in ticks.
     static volatile float   v;                                  // Last planned printer speed.
-    static unsigned long    timer;                              // used for acceleration/deceleration timing
-    static unsigned long    stepNumber;                         // Step number in current move.
+    static unsigned long    timer[2];                           // used for acceleration/deceleration timing
+    static unsigned long    stepNumber[2];                      // Step number in current move.
 #if FEATURE_DIGIT_FLOW_COMPENSATION
     static unsigned short   interval_mod;                       // additional step duration in ticks to slow the printer down live
 #endif // FEATURE_DIGIT_FLOW_COMPENSATION
-
+	static int8_t           lastDirectionSovereignty;
     static float            originOffsetMM[3];
 	static volatile float   destinationMM[4];                   // Target in mm from origin.
     static float            destinationMMLast[4];               // Position in mm from origin.
@@ -106,7 +109,7 @@ public:
 	static float            dynamicExtrusionFactor;             // Flow multiplier factor for digit compensation (1.0 = 100%)	
     static float            maxXYJerk;                          // Maximum allowed jerk in mm/s
     static float            maxZJerk;                           // Maximum allowed jerk in z direction in mm/s
-    static speed_t          vMaxReached;                        // Maximumu reached speed
+    static speed_t          vMaxReached[2];                     // Maximumu reached speed
     static unsigned long    msecondsPrinting;                   // Milliseconds of printing time (means time with heated extruder)
     static unsigned long    msecondsMilling;                    // Milliseconds of milling time
     static float            filamentPrinted;                    // mm of filament printed since counting started
@@ -156,15 +159,11 @@ public:
     static long             queuePositionZLayerGuessNew;
     static volatile long    queuePositionZLayerCurrent;
     static volatile long    queuePositionZLayerLast;
-
-    static volatile char    endZCompensationStep;
 #endif // FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
 
     static volatile long    directDestinationSteps[4];
     static volatile long    directCurrentSteps[4];
-
-    static char             waitMove;
-
+	
 #if FEATURE_MILLING_MODE
     static char             operatingMode;
     static float            drillFeedrate;
@@ -305,10 +304,7 @@ public:
 		Printer::currentXSteps = 0;
 		Printer::resetDirectAxis(X_AXIS);
 
-		g_pauseStatus = PAUSE_STATUS_NONE;
-		g_pauseMode = PAUSE_MODE_NONE;
-		g_uPauseTime = 0;
-		g_pauseBeepDone = 0;
+		killPausePrint();
 
 		noInts.unprotect(); //HAL::allowInterrupts();
 
@@ -339,10 +335,7 @@ public:
 		Printer::currentYSteps = 0;
 		Printer::resetDirectAxis(Y_AXIS);
 
-		g_pauseStatus = PAUSE_STATUS_NONE;
-		g_pauseMode = PAUSE_MODE_NONE;
-		g_uPauseTime = 0;
-		g_pauseBeepDone = 0;
+		killPausePrint();
 
 		noInts.unprotect(); //HAL::allowInterrupts();
 
@@ -356,7 +349,6 @@ public:
 #if FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
 		Printer::compensatedPositionTargetStepsZ =
 			Printer::compensatedPositionCurrentStepsZ =
-			Printer::endZCompensationStep =
 			g_nZScanZPosition = 0;
 #endif // FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
 		noInts.unprotect();
@@ -397,10 +389,7 @@ public:
 		Printer::setZOriginSet(false); //flag wegen statusnachricht
 #endif // FEATURE_FIND_Z_ORIGIN
 
-		g_pauseStatus = PAUSE_STATUS_NONE;
-		g_pauseMode = PAUSE_MODE_NONE;
-		g_uPauseTime = 0;
-		g_pauseBeepDone = 0;
+		killPausePrint();
 		
 		noInts.unprotect();
 
@@ -1169,11 +1158,6 @@ public:
     static void MemoryPosition();
     static void GoToMemoryPosition(bool x,bool y,bool z,bool e,float feed);
 #endif // FEATURE_MEMORY_POSITION
-
-    static bool allowQueueMove( void );
-    static bool allowDirectMove( void );
-    static bool allowDirectSteps( void );
-    static bool processAsDirectSteps( void );
 
 #if FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
     static void performZCompensation( void );

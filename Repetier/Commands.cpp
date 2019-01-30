@@ -49,7 +49,7 @@ void Commands::commandLoop()
         Commands::checkForPeriodicalActions(Processing);  //check heater and other stuff every n milliseconds
     } else {
         enum FirmwareState state = NotBusy;
-        if( g_pauseMode != PAUSE_MODE_NONE )
+        if( g_pauseMode )
         {
             state = Paused;
         }
@@ -799,7 +799,7 @@ void Commands::executeGCode(GCode *com)
             }
             case 24: // M24 - Start SD print
             {
-                if( g_pauseStatus == PAUSE_STATUS_PAUSED )
+                if( g_pauseMode )
                 {
                     continuePrint();
                 }
@@ -912,7 +912,6 @@ void Commands::executeGCode(GCode *com)
 						break; 
 					}
 
-                    Printer::waitMove = 1; //brauche ich das, wenn ich sowieso warte bis der movecache leer ist?
                     g_uStartOfIdle = 0; //M109
                     Commands::waitUntilEndOfAllMoves(); //M109
 
@@ -922,8 +921,6 @@ void Commands::executeGCode(GCode *com)
 
                     if (fabs(actExtruder->tempControl.targetTemperatureC - actExtruder->tempControl.currentTemperatureC) < TEMP_TOLERANCE)
                     {
-                        // we are already in range
-                        Printer::waitMove = 0;
                         break;
                     }
 
@@ -990,7 +987,6 @@ void Commands::executeGCode(GCode *com)
 #endif // RETRACT_DURING_HEATUP
 #endif // NUM_EXTRUDER>0
 
-                    Printer::waitMove = 0;
                     g_uStartOfIdle    = HAL::timeInMilliseconds(); //end of M109
                 }
                 break;
@@ -1001,12 +997,13 @@ void Commands::executeGCode(GCode *com)
                 {
 #if HAVE_HEATED_BED
                     previousMillisCmd = HAL::timeInMilliseconds(); //prevent inactive shutdown of steppers/temps
-                    if(Printer::isAnyTempsensorDefect()){
+                    if (Printer::isAnyTempsensorDefect()) {
                         reportTempsensorAndHeaterErrors();
                         break;
                     }
-                    if(Printer::debugDryrun()) break;
-                    Printer::waitMove = 1; //brauche ich das, wenn ich sowieso warte bis der movecache leer ist?
+					if (Printer::debugDryrun()) {
+						break;
+					}
                     g_uStartOfIdle = 0; //M190
                     Commands::waitUntilEndOfAllMoves(); //M190
                     if (com->hasS()) Extruder::setHeatedBedTemperature(com->S,com->hasF() && com->F>0);
@@ -1032,7 +1029,6 @@ void Commands::executeGCode(GCode *com)
 						if (Printer::isAnyTempsensorDefect()) break;
                     }
 
-                    Printer::waitMove = 0;
                     g_uStartOfIdle    = HAL::timeInMilliseconds()+5000; //end of M190
 #endif // HAVE_HEATED_BED
                 }

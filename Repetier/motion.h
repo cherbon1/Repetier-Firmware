@@ -38,6 +38,17 @@
 #define FLAG_JOIN_WAIT_EXTRUDER_UP      64  // Wait for the extruder to finish it's up movement
 #define FLAG_JOIN_WAIT_EXTRUDER_DOWN    128 // Wait for the extruder to finish it's down movement
 
+#define DIRECT_IDLE                     0
+#define DIRECT_PREPARING                1
+#define DIRECT_PREPARED                 2
+#define DIRECT_RUNNING                  3
+
+#define DIRECT_PREPARED_STOPPABLE       12
+#define DIRECT_RUNNING_STOPPABLE        13
+
+#define FOR_DIRECT                      0
+#define FOR_QUEUE                       1
+
 class UIDisplay;
 class PrintLine
 {
@@ -49,7 +60,6 @@ public:
     static uint8_t      linesWritePos;  // Position where we write the next cached line move
     flag8_t             joinFlags;
     volatile flag8_t    flags;
-    volatile uint8_t    started;
 
 private:
     flag8_t             primaryAxis;
@@ -69,7 +79,6 @@ private:
     float               endSpeed;                   ///< Exit speed in mm/s
     float               minSpeed;
     float               distance;
-    //ticks_t             fullInterval;               ///< interval at full speed in ticks/step.
     uint32_t            accelSteps;                 ///< How much steps does it take, to reach the plateau.
     uint32_t            decelSteps;                 ///< How much steps does it take, to reach the end speed.
     uint32_t            accelerationPrim;           ///< Acceleration along primary axis
@@ -144,6 +153,12 @@ public:
 
     inline uint8_t getWaitForXLinesFilled()
     {
+		// This function seems to produce a pausing if X_AXIS is the primary axis 
+		// or if y is the primary axis and only one line in queue
+		// or if z axis is the primary and only two lines in queue 
+		// or if e axis is the primary and only three lines in queue 
+		//
+		// ?????? :D But still original Repetier
         return primaryAxis;
     } // getWaitForXLinesFilled
 
@@ -254,7 +269,7 @@ public:
 				return;
 			}
 
-            if(PrintLine::direct.task == TASK_MOVE_FROM_BUTTON)
+            if(PrintLine::direct.task == DIRECT_RUNNING_STOPPABLE)
             {
 				setZMoveFinished();
 
@@ -434,23 +449,24 @@ public:
     } // updateAdvanceSteps
 #endif // USE_ADVANCE
 
-    INLINE bool moveDecelerating()
+    INLINE bool moveDecelerating(uint8_t forQueue)
     {
         if(stepsRemaining <= static_cast<int32_t>(decelSteps))
         {
             if (!(flags & FLAG_DECELERATING)) //reset "timer" only once.
             {
-                Printer::timer = 0;
+                Printer::timer[forQueue] = 0;
                 flags |= FLAG_DECELERATING;
             }
             return true;
         }
-        else return false;
+        
+		return false;
     } // moveDecelerating
 
-    INLINE bool moveAccelerating()
+    INLINE bool moveAccelerating(uint8_t forQueue)
     {
-        return Printer::stepNumber <= accelSteps;
+        return Printer::stepNumber[forQueue] <= accelSteps;
     } // moveAccelerating
 
     void updateStepsParameter();
@@ -500,11 +516,12 @@ public:
     } // getNextWriteLine
 
     static inline void computeMaxJunctionSpeed(PrintLine *previous,PrintLine *current);
-    static long performPauseCheck();
+
+    static long performWait();
     static long performQueueMove();
     static long performDirectMove( void );
-    static void performDirectSteps( void );
-    static long performMove(PrintLine* move, char forQueue);
+
+    static long performMove(PrintLine* move, uint8_t forQueue);
     static void waitForXFreeLines(uint8_t b=1);
     static bool checkForXFreeLines(uint8_t freeLines=1);
     static inline void forwardPlanner(uint8_t p);
@@ -512,7 +529,7 @@ public:
     static void updateTrapezoids();
     static uint8_t insertWaitMovesIfNeeded(uint8_t pathOptimize, uint8_t waitExtraLines);
     static void prepareQueueMove(uint8_t check_endstops, uint8_t pathOptimize, float feedrate);
-    static void prepareDirectMove( void );
+    static void prepareDirectMove( bool stoppable );
     static void stopDirectMove( void );
 
 #if FEATURE_ARC_SUPPORT
@@ -532,7 +549,6 @@ public:
     static inline void queueTask( char task )
     {
         PrintLine*  p;
-
 
         p = getNextWriteLine();
         p->task = task;
@@ -556,30 +572,51 @@ public:
         if(isXMove())
         {
             Printer::enableXStepper();
-            Printer::setXDirection(isXPositiveMove());
         }
         if(isYMove())
         {
             Printer::enableYStepper();
-            Printer::setYDirection(isYPositiveMove());
         }
         if(isZMove())
         {
             Printer::enableZStepper();
-            Printer::setZDirection(isZPositiveMove());
         }
         if(isEMove())
         {
             Printer::unmarkAllSteppersDisabled(); //doesnt fit into Extruder::enable() because of forward declare -> TODO
             Extruder::enable();
-#if USE_ADVANCE
-            if(!Printer::isAdvanceActivated()) // Set direction if no advance/OPS enabled
-#endif
-                  Extruder::setDirection(isEPositiveMove());
         }
-        started = 1;
     } // enableSteppers
 
+	inline void adjustDirections(void)
+	{
+		if (Printer::blockAll)
+		{
+			// do not enable anything in case everything is blocked
+			return;
+		}
+
+		// Only enable axis that are moving. If the axis doesn't need to move then it can stay disabled depending on configuration.
+		if (isXMove())
+		{
+			Printer::setXDirection(isXPositiveMove());
+		}
+		if (isYMove())
+		{
+			Printer::setYDirection(isYPositiveMove());
+		}
+		if (isZMove())
+		{
+			Printer::setZDirection(isZPositiveMove());
+		}
+		if (isEMove())
+		{
+#if USE_ADVANCE
+			if (!Printer::isAdvanceActivated()) // Set direction if no advance/OPS enabled
+#endif
+				Extruder::setDirection(isEPositiveMove());
+		}
+	} // adjustDirections
 };
 
 inline bool isQueueXMove(){
@@ -594,13 +631,5 @@ inline bool isQueueEMove(){
     if( PrintLine::cur ) if( PrintLine::cur->isEMove() ) return true;
     return false;
 } //isQueueEMove
-
-inline bool isDirectOrQueueOrCompZMove(){
-    if( PrintLine::cur ) if( PrintLine::cur->isZMove() ) return true;
-    if( Printer::directCurrentSteps[Z_AXIS] != Printer::directDestinationSteps[Z_AXIS] ) return true;
-    // davor version conrad 1.39, auskommentiert version nibbels: if( PrintLine::direct.isZMove() ) return true;
-    if( Printer::endZCompensationStep ) return true;
-    return false;
-} //isDirectOrQueueOrCompZMove
 
 #endif // MOTION_H

@@ -1271,7 +1271,7 @@ void UIDisplay::parse(char *txt,bool ram)
 #if SDSUPPORT
                         if(sd.sdactive && sd.sdmode)
                         {
-                            if( g_pauseMode >= PAUSE_MODE_PAUSED )
+                            if( g_pauseMode )
                             {
                                 // do not show the printing/milling progress while we are paused
                                 parse(statusMsg,true);
@@ -1885,8 +1885,6 @@ void UIDisplay::parse(char *txt,bool ram)
             }
             case 'p':
             {
-				bool isPaused = g_pauseStatus == PAUSE_STATUS_PAUSED && (g_pauseMode == PAUSE_MODE_PAUSED || g_pauseMode == PAUSE_MODE_PAUSED_AND_MOVED);
-
                 if(c2=='x')                                                                             // %px: mode of the Position X menu
                 {
                     switch( Printer::moveMode[X_AXIS] )
@@ -1918,7 +1916,7 @@ void UIDisplay::parse(char *txt,bool ram)
                             break;
                         }
                     }
-					if (Printer::moveMode[X_AXIS] == MOVE_MODE_SINGLE_MOVE || Printer::moveKosys == KOSYS_DIRECTOFFSET || isPaused /*we are in pause position menu*/ )
+					if (Printer::moveMode[X_AXIS] == MOVE_MODE_SINGLE_MOVE || Printer::moveKosys == KOSYS_DIRECTOFFSET || g_pauseMode /*we are in pause position menu*/ )
 					{
 						addStringP(PSTR(" ("));
 						addStringP(PSTR(UI_TEXT_MOVE_MODE_OFFSET));
@@ -1962,7 +1960,7 @@ void UIDisplay::parse(char *txt,bool ram)
                             break;
                         }
                     }
-					if (Printer::moveMode[Y_AXIS] == MOVE_MODE_SINGLE_MOVE || Printer::moveKosys == KOSYS_DIRECTOFFSET || isPaused /*we are in pause position menu Y*/)
+					if (Printer::moveMode[Y_AXIS] == MOVE_MODE_SINGLE_MOVE || Printer::moveKosys == KOSYS_DIRECTOFFSET || g_pauseMode /*we are in pause position menu Y*/)
 					{
 						addStringP(PSTR(" ("));
 						addStringP(PSTR(UI_TEXT_MOVE_MODE_OFFSET));
@@ -1977,7 +1975,7 @@ void UIDisplay::parse(char *txt,bool ram)
                 }
                 if(c2=='z')                                                                             // %pz: mode of the Position Z menu
                 {
-					if (isPaused /*we are in pause position menu Z*/)
+					if (g_pauseMode /*we are in pause position menu Z*/)
 					{
 						addStringP(PSTR(UI_TEXT_MOVE_MODE_SINGLE_MOVE));
 					}
@@ -2016,7 +2014,7 @@ void UIDisplay::parse(char *txt,bool ram)
 
 					// Z axis is always direct offset move because gcode does not make sense here.
 
-					//if (Printer::moveMode[Z_AXIS] == MOVE_MODE_SINGLE_MOVE || Printer::moveKosys == KOSYS_DIRECTOFFSET || isPaused /*we are in pause position menu Z*/)
+					//if (Printer::moveMode[Z_AXIS] == MOVE_MODE_SINGLE_MOVE || Printer::moveKosys == KOSYS_DIRECTOFFSET || g_pauseMode /*we are in pause position menu Z*/)
 					//{
 					addStringP(PSTR(" ("));
 					addStringP(PSTR(UI_TEXT_MOVE_MODE_OFFSET));
@@ -5494,7 +5492,7 @@ void UIDisplay::fastAction()
         if (!nextAction)
         {
             // no key is pressed at the moment
-            if (PrintLine::direct.task == TASK_MOVE_FROM_BUTTON)
+            if (PrintLine::direct.task == DIRECT_RUNNING_STOPPABLE)
             {
                 // the current direct movement has been started via a hardware or menu button - these movements shall be stopped as soon as the button is released
                 PrintLine::stopDirectMove();

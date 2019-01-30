@@ -66,12 +66,12 @@ uint8_t         Printer::menuMode = 0;
 
 volatile unsigned long Printer::interval = 10000;                       // Last step duration in ticks.
 volatile float  Printer::v = 0;                                         // Last planned printer speed.
-unsigned long   Printer::timer;                                         // Used for acceleration/deceleration timing
-unsigned long   Printer::stepNumber;                                    // Step number in current move.
+unsigned long   Printer::timer[2] = { 0 };                              // Used for acceleration/deceleration timing
+unsigned long   Printer::stepNumber[2] = { 0 };                         // Step number in current move.
 #if FEATURE_DIGIT_FLOW_COMPENSATION
 unsigned short  Printer::interval_mod = 0;                              // additional step duration in ticks to slow the printer down live
 #endif // FEATURE_DIGIT_FLOW_COMPENSATION
-
+int8_t          Printer::lastDirectionSovereignty = 0;
 #if USE_ADVANCE
 #ifdef ENABLE_QUADRATIC_ADVANCE
 long            Printer::advanceExecuted;                               // Executed advance steps
@@ -90,7 +90,7 @@ float           Printer::menuExtrusionFactor = 1.0;                     // Flow 
 float           Printer::dynamicExtrusionFactor = 1.0;                  // Flow multiplier factor for digit compensation (1.0 = 100%)
 float           Printer::maxXYJerk;                                     // Maximum allowed jerk in mm/s
 float           Printer::maxZJerk;                                      // Maximum allowed jerk in z direction in mm/s
-unsigned int    Printer::vMaxReached;                                   // Maximum reached speed
+unsigned int    Printer::vMaxReached[2];                                // Maximum reached speed [FOR_DIRECT, FOR_QUEUE]
 unsigned long   Printer::msecondsPrinting = 0;                          // Milliseconds of printing time (means time with heated extruder)
 unsigned long   Printer::msecondsMilling = 0;                           // Milliseconds of milling time
 float           Printer::filamentPrinted = 0.0f;                        // mm of filament printed since counting started
@@ -140,14 +140,10 @@ volatile float  Printer::compensatedPositionCollectTinyE = 0.0f;
 long            Printer::queuePositionZLayerGuessNew = 0;
 volatile long   Printer::queuePositionZLayerCurrent = 0;
 volatile long   Printer::queuePositionZLayerLast = 0;
-
-volatile char   Printer::endZCompensationStep = 0;
 #endif // FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
 
 volatile long   Printer::directDestinationSteps[4] = {0, 0, 0, 0};
 volatile long   Printer::directCurrentSteps[4] = {0, 0, 0, 0};
-
-char            Printer::waitMove;
 
 #if FEATURE_MILLING_MODE
 char            Printer::operatingMode;
@@ -591,9 +587,19 @@ void Printer::queueRelativeMMCoordinates(float dx, float dy, float dz, float de,
  * This function transfers the axis without affecting the axis values.
  * This is expecially usefull to transfer the extruder 0 to 1 and backwards.
  */
+#define NORMAL_DIRECT false
+#define STOPPABLE_DIRECT true
 void Printer::offsetRelativeStepsCoordinates(int32_t dx, int32_t dy, int32_t dz, int32_t de, uint8_t configuration) {
+#if FEATURE_MILLING_MODE
+	// we do not process the extruder in case we are not in operating mode "print"
+	if (Printer::operatingMode != OPERATING_MODE_PRINT)
+	{
+		de = 0;
+	}
+#endif // FEATURE_MILLING_MODE
+
 	if (dx != 0 || dy != 0 || dz != 0 || de != 0) {
-		while (configuration != TASK_PAUSE_PRINT && PrintLine::direct.stepsRemaining) {
+		while (PrintLine::direct.task) {
 			// If another offset move is going on, we have to wait
 			Commands::checkForPeriodicalActions(Processing);
 		}
@@ -610,24 +616,21 @@ void Printer::offsetRelativeStepsCoordinates(int32_t dx, int32_t dy, int32_t dz,
 		Printer::directDestinationSteps[Z_AXIS] += dz;
 		Printer::directDestinationSteps[E_AXIS] += de;
 
-		PrintLine::prepareDirectMove();
-
-		if (configuration == TASK_PAUSE_PRINT) {
-			return;
-		}
 
 		// If we start this move by pressing a button we dont want to wait for it to finish and instead have it listening to the buttons release
 		if (configuration == TASK_MOVE_FROM_BUTTON) {
-			PrintLine::direct.task = TASK_MOVE_FROM_BUTTON;
+			PrintLine::prepareDirectMove(STOPPABLE_DIRECT);
 			//noInts handled by destructor
 
 			return;
 		}
 
+		PrintLine::prepareDirectMove(NORMAL_DIRECT);
+
 		//release Interrupts for processing
 		noInts.unprotect();
 
-		while (PrintLine::direct.stepsRemaining) {
+		while (PrintLine::direct.task) {
 			// Wait until this offset move is finished. Otherwise could be interrupted by queue-moves and end up directStepping
 			Commands::checkForPeriodicalActions(Processing);
 		}
@@ -929,7 +932,6 @@ void Printer::setup()
 #endif // FEATURE_WORK_PART_Z_COMPENSATION
 	
     blockAll = 0;
-	waitMove = 0;
 
 #if FEATURE_MILLING_MODE
     operatingMode = DEFAULT_OPERATING_MODE;
@@ -1867,124 +1869,37 @@ void Printer::homeAxis(bool xaxis,bool yaxis,bool zaxis) // home non-delta print
 } // homeAxis
 
 
-bool Printer::allowQueueMove( void )
-{
-    if( g_pauseStatus == PAUSE_STATUS_PAUSED ) return false;
-
-    if( !( (PAUSE_STATUS_GOTO_PAUSE1 <= g_pauseStatus && g_pauseStatus <= PAUSE_STATUS_HEATING) || g_pauseStatus == PAUSE_STATUS_NONE)
-        && !PrintLine::cur )
-    {
-        // do not allow to process new moves from the queue while the printing is paused
-        return false;
-    }
-
-    if( !PrintLine::hasLines() )
-    {
-        // do not allow to process moves from the queue in case there is no queue
-        return false;
-    }
-
-    // we are not paused and there are moves in our queue - we should process them
-    return true;
-
-} // allowQueueMove
-
-
-bool Printer::allowDirectMove( void )
-{
-    if( PrintLine::direct.stepsRemaining )
-    {
-        // the currently known direct movements must be processed as move
-        return true;
-    }
-
-    // the currently known direct movements must be processed as single steps
-    return false;
-
-} // allowDirectMove
-
-
-bool Printer::allowDirectSteps( void )
-{
-    if( PrintLine::direct.stepsRemaining )
-    {
-        // the currently known direct movements must be processed as move
-        return false;
-    }
-
-    if( endZCompensationStep )
-    {
-        // while zcompensation is working it has higher priority
-        return false;
-    }
-
-    // the currently known direct movements must be processed as single steps
-    return true;
-
-} // allowDirectSteps
-
-
-bool Printer::processAsDirectSteps( void )
-{
-    if( PrintLine::linesCount || waitMove )
-    {
-        // we are printing at the moment, thus all direct movements must be processed as single steps
-        return true;
-    }
-
-    // we are not printing at the moment, thus all direct movements must be processed as move
-    return false;
-
-} // processAsDirectSteps
-
-
 #if FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
 void Printer::performZCompensation( void )
 {
-    if( blockAll )
+	if (compensatedPositionCurrentStepsZ == compensatedPositionTargetStepsZ || PrintLine::direct.isZMove() || g_pauseMode || blockAll)
+	{
+		// here we have no z-moves left
+		// do not perform any compensation in case the moving is blocked
+		// do not perform any compensation while there is a direct move into z-direction
+		return;
+	}
+
+    if (PrintLine::cur != NULL)
     {
-        // do not perform any compensation in case the moving is blocked
-        return;
-    }
-
-    if( endZCompensationStep ) //zuerst beenden, bevor irgendwas neues an Z manipuliert werden darf. 20.07.2017 Nibbels
-    {
-#if STEPPER_HIGH_DELAY>0
-        HAL::delayMicroseconds( STEPPER_HIGH_DELAY );
-#endif // STEPPER_HIGH_DELAY>0
-
-        Printer::endZStep();
-        compensatedPositionCurrentStepsZ += endZCompensationStep;
-        endZCompensationStep = 0;
-
-        //Insert little wait if next Z step might follow now.
-        if( isDirectOrQueueOrCompZMove() )
-        {
-#if STEPPER_HIGH_DELAY+MULTI_STEP_DELAY>0
-            HAL::delayMicroseconds(STEPPER_HIGH_DELAY+MULTI_STEP_DELAY);
-#endif // STEPPER_HIGH_DELAY+MULTI_STEP_DELAY>0
-            return;
-        }
-        else if( compensatedPositionCurrentStepsZ == compensatedPositionTargetStepsZ /* && not isDirectOrQueueOrCompZMove() */ ) stepperDirection[Z_AXIS] = 0; //-> Ich glaube, das brauchen wir hier nicht, wenn der DirectMove sauber abschließt. Hier wird nur reingeschummelt wenn ein DirectMove läuft.
-
-        return;
-    }
-
-    if( PrintLine::cur )
-    {
-        if( PrintLine::cur->isZMove() )
+        if(PrintLine::cur->isZMove())
         {
             // do not peform any compensation while there is a queue move into z-direction
-            if( PrintLine::cur->stepsRemaining ) return;
-            else PrintLine::cur->setZMoveFinished();
+			if (PrintLine::cur->stepsRemaining) {
+				return;
+			}
+            
+			PrintLine::cur->setZMoveFinished();
         }
     }
 
-    if( Printer::directCurrentSteps[Z_AXIS] != Printer::directDestinationSteps[Z_AXIS] )
-    {
-        // do not perform any compensation while there is a direct move into z-direction
-        return;
-    }
+	static int8_t waitSteps = 0;
+	if (waitSteps)
+	{
+		waitSteps--;
+		// do not perform any compensation if we wait a cycle
+		return;
+	}
 
     if( compensatedPositionCurrentStepsZ < compensatedPositionTargetStepsZ )
     {
@@ -1998,7 +1913,12 @@ void Printer::performZCompensation( void )
         if( Printer::getZDirectionIsPos() )
         {
             Printer::startZStep();
-            endZCompensationStep = 1;
+#if STEPPER_HIGH_DELAY>0
+			HAL::delayMicroseconds(STEPPER_HIGH_DELAY);
+#endif // STEPPER_HIGH_DELAY>0
+			compensatedPositionCurrentStepsZ++;
+			waitSteps++;
+			Printer::endZStep();
         }
         return;
     }
@@ -2015,11 +1935,15 @@ void Printer::performZCompensation( void )
         if( !Printer::getZDirectionIsPos() )
         {
             Printer::startZStep();
-            endZCompensationStep = -1;
+#if STEPPER_HIGH_DELAY>0
+			HAL::delayMicroseconds(STEPPER_HIGH_DELAY);
+#endif // STEPPER_HIGH_DELAY>0
+			compensatedPositionCurrentStepsZ--;
+			waitSteps++;
+			Printer::endZStep();
         }
         return;
     }
-
 } // performZCompensation
 
 #endif // FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
@@ -2057,7 +1981,7 @@ void Printer::stopPrint() //function for aborting USB and SD-Prints
         g_pauseStatus = PAUSE_STATUS_NONE;
         g_pauseMode   = PAUSE_MODE_NONE;
     }
-    Printer::setMenuMode(MENU_MODE_PAUSED,false); //egal ob nicht gesetzt.
+    Printer::setMenuMode(MENU_MODE_PAUSED, false); //egal ob nicht gesetzt.
 
     //erase the coordinates and kill the current taskplaner:
     PrintLine::resetPathPlanner();
@@ -2075,6 +1999,7 @@ void Printer::stopPrint() //function for aborting USB and SD-Prints
 } // stopPrint
 
 extern void ui_check_keys(int &action);
+
 bool Printer::checkAbortKeys( void ){
     int16_t activeKeys = 0;
     uid.ui_check_keys(activeKeys);
