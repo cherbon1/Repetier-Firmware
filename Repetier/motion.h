@@ -494,9 +494,10 @@ public:
 
     static inline void computeMaxJunctionSpeed(PrintLine *previous,PrintLine *current);
 
-    static long performWait();
+    static long needCmpWait();
+	static void stepSlowedZCompensation();
     static long performQueueMove();
-    static long performDirectMove( void );
+    static long performDirectMove();
 
     static long performMove(PrintLine* move, uint8_t forQueue);
     static void waitForXFreeLines(uint8_t b=1);

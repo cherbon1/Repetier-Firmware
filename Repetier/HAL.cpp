@@ -826,22 +826,25 @@ ISR(TIMER1_COMPA_vect)
 
     cbi(TIMSK1, OCIE1A); // prevent retrigger timer by disabling timer interrupt. Should be faster than guarding with insideTimer1.
 
-    OCR1A        = 61000;
+    OCR1A = 61000;
 
 #if FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
-    Printer::performZCompensation(); //no interrupttempering
-#endif // FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
-
-    if (PrintLine::performWait())
+	if (PrintLine::cur == NULL && PrintLine::direct.task == TASK_NO_TASK)
 	{
-		HAL::forbidInterrupts();
-        setTimer(1000);
-        DEBUG_MEMORY;
-        sbi(TIMSK1, OCIE1A);
+		PrintLine::stepSlowedZCompensation();
+		// Wait if the z-CMP is under heavy workload
+		if (PrintLine::needCmpWait())
+		{
+			HAL::forbidInterrupts();
+			setTimer(1000);
+			DEBUG_MEMORY;
+			sbi(TIMSK1, OCIE1A);
 
-        return;
-    }
-
+			return;
+		}
+	}
+#endif // FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
+	
     if (PrintLine::direct.task)
     {
         setTimer(PrintLine::performDirectMove());
@@ -1194,7 +1197,9 @@ ISR(EXTRUDER_TIMER_VECTOR)
     {
 		Extruder::step();
 		Printer::extruderStepsNeeded -= extruderLastDirection;
-		Printer::insertStepperHighDelay();
+#if STEPPER_HIGH_DELAY>0
+		HAL::delayMicroseconds(STEPPER_HIGH_DELAY);
+#endif // #if STEPPER_HIGH_DELAY>0
 		Extruder::unstep();
     }
     EXTRUDER_OCR = timer + Printer::maxExtruderSpeed;

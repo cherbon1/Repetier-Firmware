@@ -1054,13 +1054,6 @@ public:
 		return Printer::currentSteps[Z_AXIS] * Printer::axisMMPerSteps[Z_AXIS];
     } // currentZPositionMM
 
-    static INLINE void insertStepperHighDelay()
-    {
-#if STEPPER_HIGH_DELAY>0
-        HAL::delayMicroseconds(STEPPER_HIGH_DELAY);
-#endif // #if STEPPER_HIGH_DELAY>0
-    } // insertStepperHighDelay
-
 #if NUM_EXTRUDER > 1
 	static INLINE float getMaxExtruderOffsetMM(uint8_t axis) {
 		float off = 0.0f;
@@ -1156,7 +1149,6 @@ public:
 #endif // FEATURE_MEMORY_POSITION
 
 #if FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
-    static void performZCompensation( void );
 #if FEATURE_SENSIBLE_PRESSURE
     static void enableSenseOffsetnow( void );
 #endif // FEATURE_SENSIBLE_PRESSURE
