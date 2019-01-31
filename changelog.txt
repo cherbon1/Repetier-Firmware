@@ -12,7 +12,14 @@ TODO:
 # arc-support: test circles while printing and not printing
 # fan changes: move to performQueueMove() -> task
 
-V 01.43.56.Mod (2019-01-29)
+V 01.43.57.Mod (2019-01-31)
+- removed all code for quadratic advance because this is not necessary
+- some cleanup
+- found one unneeded variable and removed it from extruder
+- removed this disableExtruder functionality
+- configuration cleanup
+
+V 01.43.56.Mod (2019-01-30)
 - cleanup of pause modi, simplification of code
 - directMove is now priority before queueMove
 - directMove and queueMove do not disturb each others stepper direction anymore

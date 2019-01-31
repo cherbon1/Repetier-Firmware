@@ -1507,18 +1507,8 @@ void Commands::executeGCode(GCode *com)
                 if( Printer::debugInfo() )
                 {
                     Com::printF(Com::tLinearStepsColon,maxadv2);
-
-#ifdef ENABLE_QUADRATIC_ADVANCE
-                    Com::printF(Com::tQuadraticStepsColon,maxadv);
-#endif // ENABLE_QUADRATIC_ADVANCE
-
                     Com::printFLN(Com::tCommaSpeedEqual,maxadvspeed);
                 }
-
-#ifdef ENABLE_QUADRATIC_ADVANCE
-                maxadv=0;
-#endif // ENABLE_QUADRATIC_ADVANCE
-
                 maxadv2=0;
                 maxadvspeed=0;
                 break;
@@ -1528,13 +1518,8 @@ void Commands::executeGCode(GCode *com)
                 if(com->hasY())
                     Extruder::current->advanceL = com->Y;
                 Com::printF(Com::tLinearLColon,Extruder::current->advanceL);
-#ifdef ENABLE_QUADRATIC_ADVANCE
-                if(com->hasX())
-                    Extruder::current->advanceK = com->X;
-                Com::printF(Com::tQuadraticKColon,Extruder::current->advanceK);
-#endif // ENABLE_QUADRATIC_ADVANCE
                 Com::println();
-                Printer::updateAdvanceFlags();
+                Printer::updateAdvanceActivated();
                 break;
             }
 #endif // USE_ADVANCE

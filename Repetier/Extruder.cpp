@@ -411,19 +411,17 @@ void Extruder::selectExtruderById(uint8_t extruderId)
 
 #if USE_ADVANCE
     Printer::maxExtruderSpeed = (uint8_t)floor(HAL::maxExtruderTimerFrequency() / (Extruder::current->maxFeedrate * Extruder::current->stepsPerMM));
-    if(Printer::maxExtruderSpeed > 15) Printer::maxExtruderSpeed = 15;
-    float fmax = (HAL::maxExtruderTimerFrequency() / ((float)Printer::maxExtruderSpeed*Printer::axisStepsPerMM[E_AXIS])); // Limit feedrate to interrupt speed
-    if(fmax < Printer::maxFeedrate[E_AXIS]) Printer::maxFeedrate[E_AXIS] = fmax;
-#endif // USE_ADVANCE
-
-    Extruder::current->tempControl.updateTempControlVars();
-
-	// When inserting diameter for hotend 1/2
-	// We needed to adjust extrusionFactor to possibly different diameter
-	
-#if USE_ADVANCE
+    if (Printer::maxExtruderSpeed > 15) Printer::maxExtruderSpeed = 15;
+    float fmax = (HAL::maxExtruderTimerFrequency() / ((float)Printer::maxExtruderSpeed * Printer::axisStepsPerMM[E_AXIS]));
+	// Limit feedrate to interrupt speed
+    if (fmax < Printer::maxFeedrate[E_AXIS]) Printer::maxFeedrate[E_AXIS] = fmax;
     HAL::resetExtruderDirection();
 #endif // USE_ADVANCE
+
+	Extruder::current->tempControl.updateTempControlVars();
+	
+	// When inserting diameter for hotend 1/2
+	// We needed to adjust extrusionFactor to possibly different diameter
 
 #if NUM_EXTRUDER>1
     if(executeSelect) // Run only when changing
@@ -576,28 +574,6 @@ float Extruder::getHeatedBedTemperature()
 #endif // HAVE_HEATED_BED
 
 } // getHeatedBedTemperature
-
-
-void Extruder::disableCurrentExtruderMotor()
-{
-    if(Extruder::current->enablePin > -1)
-        HAL::digitalWrite(Extruder::current->enablePin,!Extruder::current->enableOn);
-
-#if FEATURE_DITTO_PRINTING
-    if(Extruder::dittoMode)
-    {
-        if(extruder[1].enablePin > -1)
-            HAL::digitalWrite(extruder[1].enablePin,!extruder[1].enableOn);
-    }
-#endif // FEATURE_DITTO_PRINTING
-
-#if STEPPER_ON_DELAY
-    Extruder::current->enabled = 0;
-#endif // STEPPER_ON_DELAY
-
-    cleanupEPositions();
-} // disableCurrentExtruderMotor
-
 
 void Extruder::disableAllExtruders()
 {
@@ -1299,18 +1275,19 @@ Extruder extruder[NUM_EXTRUDER] =
     {
         0,
 		{EXT0_X_OFFSET_MM, EXT0_Y_OFFSET_MM, EXT0_Z_OFFSET_MM},
-		EXT0_STEPS_PER_MM,EXT0_ENABLE_PIN,EXT0_ENABLE_ON,
-        EXT0_MAX_FEEDRATE,EXT0_MAX_ACCELERATION,EXT0_MAX_START_FEEDRATE
-        ,EXT0_WAIT_RETRACT_TEMP,EXT0_WAIT_RETRACT_UNITS,0
-
+		EXT0_STEPS_PER_MM,
+		EXT0_ENABLE_PIN,
+		EXT0_ENABLE_ON,
+        EXT0_MAX_FEEDRATE,
+		EXT0_MAX_ACCELERATION,
+		EXT0_MAX_START_FEEDRATE,
+        EXT0_WAIT_RETRACT_TEMP,
+		EXT0_WAIT_RETRACT_UNITS,
+		0,
 #if USE_ADVANCE
-#ifdef ENABLE_QUADRATIC_ADVANCE
-        ,EXT0_ADVANCE_K
-#endif // ENABLE_QUADRATIC_ADVANCE
-        ,EXT0_ADVANCE_L,EXT0_ADVANCE_BACKLASH_STEPS
+        EXT0_ADVANCE_L,
 #endif // USE_ADVANCE
-
-        ,{
+        {
             0,EXT0_TEMPSENSOR_TYPE,EXT0_SENSOR_INDEX,0,0,0,
 #if FEATURE_HEAT_BED_TEMP_COMPENSATION
             0,
@@ -1321,8 +1298,11 @@ Extruder extruder[NUM_EXTRUDER] =
             0,
             0, 0, EXT0_DECOUPLE_TEST_PERIOD
 			,0 //uint8_t paused
-        }
-        ,ext0_select_cmd,ext0_deselect_cmd,EXT0_EXTRUDER_COOLER_SPEED,0
+        },
+        ext0_select_cmd,
+		ext0_deselect_cmd,
+		EXT0_EXTRUDER_COOLER_SPEED,
+		0
 #if STEPPER_ON_DELAY
         , 0
 #endif // STEPPER_ON_DELAY by Nibbels gegen xtruder.cpp:1620:1: warning: missing initializer for member 'Extruder::enabled'
@@ -1333,18 +1313,19 @@ Extruder extruder[NUM_EXTRUDER] =
     ,{
         1,
 		{EXT1_X_OFFSET_MM, EXT1_Y_OFFSET_MM, EXT1_Z_OFFSET_MM},
-		EXT1_STEPS_PER_MM,EXT1_ENABLE_PIN,EXT1_ENABLE_ON,
-        EXT1_MAX_FEEDRATE,EXT1_MAX_ACCELERATION,EXT1_MAX_START_FEEDRATE
-        ,EXT1_WAIT_RETRACT_TEMP,EXT1_WAIT_RETRACT_UNITS,0
-
+		EXT1_STEPS_PER_MM,
+		EXT1_ENABLE_PIN,
+		EXT1_ENABLE_ON,
+        EXT1_MAX_FEEDRATE,
+		EXT1_MAX_ACCELERATION,
+		EXT1_MAX_START_FEEDRATE,
+        EXT1_WAIT_RETRACT_TEMP,
+		EXT1_WAIT_RETRACT_UNITS,
+		0,
 #if USE_ADVANCE
-#ifdef ENABLE_QUADRATIC_ADVANCE
-        ,EXT1_ADVANCE_K
-#endif // ENABLE_QUADRATIC_ADVANCE
-        ,EXT1_ADVANCE_L,EXT1_ADVANCE_BACKLASH_STEPS
+        EXT1_ADVANCE_L,
 #endif // USE_ADVANCE
-
-        ,{
+        {
             1,EXT1_TEMPSENSOR_TYPE,EXT1_SENSOR_INDEX,0,0,0,
 #if FEATURE_HEAT_BED_TEMP_COMPENSATION
             0,
@@ -1355,10 +1336,13 @@ Extruder extruder[NUM_EXTRUDER] =
             0,
             0, 0, EXT1_DECOUPLE_TEST_PERIOD
 			,0 //uint8_t paused
-        }
-        ,ext1_select_cmd,ext1_deselect_cmd,EXT1_EXTRUDER_COOLER_SPEED,0
+        },
+        ext1_select_cmd,
+		ext1_deselect_cmd,
+		EXT1_EXTRUDER_COOLER_SPEED,
+		0
 #if STEPPER_ON_DELAY
-        , 0
+        ,0
 #endif // STEPPER_ON_DELAY by Nibbels gegen xtruder.cpp:1620:1: warning: missing initializer for member 'Extruder::enabled'
     }
 #endif // NUM_EXTRUDER>1
@@ -1381,7 +1365,6 @@ TemperatureController heatedBedController = {
 #else
 #define NUM_TEMPERATURE_LOOPS NUM_EXTRUDER
 #endif // HAVE_HEATED_BED
-
 
 
 #if RESERVE_ANALOG_INPUTS
@@ -1423,4 +1406,3 @@ TemperatureController *tempController[NUM_TEMPERATURE_LOOPS] =
 #endif // NUM_EXTRUDER==0
 #endif // HAVE_HEATED_BED
 };
-

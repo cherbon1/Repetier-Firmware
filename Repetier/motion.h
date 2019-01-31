@@ -88,13 +88,6 @@ private:
     speed_t             vEnd;                       ///< End speed in steps/s
 
 #if USE_ADVANCE
-#ifdef ENABLE_QUADRATIC_ADVANCE
-    int32_t             advanceRate;               ///< Advance steps at full speed
-    int32_t             advanceFull;               ///< Maximum advance at fullInterval [steps*65536]
-    int32_t             advanceStart;
-    int32_t             advanceEnd;
-#endif // ENABLE_QUADRATIC_ADVANCE
-
     uint32_t            advanceL;                   ///< Recomputated L value
 #endif // USE_ADVANCE
 
@@ -206,8 +199,19 @@ public:
     {
         if(isCheckEndstops())
         {
-            //Min-Axis:
-			if (isXNegativeMove() && Printer::isXMinEndstopHit()) {
+			//X-Axis:
+			if (isXPositiveMove() && Printer::isXMaxEndstopHit())
+			{
+				setXMoveFinished();
+				if (forQueue) {
+					Printer::setXAxisSteps(Printer::currentSteps[X_AXIS]);
+				}
+				else {
+					Printer::stopDirectAxis(X_AXIS);
+					//Wenn man G28 und G1 Z200 macht, er vorher gestoppt wird und man zurückfährt, landet er im Minus. Weil der Drucker denkt, er wäre von 200 gestartet.
+				}
+			} 
+			else if (isXNegativeMove() && Printer::isXMinEndstopHit()) {
 				setXMoveFinished();
 				if (forQueue) {
 					
@@ -216,7 +220,20 @@ public:
 					Printer::stopDirectAxis(X_AXIS);
 				}
 			}
-			if (isYNegativeMove() && Printer::isYMinEndstopHit()) {
+
+            //Y-Axis:
+			if (isYPositiveMove() && Printer::isYMaxEndstopHit())
+			{
+				setYMoveFinished();
+				if (forQueue) {
+					Printer::setYAxisSteps(Printer::currentSteps[Y_AXIS]);
+				}
+				else {
+					Printer::stopDirectAxis(Y_AXIS);
+					//Wenn man G28 und G1 Z200 macht, er vorher gestoppt wird und man zurückfährt, landet er im Minus. Weil der Drucker denkt, er wäre von 200 gestartet.
+				}
+			}
+			else if (isYNegativeMove() && Printer::isYMinEndstopHit()) {
 				setYMoveFinished();
 				if (forQueue) {
 
@@ -225,59 +242,39 @@ public:
 					Printer::stopDirectAxis(Y_AXIS);
 				}
 			}
-            //Max-Axis:
-            if(isXPositiveMove() && Printer::isXMaxEndstopHit())
-			{
-                setXMoveFinished();
-                if(forQueue){
-					Printer::setXAxisSteps(Printer::currentSteps[X_AXIS]);
-                }else{
-					Printer::stopDirectAxis(X_AXIS);
-					//Wenn man G28 und G1 Z200 macht, er vorher gestoppt wird und man zurückfährt, landet er im Minus. Weil der Drucker denkt, er wäre von 200 gestartet.
-                }
-            }
-            if(isYPositiveMove() && Printer::isYMaxEndstopHit()) 
-			{
-                setYMoveFinished();
-                if(forQueue){
-					Printer::setYAxisSteps(Printer::currentSteps[Y_AXIS]);
-                }else{
-					Printer::stopDirectAxis(Y_AXIS);
-					//Wenn man G28 und G1 Z200 macht, er vorher gestoppt wird und man zurückfährt, landet er im Minus. Weil der Drucker denkt, er wäre von 200 gestartet.
-                }
-            }
-            if(isZPositiveMove() && Printer::isZMaxEndstopHit())
-            {
-                setZMoveFinished();
-				setEMoveFinished(); //why extrude more if we reached z limit. -> stop it.
-                if(forQueue){
-					Printer::setZAxisSteps(Printer::currentSteps[Z_AXIS]);
-                }else{
-					Printer::stopDirectAxis(Z_AXIS);
-					//Wenn man G28 und G1 Z200 macht, er vorher gestoppt wird und man zurückfährt, landet er im Minus. Weil der Drucker denkt, er wäre von 200 gestartet.
-                }
-            }
         }
 
-        // Test Z-Axis every step, otherwise it could easyly ruin your printer!
-        if(isZNegativeMove() && Printer::isZMinEndstopHit())
+		//Z-Axis:
+		if (!isZMove()) {
+			return;
+		}
+		if (isZPositiveMove() && Printer::isZMaxEndstopHit())
+		{
+			setZMoveFinished();
+			setEMoveFinished(); //why extrude more if we reached z limit. -> stop it.
+			if (forQueue) {
+				Printer::setZAxisSteps(Printer::currentSteps[Z_AXIS]);
+			}
+			else {
+				Printer::stopDirectAxis(Z_AXIS);
+				//Wenn man G28 und G1 Z200 macht, er vorher gestoppt wird und man zurückfährt, landet er im Minus. Weil der Drucker denkt, er wäre von 200 gestartet.
+			}
+		}
+		else if (isZNegativeMove() && Printer::isZMinEndstopHit())
         {
-			if (!Printer::isAxisHomed(Z_AXIS))
+			// unhomed stop
+			// directDrive stop
+			if (!Printer::isAxisHomed(Z_AXIS) 
+				|| (!forQueue && task == DIRECT_RUNNING_STOPPABLE))
 			{
 				setZMoveFinished();
 
 				return;
 			}
 
-            if(PrintLine::direct.task == DIRECT_RUNNING_STOPPABLE)
-            {
-				setZMoveFinished();
-
-				return;
-			}
-
+			// here we are homed
 			// we allow to overdrive Z-min a little bit so that also G-Codes are able to move to a smaller z-position even when Z-min has fired already
-            if(Printer::currentZSteps <= -1*long(Printer::maxZOverrideSteps))
+            if (Printer::currentZSteps <= -1*long(Printer::maxZOverrideSteps))
             {
 				setZMoveFinished();
             }
@@ -417,35 +414,15 @@ public:
     } // resetPathPlanner
 
 #if USE_ADVANCE
-    inline void updateAdvanceSteps(speed_t v,uint8_t max_loops,bool accelerate)
+    inline void updateAdvanceSteps(speed_t v)
     {
-        if(!Printer::isAdvanceActivated()) return;
-#ifdef ENABLE_QUADRATIC_ADVANCE
-        long advanceTarget = Printer::advanceExecuted;
-        if(accelerate) {
-            for(uint8_t loop = 0; loop < max_loops; loop++) advanceTarget += advanceRate;
-            if(advanceTarget > advanceFull)
-                advanceTarget = advanceFull;
-        } else {
-            for(uint8_t loop = 0; loop < max_loops; loop++) advanceTarget -= advanceRate;
-            if(advanceTarget < advanceEnd)
-                advanceTarget = advanceEnd;
-        }
-        int32_t tred = ((advanceTarget + v * advanceL) >> 16);
-        HAL::forbidInterrupts();
-        Printer::extruderStepsNeeded += tred - Printer::advanceStepsSet;
-        Printer::advanceStepsSet = tred;
-        HAL::allowInterrupts();
-        Printer::advanceExecuted = advanceTarget;
-#else
+        if (!Printer::isAdvanceActivated()) return;
+		
         int32_t tred = (v * advanceL) >> 16;
         HAL::forbidInterrupts();
         Printer::extruderStepsNeeded += tred - Printer::advanceStepsSet;
         Printer::advanceStepsSet = tred;
         HAL::allowInterrupts();
-        (void)max_loops;
-        (void)accelerate;
-#endif // ENABLE_QUADRATIC_ADVANCE
     } // updateAdvanceSteps
 #endif // USE_ADVANCE
 

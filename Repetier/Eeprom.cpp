@@ -88,10 +88,6 @@ void EEPROM::restoreEEPROMExtruderSettingsFromConfiguration(uint8_t extruderId) 
 
 		e->coolerSpeed = EXT0_EXTRUDER_COOLER_SPEED;
 #if USE_ADVANCE
-#ifdef ENABLE_QUADRATIC_ADVANCE
-		e->advanceK = EXT0_ADVANCE_K;
-#endif // ENABLE_QUADRATIC_ADVANCE
-
 		e->advanceL = EXT0_ADVANCE_L;
 #endif // USE_ADVANCE
 	}
@@ -125,10 +121,6 @@ void EEPROM::restoreEEPROMExtruderSettingsFromConfiguration(uint8_t extruderId) 
 		e->coolerSpeed = EXT1_EXTRUDER_COOLER_SPEED;
 
 #if USE_ADVANCE
-#ifdef ENABLE_QUADRATIC_ADVANCE
-		e->advanceK = EXT1_ADVANCE_K;
-#endif // ENABLE_QUADRATIC_ADVANCE
-
 		e->advanceL = EXT1_ADVANCE_L;
 #endif // USE_ADVANCE
 	}
@@ -619,15 +611,8 @@ void EEPROM::storeExtruderDataIntoEEPROM(uint8_t extruderId) {
 	HAL::eprSetByte(o + EPR_EXTRUDER_COOLER_SPEED, e->coolerSpeed);
 
 #if USE_ADVANCE
-#ifdef ENABLE_QUADRATIC_ADVANCE
-	HAL::eprSetFloat(o + EPR_EXTRUDER_ADVANCE_K, e->advanceK);
-#else
-	HAL::eprSetFloat(o + EPR_EXTRUDER_ADVANCE_K, 0);
-#endif // ENABLE_QUADRATIC_ADVANCE
-
 	HAL::eprSetFloat(o + EPR_EXTRUDER_ADVANCE_L, e->advanceL);
 #else
-	HAL::eprSetFloat(o + EPR_EXTRUDER_ADVANCE_K, 0);
 	HAL::eprSetFloat(o + EPR_EXTRUDER_ADVANCE_L, 0);
 #endif // USE_ADVANCE
 }
@@ -912,9 +897,6 @@ void EEPROM::readDataFromEEPROM()
 #endif // RETRACT_DURING_HEATUP
 
 #if USE_ADVANCE
-#ifdef ENABLE_QUADRATIC_ADVANCE
-        e->advanceK = HAL::eprGetFloat(o+EPR_EXTRUDER_ADVANCE_K);
-#endif // ENABLE_QUADRATIC_ADVANCE
         e->advanceL = HAL::eprGetFloat(o+EPR_EXTRUDER_ADVANCE_L);
 		if (e->advanceL > 0 && e->advanceL < 20) {
 			e->advanceL = 20;
@@ -1471,10 +1453,8 @@ void EEPROM::writeSettings()
 		writeFloat(o + EPR_EXTRUDER_MAX_FEEDRATE, Com::tEPRMaxFeedrate);
 		writeFloat(o + EPR_EXTRUDER_MAX_ACCELERATION, Com::tEPRAcceleration);
 		writeFloat(o + EPR_EXTRUDER_MAX_START_FEEDRATE, Com::tEPReJerk);
+
 #if USE_ADVANCE
-#ifdef ENABLE_QUADRATIC_ADVANCE
-		writeFloat(o + EPR_EXTRUDER_ADVANCE_K, Com::tEPRAdvanceK);
-#endif // ENABLE_QUADRATIC_ADVANCE
 		writeFloat(o + EPR_EXTRUDER_ADVANCE_L, Com::tEPRAdvanceL);
 #endif // USE_ADVANCE
 

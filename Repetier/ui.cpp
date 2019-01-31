@@ -1648,13 +1648,6 @@ void UIDisplay::parse(char *txt,bool ram)
 #endif // RETRACT_DURING_HEATUP
 
 #if USE_ADVANCE
-#ifdef ENABLE_QUADRATIC_ADVANCE
-                else if(c2=='a')
-                {
-                    addFloat(Extruder::current->advanceK,3,0);
-                }
-#endif // ENABLE_QUADRATIC_ADVANCE
-
                 else if(c2=='l')                                                                        // %Xl : Advance L value
                 {
                     addFloat(Extruder::current->advanceL,3,0);
@@ -3765,7 +3758,7 @@ void UIDisplay::nextPreviousAction(int8_t next)
 					extruder[eNr].advanceL = 0;
 				}
 			}
-            Printer::updateAdvanceFlags();
+            Printer::updateAdvanceActivated();
 
 #if FEATURE_AUTOMATIC_EEPROM_UPDATE
             HAL::eprSetFloat(EEPROM::getExtruderOffset(eNr)+EPR_EXTRUDER_ADVANCE_L, extruder[eNr].advanceL);

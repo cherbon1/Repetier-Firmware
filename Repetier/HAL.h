@@ -769,8 +769,6 @@ public:
 #if USE_ADVANCE
     static void resetExtruderDirection();
 #endif // USE_ADVANCE
-protected:
-private:
 };
 
 #define EXTRUDER_TIMER_VECTOR   TIMER0_COMPA_vect

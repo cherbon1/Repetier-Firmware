@@ -246,7 +246,7 @@ void HAL::setupTimer()
 {
 #if USE_ADVANCE
     EXTRUDER_TCCR = 0;                              // need Normal not fastPWM set by arduino init
-    EXTRUDER_TIMSK |= (1 << EXTRUDER_OCIE);           // Activate compa interrupt on timer 0
+    EXTRUDER_TIMSK |= (1 << EXTRUDER_OCIE);         // Activate compa interrupt on timer 0
 #endif // USE_ADVANCE
 
     PWM_TCCR = 0;                                   // Setup PWM interrupt
@@ -866,15 +866,8 @@ ISR(TIMER1_COMPA_vect)
         if (Printer::advanceStepsSet)
         {
             Printer::extruderStepsNeeded -= Printer::advanceStepsSet;
- #ifdef ENABLE_QUADRATIC_ADVANCE
-            Printer::advanceExecuted = 0;
- #endif // ENABLE_QUADRATIC_ADVANCE
             Printer::advanceStepsSet = 0;
         }
-
-        if (!Printer::extruderStepsNeeded) if(DISABLE_E) Extruder::disableCurrentExtruderMotor();
-#else
-        if (DISABLE_E) Extruder::disableCurrentExtruderMotor();
 #endif // USE_ADVANCE
     }
     else waitRelax--;
@@ -1157,7 +1150,6 @@ ISR(PWM_TIMER_VECTOR)
 } // ISR(PWM_TIMER_VECTOR)
 
 #if USE_ADVANCE
-
 static int8_t extruderLastDirection = 0;
 #ifndef ADVANCE_DIR_FILTER_STEPS
 #define ADVANCE_DIR_FILTER_STEPS 2
@@ -1200,15 +1192,10 @@ ISR(EXTRUDER_TIMER_VECTOR)
     }
     else if (Printer::extruderStepsNeeded != 0)
     {
-		int max_loops = Printer::extruderStepsNeeded;
-		if (max_loops > Printer::stepsPerTimerCall) max_loops = Printer::stepsPerTimerCall;
-
-		for (uint8_t i = 0; i < max_loops; i++) {
-			Extruder::step();
-			Printer::extruderStepsNeeded -= extruderLastDirection;
-			Printer::insertStepperHighDelay();
-			Extruder::unstep();
-		}
+		Extruder::step();
+		Printer::extruderStepsNeeded -= extruderLastDirection;
+		Printer::insertStepperHighDelay();
+		Extruder::unstep();
     }
     EXTRUDER_OCR = timer + Printer::maxExtruderSpeed;
 }

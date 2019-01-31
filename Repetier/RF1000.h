@@ -272,16 +272,8 @@ Overridden if EEPROM activated. */
 #define EXT0_PID_MAX                        255
 
 /** \brief Faktor for the advance algorithm. 0 disables the algorithm.  Overridden if EEPROM activated.
-K is the factor for the quadratic term, which is normally disabled in newer versions. If you want to use
-the quadratic factor make sure ENABLE_QUADRATIC_ADVANCE is defined.
 L is the linear factor and seems to be working better then the quadratic dependency. */
-#define EXT0_ADVANCE_K                      0.0f
 #define EXT0_ADVANCE_L                      0.0f
-
-/** \brief Motor steps to remove backlash for advance alorithm. These are the steps
-needed to move the motor cog in reverse direction until it hits the driving
-cog. Direct drive extruder need 0. */
-#define EXT0_ADVANCE_BACKLASH_STEPS         0
 
 /** \brief Temperature to retract filament when extruder is heating up. Overridden if EEPROM activated. */
 #define EXT0_WAIT_RETRACT_TEMP              150
@@ -445,10 +437,7 @@ Overridden if EEPROM activated. */
 #define EXT1_PID_MAX                        255
 
 /** \brief Faktor for the advance algorithm. 0 disables the algorithm.  Overridden if EEPROM activated.
-K is the factor for the quadratic term, which is normally disabled in newer versions. If you want to use
-the quadratic factor make sure ENABLE_QUADRATIC_ADVANCE is defined.
 L is the linear factor and seems to be working better then the quadratic dependency. */
-#define EXT1_ADVANCE_K                      0.0f
 #define EXT1_ADVANCE_L                      0.0f
 
 /** \brief Motor steps to remove backlash for advance alorithm. These are the steps
@@ -695,9 +684,6 @@ included delay is already enough. */
 #define Y_ENABLE_ON                         1
 #define Z_ENABLE_ON                         1
 
-/** \brief Disables axis when it's not being used. */
-#define DISABLE_E                           false
-
 /** \brief Inverting axis direction */
 #define INVERT_X_DIR                        true
 #define INVERT_Y_DIR                        false
@@ -798,11 +784,6 @@ Without a correct adjusted advance algorithm, you get blobs at points, where acc
 effect increases with speed and acceleration difference. Using the advance method decreases this effect.
 For more informations, read the wiki. */
 #define USE_ADVANCE                         1
-
-/** \brief enables quadratic component.
-Uncomment to allow a quadratic advance dependency. Linear is the dominant value, so no real need
-to activate the quadratic term. Only adds lots of computations and storage usage. */
-//#define ENABLE_QUADRATIC_ADVANCE
 
 
 // ##########################################################################################

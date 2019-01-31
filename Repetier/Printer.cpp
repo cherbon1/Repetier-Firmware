@@ -22,6 +22,7 @@
 #if USE_ADVANCE
 uint8_t         Printer::maxExtruderSpeed;                              // Timer delay for end extruder speed
 volatile int    Printer::extruderStepsNeeded;                           // This many extruder steps are still needed, <0 = reverse steps needed.
+volatile int    Printer::advanceStepsSet;
 #endif // USE_ADVANCE
 
 uint8_t         Printer::unitIsInches = 0;                              // 0 = Units are mm, 1 = units are inches.
@@ -72,13 +73,6 @@ unsigned long   Printer::stepNumber[2] = { 0 };                         // Step 
 unsigned short  Printer::interval_mod = 0;                              // additional step duration in ticks to slow the printer down live
 #endif // FEATURE_DIGIT_FLOW_COMPENSATION
 int8_t          Printer::lastDirectionSovereignty = 0;
-#if USE_ADVANCE
-#ifdef ENABLE_QUADRATIC_ADVANCE
-long            Printer::advanceExecuted;                               // Executed advance steps
-#endif // ENABLE_QUADRATIC_ADVANCE
-
-volatile int    Printer::advanceStepsSet;
-#endif // USE_ADVANCE
 
 long            Printer::maxSoftEndstopSteps[3] = {0};                  // For software endstops, limit of move in positive direction. (=Homing-Offset + Achsenlänge)
 float           Printer::axisLengthMM[3] = {0};                         // Länge des überfahrbaren Bereichs im positiven Homing. (=Schienen-Fahrweg - Homing-Offset - 2x ExtruderOffset)
@@ -336,7 +330,7 @@ void Printer::updateDerivedParameter()
         Com::printFLN(PSTR("Z jerk was too low, setting to "), maxZJerk);
     }
 
-    Printer::updateAdvanceFlags();
+    Printer::updateAdvanceActivated();
 } // updateDerivedParameter
 
 
@@ -359,7 +353,7 @@ void Printer::switchEverythingOff()
 	Printer::setAllSwitchedOff(true);
 } // switchEverythingOff
 
-void Printer::updateAdvanceFlags()
+void Printer::updateAdvanceActivated()
 {
     Printer::setAdvanceActivated(false);
 #if USE_ADVANCE
@@ -367,12 +361,9 @@ void Printer::updateAdvanceFlags()
         if(extruder[i].advanceL != 0) {
             Printer::setAdvanceActivated(true);
         }
-#ifdef ENABLE_QUADRATIC_ADVANCE
-        if(extruder[i].advanceK != 0) Printer::setAdvanceActivated(true);
-#endif // ENABLE_QUADRATIC_ADVANCE
     }
 #endif // USE_ADVANCE
-} // updateAdvanceFlags
+} // updateAdvanceActivated
 
 #if FEATURE_Kurt67_WOBBLE_FIX
 void Printer::addKurtWobbleFixOffset(bool absoluteXYCoordinates)
@@ -900,9 +891,6 @@ void Printer::setup()
 #endif // defined(EXT1_EXTRUDER_COOLER_PIN) && EXT1_EXTRUDER_COOLER_PIN>-1 && NUM_EXTRUDER>1
 
 #if USE_ADVANCE
-#ifdef ENABLE_QUADRATIC_ADVANCE
-    advanceExecuted = 0;
-#endif // ENABLE_QUADRATIC_ADVANCE
     advanceStepsSet = 0;
 #endif // USE_ADVANCE
 	

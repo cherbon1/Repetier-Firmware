@@ -59,10 +59,6 @@ public:
     static volatile int     extruderStepsNeeded;                // This many extruder steps are still needed, <0 = reverse steps needed.
     static uint8_t          maxExtruderSpeed;                   // Timer delay for end extruder speed
     static volatile int     advanceStepsSet;
-
-#ifdef ENABLE_QUADRATIC_ADVANCE
-    static long             advanceExecuted;                    // Executed advance steps
-#endif // ENABLE_QUADRATIC_ADVANCE
 #endif // USE_ADVANCE
 
     static uint8_t          menuMode;
@@ -1077,7 +1073,7 @@ public:
 
     static void updateDerivedParameter();
     static void switchEverythingOff();
-    static void updateAdvanceFlags();
+    static void updateAdvanceActivated();
 
 	static INLINE void setXAxisSteps(int32_t x) {
 		InterruptProtectedBlock noInts;

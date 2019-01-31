@@ -192,12 +192,7 @@ class Extruder   // Size: 12*1 Byte+12*4 Byte+4*2Byte = 68 Byte
     volatile int8_t stepperDirection;
 
 #if USE_ADVANCE
-#ifdef ENABLE_QUADRATIC_ADVANCE
-    float       advanceK;                   ///< Koefficient for advance algorithm. 0 = off
-#endif // ENABLE_QUADRATIC_ADVANCE
-
     float       advanceL;
-    int16_t     advanceBacklash;
 #endif // USE_ADVANCE
 
     TemperatureController   tempControl;
@@ -372,7 +367,6 @@ class Extruder   // Size: 12*1 Byte+12*4 Byte+4*2Byte = 68 Byte
 
     } // enable
     static void manageTemperatures();
-    static void disableCurrentExtruderMotor();
     static void disableAllExtruders();
     static void selectExtruderById(uint8_t extruderId);
     static void initExtruder();
@@ -381,7 +375,6 @@ class Extruder   // Size: 12*1 Byte+12*4 Byte+4*2Byte = 68 Byte
     static float getHeatedBedTemperature();
     static void setTemperatureForExtruder(float temperatureInCelsius,uint8_t extr,bool beep = false);
     static void setTemperatureForAllExtruders(float temperatureInCelsius, bool beep);
-
 }; // Extruder
 
 
