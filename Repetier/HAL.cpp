@@ -836,7 +836,7 @@ ISR(TIMER1_COMPA_vect)
 		if (PrintLine::needCmpWait())
 		{
 			HAL::forbidInterrupts();
-			setTimer(1000);
+			setTimer(3000);
 			DEBUG_MEMORY;
 			sbi(TIMSK1, OCIE1A);
 
@@ -875,8 +875,8 @@ ISR(TIMER1_COMPA_vect)
     }
     else waitRelax--;
 
-    stepperWait = 0;        // Important because of optimization in asm at begin
-    OCR1A = 3000;           // Nicht zu hohe Werte, weil sonst die DirectSteps limitiert werden. Ansonsten hoch.
+    stepperWait = 0; // Important because of optimization in asm at begin
+    OCR1A = 3000;
 
     DEBUG_MEMORY;
     sbi(TIMSK1, OCIE1A);

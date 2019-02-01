@@ -1,8 +1,6 @@
 !!! This branch rightnow is highly experimental !!! 
 
 TODO:
-# kann der !forQueue check weg?
-# remove advance for direct-queue?
 # milling mode: retest all pause functionality
 # milling mode: test move while pause in respect to z-first and z direction
 # milling mode: buttons for retract should steer speed
@@ -11,6 +9,9 @@ TODO:
 # milling mode: test or rework milling functions
 # arc-support: test circles while printing and not printing
 # fan changes: move to performQueueMove() -> task
+
+V 01.43.59.Mod (2019-01-31)
+- because undamped zcompensation might sometimes sound awful we now have some sort of numeric acceleration. That made zCmp noise a lot better.
 
 V 01.43.58.Mod (2019-01-31)
 - moved Z-compensation into class Printline::

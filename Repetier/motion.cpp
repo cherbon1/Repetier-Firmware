@@ -1070,14 +1070,25 @@ void PrintLine::stepSlowedZCompensation() {
 		return;
 	}
 
+	// We do not want the zCMP to have a total axis dependand constant speed. 
+	// Constant jerky speedup and speeddowns sound awfull and we suspect that to cause the z-lift problematic.
+
+	// So we start slowly and get faster with outputting steps by subtracting future wait steps from "mass".
+	// When we reach a small amount of leftover todo steps we add something to "mass" to slowdown.
+	// Idle zCmp adds to "mass" so we have a slow next start.
+
+	#define massWeight 15
 	static uint8_t waitSteps = 0;
+	static uint8_t mass = massWeight;
 	if (waitSteps)
 	{
 		waitSteps--;
 		return;
 	}
+	
+	int32_t cmpDiff = Printer::compensatedPositionTargetStepsZ - Printer::compensatedPositionCurrentStepsZ;
 
-	if (Printer::compensatedPositionCurrentStepsZ < Printer::compensatedPositionTargetStepsZ)
+	if (cmpDiff > 0)
 	{
 		// here we shall move the z-axis only in case performQueueMove() is not moving into the other direction at the moment
 		if (!Printer::stepperDirection[Z_AXIS])
@@ -1093,12 +1104,19 @@ void PrintLine::stepSlowedZCompensation() {
 			HAL::delayMicroseconds(STEPPER_HIGH_DELAY);
 #endif // STEPPER_HIGH_DELAY>0
 			Printer::compensatedPositionCurrentStepsZ++;
+
+			// adjust a sort of acceleration
+			if (mass < massWeight && abs(cmpDiff) < massWeight) mass++;
+			else if (mass) mass--;
+
 			Printer::endZStep();
+			waitSteps = mass + Printer::stepsPerTimerCall;
+
+			return;
 		}
-		return;
 	}
 
-	if (Printer::compensatedPositionCurrentStepsZ > Printer::compensatedPositionTargetStepsZ)
+	if (cmpDiff < 0)
 	{
 		// here we shall move the z-axis only in case performQueueMove() is not moving into the other direction at the moment
 		if (!Printer::stepperDirection[Z_AXIS])
@@ -1113,15 +1131,28 @@ void PrintLine::stepSlowedZCompensation() {
 #if STEPPER_HIGH_DELAY>0
 			HAL::delayMicroseconds(STEPPER_HIGH_DELAY);
 #endif // STEPPER_HIGH_DELAY>0
+
+			// adjust a sort of acceleration
 			Printer::compensatedPositionCurrentStepsZ--;
+			if (mass < massWeight && abs(cmpDiff) < massWeight) mass++;
+			else if (mass) mass--;
+
 			Printer::endZStep();
+			waitSteps = mass + Printer::stepsPerTimerCall;
+
+			return;
 		}
-		return;
+	}
+
+	// Idlen baut Timeout auf, also Trägheit
+	// Steppen baut das ab.
+	if (!cmpDiff && mass < massWeight)
+	{
+		mass++;
 	}
 
 	// Do not calculate this work more often then needed.
-	waitSteps += Printer::stepsPerTimerCall;
-	waitSteps += Printer::stepsPerTimerCall;
+	waitSteps = mass + Printer::stepsPerTimerCall;
 }
 
 long PrintLine::needCmpWait(){
@@ -1486,7 +1517,7 @@ long PrintLine::performMove(PrintLine* move, uint8_t forQueue)
 			}
 		}
 #if FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
-		else {
+		else if (!move->isEOnlyMove()) {
 			PrintLine::stepSlowedZCompensation();
 		}
 #endif // FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
