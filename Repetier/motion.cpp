@@ -467,6 +467,7 @@ void PrintLine::calculateMove(float axisDistanceMM[], fast8_t drivingAxis, float
     accelerationPrim = slowestAxisPlateauTimeRepro / axisInterval[primaryAxis];                 // a = v/t = F_CPU/(c*t): Steps/s^2
 
     // Now we can calculate the new primary axis acceleration, so that the slowest axis max acceleration is not violated
+	// Im Interrupt steht quasi die Formel v = a * t / 2^18, darum hier die 262144
     fAcceleration = 262144.0*(float)accelerationPrim / F_CPU; // will overflow without float!
     accelerationDistance2 = 2.0 * distance * slowestAxisPlateauTimeRepro * fullSpeed / ((float)F_CPU);  // mm^2/s^2
     startSpeed = endSpeed = minSpeed = safeSpeed(drivingAxis);
@@ -1517,7 +1518,7 @@ long PrintLine::performMove(PrintLine* move, uint8_t forQueue)
 			}
 		}
 #if FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
-		else if (!move->isEOnlyMove()) {
+		else if (move->isXOrYMove()) {
 			PrintLine::stepSlowedZCompensation();
 		}
 #endif // FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
@@ -1552,12 +1553,9 @@ long PrintLine::performMove(PrintLine* move, uint8_t forQueue)
     if (move->moveAccelerating(forQueue))   // we are accelerating
     {
         v = HAL::ComputeV(Printer::timer[forQueue], move->fAcceleration);
-        v += move->vStart; //bewegung fängt mit jerkstartspeed an.
+        v += move->vStart;
         if(v > move->vMax) v = move->vMax;
         Printer::vMaxReached[forQueue] = v;
- #if USE_ADVANCE
-        move->updateAdvanceSteps(v);
- #endif // USE_ADVANCE
     }
     else if (move->moveDecelerating(forQueue))     // time to slow down
     {
@@ -1571,19 +1569,17 @@ long PrintLine::performMove(PrintLine* move, uint8_t forQueue)
             v = Printer::vMaxReached[forQueue] - v_inv; //flip positive calculation to decelerated speed.
             if (v < move->vEnd) v = move->vEnd; // extra steps at the end of desceleration due to rounding errors
         }
- #if USE_ADVANCE
-        move->updateAdvanceSteps(v);
- #endif // USE_ADVANCE
     }
     else // full speed reached
     {
         // If we had acceleration, we need to use the latest vMaxReached and interval
         // If we started full speed, we need to use move->fullInterval and vMax
         v = (!move->accelSteps ? move->vMax : Printer::vMaxReached[forQueue]);
- #if USE_ADVANCE
-        move->updateAdvanceSteps(v);
- #endif // USE_ADVANCE
     }
+#if USE_ADVANCE
+	move->updateAdvanceSteps(v);
+#endif // USE_ADVANCE
+
     Printer::interval = HAL::CPUDivU2(v);
 
 	// Dieses Limit bedeutet max. 31250 steps/s bei 16mhz.
@@ -1608,7 +1604,7 @@ long PrintLine::performMove(PrintLine* move, uint8_t forQueue)
 	unsigned long one_interval = interval;
 	uint16_t minInterval = Printer::stepsPackingMinInterval;
 	if (Printer::isAdvanceActivated()) {
-		minInterval += 512;
+		minInterval += 64;
 	}
 	while (interval < Printer::stepsPackingMinInterval) {
 		interval += one_interval;
