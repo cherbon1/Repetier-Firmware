@@ -9,6 +9,11 @@ TODO:
 # milling mode: test or rework milling functions
 # arc-support: test circles while printing and not printing
 # fan changes: move to performQueueMove() -> task
+# pause @RF1000: test if z max-endstop is respected while moving in single-endstop setting
+# pause @RF1000: test if z max-endstop is respected while moving in dual-endstop circular setting
+# Z max endstop/ max softenstop @RF1000: test if the z axis length is always respected as softenstop and test if our configuration is a good length with safety margin.
+
+- new pause positions and pause config cleanup
 
 V 01.43.60.Mod (2019-02-01)
 - Fixed M3070 GCode pausing by updating the code to the new pause system.

@@ -942,20 +942,16 @@ Above this value the z compensation will distribute the roughness of the surface
 // ##########################################################################################
 
 /** \brief Configuration of the pause steps */
-//Nibbels: 29122017 dont know what happens if pause hits max endstop etc. ... might get shifted coordinates!
-  //look here if you want to prevent clamp crashes while milling! choose your pause position right.
+//look here if you want to prevent clamp crashes while milling! choose your pause position right.
 #define DEFAULT_PAUSE_MM_X_MILL                0                                                                     // [mm]
-#define DEFAULT_PAUSE_MM_X_PRINT            -200                                                                     // [mm]
+#define DEFAULT_PAUSE_MM_X_PRINT               0                                                                     // [mm]
 #define DEFAULT_PAUSE_MM_Y_MILL              200                                                                     // [mm]
-#define DEFAULT_PAUSE_MM_Y_PRINT            -200                                                                     // [mm]
+#define DEFAULT_PAUSE_MM_Y_PRINT             200                                                                     // [mm]
 #define DEFAULT_PAUSE_MM_Z_MILL               20                                                                     // [mm]
-#define DEFAULT_PAUSE_MM_Z_PRINT              20                                                                     // [mm]
-#define DEFAULT_PAUSE_MM_E                   SCRIPT_RETRACT_MM                                                       // [mm] Zahl immer positiv, sie wird abgezogen = Retract!
+#define DEFAULT_PAUSE_MM_Z_PRINT             100                                                                     // [mm]
+#define DEFAULT_PAUSE_MM_E                   SCRIPT_RETRACT_MM                                                       // [mm] Zahl wird immer vorzeichenlos als Retract benutzt
 
-#define PAUSE_X_SPACING_MM                     5                                                                     // [mm]
-#define PAUSE_Y_SPACING_MM                     5                                                                     // [mm]
-#define PAUSE_Z_MAX_SPACING_MM                15                                                                     // [mm]
-#define PAUSE_COOLDOWN                       100                                                // [°C] 0=Off and 1..255=Temp down while paused
+#define PAUSE_COOLDOWN                       100                                                                     // [°C] 0=Off and 1..255=Temp down while paused
 
 
 // ##########################################################################################
