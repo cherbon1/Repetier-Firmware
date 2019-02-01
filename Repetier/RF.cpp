@@ -8011,11 +8011,8 @@ void processCommand( GCode* pCommand )
 
             case 3070: // M3070 [S] - pause the print as if the "Pause" button would have been pressed
             {
-                //tell octoprint and repetier-server / -host to stop sending because of pause.
-                Com::printFLN( PSTR("RequestPause:") ); //repetier
-                Com::printFLN( PSTR( "// action:pause" ) ); //octoprint
                 //put pause task into MOVE_CACHE
-                if( pCommand->hasS() && pCommand->S > 1)
+                if( pCommand->hasS() && pCommand->S >= 2)
                 {
                     // we shall pause the printing and we shall move away
                     queueTask( TASK_PAUSE_PRINT_AND_MOVE );
@@ -8024,19 +8021,6 @@ void processCommand( GCode* pCommand )
                 {
                     // we shall pause within print queue and stay where we are
                     queueTask( TASK_PAUSE_PRINT );
-                }
-                //tell menu that we are now in pause mode
-                Printer::setMenuMode( MENU_MODE_PAUSED, true );
-                //stop filling up MOVE_CACHE any further, process pending moves
-                Commands::waitUntilEndOfAllMoves(); //M3070 pause printing
-                //say "Pause" when reaching TASK_PAUSE_PRINT in MOVE_CACHE:
-                UI_STATUS_UPD( UI_TEXT_PAUSED ); //override this with "M3117 TEXT" if needed!
-                uid.refreshPage();
-                //now just wait for the user to press continue
-                while ( g_pauseStatus != PAUSE_STATUS_NONE )
-                {
-                    GCode::readFromSerial();
-                    Commands::checkForPeriodicalActions( Paused );
                 }
                 break;
             }
@@ -10181,7 +10165,7 @@ void processCommand( GCode* pCommand )
 					Printer::setEAxisSteps(0); //G92 E0
 
                     //Abstand links und rechts.
-                    const float spacerX = 10.0f;
+                    const float spacerX = 15.0f;
                     //spacerXd for my personal safety when I flash dual and forget the axis length.
                     const float spacerXd = (NUM_EXTRUDER > 1 ? extruder[1].offsetMM[X_AXIS] : 0);
 

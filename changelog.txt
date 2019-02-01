@@ -10,6 +10,11 @@ TODO:
 # arc-support: test circles while printing and not printing
 # fan changes: move to performQueueMove() -> task
 
+V 01.43.60.Mod (2019-02-01)
+- Fixed M3070 GCode pausing by updating the code to the new pause system.
+- M3912 Autostartmade will have a bit more left and right space to prevent my heated bed holes from being filled up
+- optimized some code in movement function
+
 V 01.43.59.Mod (2019-01-31)
 - because undamped zcompensation might sometimes sound awful we now have some sort of numeric acceleration. That made zCmp noise a lot better.
 
