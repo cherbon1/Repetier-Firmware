@@ -3292,13 +3292,11 @@ void configureMANUAL_STEPS_Z( int8_t increment )
 
     //nutze neuen Wert:
     g_nManualSteps[Z_AXIS] = stepsize_table[loop];
-#if FEATURE_AUTOMATIC_EEPROM_UPDATE
     unsigned long oldval = HAL::eprGetInt32(EPR_RF_MOD_Z_STEP_SIZE);
     if(oldval != g_nManualSteps[Z_AXIS]){
         HAL::eprSetInt32( EPR_RF_MOD_Z_STEP_SIZE, g_nManualSteps[Z_AXIS] );
         EEPROM::updateChecksum(); //deshalb die prüfung
     }
-#endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
     return;
 } // configureMANUAL_STEPS_Z()
 /**************************************************************************************************************************************/
@@ -7213,13 +7211,11 @@ void processCommand( GCode* pCommand )
                         }
                         Printer::ZOffset = long(pCommand->Z * 1000);
 
-#if FEATURE_AUTOMATIC_EEPROM_UPDATE
                         if( HAL::eprGetInt32( EPR_RF_Z_OFFSET ) != Printer::ZOffset )
                         {
                             HAL::eprSetInt32( EPR_RF_Z_OFFSET, Printer::ZOffset );
                             EEPROM::updateChecksum();
                         }
-#endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
                     }
                     else if( pCommand->hasS() )
                     {
@@ -7239,13 +7235,11 @@ void processCommand( GCode* pCommand )
                         }
                         Printer::ZOffset = nTemp;
 
-#if FEATURE_AUTOMATIC_EEPROM_UPDATE
                         if( HAL::eprGetInt32( EPR_RF_Z_OFFSET ) != Printer::ZOffset )
                         {
                             HAL::eprSetInt32( EPR_RF_Z_OFFSET, Printer::ZOffset );
                             EEPROM::updateChecksum();
                         }
-#endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
                     }
                     else
                     {
@@ -8049,11 +8043,9 @@ void processCommand( GCode* pCommand )
                 {
                     g_nEmergencyPauseDigitsMin = 0;
                     g_nEmergencyPauseDigitsMax = 0;
-#if FEATURE_AUTOMATIC_EEPROM_UPDATE
                     HAL::eprSetInt32( EPR_RF_EMERGENCYPAUSEDIGITSMIN, g_nEmergencyPauseDigitsMin );
                     HAL::eprSetInt32( EPR_RF_EMERGENCYPAUSEDIGITSMAX, g_nEmergencyPauseDigitsMax );
                     EEPROM::updateChecksum();
-#endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
                     if( Printer::debugInfo() )
                     {
                         Com::printFLN( PSTR( "M3075: emergency pause disabled" ) );
@@ -8063,11 +8055,9 @@ void processCommand( GCode* pCommand )
                 {
                     g_nEmergencyPauseDigitsMin = nMin;
                     g_nEmergencyPauseDigitsMax = nMax;
-#if FEATURE_AUTOMATIC_EEPROM_UPDATE
                     HAL::eprSetInt32( EPR_RF_EMERGENCYPAUSEDIGITSMIN, g_nEmergencyPauseDigitsMin );
                     HAL::eprSetInt32( EPR_RF_EMERGENCYPAUSEDIGITSMAX, g_nEmergencyPauseDigitsMax );
                     EEPROM::updateChecksum(); //deshalb die prüfung
-#endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
                     if( Printer::debugInfo() )
                     {
                         Com::printF( PSTR( "M3075: new min: " ), (int)g_nEmergencyPauseDigitsMin );
@@ -8127,11 +8117,9 @@ void processCommand( GCode* pCommand )
                         Com::printF( PSTR( " [digits], new max: " ), (int)g_nEmergencyStopZAndEMax );
                         Com::printFLN( PSTR( " [digits]" ) );
                     }
-#if FEATURE_AUTOMATIC_EEPROM_UPDATE
                     HAL::eprSetInt16( EPR_RF_EMERGENCYZSTOPDIGITSMAX, g_nEmergencyStopZAndEMax );
                     HAL::eprSetInt16( EPR_RF_EMERGENCYZSTOPDIGITSMIN, g_nEmergencyStopZAndEMin );
                     EEPROM::updateChecksum();
-#endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
                 }
                 else
                 {
@@ -9017,11 +9005,8 @@ void processCommand( GCode* pCommand )
                                     WRITE(FET1, Printer::enableFET1);
                                     Com::printFLN( PSTR( "24V X42 FET1-output = on") );
                                 }
-
-#if FEATURE_AUTOMATIC_EEPROM_UPDATE
                                 HAL::eprSetByte( EPR_RF_FET1_MODE, Printer::enableFET1 );
                                 EEPROM::updateChecksum();
-#endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
                             }
                             break;
                         }
@@ -9041,11 +9026,8 @@ void processCommand( GCode* pCommand )
                                     WRITE(FET2, Printer::enableFET2);
                                     Com::printFLN( PSTR( "24V X44 FET2-output = on") );
                                 }
-
-#if FEATURE_AUTOMATIC_EEPROM_UPDATE
                                 HAL::eprSetByte( EPR_RF_FET2_MODE, Printer::enableFET2 );
                                 EEPROM::updateChecksum();
-#endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
                             }
                             break;
                         }
@@ -9065,11 +9047,8 @@ void processCommand( GCode* pCommand )
                                     WRITE(FET3, Printer::enableFET3);
                                     Com::printFLN( PSTR( "24V X45/BoardFan FET3-output = on") );
                                 }
-
-#if FEATURE_AUTOMATIC_EEPROM_UPDATE
                                 HAL::eprSetByte( EPR_RF_FET3_MODE, Printer::enableFET3 );
                                 EEPROM::updateChecksum();
-#endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
                             }
                             break;
                         }
@@ -9101,12 +9080,6 @@ void processCommand( GCode* pCommand )
                         WRITE(OUTPUT_230V_PIN, Printer::enable230VOutput);
                         Com::printFLN( PSTR( "230V output = on") );
                     }
-
-#if FEATURE_AUTOMATIC_EEPROM_UPDATE
-                    // after a power-on, the 230 V plug always shall be turned off - thus, we do not store this setting to the EEPROM
-                    // HAL::eprSetByte( EPR_RF_230V_OUTPUT_MODE, Printer::enable230VOutput );
-                    // EEPROM::updateChecksum();
-#endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
                 }
                 else
                 {
@@ -9131,10 +9104,8 @@ void processCommand( GCode* pCommand )
                                 {
                                     g_uRGBHeatingR = pCommand->S;
 
-#if FEATURE_AUTOMATIC_EEPROM_UPDATE
                                     HAL::eprSetByte( EPR_RF_RGB_HEATING_R, g_uRGBHeatingR );
                                     EEPROM::updateChecksum();
-#endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
 
                                     if( Printer::RGBLightMode == RGB_MODE_AUTOMATIC && Printer::RGBLightStatus == RGB_STATUS_HEATING )
                                     {
@@ -9157,10 +9128,8 @@ void processCommand( GCode* pCommand )
                                 {
                                     g_uRGBHeatingG = pCommand->S;
 
-#if FEATURE_AUTOMATIC_EEPROM_UPDATE
                                     HAL::eprSetByte( EPR_RF_RGB_HEATING_G, g_uRGBHeatingG );
                                     EEPROM::updateChecksum();
-#endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
 
                                     if( Printer::RGBLightMode == RGB_MODE_AUTOMATIC && Printer::RGBLightStatus == RGB_STATUS_HEATING )
                                     {
@@ -9183,10 +9152,8 @@ void processCommand( GCode* pCommand )
                                 {
                                     g_uRGBHeatingB = pCommand->S;
 
-#if FEATURE_AUTOMATIC_EEPROM_UPDATE
                                     HAL::eprSetByte( EPR_RF_RGB_HEATING_B, g_uRGBHeatingB );
                                     EEPROM::updateChecksum();
-#endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
 
                                     if( Printer::RGBLightMode == RGB_MODE_AUTOMATIC && Printer::RGBLightStatus == RGB_STATUS_HEATING )
                                     {
@@ -9220,10 +9187,8 @@ void processCommand( GCode* pCommand )
                                 {
                                     g_uRGBPrintingR = pCommand->S;
 
-#if FEATURE_AUTOMATIC_EEPROM_UPDATE
                                     HAL::eprSetByte( EPR_RF_RGB_PRINTING_R, g_uRGBPrintingR );
                                     EEPROM::updateChecksum();
-#endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
 
                                     if( Printer::RGBLightMode == RGB_MODE_AUTOMATIC && Printer::RGBLightStatus == RGB_STATUS_PRINTING )
                                     {
@@ -9246,10 +9211,8 @@ void processCommand( GCode* pCommand )
                                 {
                                     g_uRGBPrintingG = pCommand->S;
 
-#if FEATURE_AUTOMATIC_EEPROM_UPDATE
                                     HAL::eprSetByte( EPR_RF_RGB_PRINTING_G, g_uRGBPrintingG );
                                     EEPROM::updateChecksum();
-#endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
 
                                     if( Printer::RGBLightMode == RGB_MODE_AUTOMATIC && Printer::RGBLightStatus == RGB_STATUS_PRINTING )
                                     {
@@ -9272,10 +9235,8 @@ void processCommand( GCode* pCommand )
                                 {
                                     g_uRGBPrintingB = pCommand->S;
 
-#if FEATURE_AUTOMATIC_EEPROM_UPDATE
                                     HAL::eprSetByte( EPR_RF_RGB_PRINTING_B, g_uRGBPrintingB );
                                     EEPROM::updateChecksum();
-#endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
 
                                     if( Printer::RGBLightMode == RGB_MODE_AUTOMATIC && Printer::RGBLightStatus == RGB_STATUS_PRINTING )
                                     {
@@ -9309,10 +9270,8 @@ void processCommand( GCode* pCommand )
                                 {
                                     g_uRGBCoolingR = pCommand->S;
 
-#if FEATURE_AUTOMATIC_EEPROM_UPDATE
                                     HAL::eprSetByte( EPR_RF_RGB_COOLING_R, g_uRGBCoolingR );
                                     EEPROM::updateChecksum();
-#endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
 
                                     if( Printer::RGBLightMode == RGB_MODE_AUTOMATIC && Printer::RGBLightStatus == RGB_STATUS_COOLING )
                                     {
@@ -9335,10 +9294,8 @@ void processCommand( GCode* pCommand )
                                 {
                                     g_uRGBCoolingG = pCommand->S;
 
-#if FEATURE_AUTOMATIC_EEPROM_UPDATE
                                     HAL::eprSetByte( EPR_RF_RGB_COOLING_G, g_uRGBCoolingG );
                                     EEPROM::updateChecksum();
-#endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
 
                                     if( Printer::RGBLightMode == RGB_MODE_AUTOMATIC && Printer::RGBLightStatus == RGB_STATUS_COOLING )
                                     {
@@ -9361,10 +9318,8 @@ void processCommand( GCode* pCommand )
                                 {
                                     g_uRGBCoolingB = pCommand->S;
 
-#if FEATURE_AUTOMATIC_EEPROM_UPDATE
                                     HAL::eprSetByte( EPR_RF_RGB_COOLING_B, g_uRGBCoolingB );
                                     EEPROM::updateChecksum();
-#endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
 
                                     if( Printer::RGBLightMode == RGB_MODE_AUTOMATIC && Printer::RGBLightStatus == RGB_STATUS_COOLING )
                                     {
@@ -9398,10 +9353,8 @@ void processCommand( GCode* pCommand )
                                 {
                                     g_uRGBIdleR = pCommand->S;
 
-#if FEATURE_AUTOMATIC_EEPROM_UPDATE
                                     HAL::eprSetByte( EPR_RF_RGB_IDLE_R, g_uRGBIdleR );
                                     EEPROM::updateChecksum();
-#endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
 
                                     if( Printer::RGBLightMode == RGB_MODE_AUTOMATIC && Printer::RGBLightStatus == RGB_STATUS_IDLE )
                                     {
@@ -9424,10 +9377,8 @@ void processCommand( GCode* pCommand )
                                 {
                                     g_uRGBIdleG = pCommand->S;
 
-#if FEATURE_AUTOMATIC_EEPROM_UPDATE
                                     HAL::eprSetByte( EPR_RF_RGB_IDLE_G, g_uRGBIdleG );
                                     EEPROM::updateChecksum();
-#endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
 
                                     if( Printer::RGBLightMode == RGB_MODE_AUTOMATIC && Printer::RGBLightStatus == RGB_STATUS_IDLE )
                                     {
@@ -9450,10 +9401,8 @@ void processCommand( GCode* pCommand )
                                 {
                                     g_uRGBIdleB = pCommand->S;
 
-#if FEATURE_AUTOMATIC_EEPROM_UPDATE
                                     HAL::eprSetByte( EPR_RF_RGB_IDLE_B, g_uRGBIdleB );
                                     EEPROM::updateChecksum();
-#endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
 
                                     if( Printer::RGBLightMode == RGB_MODE_AUTOMATIC && Printer::RGBLightStatus == RGB_STATUS_IDLE )
                                     {
@@ -9487,10 +9436,8 @@ void processCommand( GCode* pCommand )
                                 {
                                     g_uRGBManualR = pCommand->S;
 
-#if FEATURE_AUTOMATIC_EEPROM_UPDATE
                                     HAL::eprSetByte( EPR_RF_RGB_MANUAL_R, g_uRGBManualR );
                                     EEPROM::updateChecksum();
-#endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
 
                                     if( Printer::RGBLightMode == RGB_MODE_MANUAL )
                                     {
@@ -9513,10 +9460,8 @@ void processCommand( GCode* pCommand )
                                 {
                                     g_uRGBManualG = pCommand->S;
 
-#if FEATURE_AUTOMATIC_EEPROM_UPDATE
                                     HAL::eprSetByte( EPR_RF_RGB_MANUAL_G, g_uRGBManualG );
                                     EEPROM::updateChecksum();
-#endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
 
                                     if( Printer::RGBLightMode == RGB_MODE_MANUAL )
                                     {
@@ -9539,10 +9484,8 @@ void processCommand( GCode* pCommand )
                                 {
                                     g_uRGBManualB = pCommand->S;
 
-#if FEATURE_AUTOMATIC_EEPROM_UPDATE
                                     HAL::eprSetByte( EPR_RF_RGB_MANUAL_B, g_uRGBManualB );
                                     EEPROM::updateChecksum();
-#endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
 
                                     if( Printer::RGBLightMode == RGB_MODE_MANUAL )
                                     {
@@ -9576,10 +9519,8 @@ void processCommand( GCode* pCommand )
 
                             setRGBTargetColors( 0, 0, 0 );
 
-#if FEATURE_AUTOMATIC_EEPROM_UPDATE
                             HAL::eprSetByte( EPR_RF_RGB_LIGHT_MODE, Printer::RGBLightMode );
                             EEPROM::updateChecksum();
-#endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
                             break;
                         }
                         case RGB_MODE_WHITE:
@@ -9590,10 +9531,8 @@ void processCommand( GCode* pCommand )
 
                             setRGBTargetColors( 255, 255, 255 );
 
-#if FEATURE_AUTOMATIC_EEPROM_UPDATE
                             HAL::eprSetByte( EPR_RF_RGB_LIGHT_MODE, Printer::RGBLightMode );
                             EEPROM::updateChecksum();
-#endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
                             break;
                         }
                         case RGB_MODE_AUTOMATIC:
@@ -9602,10 +9541,8 @@ void processCommand( GCode* pCommand )
                             Printer::RGBLightMode           = RGB_MODE_AUTOMATIC;
                             Printer::RGBLightModeForceWhite = 0;
 
-#if FEATURE_AUTOMATIC_EEPROM_UPDATE
                             HAL::eprSetByte( EPR_RF_RGB_LIGHT_MODE, Printer::RGBLightMode );
                             EEPROM::updateChecksum();
-#endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
                             break;
                         }
                         case RGB_MODE_MANUAL:
@@ -9616,10 +9553,8 @@ void processCommand( GCode* pCommand )
 
                             setRGBTargetColors( g_uRGBManualR, g_uRGBManualG, g_uRGBManualB );
 
-#if FEATURE_AUTOMATIC_EEPROM_UPDATE
                             HAL::eprSetByte( EPR_RF_RGB_LIGHT_MODE, Printer::RGBLightMode );
                             EEPROM::updateChecksum();
-#endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
                             break;
                         }
                     }
@@ -9670,13 +9605,13 @@ void processCommand( GCode* pCommand )
                                 if( nTempUC > g_uZMatrixMax[X_AXIS] - 1 ) nTempUC = g_uZMatrixMax[X_AXIS] - 1; //2..n-1
 
                                 g_ZOSTestPoint[X_AXIS] = nTempUC;
-#if FEATURE_AUTOMATIC_EEPROM_UPDATE
+
                                 unsigned char oldval = HAL::eprGetByte(EPR_RF_MOD_ZOS_SCAN_POINT_X);
                                 if(oldval != g_ZOSTestPoint[X_AXIS]){
                                    HAL::eprSetByte( EPR_RF_MOD_ZOS_SCAN_POINT_X, g_ZOSTestPoint[X_AXIS] );
                                    EEPROM::updateChecksum(); //deshalb die prüfung
                                 }
-#endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
+
                                 if( Printer::debugInfo() )
                                 {
                                     Com::printF( PSTR( "M3900/M3901: CHANGED X ZOS Testposition: " ), nTempUC );
@@ -9703,13 +9638,13 @@ void processCommand( GCode* pCommand )
                                 if( nTempUC > g_uZMatrixMax[Y_AXIS] - 1 ) nTempUC = g_uZMatrixMax[Y_AXIS] - 1; //2..n-1
 
                                 g_ZOSTestPoint[Y_AXIS] = nTempUC;
-#if FEATURE_AUTOMATIC_EEPROM_UPDATE
+
                                 unsigned char oldval = HAL::eprGetByte(EPR_RF_MOD_ZOS_SCAN_POINT_Y);
                                 if(oldval != g_ZOSTestPoint[Y_AXIS]){
                                    HAL::eprSetByte( EPR_RF_MOD_ZOS_SCAN_POINT_Y, g_ZOSTestPoint[Y_AXIS] );
                                    EEPROM::updateChecksum(); //deshalb die prüfung
                                 }
-#endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
+
                                 if( Printer::debugInfo() )
                                {
                                     Com::printF( PSTR( "M3900/M3901: CHANGED Y ZOS Testposition: " ), nTempUC );
@@ -9943,13 +9878,11 @@ void processCommand( GCode* pCommand )
                                 }else{
                                     if(hochrunter == 0.00f){
                                         Printer::ZOffset = 0; //offset um nullen
-#if FEATURE_AUTOMATIC_EEPROM_UPDATE
                                         if( HAL::eprGetInt32( EPR_RF_Z_OFFSET ) != Printer::ZOffset )
                                         {
                                             HAL::eprSetInt32( EPR_RF_Z_OFFSET, Printer::ZOffset );
                                             EEPROM::updateChecksum();
                                         }
-#endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
                                         g_staticZSteps = ((Printer::ZOffset+g_nSensiblePressureOffset) * Printer::axisStepsPerMM[Z_AXIS]) / 1000; //offset-stepps neu berechnen
                                     }
                                     g_ZMatrixChangedInRam = 1;
@@ -9991,7 +9924,7 @@ void processCommand( GCode* pCommand )
             }
 #endif // FEATURE_HEAT_BED_Z_COMPENSATION
 
-#if FEATURE_SENSIBLE_PRESSURE && FEATURE_AUTOMATIC_EEPROM_UPDATE
+#if FEATURE_SENSIBLE_PRESSURE
             case 3909: // M3909 [P]PressureDigits - configure the sensible pressure value threshold || by Wessix and Nibbels
             {
                 if( isSupportedMCommand( pCommand->M, OPERATING_MODE_PRINT ) )
@@ -10055,7 +9988,7 @@ void processCommand( GCode* pCommand )
                 }
                 break;
             }
-#endif // FEATURE_SENSIBLE_PRESSURE && FEATURE_AUTOMATIC_EEPROM_UPDATE
+#endif // FEATURE_SENSIBLE_PRESSURE
 
 #if FEATURE_DIGIT_FLOW_COMPENSATION
             case 3911: // M3911 [S]Inc/Dec - Testfunction for AtlonXP's DigitFlowCompensation
@@ -10396,10 +10329,8 @@ void processCommand( GCode* pCommand )
 					extruder[extruderId].offsetMM[Z_AXIS] = (float)pCommand->Z;
 					Com::printFLN(PSTR("M3919 T1 Spring displace: "), extruder[extruderId].offsetMM[Z_AXIS]);
 
-#if FEATURE_AUTOMATIC_EEPROM_UPDATE
 					HAL::eprSetFloat(EEPROM::getExtruderOffset(extruderId) + EPR_EXTRUDER_Z_OFFSET, extruder[extruderId].offsetMM[Z_AXIS]); //mm negativ
 					EEPROM::updateChecksum();
-#endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
                 } 
 				else {
                     Com::printFLN( PSTR( "M3919 Help: Write M3919 T1 Z-0.500 when T1 goes down 500um/0.5mm" ) );
@@ -10580,13 +10511,11 @@ extern void processButton( int nAction )
         #else
                 g_staticZSteps = long(( Printer::ZOffset * Printer::axisStepsPerMM[Z_AXIS] ) / 1000);
         #endif //FEATURE_SENSIBLE_PRESSURE
-            #if FEATURE_AUTOMATIC_EEPROM_UPDATE
                 if( HAL::eprGetInt32( EPR_RF_Z_OFFSET ) != Printer::ZOffset )
                 {
                     HAL::eprSetInt32( EPR_RF_Z_OFFSET, Printer::ZOffset );
                     EEPROM::updateChecksum();
                 }
-            #endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
             } //ELSE DO MOVE Z:
             else
             {
@@ -10615,13 +10544,11 @@ extern void processButton( int nAction )
         #else
                 g_staticZSteps = long(( Printer::ZOffset * Printer::axisStepsPerMM[Z_AXIS] ) / 1000);
         #endif //FEATURE_SENSIBLE_PRESSURE
-            #if FEATURE_AUTOMATIC_EEPROM_UPDATE
                 if( HAL::eprGetInt32( EPR_RF_Z_OFFSET ) != Printer::ZOffset )
                 {
                     HAL::eprSetInt32( EPR_RF_Z_OFFSET, Printer::ZOffset );
                     EEPROM::updateChecksum();
                 }
-            #endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
             } //ELSE DO MOVE Z:
             else
             {
@@ -12076,10 +12003,8 @@ void setupForPrinting( void )
     Printer::axisLengthMM[X_AXIS] = HAL::eprGetFloat(EPR_X_LENGTH);
     if(Printer::axisLengthMM[X_AXIS] <= 0 || Printer::axisLengthMM[X_AXIS] > 245.0f){
         Printer::axisLengthMM[X_AXIS] = X_MAX_LENGTH_PRINT;
-  #if FEATURE_AUTOMATIC_EEPROM_UPDATE
         HAL::eprSetFloat(EPR_X_LENGTH,Printer::axisLengthMM[X_AXIS]);
         EEPROM::updateChecksum();
-  #endif //FEATURE_AUTOMATIC_EEPROM_UPDATE
     }
 #else
     Printer::axisLengthMM[X_AXIS] = X_MAX_LENGTH_PRINT;
@@ -12131,10 +12056,8 @@ void setupForMilling( void )
     Printer::axisLengthMM[X_AXIS] = HAL::eprGetFloat(EPR_X_LENGTH_MILLING);
     if(Printer::axisLengthMM[X_AXIS] <= 0 || Printer::axisLengthMM[X_AXIS] > 245.0f){
         Printer::axisLengthMM[X_AXIS] = X_MAX_LENGTH_MILL;
-  #if FEATURE_AUTOMATIC_EEPROM_UPDATE
         HAL::eprSetFloat(EPR_X_LENGTH_MILLING,Printer::axisLengthMM[X_AXIS]);
         EEPROM::updateChecksum();
-  #endif //FEATURE_AUTOMATIC_EEPROM_UPDATE
     }
 #else
     Printer::axisLengthMM[X_AXIS] = X_MAX_LENGTH_MILL;

@@ -1465,14 +1465,12 @@ void Commands::executeGCode(GCode *com)
 
 					Printer::offsetRelativeStepsCoordinates(-dx, -dy, 0, 0);
 
-#if FEATURE_AUTOMATIC_EEPROM_UPDATE
                     if(com->hasS() && com->S > 0) {
                         if (com->hasX()) HAL::eprSetFloat(EEPROM::getExtruderOffset(extId)+EPR_EXTRUDER_X_OFFSET, com->X);
                         if (com->hasY()) HAL::eprSetFloat(EEPROM::getExtruderOffset(extId)+EPR_EXTRUDER_Y_OFFSET, com->Y);
                         //if (com->hasZ() && com->Z < 0 && com->Z > -2) HAL::eprSetFloat(EEPROM::getExtruderOffset(extId)+EPR_EXTRUDER_Z_OFFSET, com->Z);
                         EEPROM::updateChecksum();
                     }
-#endif //FEATURE_AUTOMATIC_EEPROM_UPDATE
                 }
                 break;
             }
@@ -1565,16 +1563,41 @@ void Commands::executeGCode(GCode *com)
 
             case 908:   // M908 - Control digital trimpot directly.
             {
-                if( com->hasP() && com->hasS() ){
+                if (com->hasS())
+				{
                     uint8_t current = com->S;
-                    if(com->P > 3 + NUM_EXTRUDER) break;
-                    if(current > 150){
-                       //break;
-                    }else if(current < MOTOR_CURRENT_MIN){
-                       //break;
-                    }else{
-                       setMotorCurrent((uint8_t)com->P, current); //ohne einschränkung?
-                    }
+					if (current > 150) {
+						break;
+					}
+					if (current < MOTOR_CURRENT_MIN) {
+						break;
+					}
+
+					uint8_t steppernr = 255; //fails
+					if (com->hasP()) {
+						steppernr = (uint8_t)com->P;
+					}
+					if (com->hasX()) {
+						steppernr = 0;
+					}
+					if (com->hasY()) {
+						steppernr = 1;
+					}
+					if (com->hasZ()) {
+						steppernr = 2;
+					}
+					if (com->hasE() && com->E == 0) { //E0
+						steppernr = 4;
+					}
+					if (com->hasE() && com->E == 1) { //E1
+						steppernr = 5;
+					}
+
+					if (steppernr > 3 + NUM_EXTRUDER) {
+						break; // Axis number too high for setup
+					}
+
+                    setMotorCurrent(steppernr, current);
                 }
                 break;
             }
@@ -1612,10 +1635,7 @@ void Commands::executeGCode(GCode *com)
             case 502:   // M502
             {
                 EEPROM::restoreEEPROMSettingsFromConfiguration();
-
-#if FEATURE_AUTOMATIC_EEPROM_UPDATE
                 EEPROM::storeDataIntoEEPROM(false);
-#endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
                 EEPROM::initializeAllOperatingModes();
 
                 UI_STATUS( UI_TEXT_RESTORE_DEFAULTS );

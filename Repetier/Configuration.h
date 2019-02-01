@@ -131,7 +131,7 @@
 #define FEATURE_DITTO_PRINTING              0                                                   // 1 = on, 0 = off
 
 /** \brief You can store the current position with M401 and go back to it with M402. This works only if feature is set to true. */
-#define FEATURE_MEMORY_POSITION             1                                                   // 1 = on, 0 = off
+#define FEATURE_MEMORY_POSITION             0                                                   // 1 = on, 0 = off
 
 /** \brief If a checksum is sent, all future comamnds must also contain a checksum. Increases reliability especially for binary protocol. */
 #define FEATURE_CHECKSUM_FORCED             0                                                   // 1 = on, 0 = off
@@ -144,9 +144,6 @@
 
 /** \brief Enables/disables the beeper */
 #define FEATURE_BEEPER                      1                                                   // 1 = on, 0 = off
-
-/** \brief Defines whether a change within the menu shall be stored to the EEPROM automatically or not. */
-#define FEATURE_AUTOMATIC_EEPROM_UPDATE     1                                                   // 1 = the EEPROM is updated automatically after each change via the menu, 0 = the EEPROM must be updated manually via the "Store to EEPROM" menu item
 
 /** \brief Allows to use the service interval */
 #define FEATURE_SERVICE_INTERVAL            0                                                   // 1 = on, 0 = off

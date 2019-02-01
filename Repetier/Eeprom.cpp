@@ -652,9 +652,7 @@ void EEPROM::initializeAllOperatingModes()
 
 void EEPROM::readDataFromEEPROM()
 {
-#if FEATURE_AUTOMATIC_EEPROM_UPDATE
     bool change = false;
-#endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
 
 #if EEPROM_MODE!=0
     uint8_t version = HAL::eprGetByte(EPR_VERSION); // This is the saved version. Don't copy data not set in older versions!
@@ -672,10 +670,8 @@ void EEPROM::readDataFromEEPROM()
     for(uint8_t axis = X_AXIS; axis <= Z_AXIS; axis++){
         float tmp = HAL::eprGetFloat(EPR_X_MAX_FEEDRATE+axis*4); //X dann EPR_Y_MAX_FEEDRATE dann EPR_Z_MAX_FEEDRATE
         if(tmp > Printer::maxFeedrate[axis]){
-#if FEATURE_AUTOMATIC_EEPROM_UPDATE
             HAL::eprSetFloat(EPR_X_MAX_FEEDRATE+axis*4,Printer::maxFeedrate[axis]);
             change = true; //update checksum later in this function
-#endif //FEATURE_AUTOMATIC_EEPROM_UPDATE
         }else{
             Printer::maxFeedrate[axis] = tmp;
         }
@@ -703,24 +699,18 @@ void EEPROM::readDataFromEEPROM()
     Printer::maxAccelerationMMPerSquareSecond[Z_AXIS] = HAL::eprGetFloat(EPR_Z_MAX_ACCEL);
 	if (Printer::maxAccelerationMMPerSquareSecond[X_AXIS] < ACCELERATION_MIN_XY || Printer::maxAccelerationMMPerSquareSecond[X_AXIS] > ACCELERATION_MAX_XY) {
 		Printer::maxAccelerationMMPerSquareSecond[X_AXIS] = MAX_ACCELERATION_UNITS_PER_SQ_SECOND_X;
-#if FEATURE_AUTOMATIC_EEPROM_UPDATE
 		HAL::eprSetFloat(EPR_X_MAX_ACCEL, MAX_ACCELERATION_UNITS_PER_SQ_SECOND_X);
 		change = true; //update checksum later in this function
-#endif //FEATURE_AUTOMATIC_EEPROM_UPDATE
 	}
 	if (Printer::maxAccelerationMMPerSquareSecond[Y_AXIS] < ACCELERATION_MIN_XY || Printer::maxAccelerationMMPerSquareSecond[Y_AXIS] > ACCELERATION_MAX_XY) {
 		Printer::maxAccelerationMMPerSquareSecond[Y_AXIS] = MAX_ACCELERATION_UNITS_PER_SQ_SECOND_Y;
-#if FEATURE_AUTOMATIC_EEPROM_UPDATE
 		HAL::eprSetFloat(EPR_Y_MAX_ACCEL, MAX_ACCELERATION_UNITS_PER_SQ_SECOND_Y);
 		change = true; //update checksum later in this function
-#endif //FEATURE_AUTOMATIC_EEPROM_UPDATE
 	}
 	if (Printer::maxAccelerationMMPerSquareSecond[Z_AXIS] < ACCELERATION_MIN_Z || Printer::maxAccelerationMMPerSquareSecond[Z_AXIS] > ACCELERATION_MAX_Z) {
 		Printer::maxAccelerationMMPerSquareSecond[Z_AXIS] = MAX_ACCELERATION_UNITS_PER_SQ_SECOND_Z;
-#if FEATURE_AUTOMATIC_EEPROM_UPDATE
 		HAL::eprSetFloat(EPR_Z_MAX_ACCEL, MAX_ACCELERATION_UNITS_PER_SQ_SECOND_Z);
 		change = true; //update checksum later in this function
-#endif //FEATURE_AUTOMATIC_EEPROM_UPDATE
 	}
 
     Printer::maxTravelAccelerationMMPerSquareSecond[X_AXIS] = HAL::eprGetFloat(EPR_X_MAX_TRAVEL_ACCEL);
@@ -728,24 +718,18 @@ void EEPROM::readDataFromEEPROM()
     Printer::maxTravelAccelerationMMPerSquareSecond[Z_AXIS] = HAL::eprGetFloat(EPR_Z_MAX_TRAVEL_ACCEL);
 	if (Printer::maxTravelAccelerationMMPerSquareSecond[X_AXIS] < ACCELERATION_MIN_XY || Printer::maxTravelAccelerationMMPerSquareSecond[X_AXIS] > ACCELERATION_MAX_XY) {
 		Printer::maxTravelAccelerationMMPerSquareSecond[X_AXIS] = MAX_TRAVEL_ACCELERATION_UNITS_PER_SQ_SECOND_X;
-#if FEATURE_AUTOMATIC_EEPROM_UPDATE
 		HAL::eprSetFloat(EPR_X_MAX_TRAVEL_ACCEL, MAX_TRAVEL_ACCELERATION_UNITS_PER_SQ_SECOND_X);
 		change = true; //update checksum later in this function
-#endif //FEATURE_AUTOMATIC_EEPROM_UPDATE
 	}
 	if (Printer::maxTravelAccelerationMMPerSquareSecond[Y_AXIS] < ACCELERATION_MIN_XY || Printer::maxTravelAccelerationMMPerSquareSecond[Y_AXIS] > ACCELERATION_MAX_XY) {
 		Printer::maxTravelAccelerationMMPerSquareSecond[Y_AXIS] = MAX_TRAVEL_ACCELERATION_UNITS_PER_SQ_SECOND_Y;
-#if FEATURE_AUTOMATIC_EEPROM_UPDATE
 		HAL::eprSetFloat(EPR_Y_MAX_TRAVEL_ACCEL, MAX_TRAVEL_ACCELERATION_UNITS_PER_SQ_SECOND_Y);
 		change = true; //update checksum later in this function
-#endif //FEATURE_AUTOMATIC_EEPROM_UPDATE
 	}
 	if (Printer::maxTravelAccelerationMMPerSquareSecond[Z_AXIS] < ACCELERATION_MIN_Z || Printer::maxTravelAccelerationMMPerSquareSecond[Z_AXIS] > ACCELERATION_MAX_Z) {
 		Printer::maxTravelAccelerationMMPerSquareSecond[Z_AXIS] = MAX_TRAVEL_ACCELERATION_UNITS_PER_SQ_SECOND_Z;
-#if FEATURE_AUTOMATIC_EEPROM_UPDATE
 		HAL::eprSetFloat(EPR_Z_MAX_TRAVEL_ACCEL, MAX_TRAVEL_ACCELERATION_UNITS_PER_SQ_SECOND_Z);
 		change = true; //update checksum later in this function
-#endif //FEATURE_AUTOMATIC_EEPROM_UPDATE
 	}
 
 #if HAVE_HEATED_BED
@@ -768,20 +752,16 @@ void EEPROM::readDataFromEEPROM()
         Printer::axisLengthMM[X_AXIS] = HAL::eprGetFloat(EPR_X_LENGTH);
         if(Printer::axisLengthMM[X_AXIS] <= 0 || Printer::axisLengthMM[X_AXIS] > 245.0f){
             Printer::axisLengthMM[X_AXIS] = X_MAX_LENGTH_PRINT;
-#if FEATURE_AUTOMATIC_EEPROM_UPDATE
             HAL::eprSetFloat(EPR_X_LENGTH,Printer::axisLengthMM[X_AXIS]);
             change = true; //update checksum later in this function
-#endif //FEATURE_AUTOMATIC_EEPROM_UPDATE
         }
 #if FEATURE_MILLING_MODE
     }else{
         Printer::axisLengthMM[X_AXIS] = HAL::eprGetFloat(EPR_X_LENGTH_MILLING);
         if(Printer::axisLengthMM[X_AXIS] <= 0 || Printer::axisLengthMM[X_AXIS] > 245.0f){
             Printer::axisLengthMM[X_AXIS] = X_MAX_LENGTH_MILL;
-#if FEATURE_AUTOMATIC_EEPROM_UPDATE
             HAL::eprSetFloat(EPR_X_LENGTH_MILLING,Printer::axisLengthMM[X_AXIS]);
             change = true; //update checksum later in this function
-#endif //FEATURE_AUTOMATIC_EEPROM_UPDATE
         }
     }
 #endif  // FEATURE_MILLING_MODE
@@ -803,20 +783,16 @@ void EEPROM::readDataFromEEPROM()
         if(tmp < 5540.0f){ //da hat einer ein komma vergessen ^^ so hohe Werte können kaum sinn machen, ausser wir ändern die CPU. Das wären auch zu viele interrupts pro sekunde.
             e->stepsPerMM = tmp;
         }else{
-#if FEATURE_AUTOMATIC_EEPROM_UPDATE
             HAL::eprSetFloat(o+EPR_EXTRUDER_STEPS_PER_MM,e->stepsPerMM);
             change = true; //update checksum later in this function
-#endif //FEATURE_AUTOMATIC_EEPROM_UPDATE
         }
 
         tmp = HAL::eprGetFloat(o+EPR_EXTRUDER_MAX_FEEDRATE);
         if(0 < tmp && tmp < 100){
             e->maxFeedrate = tmp;
         }else{
-#if FEATURE_AUTOMATIC_EEPROM_UPDATE
             HAL::eprSetFloat(o+EPR_EXTRUDER_MAX_FEEDRATE, e->maxFeedrate);
             change = true; //update checksum later in this function
-#endif //FEATURE_AUTOMATIC_EEPROM_UPDATE
         }
 
         tmp = HAL::eprGetFloat(o+EPR_EXTRUDER_MAX_START_FEEDRATE);
@@ -824,25 +800,20 @@ void EEPROM::readDataFromEEPROM()
             e->maxEJerk = tmp;
         }else{
             e->maxEJerk = RMath::min(e->maxFeedrate, e->maxEJerk);
-#if FEATURE_AUTOMATIC_EEPROM_UPDATE
             HAL::eprSetFloat(o+EPR_EXTRUDER_MAX_START_FEEDRATE, e->maxEJerk);
             change = true; //update checksum later in this function
-#endif //FEATURE_AUTOMATIC_EEPROM_UPDATE
         }
 
         tmp = HAL::eprGetFloat(o+EPR_EXTRUDER_MAX_ACCELERATION);
         if(0 < tmp && tmp < 10000){
             e->maxAcceleration = tmp;
         }else{
-#if FEATURE_AUTOMATIC_EEPROM_UPDATE
             HAL::eprSetFloat(o+EPR_EXTRUDER_MAX_ACCELERATION, e->maxAcceleration);
             change = true; //update checksum later in this function
-#endif //FEATURE_AUTOMATIC_EEPROM_UPDATE
         }
 
         e->tempControl.pidDriveMax = HAL::eprGetByte(o+EPR_EXTRUDER_DRIVE_MAX);
         e->tempControl.pidDriveMin = HAL::eprGetByte(o+EPR_EXTRUDER_DRIVE_MIN);
-#if FEATURE_AUTOMATIC_EEPROM_UPDATE
         if (   (e->tempControl.pidDriveMin == 40 && e->tempControl.pidDriveMax == 40)
             || (e->tempControl.pidDriveMin == 0  && e->tempControl.pidDriveMax == 0 ) ) {
 
@@ -862,17 +833,14 @@ void EEPROM::readDataFromEEPROM()
             HAL::eprSetByte(o+EPR_EXTRUDER_DRIVE_MAX, e->tempControl.pidDriveMax);
             change = true; //update checksum later in this function
         }
-#endif //FEATURE_AUTOMATIC_EEPROM_UPDATE
         e->tempControl.pidPGain    = HAL::eprGetFloat(o+EPR_EXTRUDER_PID_PGAIN);
         e->tempControl.pidIGain    = HAL::eprGetFloat(o+EPR_EXTRUDER_PID_IGAIN);
         e->tempControl.pidDGain    = HAL::eprGetFloat(o+EPR_EXTRUDER_PID_DGAIN);
         if(HAL::eprGetByte(o+EPR_EXTRUDER_PID_MAX) > 0){
             e->tempControl.pidMax      = HAL::eprGetByte(o+EPR_EXTRUDER_PID_MAX);
         }else{
-#if FEATURE_AUTOMATIC_EEPROM_UPDATE
             HAL::eprSetByte(o+EPR_EXTRUDER_PID_MAX, e->tempControl.pidMax);
             change = true; //update checksum later in this function
-#endif //FEATURE_AUTOMATIC_EEPROM_UPDATE
         }
 
         uint8_t sensortype_temp = HAL::eprGetByte(o+EPR_EXTRUDER_SENSOR_TYPE);
@@ -885,10 +853,8 @@ void EEPROM::readDataFromEEPROM()
         e->offsetMM[Z_AXIS] = HAL::eprGetFloat(o+EPR_EXTRUDER_Z_OFFSET);
         if(e->offsetMM[Z_AXIS] > 0){
             e->offsetMM[Z_AXIS] = 0; //this offset is negative only! to tune a (right) hotend down.
-#if FEATURE_AUTOMATIC_EEPROM_UPDATE
             HAL::eprSetFloat(o+EPR_EXTRUDER_Z_OFFSET,0.00f); //do not allow positive values
             change = true; //update checksum later in this function
-#endif //FEATURE_AUTOMATIC_EEPROM_UPDATE
         }
 
 #if RETRACT_DURING_HEATUP
@@ -975,10 +941,8 @@ void EEPROM::readDataFromEEPROM()
 		//Das betrifft gerade noch die alten RF-Speeds, die viel zu hoch waren:
 		//z.B: https://github.com/RF1000/Repetier-Firmware/blob/0e52693eaed1f606af411e4898030b033304b94f/RF2000/Repetier/RF2000.h#L781
         if(tmp > Printer::maxFeedrate[axis]){
-#if FEATURE_AUTOMATIC_EEPROM_UPDATE
             HAL::eprSetFloat(eeprom_homing_feedrate_position+axis*4,Printer::homingFeedrate[axis]);
             change = true; //update checksum later in this function
-#endif //FEATURE_AUTOMATIC_EEPROM_UPDATE
         }else{
             Printer::homingFeedrate[axis] = tmp;
         }
@@ -1039,10 +1003,8 @@ void EEPROM::readDataFromEEPROM()
     Printer::max_milling_all_axis_acceleration = HAL::eprGetInt16(EPR_RF_MILL_ACCELERATION);
     if(Printer::max_milling_all_axis_acceleration <= 0){
         Printer::max_milling_all_axis_acceleration = MILLER_ACCELERATION;
-#if FEATURE_AUTOMATIC_EEPROM_UPDATE
         HAL::eprSetInt16(EPR_RF_MILL_ACCELERATION,MILLER_ACCELERATION);
         change = true;
-#endif //FEATURE_AUTOMATIC_EEPROM_UPDATE
     }
 #endif // FEATURE_MILLING_MODE
 
@@ -1058,17 +1020,13 @@ void EEPROM::readDataFromEEPROM()
     g_nEmergencyStopZAndEMax = (short)constrain( HAL::eprGetInt16( EPR_RF_EMERGENCYZSTOPDIGITSMAX ) , EMERGENCY_STOP_DIGITS_MIN , EMERGENCY_STOP_DIGITS_MAX ); //limit to value in config.
     if(g_nEmergencyStopZAndEMin == 0){
         g_nEmergencyStopZAndEMin = EMERGENCY_STOP_DIGITS_MIN;
-#if FEATURE_AUTOMATIC_EEPROM_UPDATE
         HAL::eprSetInt16( EPR_RF_EMERGENCYZSTOPDIGITSMIN, g_nEmergencyStopZAndEMin );
         change = true;
-#endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
     }
     if(g_nEmergencyStopZAndEMax == 0){
         g_nEmergencyStopZAndEMax = EMERGENCY_STOP_DIGITS_MAX;
-#if FEATURE_AUTOMATIC_EEPROM_UPDATE
         HAL::eprSetInt16( EPR_RF_EMERGENCYZSTOPDIGITSMAX, g_nEmergencyStopZAndEMax );
         change = true;
-#endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
     }
 #endif // FEATURE_EMERGENCY_STOP_Z_AND_E
 
@@ -1084,10 +1042,8 @@ void EEPROM::readDataFromEEPROM()
     if(tmpss >= 0.3f && tmpss <= 6.0f){
         g_scanStartZLiftMM = tmpss;
     }else{
-#if FEATURE_AUTOMATIC_EEPROM_UPDATE
         HAL::eprSetFloat(EPR_ZSCAN_START_MM,HEAT_BED_SCAN_Z_START_MM);
         change = true;
-#endif //FEATURE_AUTOMATIC_EEPROM_UPDATE
     }
 #endif // FEATURE_WORK_PART_Z_COMPENSATION || FEATURE_HEAT_BED_Z_COMPENSATION
 
@@ -1100,10 +1056,8 @@ void EEPROM::readDataFromEEPROM()
             Printer::motorCurrent[axis] = current;
             setMotorCurrent( axis+1, current ); //driver ist 1-basiert
         }else{
-#if FEATURE_AUTOMATIC_EEPROM_UPDATE
             HAL::eprSetByte( EPR_RF_MOTOR_CURRENT+axis, uMotorCurrentUse[axis] ); //wenn mist im EEPROM, dann Silent-Wert reinschreiben.
             change = true;
-#endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
         }
     }
 #if FEATURE_ADJUSTABLE_MICROSTEPS
@@ -1126,10 +1080,8 @@ void EEPROM::readDataFromEEPROM()
 
     if(!HAL::eprGetInt16(EPR_RF_STEP_PACKING_MIN_INTERVAL)){
          Printer::stepsPackingMinInterval = STEP_PACKING_MIN_INTERVAL;
-#if FEATURE_AUTOMATIC_EEPROM_UPDATE
          HAL::eprSetInt16(EPR_RF_STEP_PACKING_MIN_INTERVAL, STEP_PACKING_MIN_INTERVAL );
          change = true;
-#endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
     }else{
          Printer::stepsPackingMinInterval = constrain(HAL::eprGetInt16(EPR_RF_STEP_PACKING_MIN_INTERVAL), MIN_STEP_PACKING_MIN_INTERVAL, MAX_STEP_PACKING_MIN_INTERVAL);
     }
@@ -1153,9 +1105,7 @@ void EEPROM::readDataFromEEPROM()
     Commands::adjustFanMode( (HAL::eprGetByte( EPR_RF_FAN_MODE ) == PART_FAN_MODE_PDM ? PART_FAN_MODE_PDM : PART_FAN_MODE_PWM) );
 #endif // FAN_PIN>-1 && FEATURE_FAN_CONTROL
 
-#if FEATURE_AUTOMATIC_EEPROM_UPDATE
     if( change ) EEPROM::updateChecksum();
-#endif // FEATURE_AUTOMATIC_EEPROM_UPDATE
 
     if(version != EEPROM_PROTOCOL_VERSION)
     {
