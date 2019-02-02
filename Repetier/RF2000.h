@@ -83,9 +83,6 @@
 #define EXT0_HOTEND_TYPE                    HOTEND_TYPE_V2
 #define EXT1_HOTEND_TYPE                    HOTEND_TYPE_V2
 
-/** \brief Define the type Z-Endstop-Installation */
-#define FEATURE_CONFIGURABLE_Z_ENDSTOPS     0                                                   // the RF2000 does not support to use the z-min and z-max endstops within one circle
-
 // ##########################################################################################
 // ##   Calibration
 // ##########################################################################################
@@ -605,6 +602,10 @@ on this endstop. */
 #define MIN_HARDWARE_ENDSTOP_Z              true
 #define MAX_HARDWARE_ENDSTOP_X              false
 #define MAX_HARDWARE_ENDSTOP_Y              false
+
+/** \brief Define the type Z-Endstop-Installation */
+// the RF2000 does not support to use the z-min and z-max endstops within one circle
+#define FEATURE_CONFIGURABLE_Z_ENDSTOPS     0
 // the RF2000 always has the z-min and z-max endstops
 #define MAX_HARDWARE_ENDSTOP_Z              true
 

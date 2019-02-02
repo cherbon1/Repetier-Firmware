@@ -92,13 +92,6 @@ WARNING: Do not enable the case fan feature in case you have a second extruder a
  #define EXT0_HOTEND_TYPE                    HOTEND_TYPE_V2
 #endif // NUM_EXTRUDER == 2
 
-#define FEATURE_CONFIGURABLE_Z_ENDSTOPS     1                                                   // 1 = the z-endstop type can be switched between z-min (= single) and z-min + z-max in one circuit (= circuit), 0 = only the z-min endstop is installed
-
-#if FEATURE_CONFIGURABLE_Z_ENDSTOPS
-  /** \brief Define Default z-endstop type */
-  #define DEFAULT_Z_ENDSTOP_TYPE              ENDSTOP_TYPE_SINGLE
-#endif // FEATURE_CONFIGURABLE_Z_ENDSTOPS
-
 // ##########################################################################################
 // ##   Calibration
 // ##########################################################################################
@@ -603,10 +596,16 @@ on this endstop. */
 #define MAX_HARDWARE_ENDSTOP_X              false
 #define MAX_HARDWARE_ENDSTOP_Y              false
 
-#if FEATURE_CONFIGURABLE_Z_ENDSTOPS                     // the z-max endstop is optional for the RF1000
-#define MAX_HARDWARE_ENDSTOP_Z              true
+// the z-max endstop is optional for the RF1000
+// 1 = the z-endstop type can be switched between z-min (= single) and z-min + z-max in one circuit (= circuit), 0 = only the z-min endstop is installed
+#define FEATURE_CONFIGURABLE_Z_ENDSTOPS     1
+
+#if FEATURE_CONFIGURABLE_Z_ENDSTOPS
+ /** \brief Define Default z-endstop type */
+ #define DEFAULT_Z_ENDSTOP_TYPE              ENDSTOP_TYPE_SINGLE
+ #define MAX_HARDWARE_ENDSTOP_Z              true
 #else
-#define MAX_HARDWARE_ENDSTOP_Z              false
+ #define MAX_HARDWARE_ENDSTOP_Z              false
 #endif // FEATURE_CONFIGURABLE_Z_ENDSTOPS
 
 /** \brief Set order of axis homing. Use HOME_ORDER_XYZ and replace XYZ with your order. */

@@ -1224,7 +1224,7 @@ void Commands::executeGCode(GCode *com)
                 {
                     break;
                 }
-
+								
 #if (X_MIN_PIN > -1) && MIN_HARDWARE_ENDSTOP_X
                 Com::printF(Com::tXMinColon);
                 Com::printF(Printer::isXMinEndstopHit()?Com::tHSpace:Com::tLSpace);
@@ -1233,6 +1233,10 @@ void Commands::executeGCode(GCode *com)
 #if (X_MAX_PIN > -1) && MAX_HARDWARE_ENDSTOP_X
                 Com::printF(Com::tXMaxColon);
                 Com::printF(Printer::isXMaxEndstopHit()?Com::tHSpace:Com::tLSpace);
+#else
+				Com::printF(Com::tSoftDash);
+				Com::printF(Com::tXMaxColon);
+				Com::printF(Printer::isXMaxEndstopHit() ? Com::tHSpace : Com::tLSpace);
 #endif // (X_MAX_PIN > -1) && MAX_HARDWARE_ENDSTOP_X
 
 #if (Y_MIN_PIN > -1) && MIN_HARDWARE_ENDSTOP_Y
@@ -1243,70 +1247,30 @@ void Commands::executeGCode(GCode *com)
 #if (Y_MAX_PIN > -1) && MAX_HARDWARE_ENDSTOP_Y
                 Com::printF(Com::tYMaxColon);
                 Com::printF(Printer::isYMaxEndstopHit()?Com::tHSpace:Com::tLSpace);
+#else
+				Com::printF(Com::tSoftDash);
+				Com::printF(Com::tYMaxColon);
+				Com::printF(Printer::isYMaxEndstopHit() ? Com::tHSpace : Com::tLSpace);
 #endif // (Y_MAX_PIN > -1) && MAX_HARDWARE_ENDSTOP_Y
 
+                // RF1000: in operating mode "print", the min endstop is used
+				// RF1000: in operating mode "mill", the min endstop is not used
+				// Nibbels: If we have any Z-Min-Endstop we show its status, we dont care about usage for milling or print!
 #if (Z_MIN_PIN > -1) && MIN_HARDWARE_ENDSTOP_Z
-#if FEATURE_MILLING_MODE
-                if( Printer::operatingMode == OPERATING_MODE_PRINT )
-                {
-#endif // FEATURE_MILLING_MODE
-                    // in operating mode "print", the min endstop is used
-                    Com::printF(Com::tZMinColon);
-                    Com::printF(Printer::isZMinEndstopHit()?Com::tHSpace:Com::tLSpace);
-#if FEATURE_MILLING_MODE
-                }
-                /* else
-                {
-                    // in operating mode "mill", the min endstop is not used
-                } */
-#endif // FEATURE_MILLING_MODE
+                Com::printF(Com::tZMinColon);
+                Com::printF(Printer::isZMinEndstopHit()?Com::tHSpace:Com::tLSpace);
 #endif // (Z_MIN_PIN > -1) && MIN_HARDWARE_ENDSTOP_Z
 
+				// RF1000: in operating mode "mill", the max endstop is used
+                // RF1000: in operating mode "print", the max endstop is used only in case both z-endstops are in a circle
+				// Nibbels: If we have any Z-Max-Endstop we show its status, we dont care about usage for milling or print!
 #if (Z_MAX_PIN > -1) && MAX_HARDWARE_ENDSTOP_Z
-#if MOTHERBOARD == DEVICE_TYPE_RF1000
-#if FEATURE_CONFIGURABLE_Z_ENDSTOPS
-#if FEATURE_MILLING_MODE
-                if( Printer::operatingMode == OPERATING_MODE_MILL )
-                {
-                    // in operating mode "mill", the max endstop is used
-                    Com::printF(Com::tZMaxColon);
-                    Com::printF(Printer::isZMaxEndstopHit()?Com::tHSpace:Com::tLSpace);
-                }
-                else
-                {
-#endif // FEATURE_MILLING_MODE
-                    if( Printer::ZEndstopType == ENDSTOP_TYPE_CIRCUIT )
-                    {
-                        // in operating mode "print", the max endstop is used only in case both z-endstops are in a circle
-                        Com::printF(Com::tZMaxColon);
-                        Com::printF(Printer::isZMaxEndstopHit()?Com::tHSpace:Com::tLSpace);
-                    }
-#if FEATURE_MILLING_MODE
-                }
-#endif // FEATURE_MILLING_MODE
+				Com::printF(Com::tZMaxColon);
+				Com::printF(Printer::isZMaxEndstopHit() ? Com::tHSpace : Com::tLSpace);
 #else
-#if FEATURE_MILLING_MODE
-                if( Printer::operatingMode == OPERATING_MODE_MILL )
-                {
-                    // in operating mode "mill", the max endstop is used
-                    Com::printF(Com::tZMaxColon);
-                    Com::printF(Printer::isZMaxEndstopHit()?Com::tHSpace:Com::tLSpace);
-                }
-                else
-                {
-#endif // FEATURE_MILLING_MODE
-                    // in operating mode "print", the max endstop is used only in case both z-endstops are in a circle
-#if FEATURE_MILLING_MODE
-                }
-#endif // FEATURE_MILLING_MODE
-#endif // FEATURE_CONFIGURABLE_Z_ENDSTOPS
-#endif // MOTHERBOARD == DEVICE_TYPE_RF1000
-
-#if MOTHERBOARD == DEVICE_TYPE_RF2000 || MOTHERBOARD == DEVICE_TYPE_RF2000v2
-                // the RF2000 uses the max endstop in all operating modes
-                Com::printF(Com::tZMaxColon);
-                Com::printF(Printer::isZMaxEndstopHit()?Com::tHSpace:Com::tLSpace);
-#endif // MOTHERBOARD == DEVICE_TYPE_RF2000 || MOTHERBOARD == DEVICE_TYPE_RF2000v2
+				Com::printF(Com::tSoftDash);
+				Com::printF(Com::tZMaxColon);
+				Com::printF(Printer::isZMaxEndstopHit() ? Com::tHSpace : Com::tLSpace);
 #endif // (Z_MAX_PIN > -1) && MAX_HARDWARE_ENDSTOP_Z
 
                 Com::println();

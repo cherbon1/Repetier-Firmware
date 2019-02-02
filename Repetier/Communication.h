@@ -111,6 +111,7 @@ public:
     FSTRINGVAR(tSpaceCAtColon)
     FSTRINGVAR(tHSpace)
     FSTRINGVAR(tLSpace)
+    FSTRINGVAR(tSoftDash)
     FSTRINGVAR(tXMinColon)
     FSTRINGVAR(tXMaxColon)
     FSTRINGVAR(tYMinColon)

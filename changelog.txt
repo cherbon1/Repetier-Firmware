@@ -14,6 +14,7 @@ TODO:
 # Z max endstop/ max softenstop @RF1000: test if the z axis length is always respected as softenstop and test if our configuration is a good length with safety margin.
 # homing: test if axis min/max configuration works as expected after homing. test if this has influence on z-compensation bed scaling
 
+- merged endstop configuration into one point, cleanup of M119 "output endstop status"
 - removed some unnecessary configurations and dead code
 - new pause positions and pause config cleanup
 - FEATURE_MEMORY_POSITION is now default off to save 20 bytes of ram. This might be handy for milling but is unnecessary for printing.

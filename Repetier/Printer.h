@@ -837,7 +837,9 @@ public:
         return false;
 
 #else // FEATURE_CONFIGURABLE_Z_ENDSTOPS
+
         return READ(Z_MIN_PIN) != ENDSTOP_Z_MIN_INVERTING;
+
 #endif // FEATURE_CONFIGURABLE_Z_ENDSTOPS
 
 #else //Z_MIN_PIN>-1 && MIN_HARDWARE_ENDSTOP_Z

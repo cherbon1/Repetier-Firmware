@@ -1264,28 +1264,6 @@ int8_t Printer::anyHomeDir(uint8_t axis){
                 }
                 break;
     #endif // FEATURE_MILLING_MODE
-
-                /* ALT ohne check der Pins:
-                    #if FEATURE_MILLING_MODE
-                        //nProcess = 1;
-                        if( Printer::operatingMode == OPERATING_MODE_PRINT )
-                        {
-                            // in operating mode "print" we use the z min endstop
-                            nHomeDir = -1;
-                        }
-                        else
-                        {
-                            // in operating mode "mill" we use the z max endstop
-                            nHomeDir = 1;
-                        }
-                    #else
-                        if ((MIN_HARDWARE_ENDSTOP_Z && Z_MIN_PIN > -1 && Z_HOME_DIR==-1) || (MAX_HARDWARE_ENDSTOP_Z && Z_MAX_PIN > -1 && Z_HOME_DIR==1))
-                        {
-                            //nProcess = 1;
-                            nHomeDir = Z_HOME_DIR;
-                        }
-                    #endif // FEATURE_MILLING_MODE
-                */
             }
     }
     return nHomeDir;
