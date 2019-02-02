@@ -5429,8 +5429,6 @@ void outputScanParameters( void )
         Com::printF( PSTR( "" ), (int)g_nScanPressureTolerance );       Com::printFLN( PSTR( ";[digits];g_nScanPressureTolerance" ) );
         Com::printF( PSTR( "" ), (int)g_nScanPressureReadDelay );       Com::printFLN( PSTR( ";[ms];g_nScanPressureReadDelay" ) );
     }
-    return;
-
 } // outputScanParameters
 
 
@@ -5438,90 +5436,80 @@ void initCompensationMatrix( void )
 {
     // clear all fields of the compensation matrix
     memset( g_ZCompensationMatrix, 0, COMPENSATION_MATRIX_MAX_X*COMPENSATION_MATRIX_MAX_Y*2 );
-    return;
-
 } // initCompensationMatrix
 
 
 void outputCompensationMatrix( char format )
 {
-    if( Printer::debugInfo() )
+    short   x;
+    short   y;
+
+    Com::printFLN( PSTR( "front left ... front right" ) );
+    Com::printFLN( PSTR( "...        ...         ..." ) );
+    Com::printFLN( PSTR( "back left  ...  back right" ) );
+
+    for( y=0; y<=g_uZMatrixMax[Y_AXIS]; y++ )
     {
-        short   x;
-        short   y;
-
-
-//      Com::printFLN( PSTR( "z compensation matrix:" ) );
-        Com::printFLN( PSTR( "front left ... front right" ) );
-        Com::printFLN( PSTR( "...        ...         ..." ) );
-        Com::printFLN( PSTR( "back left  ...  back right" ) );
-
-        for( y=0; y<=g_uZMatrixMax[Y_AXIS]; y++ )
+        for( x=0; x<=g_uZMatrixMax[X_AXIS]; x++ )
         {
-            for( x=0; x<=g_uZMatrixMax[X_AXIS]; x++ )
+            if( x == 0 || y == 0 )
             {
-                if( x == 0 || y == 0 )
+                Com::printF( Com::tSemiColon, g_ZCompensationMatrix[x][y] );
+            }
+            else
+            {
+                if( format )
                 {
-                    Com::printF( Com::tSemiColon, g_ZCompensationMatrix[x][y] );
+                    // output in [mm]
+                    Com::printF( Com::tSemiColon, g_ZCompensationMatrix[x][y] / Printer::axisStepsPerMM[Z_AXIS] );
                 }
                 else
                 {
-                    if( format )
-                    {
-                        // output in [mm]
-                        Com::printF( Com::tSemiColon, g_ZCompensationMatrix[x][y] / Printer::axisStepsPerMM[Z_AXIS] );
-                    }
-                    else
-                    {
-                        // output in [steps]
-                        Com::printF( Com::tSemiColon, g_ZCompensationMatrix[x][y] );
-                    }
+                    // output in [steps]
+                    Com::printF( Com::tSemiColon, g_ZCompensationMatrix[x][y] );
                 }
             }
-            Com::printFLN( PSTR( " " ) );
         }
+        Com::printFLN( PSTR( " " ) );
+    }
 
 #if FEATURE_HEAT_BED_Z_COMPENSATION
-        Com::printF( PSTR( "offset = " ), g_offsetZCompensationSteps );
-        Com::printF( PSTR( " [steps] (= " ), (float)g_offsetZCompensationSteps * Printer::axisMMPerSteps[Z_AXIS] );
-        Com::printFLN( PSTR( " [mm])" ) );
+    Com::printF( PSTR( "offset = " ), g_offsetZCompensationSteps );
+    Com::printF( PSTR( " [steps] (= " ), (float)g_offsetZCompensationSteps * Printer::axisMMPerSteps[Z_AXIS] );
+    Com::printFLN( PSTR( " [mm])" ) );
 
-        Com::printF( PSTR( "warpage = " ), g_ZCompensationMax - g_offsetZCompensationSteps );
-        Com::printF( PSTR( " [steps] (= " ), float(g_ZCompensationMax - g_offsetZCompensationSteps) * Printer::axisMMPerSteps[Z_AXIS] );
-        Com::printFLN( PSTR( " [mm])" ) );
+    Com::printF( PSTR( "warpage = " ), g_ZCompensationMax - g_offsetZCompensationSteps );
+    Com::printF( PSTR( " [steps] (= " ), float(g_ZCompensationMax - g_offsetZCompensationSteps) * Printer::axisMMPerSteps[Z_AXIS] );
+    Com::printFLN( PSTR( " [mm])" ) );
 #endif // FEATURE_HEAT_BED_Z_COMPENSATION
 
-        Com::printFLN( PSTR( "g_uZMatrixMax[X_AXIS] = " ), g_uZMatrixMax[X_AXIS] );
-        Com::printFLN( PSTR( "g_uZMatrixMax[Y_AXIS] = " ), g_uZMatrixMax[Y_AXIS] );
+    Com::printFLN( PSTR( "g_uZMatrixMax[X_AXIS] = " ), g_uZMatrixMax[X_AXIS] );
+    Com::printFLN( PSTR( "g_uZMatrixMax[Y_AXIS] = " ), g_uZMatrixMax[Y_AXIS] );
 
 #if FEATURE_HEAT_BED_Z_COMPENSATION
 #if FEATURE_MILLING_MODE
-        if( Printer::operatingMode == OPERATING_MODE_PRINT )
+    if( Printer::operatingMode == OPERATING_MODE_PRINT )
 #endif // FEATURE_MILLING_MODE
-        {
-            Com::printFLN( PSTR( "g_nActiveHeatBed = " ), g_nActiveHeatBed );
-        }
+    {
+        Com::printFLN( PSTR( "g_nActiveHeatBed = " ), g_nActiveHeatBed );
+    }
 #endif // FEATURE_HEAT_BED_Z_COMPENSATION
 
 #if FEATURE_WORK_PART_Z_COMPENSATION && FEATURE_MILLING_MODE
-        if( Printer::operatingMode == OPERATING_MODE_MILL )
-        {
-            Com::printFLN( PSTR( "g_nActiveWorkPart = " ), g_nActiveWorkPart );
-            Com::printF( PSTR( "scan start: x = " ), (float)g_nScanXStartSteps / Printer::axisStepsPerMM[X_AXIS] );
-            Com::printF( PSTR( ", y = " ), (float)g_nScanYStartSteps / Printer::axisStepsPerMM[Y_AXIS] );
-            Com::printFLN( PSTR( " [mm]" ) );
-            Com::printF( PSTR( "scan steps: x = " ), (float)g_nScanXStepSizeMm );
-            Com::printF( PSTR( ", y = " ), (float)g_nScanYStepSizeMm );
-            Com::printFLN( PSTR( " [mm]" ) );
-            Com::printF( PSTR( "scan end: x = " ), (float)g_nScanXMaxPositionSteps / Printer::axisStepsPerMM[X_AXIS] );
-            Com::printF( PSTR( ", y = " ), (float)g_nScanYMaxPositionSteps / Printer::axisStepsPerMM[Y_AXIS] );
-            Com::printFLN( PSTR( " [mm]" ) );
-        }
-#endif // FEATURE_WORK_PART_Z_COMPENSATION && FEATURE_MILLING_MODE
+    if( Printer::operatingMode == OPERATING_MODE_MILL )
+    {
+        Com::printFLN( PSTR( "g_nActiveWorkPart = " ), g_nActiveWorkPart );
+        Com::printF( PSTR( "scan start: x = " ), (float)g_nScanXStartSteps / Printer::axisStepsPerMM[X_AXIS] );
+        Com::printF( PSTR( ", y = " ), (float)g_nScanYStartSteps / Printer::axisStepsPerMM[Y_AXIS] );
+        Com::printFLN( PSTR( " [mm]" ) );
+        Com::printF( PSTR( "scan steps: x = " ), (float)g_nScanXStepSizeMm );
+        Com::printF( PSTR( ", y = " ), (float)g_nScanYStepSizeMm );
+        Com::printFLN( PSTR( " [mm]" ) );
+        Com::printF( PSTR( "scan end: x = " ), (float)g_nScanXMaxPositionSteps / Printer::axisStepsPerMM[X_AXIS] );
+        Com::printF( PSTR( ", y = " ), (float)g_nScanYMaxPositionSteps / Printer::axisStepsPerMM[Y_AXIS] );
+        Com::printFLN( PSTR( " [mm]" ) );
     }
-
-    return;
-
+#endif // FEATURE_WORK_PART_Z_COMPENSATION && FEATURE_MILLING_MODE
 } // outputCompensationMatrix
 
 
