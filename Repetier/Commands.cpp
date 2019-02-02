@@ -1125,25 +1125,6 @@ void Commands::executeGCode(GCode *com)
             }
 #endif // FAN_PIN>-1 && FEATURE_FAN_CONTROL
 
-            case 80:    // M80 - ATX Power On
-            {
-#if PS_ON_PIN > -1
-                Commands::waitUntilEndOfAllMoves();  //M80 command
-                previousMillisCmd = HAL::timeInMilliseconds(); //prevent inactive shutdown of steppers/temps
-                SET_OUTPUT(PS_ON_PIN); //GND
-                WRITE(PS_ON_PIN, (POWER_INVERTING ? HIGH : LOW));
-#endif // PS_ON_PIN > -1
-                break;
-            }
-            case 81:    // M81 - ATX Power Off
-            {
-#if PS_ON_PIN > -1
-                Commands::waitUntilEndOfAllMoves(); //M81
-                SET_OUTPUT(PS_ON_PIN); //GND
-                WRITE(PS_ON_PIN,(POWER_INVERTING ? LOW : HIGH));
-#endif // PS_ON_PIN > -1
-                break;
-            }
             case 82:    // M82
             {
                 Printer::relativeExtruderCoordinateMode = false;

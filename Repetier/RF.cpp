@@ -12723,11 +12723,6 @@ void doEmergencyStop( char reason )
 
     // we are not going to perform any further operations until the restart of the firmware
     Printer::switchEverythingOff();
-
-#if defined(PS_ON_PIN) && PS_ON_PIN>-1
-	SET_OUTPUT(PS_ON_PIN); //GND
-	WRITE(PS_ON_PIN, (POWER_INVERTING ? LOW : HIGH));
-#endif // defined(PS_ON_PIN) && PS_ON_PIN>-1
 } // doEmergencyStop
 
 

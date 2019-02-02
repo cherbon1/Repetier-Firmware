@@ -357,7 +357,6 @@
 #define UI_TEXT_PRINT_TIME              "Printing time"
 #define UI_TEXT_MILL_TIME               "Milling time"
 #define UI_TEXT_PRINT_FILAMENT          "Filament printed"
-#define UI_TEXT_POWER                   "ATX Power on/off"
 
 #define UI_TEXT_STOP_PRINT              "Stop Print"
 #define UI_TEXT_STOP_PRINT_ACK          "Stop Print now?","","%mYYes","%mNNo"
@@ -756,7 +755,6 @@
 #define UI_TEXT_PRINTTIME_DAYS          " Tage "
 #define UI_TEXT_PRINTTIME_HOURS         ":"
 #define UI_TEXT_PRINTTIME_MINUTES       ""
-#define UI_TEXT_POWER                   "ATX Netzteil an/aus"
 
 #define UI_ACTION_TEXT_PESSEN "PID Pessen-Rule"
 #define UI_ACTION_TEXT_CLASSICPID "PID Ziegler-Nichols"

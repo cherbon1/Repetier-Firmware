@@ -715,11 +715,6 @@ void Printer::setup()
     }
 #endif // FEATURE_TYPE_EEPROM
 
-#if defined(ENABLE_POWER_ON_STARTUP) && PS_ON_PIN>-1
-    SET_OUTPUT(PS_ON_PIN); //GND
-    WRITE(PS_ON_PIN, (POWER_INVERTING ? HIGH : LOW));
-#endif // defined(ENABLE_POWER_ON_STARTUP) && PS_ON_PIN>-1
-
     //Initialize Step Pins
     SET_OUTPUT(X_STEP_PIN);
     SET_OUTPUT(Y_STEP_PIN);

@@ -112,7 +112,6 @@
 // PINA.5, 73, OUT2
 #endif
 
-#define PS_ON_PIN               -1
 #define WATCHDOG_PIN            37
 // PINC.0
 
@@ -359,7 +358,6 @@
 #define ORIG_FAN_PIN            27
 // PINA.5, 73, OUT2
 
-#define PS_ON_PIN               -1
 #define WATCHDOG_PIN            29
 // PINA.7, 71, WDI
 
@@ -603,7 +601,6 @@
 // PINA.5, 73, OUT2
 #define ORIG_FAN_PIN			27
 
-#define PS_ON_PIN			    -1
 // PINA.7, 71, WDI
 #define WATCHDOG_PIN		    29
 

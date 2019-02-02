@@ -121,9 +121,6 @@
 /** \brief Enables/disables the set to x/y origin feature */
 #define FEATURE_SET_TO_XY_ORIGIN            1                                                   // 1 = on, 0 = off
 
-/** \brief Enables/disables the park feature */
-#define FEATURE_PARK                        0                                                   // 1 = on, 0 = off
-
 /**
  * \brief Ditto printing allows 2 extruders to do the same action. This effectively allows
  * to print an object two times at the speed of one. Works only with dual extruder setup.
@@ -414,14 +411,13 @@ Overridden if EEPROM activated. */
 // ##   configuration of the park functionality
 // ##########################################################################################
 
-#if FEATURE_PARK
+/** \brief Enables/disables the park feature */
+#define FEATURE_PARK                        0                                                   // 1 = on, 0 = off
 
 /** \brief Specifies the park position, in [mm] */
 #define PARK_POSITION_X                     0                                                  // [mm]
 #define PARK_POSITION_Y                     120                                                // [mm]
 #define PARK_POSITION_Z                     175                                                // [mm]
-
-#endif // FEATURE_PARK
 
 
 // ##########################################################################################
@@ -435,8 +431,8 @@ Overridden if EEPROM activated. */
  * @ ca. +- 15000 the sensors tend to start bending
  * With RF1.37r2.Mod the Emergency-Pause-Features limits can be changed in EEPROM and Printers Menu. Here are the absolute maximum limits:
  */
-#define EMERGENCY_PAUSE_DIGITS_MIN          -15000                                 // [digits]
-#define EMERGENCY_PAUSE_DIGITS_MAX           15000                                 // [digits]
+#define EMERGENCY_PAUSE_DIGITS_MIN          -11000                                 // [digits]
+#define EMERGENCY_PAUSE_DIGITS_MAX           11000                                 // [digits]
 
 /** \brief Specifies the interval at which the pressure check shall be performed, in [ms] */
 #define EMERGENCY_PAUSE_INTERVAL            100
@@ -1002,18 +998,6 @@ we use blocks of 2 kByte size for the structure of our EEPROM
 
 /** \brief Communication speed. Overridden if EEPROM activated. */
 #define BAUDRATE                            115200
-
-/**
- * \brief Some boards like Gen7 have a power on pin, to enable the atx power supply. If this is defined,
- * the power will be turned on without the need to call M80 if initially started.
- */
-#define ENABLE_POWER_ON_STARTUP
-
-/**
- * \brief If you use an ATX power supply you need the power pin to work non inverting. For some special
- * boards you might need to make it inverting.
- */
-#define POWER_INVERTING                     false
 
 /**
  * \brief Cache size for incoming commands.

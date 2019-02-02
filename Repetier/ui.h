@@ -89,7 +89,6 @@
 #define UI_ACTION_DEBUG_INFO                1075
 #define UI_ACTION_DEBUG_ERROR               1076
 #define UI_ACTION_DEBUG_DRYRUN              1077
-#define UI_ACTION_POWER                     1078
 #define UI_ACTION_PREHEAT_PLA               1079
 #define UI_ACTION_COOLDOWN                  1080
 #define UI_ACTION_HEATED_BED_OFF            1081
