@@ -14,6 +14,14 @@ TODO:
 # Z max endstop/ max softenstop @RF1000: test if the z axis length is always respected as softenstop and test if our configuration is a good length with safety margin.
 # homing: test if axis min/max configuration works as expected after homing. test if this has influence on z-compensation bed scaling
 
+V 01.43.61.Mod (2019-02-01)
+- miling: fixed scan depth limit to prevent workpart matrix overflow after -12,79mm. Removed needless parameter WORK_PART_Z_COMPENSATION_MAX_MM from config.
+- matrix x+y scan max-limits are now initialised with eeprom axis length. 
+  (AFAIK: using an X- or Y-Axis-Offset should work with printer mode zcompensation, but changing offsets cause the need for new matrix scan.)
+- matrix scan/workpart scan: adjusted wrong long-conversion to short.
+- when matrix steps are autoconverted because of adjusted microsteps it is now checked for overflows. (paranoiacheck for heavy endstop modders)
+- tested: softendstop for max-z works according to set axis length. (If eeprom Z axis length is too big the soft-endstop is useless.)
+- tested: milling mode without configurable endstop and no max-endstop does not home=crash z. Z stays where it is and y+x home correctly.
 - merged endstop configuration into one point, cleanup of M119 "output endstop status"
 - removed some unnecessary configurations and dead code
 - new pause positions and pause config cleanup

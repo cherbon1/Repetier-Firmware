@@ -885,10 +885,6 @@ Above this value the z compensation will distribute the roughness of the surface
 
 #if FEATURE_WORK_PART_Z_COMPENSATION
 
-/** \brief Specifies the maximal allowed z-error of the scanned work part.
-*/
-#define WORK_PART_Z_COMPENSATION_MAX_MM         20                                                                      // [mm]
-
 /** \brief Specifies the maximal static z-offset which can be configured.
 */
 #define WORK_PART_MAX_STATIC_Z_OFFSET_MM        10                                                                      // [mm]

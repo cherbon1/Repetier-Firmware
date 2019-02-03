@@ -126,12 +126,12 @@ short           g_nCurrentIdlePressure;
 
 // configurable scan parameters - the proper default values are set by restoreDefaultScanParameters()
 long            g_nScanXStartSteps           = 0;
-long            g_nScanXStepSizeMm           = 0;
+long            g_nScanXStepSizeMM           = 0;
 long            g_nScanXStepSizeSteps        = 0;
 long            g_nScanXEndSteps             = 0;
 long            g_nScanXMaxPositionSteps     = 0;
 long            g_nScanYStartSteps           = 0;
-long            g_nScanYStepSizeMm           = 0;
+long            g_nScanYStepSizeMM           = 0;
 long            g_nScanYStepSizeSteps        = 0;
 long            g_nScanYEndSteps             = 0;
 long            g_nScanYMaxPositionSteps     = 0;
@@ -139,7 +139,7 @@ short           g_nScanHeatBedUpFastSteps    = 0;
 short           g_nScanHeatBedUpSlowSteps    = 0;
 short           g_nScanHeatBedDownFastSteps  = 0;
 short           g_nScanHeatBedDownSlowSteps  = 0;
-long            g_nScanZMaxCompensationSteps = 0;
+short           g_nScanZMaxCompensationSteps = 0;
 unsigned short  g_nScanFastStepDelay         = 0;
 unsigned short  g_nScanSlowStepDelay         = 0;
 unsigned short  g_nScanIdleDelay             = 0;
@@ -2479,7 +2479,10 @@ void searchZOScan( void )
                 // load the unaltered compensation matrix from the EEPROM
                 if(g_ZCompensationMatrix[0][0] != EEPROM_FORMAT || g_ZOSlearningRate == 1.0){
                     Com::printFLN( PSTR( "Loading zMatrix from EEPROM" ) );
-                    loadCompensationMatrix( (unsigned int)(EEPROM_SECTOR_SIZE * g_nActiveHeatBed) );
+                    if (loadCompensationMatrix( (unsigned int)(EEPROM_SECTOR_SIZE * g_nActiveHeatBed) )) {
+						// Error: there is no valid compensation matrix available
+						initCompensationMatrix();
+					}
                 }else{
                     Com::printFLN( PSTR( "Reusing existing zMatrix" ) );
                 }
@@ -2811,8 +2814,12 @@ void abortSearchHeatBedZOffset( bool reloadMatrix )
 {
 	showAbortScanReason(PSTR(UI_TEXT_DO_MHIER_BED_SCAN), g_abortZScan);
 
-    if(reloadMatrix) loadCompensationMatrix( (unsigned int)(EEPROM_SECTOR_SIZE * g_nActiveHeatBed) );
-
+	if (reloadMatrix) {
+		if (loadCompensationMatrix((unsigned int)(EEPROM_SECTOR_SIZE * g_nActiveHeatBed))) {
+			// Error: there is no valid compensation matrix available
+			initCompensationMatrix();
+		}
+	}
 	g_abortZScan = 0;
     g_nZOSScanStatus = 0;
     g_retryZScan = 0;
@@ -5101,7 +5108,7 @@ void moveZPlusDownSlow(uint8_t acuteness)
         }
 
 		char error = 0;
-        if( g_nZScanZPosition > long(Printer::axisStepsPerMM[Z_AXIS] * g_scanStartZLiftMM) )
+        if( g_nZScanZPosition > long(Printer::axisStepsPerMM[Z_AXIS] * g_scanStartZLiftMM) || g_nZScanZPosition > 32767)
         {
             Com::printFLN( PSTR( "Z = " ), g_nZScanZPosition*Printer::axisMMPerSteps[Z_AXIS] );
             error = SCAN_ABORT_REASON_SCAN_OVER_START;
@@ -5138,7 +5145,7 @@ void moveZMinusUpFast()
     // move the heat bed up until we detect the contact pressure (fast speed)
     while( 1 )
     {
-        if( g_nZScanZPosition < -g_nScanZMaxCompensationSteps )
+        if( g_nZScanZPosition <= -g_nScanZMaxCompensationSteps || g_nZScanZPosition < -32768)
         {
             Com::printFLN( PSTR( "moveZMinusUpFast(): out of range " ), (int)g_scanRetries );
             Com::printFLN( PSTR( "Z-Endstop Limit:" ), Z_ENDSTOP_DRIVE_OVER );
@@ -5183,7 +5190,7 @@ void moveZMinusUpSlow( short* pnContactPressure, uint8_t acuteness )
     // move the heat bed up until we detect the contact pressure (slow speed)
     while( 1 )
     {
-        if( g_nZScanZPosition < -g_nScanZMaxCompensationSteps )
+        if( g_nZScanZPosition <= -g_nScanZMaxCompensationSteps || g_nZScanZPosition < -32768)
         {
             Com::printFLN( PSTR( "moveZMinusUpSlow(): the z position went out of range, retries = " ), g_scanRetries );
             Com::printFLN( PSTR( "Z-Endstop Limit:" ), Z_ENDSTOP_DRIVE_OVER );
@@ -5300,26 +5307,26 @@ void restoreDefaultScanParameters( void )
 #if FEATURE_HEAT_BED_Z_COMPENSATION
         // we must restore the default scan parameters for the heat bed scan
         g_nScanXStartSteps           = long(Printer::axisStepsPerMM[X_AXIS] * HEAT_BED_SCAN_X_START_MM);
-        g_nScanXStepSizeMm           = HEAT_BED_SCAN_X_STEP_SIZE_MM;
+        g_nScanXStepSizeMM           = HEAT_BED_SCAN_X_STEP_SIZE_MM;
         g_nScanXStepSizeSteps        = long(Printer::axisStepsPerMM[X_AXIS] * HEAT_BED_SCAN_X_STEP_SIZE_MM);
         g_nScanXEndSteps             = long(Printer::axisStepsPerMM[X_AXIS] * HEAT_BED_SCAN_X_END_MM);
-        g_nScanXMaxPositionSteps     = long((X_MAX_LENGTH_PRINT - HEAT_BED_SCAN_X_END_MM) * Printer::axisStepsPerMM[X_AXIS]);
+        g_nScanXMaxPositionSteps     = long((Printer::axisLengthMM[X_AXIS] - HEAT_BED_SCAN_X_END_MM) * Printer::axisStepsPerMM[X_AXIS]);
 
         g_nScanYStartSteps           = long(Printer::axisStepsPerMM[Y_AXIS] * HEAT_BED_SCAN_Y_START_MM);
-        g_nScanYStepSizeMm           = HEAT_BED_SCAN_Y_STEP_SIZE_MM;
+        g_nScanYStepSizeMM           = HEAT_BED_SCAN_Y_STEP_SIZE_MM;
         g_nScanYStepSizeSteps        = long(Printer::axisStepsPerMM[Y_AXIS] * HEAT_BED_SCAN_Y_STEP_SIZE_MM);
         g_nScanYEndSteps             = long(Printer::axisStepsPerMM[Y_AXIS] * HEAT_BED_SCAN_Y_END_MM);
-        g_nScanYMaxPositionSteps     = long((Y_MAX_LENGTH - HEAT_BED_SCAN_Y_END_MM) * Printer::axisStepsPerMM[Y_AXIS]);
+        g_nScanYMaxPositionSteps     = long((Printer::axisLengthMM[Y_AXIS] - HEAT_BED_SCAN_Y_END_MM) * Printer::axisStepsPerMM[Y_AXIS]);
 
-        g_nScanHeatBedUpFastSteps    = long(Printer::axisStepsPerMM[Z_AXIS] * HEAT_BED_SCAN_UP_FAST_MM);
-        g_nScanHeatBedUpSlowSteps    = long(Printer::axisStepsPerMM[Z_AXIS] * HEAT_BED_SCAN_UP_SLOW_MM);
-        g_nScanHeatBedDownFastSteps  = long(Printer::axisStepsPerMM[Z_AXIS] * HEAT_BED_SCAN_DOWN_FAST_MM);
-        g_nScanHeatBedDownSlowSteps  = long(Printer::axisStepsPerMM[Z_AXIS] * HEAT_BED_SCAN_DOWN_SLOW_MM);
+        g_nScanHeatBedUpFastSteps    = short(Printer::axisStepsPerMM[Z_AXIS] * HEAT_BED_SCAN_UP_FAST_MM);
+        g_nScanHeatBedUpSlowSteps    = short(Printer::axisStepsPerMM[Z_AXIS] * HEAT_BED_SCAN_UP_SLOW_MM);
+        g_nScanHeatBedDownFastSteps  = short(Printer::axisStepsPerMM[Z_AXIS] * HEAT_BED_SCAN_DOWN_FAST_MM);
+        g_nScanHeatBedDownSlowSteps  = short(Printer::axisStepsPerMM[Z_AXIS] * HEAT_BED_SCAN_DOWN_SLOW_MM);
 
         /* Maximum number of steps to scan after the Z-min switch has been reached. If within these steps the surface has not
            been reached, the scan is retried HEAT_BED_SCAN_RETRIES times and then (if still not found) aborted.
            Note that the head bed scan matrix consists of 16 bit signed values, thus more then 32767 steps will lead to an overflow! */
-        g_nScanZMaxCompensationSteps = long(Z_ENDSTOP_DRIVE_OVER * Printer::axisStepsPerMM[Z_AXIS]);
+        g_nScanZMaxCompensationSteps = short(Z_ENDSTOP_DRIVE_OVER * Printer::axisStepsPerMM[Z_AXIS]);
 
         g_nScanFastStepDelay         = HEAT_BED_SCAN_FAST_STEP_DELAY_MS;
         g_nScanSlowStepDelay         = HEAT_BED_SCAN_SLOW_STEP_DELAY_MS;
@@ -5342,23 +5349,23 @@ void restoreDefaultScanParameters( void )
  #if FEATURE_WORK_PART_Z_COMPENSATION
         // we must restore the default scan parameters for the work part scan
         g_nScanXStartSteps           = long(Printer::axisStepsPerMM[X_AXIS] * WORK_PART_SCAN_X_START_MM) ;
-        g_nScanXStepSizeMm           = WORK_PART_SCAN_X_STEP_SIZE_MM;
+        g_nScanXStepSizeMM           = WORK_PART_SCAN_X_STEP_SIZE_MM;
         g_nScanXStepSizeSteps        = long(Printer::axisStepsPerMM[X_AXIS] * WORK_PART_SCAN_X_STEP_SIZE_MM);
         g_nScanXEndSteps             = long(Printer::axisStepsPerMM[X_AXIS] * WORK_PART_SCAN_X_END_MM);
-        g_nScanXMaxPositionSteps     = long((X_MAX_LENGTH_MILL - WORK_PART_SCAN_X_END_MM) * Printer::axisStepsPerMM[X_AXIS]);
+        g_nScanXMaxPositionSteps     = long((Printer::axisLengthMM[X_AXIS] - WORK_PART_SCAN_X_END_MM) * Printer::axisStepsPerMM[X_AXIS]);
 
         g_nScanYStartSteps           = long(Printer::axisStepsPerMM[Y_AXIS] * WORK_PART_SCAN_Y_START_MM);
-        g_nScanYStepSizeMm           = WORK_PART_SCAN_Y_STEP_SIZE_MM;
+        g_nScanYStepSizeMM           = WORK_PART_SCAN_Y_STEP_SIZE_MM;
         g_nScanYStepSizeSteps        = long(Printer::axisStepsPerMM[Y_AXIS] * WORK_PART_SCAN_Y_STEP_SIZE_MM);
         g_nScanYEndSteps             = long(Printer::axisStepsPerMM[Y_AXIS] * WORK_PART_SCAN_Y_END_MM);
-        g_nScanYMaxPositionSteps     = long((Y_MAX_LENGTH - WORK_PART_SCAN_Y_END_MM) * Printer::axisStepsPerMM[Y_AXIS]);
+        g_nScanYMaxPositionSteps     = long((Printer::axisLengthMM[Y_AXIS] - WORK_PART_SCAN_Y_END_MM) * Printer::axisStepsPerMM[Y_AXIS]);
 
-        g_nScanHeatBedUpFastSteps    = long(Printer::axisStepsPerMM[Z_AXIS] * WORK_PART_SCAN_UP_FAST_MM);
-        g_nScanHeatBedUpSlowSteps    = long(Printer::axisStepsPerMM[Z_AXIS] * WORK_PART_SCAN_UP_SLOW_MM);
-        g_nScanHeatBedDownFastSteps  = long(Printer::axisStepsPerMM[Z_AXIS] * WORK_PART_SCAN_DOWN_FAST_MM);
-        g_nScanHeatBedDownSlowSteps  = long(Printer::axisStepsPerMM[Z_AXIS] * WORK_PART_SCAN_DOWN_SLOW_MM);
+        g_nScanHeatBedUpFastSteps    = short(Printer::axisStepsPerMM[Z_AXIS] * WORK_PART_SCAN_UP_FAST_MM);
+        g_nScanHeatBedUpSlowSteps    = short(Printer::axisStepsPerMM[Z_AXIS] * WORK_PART_SCAN_UP_SLOW_MM);
+        g_nScanHeatBedDownFastSteps  = short(Printer::axisStepsPerMM[Z_AXIS] * WORK_PART_SCAN_DOWN_FAST_MM);
+        g_nScanHeatBedDownSlowSteps  = short(Printer::axisStepsPerMM[Z_AXIS] * WORK_PART_SCAN_DOWN_SLOW_MM);
 
-        g_nScanZMaxCompensationSteps = long(WORK_PART_Z_COMPENSATION_MAX_MM * Printer::axisStepsPerMM[Z_AXIS]);
+        g_nScanZMaxCompensationSteps = 32767; //Max scan depth means max matrix value and that is short. So the old 20mm would have only worked if we used < 32microsteps.
 
         g_nScanFastStepDelay         = WORK_PART_SCAN_FAST_STEP_DELAY_MS;
         g_nScanSlowStepDelay         = WORK_PART_SCAN_SLOW_STEP_DELAY_MS;
@@ -5502,8 +5509,8 @@ void outputCompensationMatrix( char format )
         Com::printF( PSTR( "scan start: x = " ), (float)g_nScanXStartSteps / Printer::axisStepsPerMM[X_AXIS] );
         Com::printF( PSTR( ", y = " ), (float)g_nScanYStartSteps / Printer::axisStepsPerMM[Y_AXIS] );
         Com::printFLN( PSTR( " [mm]" ) );
-        Com::printF( PSTR( "scan steps: x = " ), (float)g_nScanXStepSizeMm );
-        Com::printF( PSTR( ", y = " ), (float)g_nScanYStepSizeMm );
+        Com::printF( PSTR( "scan steps: x = " ), (float)g_nScanXStepSizeMM );
+        Com::printF( PSTR( ", y = " ), (float)g_nScanYStepSizeMM );
         Com::printFLN( PSTR( " [mm]" ) );
         Com::printF( PSTR( "scan end: x = " ), (float)g_nScanXMaxPositionSteps / Printer::axisStepsPerMM[X_AXIS] );
         Com::printF( PSTR( ", y = " ), (float)g_nScanYMaxPositionSteps / Printer::axisStepsPerMM[Y_AXIS] );
@@ -5735,8 +5742,8 @@ void saveCompensationMatrix( unsigned int uAddress )
         // write some information about the scanning area - note that this information is read only in case of work part z-compensation matrixes later
         writeWord24C256( I2C_ADDRESS_EXTERNAL_EEPROM, uAddress + EEPROM_OFFSET_X_START_MM, (short)(g_nScanXStartSteps / Printer::axisStepsPerMM[X_AXIS]) );
         writeWord24C256( I2C_ADDRESS_EXTERNAL_EEPROM, uAddress + EEPROM_OFFSET_Y_START_MM, (short)(g_nScanYStartSteps / Printer::axisStepsPerMM[Y_AXIS]) );
-        writeWord24C256( I2C_ADDRESS_EXTERNAL_EEPROM, uAddress + EEPROM_OFFSET_X_STEP_MM, (short)g_nScanXStepSizeMm );
-        writeWord24C256( I2C_ADDRESS_EXTERNAL_EEPROM, uAddress + EEPROM_OFFSET_Y_STEP_MM, (short)g_nScanYStepSizeMm );
+        writeWord24C256( I2C_ADDRESS_EXTERNAL_EEPROM, uAddress + EEPROM_OFFSET_X_STEP_MM, (short)g_nScanXStepSizeMM );
+        writeWord24C256( I2C_ADDRESS_EXTERNAL_EEPROM, uAddress + EEPROM_OFFSET_Y_STEP_MM, (short)g_nScanYStepSizeMM );
         writeWord24C256( I2C_ADDRESS_EXTERNAL_EEPROM, uAddress + EEPROM_OFFSET_X_END_MM, (short)(g_nScanXMaxPositionSteps / Printer::axisStepsPerMM[X_AXIS]) );
         writeWord24C256( I2C_ADDRESS_EXTERNAL_EEPROM, uAddress + EEPROM_OFFSET_Y_END_MM, (short)(g_nScanYMaxPositionSteps / Printer::axisStepsPerMM[Y_AXIS]) );
 
@@ -5998,12 +6005,12 @@ char loadCompensationMatrix( unsigned int uAddress )
         // in case we are reading a work part z-compensation matrix, we have to read out some information about the scanning area
         g_nScanXStartSteps       = (long)readWord24C256( I2C_ADDRESS_EXTERNAL_EEPROM, uAddress + EEPROM_OFFSET_X_START_MM ) * Printer::axisStepsPerMM[X_AXIS];
         g_nScanYStartSteps       = (long)readWord24C256( I2C_ADDRESS_EXTERNAL_EEPROM, uAddress + EEPROM_OFFSET_Y_START_MM ) * Printer::axisStepsPerMM[Y_AXIS];
-        g_nScanXStepSizeMm       = (long)readWord24C256( I2C_ADDRESS_EXTERNAL_EEPROM, uAddress + EEPROM_OFFSET_X_STEP_MM );
-        g_nScanYStepSizeMm       = (long)readWord24C256( I2C_ADDRESS_EXTERNAL_EEPROM, uAddress + EEPROM_OFFSET_Y_STEP_MM );
+        g_nScanXStepSizeMM       = (long)readWord24C256( I2C_ADDRESS_EXTERNAL_EEPROM, uAddress + EEPROM_OFFSET_X_STEP_MM );
+        g_nScanYStepSizeMM       = (long)readWord24C256( I2C_ADDRESS_EXTERNAL_EEPROM, uAddress + EEPROM_OFFSET_Y_STEP_MM );
         g_nScanXMaxPositionSteps = (long)readWord24C256( I2C_ADDRESS_EXTERNAL_EEPROM, uAddress + EEPROM_OFFSET_X_END_MM ) * Printer::axisStepsPerMM[X_AXIS];
         g_nScanYMaxPositionSteps = (long)readWord24C256( I2C_ADDRESS_EXTERNAL_EEPROM, uAddress + EEPROM_OFFSET_Y_END_MM ) * Printer::axisStepsPerMM[Y_AXIS];
-        g_nScanXStepSizeSteps    = g_nScanXStepSizeMm * Printer::axisStepsPerMM[X_AXIS];
-        g_nScanYStepSizeSteps    = g_nScanYStepSizeMm * Printer::axisStepsPerMM[Y_AXIS];
+        g_nScanXStepSizeSteps    = g_nScanXStepSizeMM * Printer::axisStepsPerMM[X_AXIS];
+        g_nScanYStepSizeSteps    = g_nScanYStepSizeMM * Printer::axisStepsPerMM[Y_AXIS];
     }
 
     // read out the actual compensation values
@@ -6022,7 +6029,13 @@ char loadCompensationMatrix( unsigned int uAddress )
             else
             {
                 // we may have to update all z-compensation values
-                g_ZCompensationMatrix[x][y] = (short)((float)nTemp * fMicroStepCorrection);
+				long transformedMatrixElement = long((float)nTemp * fMicroStepCorrection);
+				if (transformedMatrixElement > 32767 || transformedMatrixElement < -32768) {
+					Com::printFLN(PSTR("MicroStep transf.: overflow"));
+
+					return -1;
+				}
+                g_ZCompensationMatrix[x][y] = short(transformedMatrixElement);
             }
             uOffset += 2;
         }
@@ -6036,7 +6049,6 @@ char loadCompensationMatrix( unsigned int uAddress )
     g_ZMatrixChangedInRam = 0; //Nibbels: Marker, dass die Matrix gespeichert werden kann oder eben nicht, weils unverändert keinen Sinn macht.
 
     return 0;
-
 } // loadCompensationMatrix
 
 
@@ -8756,11 +8768,11 @@ void processCommand( GCode* pCommand )
                         if( nTemp < WORK_PART_SCAN_X_STEP_SIZE_MIN_MM ) nTemp = WORK_PART_SCAN_X_STEP_SIZE_MIN_MM;
                         if( nTemp > 100 )                               nTemp = 100;
 
-                        g_nScanXStepSizeMm    = nTemp;
+                        g_nScanXStepSizeMM    = nTemp;
                         g_nScanXStepSizeSteps = (long)((float)nTemp * Printer::axisStepsPerMM[X_AXIS]);
                         if( Printer::debugInfo() )
                         {
-                            Com::printF( PSTR( "M3162: new x step size: " ), (int)g_nScanXStepSizeMm );
+                            Com::printF( PSTR( "M3162: new x step size: " ), (int)g_nScanXStepSizeMM );
                             Com::printF( PSTR( " [mm], " ), (int)g_nScanXStepSizeSteps );
                             Com::printFLN( PSTR( " [steps]" ) );
                         }
@@ -8783,11 +8795,11 @@ void processCommand( GCode* pCommand )
                         if( nTemp < WORK_PART_SCAN_Y_STEP_SIZE_MIN_MM ) nTemp = WORK_PART_SCAN_Y_STEP_SIZE_MIN_MM;
                         if( nTemp > 100 )                               nTemp = 100;
 
-                        g_nScanYStepSizeMm    = nTemp;
+                        g_nScanYStepSizeMM    = nTemp;
                         g_nScanYStepSizeSteps = (long)((float)nTemp * Printer::axisStepsPerMM[Y_AXIS]);
                         if( Printer::debugInfo() )
                         {
-                            Com::printF( PSTR( "M3163: new y step size: " ), (int)g_nScanYStepSizeMm );
+                            Com::printF( PSTR( "M3163: new y step size: " ), (int)g_nScanYStepSizeMM );
                             Com::printF( PSTR( " [mm], " ), (int)g_nScanYStepSizeSteps );
                             Com::printFLN( PSTR( " [steps]" ) );
                         }
@@ -9789,7 +9801,7 @@ void processCommand( GCode* pCommand )
                             Com::printFLN( PSTR( "M3901: INFO Die Z-Matrix wurde aus dem EEPROM gelesen." ) );
                             prepareZCompensation();
                         }
-                        if( g_ZCompensationMatrix[0][0] == EEPROM_FORMAT )
+                        if ( g_ZCompensationMatrix[0][0] == EEPROM_FORMAT )
                         {
                             //search for a hole within the heat beds z-Matrix
                             float hochrunter = (float)pCommand->Z;
@@ -9827,11 +9839,11 @@ void processCommand( GCode* pCommand )
                             }
 
                             //das ist ein negativer wert! Je mehr Abstand, desto negativer. Positiv verboten.
-                            if(g_offsetZCompensationSteps + hochrunterSteps > (long(Printer::axisStepsPerMM[Z_AXIS] * g_scanStartZLiftMM) - -1*g_nScanHeatBedUpFastSteps)){
+                            if (g_offsetZCompensationSteps + hochrunterSteps > (long(Printer::axisStepsPerMM[Z_AXIS] * g_scanStartZLiftMM) - -1*g_nScanHeatBedUpFastSteps)) {
                                 Com::printF( PSTR( "M3902: Fehler::Z-Matrix wuerde positiv werden. Das waere eine Kollision um " ), (int)(g_offsetZCompensationSteps + hochrunterSteps) );
                                 Com::printFLN( PSTR( " [Steps] bzw. " ), Printer::axisMMPerSteps[Z_AXIS]*(float)(g_offsetZCompensationSteps + hochrunterSteps),2 );
                                 Com::printFLN( PSTR( " [mm]" ) );
-                            }else{
+                            } else {
                                 Com::printFLN( PSTR( "M3902: Neu::Min. Bett-Extruder Restabstand = " ), -1*(int)(g_offsetZCompensationSteps) );
 
                                 short   x;
@@ -9841,32 +9853,38 @@ void processCommand( GCode* pCommand )
                                 bool overnull = false;
                                 bool overH = false;
 
-                                for( x=1; x<=g_uZMatrixMax[X_AXIS]; x++ )
+                                for ( x=1; x<=g_uZMatrixMax[X_AXIS]; x++ )
                                 {
-                                    for( y=1; y<=g_uZMatrixMax[Y_AXIS]; y++ )
+                                    for ( y=1; y<=g_uZMatrixMax[Y_AXIS]; y++ )
                                     {
-                                        if((long)g_ZCompensationMatrix[x][y] + (long)deltaZ >= 32767){
+                                        if ((long)g_ZCompensationMatrix[x][y] + (long)deltaZ >= 32767) {
                                             overflow = true;
-                                        }else{
+                                        } else {
                                             g_ZCompensationMatrix[x][y] += deltaZ;
                                             if(g_ZCompensationMatrix[x][y] > 0) overnull = true; //overflow oder kollision, kann einfach nicht sein und abfrage ist kurz.
                                             if(g_ZCompensationMatrix[x][y] > (long(Printer::axisStepsPerMM[Z_AXIS] * g_scanStartZLiftMM) - -1*g_nScanHeatBedUpFastSteps) ) overH = true;
                                         }
                                     }
                                 }
-                                if(overnull){
+                                if (overnull) {
                                     Com::printFLN( PSTR( "M3901: WARNING::positive Matrix::Please fix Z-Screw" ) );
                                 }
-                                if(overH){
+                                if (overH) {
                                     Com::printFLN( PSTR( "M3901: ERROR::sehr positive Matrix::ReLoading zMatrix from EEPROM to RAM" ) );
-                                    loadCompensationMatrix( (unsigned int)(EEPROM_SECTOR_SIZE * g_nActiveHeatBed) );
-                                }else if(overflow){
+									if (loadCompensationMatrix((unsigned int)(EEPROM_SECTOR_SIZE * g_nActiveHeatBed))) {
+										// Error: there is no valid compensation matrix available
+										initCompensationMatrix();
+									}
+                                } else if(overflow) {
                                     Com::printFLN( PSTR( "M3901: ERROR::Overflow in Matrix::ReLoading zMatrix from EEPROM to RAM" ) );
-                                    loadCompensationMatrix( (unsigned int)(EEPROM_SECTOR_SIZE * g_nActiveHeatBed) );
-                                }else{
-                                    if(hochrunter == 0.00f){
+									if (loadCompensationMatrix((unsigned int)(EEPROM_SECTOR_SIZE * g_nActiveHeatBed))) {
+										// Error: there is no valid compensation matrix available
+										initCompensationMatrix();
+									}
+                                } else {
+                                    if (hochrunter == 0.00f) {
                                         Printer::ZOffset = 0; //offset um nullen
-                                        if( HAL::eprGetInt32( EPR_RF_Z_OFFSET ) != Printer::ZOffset )
+                                        if (HAL::eprGetInt32( EPR_RF_Z_OFFSET ) != Printer::ZOffset)
                                         {
                                             HAL::eprSetInt32( EPR_RF_Z_OFFSET, Printer::ZOffset );
                                             EEPROM::updateChecksum();
@@ -9881,7 +9899,7 @@ void processCommand( GCode* pCommand )
                             determineCompensationOffsetZ();
                             Com::printFLN( PSTR( "M3902: Neu::Min. Bett-Extruder Restabstand [Steps] = " ), -1*(int)g_offsetZCompensationSteps );
                             Com::printFLN( PSTR( "M3902: Neu::Min. Bett-Extruder Restabstand [mm] = " ), -1*Printer::axisMMPerSteps[Z_AXIS]*(float)g_offsetZCompensationSteps,2 );
-                        }else{
+                        } else {
                             Com::printFLN( PSTR( "M3902: ERROR::Matrix Initialisation Error!" ) );
                             Com::printFLN( PSTR( "M3902: INFO Die Z-Matrix konnte nicht aus dem EEPROM gelesen werden." ) );
                             Com::printFLN( PSTR( "M3902: INFO Vermutlich nie einen Heat-Bed-Scan gemacht." ) );
@@ -11966,15 +11984,6 @@ void setupForPrinting( void )
 {
     Printer::setSomeTempsensorDefect(false);
 
-#if FEATURE_HEAT_BED_Z_COMPENSATION
-	loadActiveHeatBedFromExtEEPROM();
-    if( g_ZCompensationMatrix[0][0] != EEPROM_FORMAT )
-    {
-        // we load the z compensation matrix before its first usage because this can take some time
-        prepareZCompensation();
-    }
-#endif // FEATURE_HEAT_BED_Z_COMPENSATION
-
 #if EEPROM_MODE
     // read the settings from the EEPROM
     Printer::homingFeedrate[X_AXIS] = HAL::eprGetFloat(EPR_X_HOMING_FEEDRATE_PRINT);
@@ -11998,6 +12007,16 @@ void setupForPrinting( void )
     Printer::axisLengthMM[X_AXIS] = X_MAX_LENGTH_PRINT;
 #endif // EEPROM_MODE
 
+#if FEATURE_HEAT_BED_Z_COMPENSATION
+	loadActiveHeatBedFromExtEEPROM();
+    if( g_ZCompensationMatrix[0][0] != EEPROM_FORMAT )
+    {
+        // we load the z compensation matrix before its first usage because this can take some time
+		// This function needs the corrected axis length for restoreDefaultScanParameters();
+        prepareZCompensation();
+    }
+#endif // FEATURE_HEAT_BED_Z_COMPENSATION
+
     g_nPauseSteps[X_AXIS] = long(Printer::axisStepsPerMM[X_AXIS] * DEFAULT_PAUSE_MM_X_PRINT);
     g_nPauseSteps[Y_AXIS] = long(Printer::axisStepsPerMM[Y_AXIS] * DEFAULT_PAUSE_MM_Y_PRINT);
     g_nPauseSteps[Z_AXIS] = long(Printer::axisStepsPerMM[Z_AXIS] * DEFAULT_PAUSE_MM_Z_PRINT);
@@ -12015,15 +12034,6 @@ void setupForPrinting( void )
 
 void setupForMilling( void )
 {
-#if FEATURE_WORK_PART_Z_COMPENSATION
-	loadActiveWorkPartFromExtEEPROM();
-    if( g_ZCompensationMatrix[0][0] != EEPROM_FORMAT )
-    {
-        // we load the z compensation matrix before its first usage because this can take some time
-        prepareZCompensation();
-    }
-#endif // FEATURE_WORK_PART_Z_COMPENSATION
-
 #if EEPROM_MODE
     // read the settings from the EEPROM
     Printer::homingFeedrate[X_AXIS] = HAL::eprGetFloat(EPR_X_HOMING_FEEDRATE_MILL);
@@ -12050,6 +12060,16 @@ void setupForMilling( void )
 #else
     Printer::axisLengthMM[X_AXIS] = X_MAX_LENGTH_MILL;
 #endif // EEPROM_MODE
+
+#if FEATURE_WORK_PART_Z_COMPENSATION
+	loadActiveWorkPartFromExtEEPROM();
+    if( g_ZCompensationMatrix[0][0] != EEPROM_FORMAT )
+    {
+        // we load the z compensation matrix before its first usage because this can take some time
+		// This function needs the corrected axis length for restoreDefaultScanParameters();
+        prepareZCompensation();
+    }
+#endif // FEATURE_WORK_PART_Z_COMPENSATION
 
     g_nPauseSteps[X_AXIS] = long(Printer::axisStepsPerMM[X_AXIS] * DEFAULT_PAUSE_MM_X_MILL);
     g_nPauseSteps[Y_AXIS] = long(Printer::axisStepsPerMM[Y_AXIS] * DEFAULT_PAUSE_MM_Y_MILL);

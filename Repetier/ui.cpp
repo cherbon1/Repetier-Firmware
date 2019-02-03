@@ -865,8 +865,8 @@ void UIDisplay::parse(char *txt,bool ram)
             }
             case 'D':
             {
-                if(c2=='x')         addLong(g_nScanXStepSizeMm,3);                                      // %Dx : scan step size x
-                else if(c2=='y')    addLong(g_nScanYStepSizeMm,3);                                      // %Dy : scan step size y
+                if(c2=='x')         addLong(g_nScanXStepSizeMM,3);                                      // %Dx : scan step size x
+                else if(c2=='y')    addLong(g_nScanYStepSizeMM,3);                                      // %Dy : scan step size y
                 break;
             }
 
@@ -3766,14 +3766,14 @@ void UIDisplay::nextPreviousAction(int8_t next)
         }
         case UI_ACTION_RF_SET_SCAN_DELTA_X:
         {
-            INCREMENT_MIN_MAX(g_nScanXStepSizeMm,1,WORK_PART_SCAN_X_STEP_SIZE_MIN_MM,100);
-            g_nScanXStepSizeSteps = (long)((float)g_nScanXStepSizeMm * Printer::axisStepsPerMM[X_AXIS]);
+            INCREMENT_MIN_MAX(g_nScanXStepSizeMM,1,WORK_PART_SCAN_X_STEP_SIZE_MIN_MM,100);
+            g_nScanXStepSizeSteps = (long)((float)g_nScanXStepSizeMM * Printer::axisStepsPerMM[X_AXIS]);
             break;
         }
         case UI_ACTION_RF_SET_SCAN_DELTA_Y:
         {
-            INCREMENT_MIN_MAX(g_nScanYStepSizeMm,1,WORK_PART_SCAN_Y_STEP_SIZE_MIN_MM,100);
-            g_nScanYStepSizeSteps = (long)((float)g_nScanYStepSizeMm * Printer::axisStepsPerMM[Y_AXIS]);
+            INCREMENT_MIN_MAX(g_nScanYStepSizeMM,1,WORK_PART_SCAN_Y_STEP_SIZE_MIN_MM,100);
+            g_nScanYStepSizeSteps = (long)((float)g_nScanYStepSizeMM * Printer::axisStepsPerMM[Y_AXIS]);
             break;
         }
 #endif // FEATURE_WORK_PART_Z_COMPENSATION

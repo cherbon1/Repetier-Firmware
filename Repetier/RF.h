@@ -611,9 +611,9 @@ extern  long            g_nZScanZPosition;
 
 extern  char            g_nHeatBedScanMode;         // 0 = oldScan, 1 = PLA, 2 = ABS
 
-extern  long            g_nScanXStepSizeMm;
+extern  long            g_nScanXStepSizeMM;
 extern  long            g_nScanXStepSizeSteps;
-extern  long            g_nScanYStepSizeMm;
+extern  long            g_nScanYStepSizeMM;
 extern  long            g_nScanYStepSizeSteps;
 
 extern  unsigned short  g_nScanContactPressureDelta;
