@@ -9,10 +9,7 @@ TODO:
 # milling mode: test or rework milling functions
 # arc-support: test circles while printing and not printing
 # fan changes: move to performQueueMove() -> task
-# pause @RF1000: test if z max-endstop is respected while moving in single-endstop setting
 # pause @RF1000: test if z max-endstop is respected while moving in dual-endstop circular setting
-# Z max endstop/ max softenstop @RF1000: test if the z axis length is always respected as softenstop and test if our configuration is a good length with safety margin.
-# homing: test if axis min/max configuration works as expected after homing. test if this has influence on z-compensation bed scaling
 
 V 01.43.61.Mod (2019-02-01)
 - miling: fixed scan depth limit to prevent workpart matrix overflow after -12,79mm. Removed needless parameter WORK_PART_Z_COMPENSATION_MAX_MM from config.
