@@ -688,6 +688,7 @@ Honeywell 100K Thermistor (135-104LAG-J01)  : R0 = 100000  T0 = 25  Beta = 3974
 // ##########################################################################################
 
 /** \brief Configuration of the manual steps */
+// (Jeder dieser Werte*steps/mm der Achse muss in unsigned short passen)
 #define DEFAULT_MANUAL_MM_X                    0.1f                            // [mm]
 #define DEFAULT_MANUAL_MM_Y                    0.1f                            // [mm]
 #define DEFAULT_MANUAL_MM_Z                    0.01f                           // [mm] -> Wert im Menü->Position->Z-Steps: xxx um!
@@ -697,6 +698,7 @@ Honeywell 100K Thermistor (135-104LAG-J01)  : R0 = 100000  T0 = 25  Beta = 3974
 //Siehe: https://github.com/RF1000community/Repetier-Firmware/issues/4
 //Dieser statische Ansatz wird evtl. mal umgebaut. Man könnte auch eine Funktion schreiben, die sinnvolle Einstellwerte automatisch anhand Microsteps und Mikrometertabelle sucht.
 #define NUM_ACCEPTABLE_STEP_SIZE_TABLE    7
+// (Jeder dieser Werte muss in unsigned short passen)
 #define ACCEPTABLE_STEP_SIZE_TABLE { 5,13,26,51,64,128,256 }
 
 // ###############################################################################

@@ -4151,7 +4151,7 @@ void UIDisplay::nextPreviousAction(int8_t next)
                                     g_maxZCompensationSteps *= stepsmm_korrekturfactor; //preadjust max compensation steps for z-CMP (gets autoadjusted but the user might override autoadjustement)
                                     g_minZCompensationSteps *= stepsmm_korrekturfactor; //preadjust max compensation steps for z-CMP (gets autoadjusted but the user might override autoadjustement)
                                     g_nManualSteps[Z_AXIS] *= stepsmm_korrekturfactor;
-                                    HAL::eprSetInt32( EPR_RF_MOD_Z_STEP_SIZE, g_nManualSteps[Z_AXIS] );
+                                    HAL::eprSetInt16( EPR_RF_MOD_Z_STEP_SIZE, g_nManualSteps[Z_AXIS] );
                                     g_ZCompensationMatrix[0][0] = EEPROM_FORMAT-1; //force the zmatrix in ram to be invalid and to reload it later.
                                     //korrektur der aktiven kompensation/zoffset ist durch fehlendes homing unterbunden.
                                 }

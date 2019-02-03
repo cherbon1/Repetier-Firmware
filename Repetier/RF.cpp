@@ -160,7 +160,7 @@ millis_t        g_uStopTime                 = 0;
 volatile millis_t g_uBlockCommands          = 0;
 
 // other configurable parameters
-unsigned long   g_nManualSteps[4]           = { 
+unsigned short  g_nManualSteps[4]           = { 
 	lroundf(XAXIS_STEPS_PER_MM * DEFAULT_MANUAL_MM_X),
 	lroundf(YAXIS_STEPS_PER_MM * DEFAULT_MANUAL_MM_Y),
 	lroundf(ZAXIS_STEPS_PER_MM * DEFAULT_MANUAL_MM_Z),
@@ -3282,8 +3282,7 @@ void startViscosityTest( int maxdigits = 10000, float maxfeedrate = 5.0f, float 
 
 void configureMANUAL_STEPS_Z( int8_t increment )
 {
-    //könnte evtl. auch unsigned short sein, aber das wird evtl. in g_nManualSteps geschrieben...
-    const unsigned long stepsize_table[NUM_ACCEPTABLE_STEP_SIZE_TABLE] PROGMEM = ACCEPTABLE_STEP_SIZE_TABLE;
+    const unsigned short stepsize_table[NUM_ACCEPTABLE_STEP_SIZE_TABLE] PROGMEM = ACCEPTABLE_STEP_SIZE_TABLE;
 
     int loop = 0;
     //suche die aktuelle Einstellungsposition (oder aufgerundet) in der Tabelle:
@@ -3299,12 +3298,9 @@ void configureMANUAL_STEPS_Z( int8_t increment )
 
     //nutze neuen Wert:
     g_nManualSteps[Z_AXIS] = stepsize_table[loop];
-    unsigned long oldval = HAL::eprGetInt32(EPR_RF_MOD_Z_STEP_SIZE);
-    if(oldval != g_nManualSteps[Z_AXIS]){
-        HAL::eprSetInt32( EPR_RF_MOD_Z_STEP_SIZE, g_nManualSteps[Z_AXIS] );
-        EEPROM::updateChecksum(); //deshalb die prüfung
-    }
-    return;
+
+    HAL::eprSetInt16( EPR_RF_MOD_Z_STEP_SIZE, g_nManualSteps[Z_AXIS] );
+    EEPROM::updateChecksum();
 } // configureMANUAL_STEPS_Z()
 /**************************************************************************************************************************************/
 
@@ -10743,7 +10739,7 @@ void nextPreviousXAction( int8_t increment )
     {
         case MOVE_MODE_SINGLE_STEPS:
         {
-			int32_t steps = g_nManualSteps[X_AXIS] * increment;
+			int32_t steps = int32_t(g_nManualSteps[X_AXIS]) * increment;
 
 			if (increment < 0 && Printer::currentXSteps + steps < 0 && Printer::isAxisHomed(X_AXIS))
 			{
@@ -10844,7 +10840,7 @@ void nextPreviousYAction( int8_t increment )
     {
         case MOVE_MODE_SINGLE_STEPS:
         {
-			int32_t steps = g_nManualSteps[Y_AXIS] * increment;
+			int32_t steps = int32_t(g_nManualSteps[Y_AXIS]) * increment;
 			
             if (increment < 0 && Printer::currentYSteps + steps < 0 && Printer::isAxisHomed(Y_AXIS))
             {
@@ -10981,7 +10977,7 @@ void nextPreviousZAction( int8_t increment )
     {
         case MOVE_MODE_SINGLE_STEPS:
         {
-			int32_t steps = g_nManualSteps[Z_AXIS] * increment;
+			int32_t steps = int32_t(g_nManualSteps[Z_AXIS]) * increment;
 
             if (increment < 0 && Printer::isZMinEndstopHit() && Printer::currentZSteps + steps < -1 * int32_t(Printer::maxZOverrideSteps))
             {
@@ -11063,9 +11059,9 @@ void nextPreviousZAction( int8_t increment )
 
 //#if MENU_POSITION_ALL_DIRECT
 			// Sonst Stepweise
-			Printer::offsetRelativeStepsCoordinates(0, 0, -1 * g_nManualSteps[Z_AXIS], 0);
+			Printer::offsetRelativeStepsCoordinates(0, 0, -1 * int32_t(g_nManualSteps[Z_AXIS]), 0);
 //#else 
-//			Printer::queueRelativeStepsCoordinates(0, 0, -1 * g_nManualSteps[Z_AXIS], 0, Printer::homingFeedrate[Z_AXIS], true, ALWAYS_CHECK_ENDSTOPS);
+//			Printer::queueRelativeStepsCoordinates(0, 0, -1 * int32_t(g_nManualSteps[Z_AXIS]), 0, Printer::homingFeedrate[Z_AXIS], true, ALWAYS_CHECK_ENDSTOPS);
 //#endif
 
             break;

@@ -11,6 +11,10 @@ TODO:
 # fan changes: move to performQueueMove() -> task
 # pause @RF1000: test if z max-endstop is respected while moving in dual-endstop circular setting
 
+V 01.43.63.Mod (2019-02-01)
+- fixed harmless but wrong read of z-step-size from eeprom (removed microstep correction)
+- changed variable for manual_steps to int which saves 8 bytes of ram.
+
 V 01.43.62.Mod (2019-02-01)
 - removed X and Y axis offsets (which I just cleaned up) because if used there are a lot traps.
   (Why? X-Axis does not really need an offset, Y-Axis could be usefull but z homing next to the bed is quite nice and safe.

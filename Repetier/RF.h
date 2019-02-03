@@ -627,7 +627,7 @@ extern  millis_t        g_uStopTime;
 extern volatile millis_t g_uBlockCommands;
 
 // other configurable parameters
-extern  unsigned long   g_nManualSteps[4];
+extern  unsigned short  g_nManualSteps[4];
 extern  volatile long   g_nPauseSteps[4];
 extern  volatile long   g_nContinueSteps[4];
 extern  volatile char   g_pauseStatus;
