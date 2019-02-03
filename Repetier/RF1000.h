@@ -632,11 +632,6 @@ during homing operation. The homing speed is divided by the value. 1 = same spee
 small amount back. This is also the case with H-belt systems. */
 #define LEAVE_Z_MAX_ENDSTOP_AFTER_HOME      2.0f                                                  // [mm] positive value, because homedir is known.
 
-/** \brief You can disable endstop checking for print moves. This is needed, if you get sometimes
-false signals from your endstops. If your endstops don't give false signals, you
-can set it on for safety. */
-#define ALWAYS_CHECK_ENDSTOPS               true
-
 
 // ##########################################################################################
 // ##   Motor Current & Stepper configurations

@@ -10749,7 +10749,7 @@ void nextPreviousXAction( int8_t increment )
 
 			if (moveKosys == KOSYS_GCODE)
 			{
-				Printer::queueRelativeStepsCoordinates(steps, 0, 0, 0, Printer::homingFeedrate[X_AXIS], true, ALWAYS_CHECK_ENDSTOPS);
+				Printer::queueRelativeStepsCoordinates(steps, 0, 0, 0, Printer::homingFeedrate[X_AXIS], true);
 				Commands::printCurrentPosition();
 			}
 			else /*if (Printer::moveKosys == KOSYS_DIRECTOFFSET) */
@@ -10775,7 +10775,7 @@ void nextPreviousXAction( int8_t increment )
 
 			if (moveKosys == KOSYS_GCODE)
 			{
-				Printer::queueRelativeMMCoordinates(distanceMM * increment, 0, 0, 0, Printer::homingFeedrate[X_AXIS], true, ALWAYS_CHECK_ENDSTOPS);
+				Printer::queueRelativeMMCoordinates(distanceMM * increment, 0, 0, 0, Printer::homingFeedrate[X_AXIS], true);
 				Commands::printCurrentPosition();
 			}
 			else /*if (Printer::moveKosys == KOSYS_DIRECTOFFSET) */
@@ -10850,7 +10850,7 @@ void nextPreviousYAction( int8_t increment )
 
 			if (moveKosys == KOSYS_GCODE)
 			{
-				Printer::queueRelativeStepsCoordinates(0, steps, 0, 0, Printer::homingFeedrate[Y_AXIS], true, ALWAYS_CHECK_ENDSTOPS);
+				Printer::queueRelativeStepsCoordinates(0, steps, 0, 0, Printer::homingFeedrate[Y_AXIS], true);
 				Commands::printCurrentPosition();
 			}
 			else /*if (Printer::moveKosys == KOSYS_DIRECTOFFSET) */
@@ -10876,7 +10876,7 @@ void nextPreviousYAction( int8_t increment )
 
 			if (moveKosys == KOSYS_GCODE)
 			{
-				Printer::queueRelativeMMCoordinates(0, distanceMM * increment, 0, 0, Printer::homingFeedrate[Y_AXIS], true, ALWAYS_CHECK_ENDSTOPS); 
+				Printer::queueRelativeMMCoordinates(0, distanceMM * increment, 0, 0, Printer::homingFeedrate[Y_AXIS], true); 
 				Commands::printCurrentPosition();
 			}
 			else /*if (Printer::moveKosys == KOSYS_DIRECTOFFSET) */
@@ -11000,7 +11000,7 @@ void nextPreviousZAction( int8_t increment )
 
 			//if (Printer::moveKosys == KOSYS_GCODE) 
 			//{
-			//	Printer::queueRelativeStepsCoordinates(0, 0, steps, 0, Printer::homingFeedrate[Z_AXIS], true, ALWAYS_CHECK_ENDSTOPS);
+			//	Printer::queueRelativeStepsCoordinates(0, 0, steps, 0, Printer::homingFeedrate[Z_AXIS], true);
 			//}
 			//else /*if (Printer::moveKosys == KOSYS_DIRECTOFFSET) */
 			//{
@@ -11025,7 +11025,7 @@ void nextPreviousZAction( int8_t increment )
 //#if MENU_POSITION_ALL_DIRECT
 				Printer::offsetRelativeStepsCoordinates(0, 0, distanceMM * Printer::axisStepsPerMM[Z_AXIS] * increment, 0);
 //#else 
-//				Printer::queueRelativeMMCoordinates(0, 0, distanceMM * increment, 0, Printer::homingFeedrate[Z_AXIS], true, ALWAYS_CHECK_ENDSTOPS);
+//				Printer::queueRelativeMMCoordinates(0, 0, distanceMM * increment, 0, Printer::homingFeedrate[Z_AXIS], true);
 //#endif
 
 				return;
@@ -11038,7 +11038,7 @@ void nextPreviousZAction( int8_t increment )
 //#if MENU_POSITION_ALL_DIRECT
 				Printer::offsetRelativeStepsCoordinates(0, 0, distanceMM * Printer::axisStepsPerMM[Z_AXIS] * increment, 0);
 //#else 
-//				Printer::queueRelativeMMCoordinates(0, 0, distanceMM * increment, 0, Printer::feedrate, true, ALWAYS_CHECK_ENDSTOPS);
+//				Printer::queueRelativeMMCoordinates(0, 0, distanceMM * increment, 0, Printer::feedrate, true);
 //#endif
 
 				return;
@@ -11051,7 +11051,7 @@ void nextPreviousZAction( int8_t increment )
 //#if MENU_POSITION_ALL_DIRECT
 				Printer::offsetRelativeStepsCoordinates(0, 0, -Printer::currentZSteps, 0);
 //#else 
-//				Printer::queueRelativeStepsCoordinates(0, 0, -Printer::currentZSteps, 0, Printer::homingFeedrate[Z_AXIS], true, ALWAYS_CHECK_ENDSTOPS);
+//				Printer::queueRelativeStepsCoordinates(0, 0, -Printer::currentZSteps, 0, Printer::homingFeedrate[Z_AXIS], true);
 //#endif
 
 				return;
@@ -11061,7 +11061,7 @@ void nextPreviousZAction( int8_t increment )
 			// Sonst Stepweise
 			Printer::offsetRelativeStepsCoordinates(0, 0, -1 * int32_t(g_nManualSteps[Z_AXIS]), 0);
 //#else 
-//			Printer::queueRelativeStepsCoordinates(0, 0, -1 * int32_t(g_nManualSteps[Z_AXIS]), 0, Printer::homingFeedrate[Z_AXIS], true, ALWAYS_CHECK_ENDSTOPS);
+//			Printer::queueRelativeStepsCoordinates(0, 0, -1 * int32_t(g_nManualSteps[Z_AXIS]), 0, Printer::homingFeedrate[Z_AXIS], true);
 //#endif
 
             break;

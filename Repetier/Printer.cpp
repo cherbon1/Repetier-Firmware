@@ -503,7 +503,7 @@ bool Printer::queueGCodeCoordinates(GCode *com)
 
 	if (isXYZMove || isEMove)
 	{
-		PrintLine::prepareQueueMove(ALWAYS_CHECK_ENDSTOPS, true, Printer::feedrate);
+		PrintLine::prepareQueueMove(false, true, Printer::feedrate);
 
 		return true;
 	}
@@ -533,14 +533,14 @@ void Printer::queueFloatCoordinates(float x, float y, float z, float e, float fe
 	destinationMM[E_AXIS] = e;
 	noInts.unprotect();
 
-    PrintLine::prepareQueueMove(ALWAYS_CHECK_ENDSTOPS, true, feedrate);
+    PrintLine::prepareQueueMove(false, true, feedrate);
 
 	previousMillisCmd = HAL::timeInMilliseconds(); //prevent inactive shutdown of steppers/temps
 } // queueFloatCoordinates
 
 
   /** \brief Move printer the given number of steps. Puts the move into the queue. Used by e.g. homing commands. */
-void Printer::queueRelativeStepsCoordinates(long dx, long dy, long dz, long de, float feedrate, bool waitEnd, bool checkEndstop)
+void Printer::queueRelativeStepsCoordinates(long dx, long dy, long dz, long de, float feedrate, bool waitEnd, bool abortAtEndstops)
 {
 	InterruptProtectedBlock noInts;
 	destinationMM[X_AXIS] += dx * axisMMPerSteps[X_AXIS];
@@ -549,7 +549,7 @@ void Printer::queueRelativeStepsCoordinates(long dx, long dy, long dz, long de, 
 	destinationMM[E_AXIS] += de * axisMMPerSteps[E_AXIS];
 	noInts.unprotect();
 
-	PrintLine::prepareQueueMove(checkEndstop, !waitEnd, feedrate);
+	PrintLine::prepareQueueMove(abortAtEndstops, !waitEnd, feedrate);
 	
 	if (waitEnd) Commands::waitUntilEndOfAllMoves();
 
@@ -557,7 +557,7 @@ void Printer::queueRelativeStepsCoordinates(long dx, long dy, long dz, long de, 
 } // queueRelativeStepsCoordinates
 
 /** \brief Move printer the given number of mm. Puts the move into the queue. */
-void Printer::queueRelativeMMCoordinates(float dx, float dy, float dz, float de, float feedrate, bool waitEnd, bool checkEndstop)
+void Printer::queueRelativeMMCoordinates(float dx, float dy, float dz, float de, float feedrate, bool waitEnd, bool abortAtEndstops)
 {
 	InterruptProtectedBlock noInts;
 	destinationMM[X_AXIS] += dx;
@@ -566,7 +566,7 @@ void Printer::queueRelativeMMCoordinates(float dx, float dy, float dz, float de,
 	destinationMM[E_AXIS] += de;
 	noInts.unprotect();
 
-	PrintLine::prepareQueueMove(checkEndstop, !waitEnd, feedrate);
+	PrintLine::prepareQueueMove(abortAtEndstops, !waitEnd, feedrate);
 
 	if (waitEnd) Commands::waitUntilEndOfAllMoves();
 
@@ -1522,7 +1522,7 @@ void Printer::homeXAxis()
 #endif // FEATURE_MILLING_MODE
 		
 		Printer::queueRelativeStepsCoordinates(long(2 * abs(maxSoftEndstopSteps[X_AXIS] + 2*offX) * nHomeDir), 0, 0, 0, homingFeedrate[X_AXIS], false, true); //stop at endstop
-		Printer::queueRelativeMMCoordinates(-1 * ENDSTOP_X_BACK_MOVE * nHomeDir, 0, 0, 0, homingFeedrate[X_AXIS] / ENDSTOP_X_RETEST_REDUCTION_FACTOR, false, false);
+		Printer::queueRelativeMMCoordinates(-1 * ENDSTOP_X_BACK_MOVE * nHomeDir, 0, 0, 0, homingFeedrate[X_AXIS] / ENDSTOP_X_RETEST_REDUCTION_FACTOR, false);
 		Printer::queueRelativeMMCoordinates( 2 * ENDSTOP_X_BACK_MOVE * nHomeDir, 0, 0, 0, homingFeedrate[X_AXIS] / ENDSTOP_X_RETEST_REDUCTION_FACTOR, true, true); //stop at endstop, wait
 
 		// currentXSteps ist die Schalter-X-Koordinate, die die X-Steps per Dir-Pin abzählt.																																			//currentYSteps ist die Schalter-Y-Koordinate, die die Y-Steps per Dir-Pin abzählt.
@@ -1569,7 +1569,7 @@ void Printer::homeYAxis()
 #endif // FEATURE_MILLING_MODE
 		
 		Printer::queueRelativeStepsCoordinates(0, long(2 * abs(maxSoftEndstopSteps[Y_AXIS] + 2*offY) * nHomeDir), 0, 0, homingFeedrate[Y_AXIS], false, true); //stop at endstop
-		Printer::queueRelativeMMCoordinates(0, -1 * ENDSTOP_Y_BACK_MOVE * nHomeDir, 0, 0, homingFeedrate[Y_AXIS] / ENDSTOP_Y_RETEST_REDUCTION_FACTOR, false, false);
+		Printer::queueRelativeMMCoordinates(0, -1 * ENDSTOP_Y_BACK_MOVE * nHomeDir, 0, 0, homingFeedrate[Y_AXIS] / ENDSTOP_Y_RETEST_REDUCTION_FACTOR, false);
 		Printer::queueRelativeMMCoordinates(0,  2 * ENDSTOP_Y_BACK_MOVE * nHomeDir, 0, 0, homingFeedrate[Y_AXIS] / ENDSTOP_Y_RETEST_REDUCTION_FACTOR, true, true); //stop at endstop, wait
 
 		//currentYSteps ist die Schalter-Y-Koordinate, die die Y-Steps per Dir-Pin abzählt.
@@ -1605,7 +1605,7 @@ void Printer::homeZAxis()
 #if FEATURE_CONFIGURABLE_Z_ENDSTOPS
         if( Printer::ZEndstopUnknown ) {
             //RF1000 und Min-oder-Max gedrückt - nicht klar welcher. Man fährt immer nach unten! Der Schalter hält das aus.
-			Printer::queueRelativeMMCoordinates(0, 0, ENDSTOP_Z_BACK_MOVE, 0, homingFeedrate[Z_AXIS] / ENDSTOP_Z_RETEST_REDUCTION_FACTOR, true, false); //drucker muss immer nach
+			Printer::queueRelativeMMCoordinates(0, 0, ENDSTOP_Z_BACK_MOVE, 0, homingFeedrate[Z_AXIS] / ENDSTOP_Z_RETEST_REDUCTION_FACTOR, true); //drucker muss immer nach
         }
 #endif
 
@@ -1640,11 +1640,11 @@ void Printer::homeZAxis()
             //faktor *2 und *5 : doppelt/5x so schnell beim Zurücksetzen als nachher beim langsamst hinfahren. Sonst dauert das ewig.
             if (Printer::isZMinEndstopHit()){
                 //schalter noch gedrückt, wir müssen weiter aus dem schalter rausfahren, aber keinesfalls mehr als ENDSTOP_Z_BACK_MOVE
-				Printer::queueRelativeMMCoordinates(0, 0, 0.1f * (-1 * nHomeDir),                     0, float(homingFeedrate[Z_AXIS] / ENDSTOP_Z_RETEST_REDUCTION_FACTOR * 5.0f), true, false);
+				Printer::queueRelativeMMCoordinates(0, 0, 0.1f * (-1 * nHomeDir),                     0, float(homingFeedrate[Z_AXIS] / ENDSTOP_Z_RETEST_REDUCTION_FACTOR * 5.0f), true);
             } else { //wir sind aus dem schalterbereich raus, müssten also nicht weiter zurücksetzen:
                 //1) egal ob der schalter zu anfang überfahren war oder nicht: etwas zurücksetzen, nachdem der schalter angefahren wurde.
                 //2) hier wird in jedem Fall etwas weiter weggefahren, sodass man wieder neu auf Z anfahren kann.
-				Printer::queueRelativeMMCoordinates(0, 0, Z_ENDSTOP_MAX_HYSTERESIS * (-1 * nHomeDir), 0, float(homingFeedrate[Z_AXIS] / ENDSTOP_Z_RETEST_REDUCTION_FACTOR * 2.0f), true, false);
+				Printer::queueRelativeMMCoordinates(0, 0, Z_ENDSTOP_MAX_HYSTERESIS * (-1 * nHomeDir), 0, float(homingFeedrate[Z_AXIS] / ENDSTOP_Z_RETEST_REDUCTION_FACTOR * 2.0f), true);
                 break;
             }
         }
@@ -1660,7 +1660,7 @@ void Printer::homeZAxis()
         if( Printer::operatingMode == OPERATING_MODE_MILL )
         {
             // when the milling mode is active and we are in operating mode "mill", we use the z max endstop and we free the z-max endstop after it has been hit
-			Printer::queueRelativeMMCoordinates(0, 0, (LEAVE_Z_MAX_ENDSTOP_AFTER_HOME + Z_ENDSTOP_MAX_HYSTERESIS) * (-1 * nHomeDir), 0, float(homingFeedrate[Z_AXIS]), true, false);
+			Printer::queueRelativeMMCoordinates(0, 0, (LEAVE_Z_MAX_ENDSTOP_AFTER_HOME + Z_ENDSTOP_MAX_HYSTERESIS) * (-1 * nHomeDir), 0, float(homingFeedrate[Z_AXIS]), true);
         }
 		else
 #endif // FEATURE_MILLING_MODE

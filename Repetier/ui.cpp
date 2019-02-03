@@ -3271,7 +3271,7 @@ void UIDisplay::nextPreviousAction(int8_t next)
         }
         case UI_ACTION_EPOSITION:
         {
-			Printer::queueRelativeMMCoordinates(0, 0, 0, (float)increment/Printer::menuExtrusionFactor, UI_SET_EXTRUDER_FEEDRATE, true, false); //klappt nicht in Pause!!
+			Printer::queueRelativeMMCoordinates(0, 0, 0, (float)increment/Printer::menuExtrusionFactor, UI_SET_EXTRUDER_FEEDRATE, true); //klappt nicht in Pause!!
             Commands::printCurrentPosition();
             break;
         }

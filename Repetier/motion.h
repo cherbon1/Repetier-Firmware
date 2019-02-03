@@ -24,7 +24,7 @@
 #define FLAG_NOMINAL 2
 #define FLAG_DECELERATING 4
 #define FLAG_ACCELERATION_ENABLED 8
-#define FLAG_CHECK_ENDSTOPS 16
+#define FLAG_ABORT_AT_ENDSTOPS 16
 #define FLAG_SKIP_ACCELERATING 32
 #define FLAG_SKIP_DEACCELERATING 64
 #define FLAG_BLOCKED 128
@@ -180,10 +180,13 @@ public:
         return flags & FLAG_BLOCKED;
     } // isBlocked
 
-    inline bool isCheckEndstops()
+	// If we reach endstops or softendstops we have two options: 
+	// 1) abort the move and place coordinate to "is"
+	// 2) stop the physical move but let "the virtual" coordinates flow. Hereby we can revert the coordinates by moving the other way.
+    inline bool isAbortAtEndstops()
     {
-        return flags & FLAG_CHECK_ENDSTOPS;
-    } // isCheckEndstops
+        return flags & FLAG_ABORT_AT_ENDSTOPS;
+    } // isAbortAtEndstops
 
     inline bool isNominalMove()
     {
@@ -194,92 +197,6 @@ public:
     {
         flags |= FLAG_NOMINAL;
     } // setNominalMove
-
-    inline void checkEndstops(char forQueue)
-    {
-        if(isCheckEndstops())
-        {
-			//X-Axis:
-			if (isXPositiveMove() && Printer::isXMaxEndstopHit())
-			{
-				setXMoveFinished();
-				if (forQueue) {
-					Printer::setXAxisSteps(Printer::currentSteps[X_AXIS]);
-				}
-				else {
-					Printer::stopDirectAxis(X_AXIS);
-					//Wenn man G28 und G1 Z200 macht, er vorher gestoppt wird und man zurückfährt, landet er im Minus. Weil der Drucker denkt, er wäre von 200 gestartet.
-				}
-			} 
-			else if (isXNegativeMove() && Printer::isXMinEndstopHit()) {
-				setXMoveFinished();
-				if (forQueue) {
-					
-				}
-				else {
-					Printer::stopDirectAxis(X_AXIS);
-				}
-			}
-
-            //Y-Axis:
-			if (isYPositiveMove() && Printer::isYMaxEndstopHit())
-			{
-				setYMoveFinished();
-				if (forQueue) {
-					Printer::setYAxisSteps(Printer::currentSteps[Y_AXIS]);
-				}
-				else {
-					Printer::stopDirectAxis(Y_AXIS);
-					//Wenn man G28 und G1 Z200 macht, er vorher gestoppt wird und man zurückfährt, landet er im Minus. Weil der Drucker denkt, er wäre von 200 gestartet.
-				}
-			}
-			else if (isYNegativeMove() && Printer::isYMinEndstopHit()) {
-				setYMoveFinished();
-				if (forQueue) {
-
-				}
-				else {
-					Printer::stopDirectAxis(Y_AXIS);
-				}
-			}
-        }
-
-		//Z-Axis:
-		if (!isZMove()) {
-			return;
-		}
-		if (isZPositiveMove() && Printer::isZMaxEndstopHit())
-		{
-			setZMoveFinished();
-			setEMoveFinished(); //why extrude more if we reached z limit. -> stop it.
-			if (forQueue) {
-				Printer::setZAxisSteps(Printer::currentSteps[Z_AXIS]);
-			}
-			else {
-				Printer::stopDirectAxis(Z_AXIS);
-				//Wenn man G28 und G1 Z200 macht, er vorher gestoppt wird und man zurückfährt, landet er im Minus. Weil der Drucker denkt, er wäre von 200 gestartet.
-			}
-		}
-		else if (isZNegativeMove() && Printer::isZMinEndstopHit())
-        {
-			// unhomed stop
-			// directDrive stop
-			if (!Printer::isAxisHomed(Z_AXIS) 
-				|| (!forQueue && task == DIRECT_RUNNING_STOPPABLE))
-			{
-				setZMoveFinished();
-
-				return;
-			}
-
-			// here we are homed
-			// we allow to overdrive Z-min a little bit so that also G-Codes are able to move to a smaller z-position even when Z-min has fired already
-            if (Printer::currentZSteps <= -1*long(Printer::maxZOverrideSteps))
-            {
-				setZMoveFinished();
-            }
-        }
-    } // checkEndstops
 
     inline void setXMoveFinished()
     {
@@ -506,7 +423,7 @@ public:
     static inline void backwardPlanner(uint8_t p,uint8_t last);
     static void updateTrapezoids();
     static uint8_t insertWaitMovesIfNeeded(uint8_t pathOptimize, uint8_t waitExtraLines);
-    static void prepareQueueMove(uint8_t check_endstops, uint8_t pathOptimize, float feedrate);
+    static void prepareQueueMove(uint8_t abortAtEndstops, uint8_t pathOptimize, float feedrate);
     static void prepareDirectMove( bool stoppable );
     static void stopDirectMove( void );
 
