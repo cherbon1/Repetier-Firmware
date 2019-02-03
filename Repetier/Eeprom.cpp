@@ -946,8 +946,8 @@ void EEPROM::readDataFromEEPROM()
 
     g_nManualSteps[X_AXIS] = (unsigned short)lroundf(Printer::axisStepsPerMM[X_AXIS] * DEFAULT_MANUAL_MM_X);
     g_nManualSteps[Y_AXIS] = (unsigned short)lroundf(Printer::axisStepsPerMM[Y_AXIS] * DEFAULT_MANUAL_MM_Y);
-    const unsigned long stepsize_table[NUM_ACCEPTABLE_STEP_SIZE_TABLE] PROGMEM = ACCEPTABLE_STEP_SIZE_TABLE;
-    g_nManualSteps[Z_AXIS] = (unsigned short)constrain( HAL::eprGetInt16( EPR_RF_MOD_Z_STEP_SIZE ), 1, stepsize_table[NUM_ACCEPTABLE_STEP_SIZE_TABLE-1]); //limit stepsize to value in config.
+    const unsigned short stepsize_table[NUM_ACCEPTABLE_STEP_SIZE_TABLE] PROGMEM = ACCEPTABLE_STEP_SIZE_TABLE;
+    g_nManualSteps[Z_AXIS] = (unsigned short)constrain( (unsigned short)HAL::eprGetInt16( EPR_RF_MOD_Z_STEP_SIZE ), 1, stepsize_table[NUM_ACCEPTABLE_STEP_SIZE_TABLE-1]); //limit stepsize to value in config.
     g_nManualSteps[E_AXIS] = (unsigned short)lroundf(Extruder::current->stepsPerMM * DEFAULT_MANUAL_MM_E); //current extruder stepsPerMM weil hier noch kein update für Printer::axisStepsPerMM[E_AXIS] gemacht wurde!
 
 #if FEATURE_HEAT_BED_Z_COMPENSATION
