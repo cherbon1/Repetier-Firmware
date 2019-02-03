@@ -67,6 +67,8 @@ public:
     // True if origin did not come from serial console. That way we can send status messages to
     // a host only if he would normally not know about the mode switch.
     bool internalCommand;
+	// Waiting for line to be resend. -1 = no wait.
+	static int8_t waitingForResend;
 
     inline bool hasM()
     {
@@ -206,19 +208,16 @@ public:
     {
         return ((params2 & 1024)!=0);
     }
-
-
+	
     inline long getS(long def)
     {
         return (hasS() ? S : def);
     } // getS
-
     inline long getP(long def)
     {
         return (hasP() ? P : def);
     } // getP
-
-
+	
     void printCommand();
     bool parseBinary(uint8_t *buffer,bool fromSerial);
     bool parseAscii(char *line,bool fromSerial);
@@ -280,12 +279,6 @@ private:
     static volatile uint8_t bufferLength;               ///< Number of commands stored in gcode_buffer
     static millis_t timeOfLastDataPacket;               ///< Time, when we got the last data packet. Used to detect missing uint8_ts.
     static millis_t lastBusySignal;                     ///< When was the last busy signal
-
-public:
-    static int8_t waitingForResend;                     ///< Waiting for line to be resend. -1 = no wait.
-
 }; // GCode
 
-
 #endif // GCODE_H
-

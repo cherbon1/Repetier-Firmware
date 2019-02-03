@@ -285,7 +285,7 @@ typedef struct
 
     bool showEntry() const;
 
-}const UIMenuEntry;
+} const UIMenuEntry;
 
 
 typedef struct
@@ -472,7 +472,7 @@ public:
     void addInt(int value,uint8_t digits,char fillChar=' '); // Print int into printCols
     void addLong(long value,char digits);
     void addFloat(float number, char fixdigits,uint8_t digits);
-    void addStringP(PGM_P text);
+    void addStringP(FSTRINGPARAM(text));
 	void ui_init_keys();
 	void ui_check_keys(int &action);
     void okAction();
@@ -483,7 +483,7 @@ public:
 	void initializeLCD(bool normal = true);
     void printRow(uint8_t r,char *txt,char *txt2,uint8_t changeAtCol); // Print row on display
     void printRowP(uint8_t r,PGM_P txt);
-    void parse(char *txt,bool ram); /// Parse output and write to printCols;
+    void parse(char *txt, bool ram); /// Parse output and write to printCols;
     void refreshPage();
     void executeAction(int action);
     void finishAction(int action);

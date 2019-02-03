@@ -396,5 +396,4 @@ extern TemperatureController optTempController;
 extern TemperatureController *tempController[NUM_TEMPERATURE_LOOPS];
 extern uint8_t autotuneIndex;
 
-
 #endif // EXTRUDER_H

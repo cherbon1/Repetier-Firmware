@@ -43,5 +43,4 @@ public:
     static int lowestRAMValueSend;
 }; // Commands
 
-
 #endif // COMMANDS_H

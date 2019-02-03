@@ -68,10 +68,10 @@ long                baudrate            = BAUDRATE;                     // Commu
 #if USE_ADVANCE
 int                 maxadv2             = 0;
 float               maxadvspeed         = 0;
+volatile int        waitRelax = 0;                // Delay filament relax at the end of print, could be a simple timeout
 #endif // USE_ADVANCE
 
 uint8_t             pwm_pos[NUM_EXTRUDER+3];                // 0-NUM_EXTRUDER = Heater 0-NUM_EXTRUDER of extruder, NUM_EXTRUDER = Heated bed, NUM_EXTRUDER+1 Board fan, NUM_EXTRUDER+2 = Fan
-volatile int        waitRelax           = 0;                // Delay filament relax at the end of print, could be a simple timeout
 
 uint8_t				fanSpeed			= 0;
 
@@ -248,7 +248,9 @@ void PrintLine::prepareQueueMove(uint8_t check_endstops, uint8_t pathOptimize, f
 
 		updateTrapezoids();
 
+#if USE_ADVANCE
 		if (pathOptimize) waitRelax = 70;
+#endif // USE_ADVANCE
 		// Make result permanent
 		pushLine();
         p = p2;                             // use saved instance for the real move
@@ -279,8 +281,10 @@ void PrintLine::prepareQueueMove(uint8_t check_endstops, uint8_t pathOptimize, f
     p->calculateMove(axisDistanceMM, p->primaryAxis, feedrate);
 
 	updateTrapezoids();
-
+#if USE_ADVANCE
 	if (pathOptimize) waitRelax = 70;
+#endif // USE_ADVANCE
+
 	// Make result permanent
 	pushLine();
 } // prepareQueueMove
@@ -891,7 +895,11 @@ processing.
 */
 uint8_t PrintLine::insertWaitMovesIfNeeded(uint8_t pathOptimize, uint8_t waitExtraLines)
 {
-    if(linesCount == 0 && waitRelax == 0 && pathOptimize)           // First line after some time - warmup needed
+    if(linesCount == 0
+#if USE_ADVANCE
+		&& waitRelax == 0
+#endif // USE_ADVANCE
+		&& pathOptimize)           // First line after some time - warmup needed
     {
         uint8_t w = 4;
         while(w--)

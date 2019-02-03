@@ -333,7 +333,6 @@ public:
 #endif // SDSUPPORT
 
     FSTRINGVAR(tHeaterDecoupledWarning)
-
     FSTRINGVAR(tOutputObjectPrint)
     FSTRINGVAR(tOutputObjectMill)
     FSTRINGVAR(tUnmountFilamentSoft)
@@ -373,9 +372,10 @@ public:
     static void print(const char *text);
     static inline void print(char c) {HAL::serialWriteByte(c);}
     static void printFloat(float number, uint8_t digits, bool komma_as_dot=false);
-    static inline void println() {HAL::serialWriteByte('\r');HAL::serialWriteByte('\n');}
-
+    static inline void println() {
+		HAL::serialWriteByte('\r');
+		HAL::serialWriteByte('\n');
+	}
 }; // Com
-
 
 #endif // COMMUNICATION_H

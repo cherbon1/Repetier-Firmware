@@ -625,7 +625,7 @@ void UIDisplay::createChar(uint8_t location,const uint8_t charmap[])
 #endif // UI_DISPLAY_TYPE==1 || UI_DISPLAY_TYPE==2
 
 
-void UIDisplay::printRowP(uint8_t r,PGM_P txt)
+void UIDisplay::printRowP(uint8_t r, PGM_P txt)
 {
     if(r >= UI_ROWS) return;
     col=0;
@@ -636,7 +636,7 @@ void UIDisplay::printRowP(uint8_t r,PGM_P txt)
 } // printRowP
 
 
-void UIDisplay::addInt(int value,uint8_t digits,char fillChar)
+void UIDisplay::addInt(int value, uint8_t digits, char fillChar)
 {
     if(col>=MAX_COLS) return;
     uint8_t dig=0,neg=0;
@@ -675,7 +675,7 @@ void UIDisplay::addInt(int value,uint8_t digits,char fillChar)
 } // addInt
 
 
-void UIDisplay::addLong(long value,char digits)
+void UIDisplay::addLong(long value, char digits)
 {
     if(col>=MAX_COLS) return;
     uint8_t dig = 0,neg=0;
@@ -715,7 +715,7 @@ void UIDisplay::addLong(long value,char digits)
 
 
 const float roundingTable[] PROGMEM = {0.5,0.05,0.005,0.0005,0.00005};
-void UIDisplay::addFloat(float number, char fixdigits,uint8_t digits)
+void UIDisplay::addFloat(float number, char fixdigits, uint8_t digits)
 {
     if(col>=MAX_COLS) return;
     // Handle negative numbers
@@ -765,40 +765,41 @@ void UIDisplay::addStringP(FSTRINGPARAM(text))
 
 } // addStringP
 
+UI_STRING(ui_text_on, UI_TEXT_ON)
+UI_STRING(ui_text_off, UI_TEXT_OFF)
+UI_STRING(ui_text_0, UI_TEXT_0)
+UI_STRING(ui_text_1, UI_TEXT_1)
+UI_STRING(ui_text_white, UI_TEXT_WHITE)
+UI_STRING(ui_text_color, UI_TEXT_COLOR)
+UI_STRING(ui_text_manual, UI_TEXT_MANUAL)
+UI_STRING(ui_text_unknown, UI_TEXT_UNKNOWN)
+UI_STRING(ui_text_na, UI_TEXT_NA)
+UI_STRING(ui_yes, UI_TEXT_YES)
+UI_STRING(ui_no, UI_TEXT_NO)
+UI_STRING(ui_ok, UI_TEXT_OK)
+UI_STRING(ui_fail, UI_TEXT_FAIL)
+UI_STRING(ui_neetfix, UI_TEXT_O_SCAN_NEEDFIX)
+UI_STRING(ui_up, UI_TEXT_UP)
+UI_STRING(ui_down, UI_TEXT_DOWN)
+UI_STRING(ui_selected, UI_TEXT_SEL)
+UI_STRING(ui_unselected, UI_TEXT_NOSEL)
+UI_STRING(ui_text_print_mode, UI_TEXT_PRINT_MODE)
+UI_STRING(ui_text_mill_mode, UI_TEXT_MILL_MODE)
+UI_STRING(ui_text_z_single, UI_TEXT_Z_SINGLE)
+UI_STRING(ui_text_z_circuit, UI_TEXT_Z_CIRCUIT)
+UI_STRING(ui_text_z_mode_min, UI_TEXT_Z_MODE_MIN)
+UI_STRING(ui_text_z_mode_surface, UI_TEXT_Z_MODE_SURFACE)
+UI_STRING(ui_text_z_mode_gcode, UI_TEXT_Z_MODE_GCODE)
+UI_STRING(ui_text_z_mode_z_origin, UI_TEXT_Z_MODE_Z_ORIGIN)
+UI_STRING(ui_text_hotend_v1, UI_TEXT_HOTEND_V1)
+UI_STRING(ui_text_hotend_v2, UI_TEXT_HOTEND_V2)
+UI_STRING(ui_text_miller_one_track, UI_TEXT_MILLER_ONE_TRACK)
+UI_STRING(ui_text_miller_two_tracks, UI_TEXT_MILLER_TWO_TRACKS)
+UI_STRING(ui_text_z_compensation_active, UI_TEXT_Z_COMPENSATION_ACTIVE)
 
-UI_STRING(ui_text_on,UI_TEXT_ON)
-UI_STRING(ui_text_off,UI_TEXT_OFF)
-UI_STRING(ui_text_0,UI_TEXT_0)
-UI_STRING(ui_text_1,UI_TEXT_1)
-UI_STRING(ui_text_white,UI_TEXT_WHITE)
-UI_STRING(ui_text_color,UI_TEXT_COLOR)
-UI_STRING(ui_text_manual,UI_TEXT_MANUAL)
-UI_STRING(ui_text_unknown,UI_TEXT_UNKNOWN)
-UI_STRING(ui_text_na,UI_TEXT_NA)
-UI_STRING(ui_yes,UI_TEXT_YES)
-UI_STRING(ui_no,UI_TEXT_NO)
-UI_STRING(ui_ok,UI_TEXT_OK)
-UI_STRING(ui_fail,UI_TEXT_FAIL)
-UI_STRING(ui_neetfix,UI_TEXT_O_SCAN_NEEDFIX)
-UI_STRING(ui_up,UI_TEXT_UP)
-UI_STRING(ui_down,UI_TEXT_DOWN)
-UI_STRING(ui_selected,UI_TEXT_SEL)
-UI_STRING(ui_unselected,UI_TEXT_NOSEL)
-UI_STRING(ui_text_print_mode,UI_TEXT_PRINT_MODE)
-UI_STRING(ui_text_mill_mode,UI_TEXT_MILL_MODE)
-UI_STRING(ui_text_z_single,UI_TEXT_Z_SINGLE)
-UI_STRING(ui_text_z_circuit,UI_TEXT_Z_CIRCUIT)
-UI_STRING(ui_text_z_mode_min,UI_TEXT_Z_MODE_MIN)
-UI_STRING(ui_text_z_mode_surface,UI_TEXT_Z_MODE_SURFACE)
-UI_STRING(ui_text_z_mode_gcode,UI_TEXT_Z_MODE_GCODE)
-UI_STRING(ui_text_z_mode_z_origin,UI_TEXT_Z_MODE_Z_ORIGIN)
-UI_STRING(ui_text_hotend_v1,UI_TEXT_HOTEND_V1)
-UI_STRING(ui_text_hotend_v2,UI_TEXT_HOTEND_V2)
-UI_STRING(ui_text_miller_one_track,UI_TEXT_MILLER_ONE_TRACK)
-UI_STRING(ui_text_miller_two_tracks,UI_TEXT_MILLER_TWO_TRACKS)
-UI_STRING(ui_text_z_compensation_active,UI_TEXT_Z_COMPENSATION_ACTIVE)
+; // needed because the development tool does not recognize the ; within UI_STRING definition right.
 
-void UIDisplay::parse(char *txt,bool ram)
+void UIDisplay::parse(char *txt, bool ram)
 {
     int     ivalue = 0;
     float   fvalue = 0;

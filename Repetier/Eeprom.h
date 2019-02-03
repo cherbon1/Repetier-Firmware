@@ -229,5 +229,4 @@ private:
 	static void storeExtruderDataIntoEEPROM(uint8_t extruderId);
 }; // EEPROM
 
-
 #endif // EEPROM_H

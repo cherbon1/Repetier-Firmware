@@ -597,17 +597,4 @@ public:
 	} // adjustDirections
 };
 
-inline bool isQueueXMove(){
-    if( PrintLine::cur ) if( PrintLine::cur->isXMove() ) return true;
-    return false;
-} //isQueueXMove
-inline bool isQueueYMove(){
-    if( PrintLine::cur ) if( PrintLine::cur->isYMove() ) return true;
-    return false;
-} //isQueueYMove
-inline bool isQueueEMove(){
-    if( PrintLine::cur ) if( PrintLine::cur->isEMove() ) return true;
-    return false;
-} //isQueueEMove
-
 #endif // MOTION_H

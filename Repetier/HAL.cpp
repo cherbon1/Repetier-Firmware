@@ -863,17 +863,17 @@ ISR(TIMER1_COMPA_vect)
         return;
     }
 
+#if USE_ADVANCE
     if (waitRelax == 0)
     {
-#if USE_ADVANCE
         if (Printer::advanceStepsSet)
         {
             Printer::extruderStepsNeeded -= Printer::advanceStepsSet;
             Printer::advanceStepsSet = 0;
         }
-#endif // USE_ADVANCE
     }
     else waitRelax--;
+#endif // USE_ADVANCE
 
     stepperWait = 0; // Important because of optimization in asm at begin
     OCR1A = 3000;

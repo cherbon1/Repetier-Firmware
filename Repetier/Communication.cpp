@@ -246,106 +246,108 @@ FSTRINGVALUE(Com::tEPRPGain,"PID P-gain")
 FSTRINGVALUE(Com::tEPRIGain,"PID I-gain")
 FSTRINGVALUE(Com::tEPRDGain,"PID D-gain")
 FSTRINGVALUE(Com::tEPRPIDMaxValue,"max PWM power [0-255]")
-FSTRINGVALUE(Com::tEPRBedsensorType,"Bed Temp. sensor type [3=orig. 4=alternativ]")
-FSTRINGVALUE(Com::tEPRsensorType,"Temp. sensor type [3=V2 8=E3D 13=V3]")
-FSTRINGVALUE(Com::tEPRXOffset,"X-offset [mm]")
-FSTRINGVALUE(Com::tEPRYOffset,"Y-offset [mm]")
-FSTRINGVALUE(Com::tEPRZOffsetmm,"Z-offset [mm]")
-FSTRINGVALUE(Com::tEPRRetractionWhenHeating,"Temp. for retraction when heating [C]")
-FSTRINGVALUE(Com::tEPRDistanceRetractHeating,"Distance to retract when heating [mm]")
-FSTRINGVALUE(Com::tEPRExtruderCoolerSpeed,"Extruder cooler speed [0-255]")
-FSTRINGVALUE(Com::tEPRAdvanceK,"Advance K [0=off]")
-FSTRINGVALUE(Com::tEPRAdvanceL,"Advance L [0=off]")
-FSTRINGVALUE(Com::tEPRBeeperMode,"Beeper [0=off 1=on]")
-FSTRINGVALUE(Com::tEPROperatingMode,"operating mode [1=print 2=mill]")
-FSTRINGVALUE(Com::tEPRZEndstopType,"Z endstop type [1=single 2=circuit]")
-FSTRINGVALUE(Com::tEPRMillerType,"Miller type [tracks]")
-FSTRINGVALUE(Com::tEPRRGBLightMode,"RGB Light mode [0..3 off/ws/aut/man]")
-FSTRINGVALUE(Com::tEPRFET1Mode,"24V-Port X42 default [0=off 1=on]")
-FSTRINGVALUE(Com::tEPRFET2Mode,"24V-Port X44 default [0=off 1=on]")
-FSTRINGVALUE(Com::tEPRFET3Mode,"24V-Port X45/board fan default [0=off 1=on]")
+FSTRINGVALUE(Com::tEPRBedsensorType, "Bed Temp. sensor type [3=orig. 4=alternativ]")
+FSTRINGVALUE(Com::tEPRsensorType, "Temp. sensor type [3=V2 8=E3D 13=V3]")
+FSTRINGVALUE(Com::tEPRXOffset, "X-offset [mm]")
+FSTRINGVALUE(Com::tEPRYOffset, "Y-offset [mm]")
+FSTRINGVALUE(Com::tEPRZOffsetmm, "Z-offset [mm]")
+FSTRINGVALUE(Com::tEPRRetractionWhenHeating, "Temp. for retraction when heating [C]")
+FSTRINGVALUE(Com::tEPRDistanceRetractHeating, "Distance to retract when heating [mm]")
+FSTRINGVALUE(Com::tEPRExtruderCoolerSpeed, "Extruder cooler speed [0-255]")
+FSTRINGVALUE(Com::tEPRAdvanceK, "Advance K [0=off]")
+FSTRINGVALUE(Com::tEPRAdvanceL, "Advance L [0=off]")
+FSTRINGVALUE(Com::tEPRBeeperMode, "Beeper [0=off 1=on]")
+FSTRINGVALUE(Com::tEPROperatingMode, "operating mode [1=print 2=mill]")
+FSTRINGVALUE(Com::tEPRZEndstopType, "Z endstop type [1=single 2=circuit]")
+FSTRINGVALUE(Com::tEPRMillerType, "Miller type [tracks]")
+FSTRINGVALUE(Com::tEPRRGBLightMode, "RGB Light mode [0..3 off/ws/aut/man]")
+FSTRINGVALUE(Com::tEPRFET1Mode, "24V-Port X42 default [0=off 1=on]")
+FSTRINGVALUE(Com::tEPRFET2Mode, "24V-Port X44 default [0=off 1=on]")
+FSTRINGVALUE(Com::tEPRFET3Mode, "24V-Port X45/board fan default [0=off 1=on]")
 FSTRINGVALUE(Com::tEPRCaseLightsMode, "24V-Port X19/case light default [0=off 1=on]")
 
 #if FEATURE_ZERO_DIGITS
-FSTRINGVALUE(Com::tEPRZERO_DIGIT_STATE,"Digit homing [1=on 2=off]")
+FSTRINGVALUE(Com::tEPRZERO_DIGIT_STATE, "Digit homing [1=on 2=off]")
 #endif // FEATURE_ZERO_DIGITS
-FSTRINGVALUE(Com::tEPRPrinterZ_STEP_SIZE,"Z-Button stepsize [Steps]")
-FSTRINGVALUE(Com::tEPRPrinterMOD_ZOS_SCAN_POINT_X,"X pos Z-Offset-Scan [col]")
-FSTRINGVALUE(Com::tEPRPrinterMOD_ZOS_SCAN_POINT_Y,"Y pos Z-Offset-Scan [row]")
+FSTRINGVALUE(Com::tEPRPrinterZ_STEP_SIZE, "Z-Button stepsize [Steps]")
+FSTRINGVALUE(Com::tEPRPrinterMOD_ZOS_SCAN_POINT_X, "X pos Z-Offset-Scan [col]")
+FSTRINGVALUE(Com::tEPRPrinterMOD_ZOS_SCAN_POINT_Y, "Y pos Z-Offset-Scan [row]")
 #if FEATURE_WORK_PART_Z_COMPENSATION || FEATURE_HEAT_BED_Z_COMPENSATION
-FSTRINGVALUE(Com::tEPRZScanStartLift,"Z-Scan start elevation [mm]")
+FSTRINGVALUE(Com::tEPRZScanStartLift, "Z-Scan start elevation [mm]")
 #endif // FEATURE_WORK_PART_Z_COMPENSATION || FEATURE_HEAT_BED_Z_COMPENSATION
 #if FEATURE_SENSIBLE_PRESSURE
-FSTRINGVALUE(Com::tEPRPrinterMOD_SENSEOFFSET_OFFSET_MAX,"SenseOffset peak offset [um]")
-FSTRINGVALUE(Com::tEPRPrinterEPR_RF_MOD_SENSEOFFSET_DIGITS,"SenseOffset cap [Digits]")
+FSTRINGVALUE(Com::tEPRPrinterMOD_SENSEOFFSET_OFFSET_MAX, "SenseOffset peak offset [um]")
+FSTRINGVALUE(Com::tEPRPrinterEPR_RF_MOD_SENSEOFFSET_DIGITS, "SenseOffset cap [Digits]")
 #endif //FEATURE_SENSIBLE_PRESSURE
 #if FEATURE_EMERGENCY_PAUSE
-FSTRINGVALUE(Com::tEPRPrinterEPR_RF_EmergencyPauseDigitsMin,"Emergency-Pause min [Digits 0=off]")
-FSTRINGVALUE(Com::tEPRPrinterEPR_RF_EmergencyPauseDigitsMax,"Emergency-Pause max [Digits 0=off]")
+FSTRINGVALUE(Com::tEPRPrinterEPR_RF_EmergencyPauseDigitsMin, "Emergency-Pause min [Digits 0=off]")
+FSTRINGVALUE(Com::tEPRPrinterEPR_RF_EmergencyPauseDigitsMax, "Emergency-Pause max [Digits 0=off]")
 #endif //FEATURE_EMERGENCY_PAUSE
 
 #if FEATURE_EMERGENCY_STOP_Z_AND_E
-FSTRINGVALUE(Com::tEPRPrinterEPR_RF_EmergencyStopAllMin,"Z-Emergency-Stop min [Digits]")
-FSTRINGVALUE(Com::tEPRPrinterEPR_RF_EmergencyStopAllMax,"Z-Emergency-Stop max [Digits]")
+FSTRINGVALUE(Com::tEPRPrinterEPR_RF_EmergencyStopAllMin, "Z-Emergency-Stop min [Digits]")
+FSTRINGVALUE(Com::tEPRPrinterEPR_RF_EmergencyStopAllMax, "Z-Emergency-Stop max [Digits]")
 #endif //FEATURE_EMERGENCY_STOP_Z_AND_E
 #if FEATURE_DIGIT_Z_COMPENSATION
-FSTRINGVALUE(Com::tEPRZDIGIT_CMP_STATE,"Digit compensation [1=ON 2=OFF]")
+FSTRINGVALUE(Com::tEPRZDIGIT_CMP_STATE, "Digit compensation [1=ON 2=OFF]")
 #endif // FEATURE_DIGIT_Z_COMPENSATION
 
-FSTRINGVALUE(Com::tEPRPrinter_STEPPER_X,"X Stepper current [2A=126]")
-FSTRINGVALUE(Com::tEPRPrinter_STEPPER_Y,"Y Stepper current [2A=126]")
-FSTRINGVALUE(Com::tEPRPrinter_STEPPER_Z,"Z Stepper current [2A=126]")
-FSTRINGVALUE(Com::tEPRPrinter_STEPPER_E0,"E0 Stepper current [2A=126]")
+FSTRINGVALUE(Com::tEPRPrinter_STEPPER_X, "X Stepper current [2A=126]")
+FSTRINGVALUE(Com::tEPRPrinter_STEPPER_Y, "Y Stepper current [2A=126]")
+FSTRINGVALUE(Com::tEPRPrinter_STEPPER_Z, "Z Stepper current [2A=126]")
+FSTRINGVALUE(Com::tEPRPrinter_STEPPER_E0, "E0 Stepper current [2A=126]")
 #if NUM_EXTRUDER > 1
-FSTRINGVALUE(Com::tEPRPrinter_STEPPER_E1,"E1 Stepper current [2A/126]")
+FSTRINGVALUE(Com::tEPRPrinter_STEPPER_E1, "E1 Stepper current [2A/126]")
 #endif //NUM_EXTRUDER > 1
-FSTRINGVALUE(Com::tEPRInterruptSpacingInterval,"Interrupt spacing [CPU Ticks]")
+FSTRINGVALUE(Com::tEPRInterruptSpacingInterval, "Interrupt spacing [CPU Ticks]")
 
 #if FAN_PIN>-1 && FEATURE_FAN_CONTROL
-FSTRINGVALUE(Com::tEPRPrinter_FAN_MODE,"Fan modulation [0=PWM 1=PDM]")
-FSTRINGVALUE(Com::tEPRPrinter_FAN_SPEED,"Fan PWM divisor [15.3Hz/x]")
-FSTRINGVALUE(Com::tEPRPrinter_FAN_PART_FAN_PWM_MIN,"Partfan 1% level [1..239]")
-FSTRINGVALUE(Com::tEPRPrinter_FAN_PART_FAN_PWM_MAX,"Partfan 99% level [16..254]")
+FSTRINGVALUE(Com::tEPRPrinter_FAN_MODE, "Fan modulation [0=PWM 1=PDM]")
+FSTRINGVALUE(Com::tEPRPrinter_FAN_SPEED, "Fan PWM divisor [15.3Hz/x]")
+FSTRINGVALUE(Com::tEPRPrinter_FAN_PART_FAN_PWM_MIN, "Partfan 1% level [1..239]")
+FSTRINGVALUE(Com::tEPRPrinter_FAN_PART_FAN_PWM_MAX, "Partfan 99% level [16..254]")
 #endif // FAN_PIN>-1 && FEATURE_FAN_CONTROL
 
 #endif // EEPROM_MODE
 
 #if SDSUPPORT
-FSTRINGVALUE(Com::tSDRemoved,UI_TEXT_SD_REMOVED)
-FSTRINGVALUE(Com::tSDInserted,UI_TEXT_SD_INSERTED)
-FSTRINGVALUE(Com::tSDInitFail,"SD init fail")
-FSTRINGVALUE(Com::tErrorWritingToFile,"error writing to file")
-FSTRINGVALUE(Com::tBeginFileList,"Begin file list")
-FSTRINGVALUE(Com::tEndFileList,"End file list")
-FSTRINGVALUE(Com::tFileOpened,"File opened:")
-FSTRINGVALUE(Com::tSpaceSizeColon," Size:")
-FSTRINGVALUE(Com::tFileSelected,"File selected")
-FSTRINGVALUE(Com::tFileOpenFailed,"file.open failed")
-FSTRINGVALUE(Com::tSDPrintingByte,"SD printing byte ")
-FSTRINGVALUE(Com::tNotSDPrinting,"Not SD printing")
-FSTRINGVALUE(Com::tOpenFailedFile,"open failed, File: ")
-FSTRINGVALUE(Com::tWritingToFile,"Writing to file: ")
-FSTRINGVALUE(Com::tDoneSavingFile,"Done saving file.")
-FSTRINGVALUE(Com::tFileDeleted,"File deleted")
-FSTRINGVALUE(Com::tDeletionFailed,"Deletion failed")
-FSTRINGVALUE(Com::tDirectoryCreated,"Directory created")
-FSTRINGVALUE(Com::tCreationFailed,"Creation failed")
-FSTRINGVALUE(Com::tSDErrorCode,"SD errorCode:")
+FSTRINGVALUE(Com::tSDRemoved, UI_TEXT_SD_REMOVED)
+FSTRINGVALUE(Com::tSDInserted, UI_TEXT_SD_INSERTED)
+FSTRINGVALUE(Com::tSDInitFail, "SD init fail")
+FSTRINGVALUE(Com::tErrorWritingToFile, "error writing to file")
+FSTRINGVALUE(Com::tBeginFileList, "Begin file list")
+FSTRINGVALUE(Com::tEndFileList, "End file list")
+FSTRINGVALUE(Com::tFileOpened, "File opened:")
+FSTRINGVALUE(Com::tSpaceSizeColon, " Size:")
+FSTRINGVALUE(Com::tFileSelected, "File selected")
+FSTRINGVALUE(Com::tFileOpenFailed, "file.open failed")
+FSTRINGVALUE(Com::tSDPrintingByte, "SD printing byte ")
+FSTRINGVALUE(Com::tNotSDPrinting, "Not SD printing")
+FSTRINGVALUE(Com::tOpenFailedFile, "open failed, File: ")
+FSTRINGVALUE(Com::tWritingToFile, "Writing to file: ")
+FSTRINGVALUE(Com::tDoneSavingFile, "Done saving file.")
+FSTRINGVALUE(Com::tFileDeleted, "File deleted")
+FSTRINGVALUE(Com::tDeletionFailed, "Deletion failed")
+FSTRINGVALUE(Com::tDirectoryCreated, "Directory created")
+FSTRINGVALUE(Com::tCreationFailed, "Creation failed")
+FSTRINGVALUE(Com::tSDErrorCode, "SD errorCode:")
 #endif // SDSUPPORT
 
 FSTRINGVALUE(Com::tHeaterDecoupledWarning, "One heater seems decoupled from thermistor - disabling all for safety!")
 
-FSTRINGVALUE(Com::tOutputObjectPrint,OUTPUT_OBJECT_SCRIPT_PRINT)
-FSTRINGVALUE(Com::tOutputObjectMill,OUTPUT_OBJECT_SCRIPT_MILL)
+FSTRINGVALUE(Com::tOutputObjectPrint, OUTPUT_OBJECT_SCRIPT_PRINT)
+FSTRINGVALUE(Com::tOutputObjectMill, OUTPUT_OBJECT_SCRIPT_MILL)
 
-FSTRINGVALUE(Com::tUnmountFilamentSoft,UNMOUNT_FILAMENT_SCRIPT_SOFT)
-FSTRINGVALUE(Com::tUnmountFilamentHard,UNMOUNT_FILAMENT_SCRIPT_HARD)
-FSTRINGVALUE(Com::tMountFilamentSoft,MOUNT_FILAMENT_SCRIPT_SOFT)
-FSTRINGVALUE(Com::tMountFilamentHard,MOUNT_FILAMENT_SCRIPT_HARD)
+FSTRINGVALUE(Com::tUnmountFilamentSoft, UNMOUNT_FILAMENT_SCRIPT_SOFT)
+FSTRINGVALUE(Com::tUnmountFilamentHard, UNMOUNT_FILAMENT_SCRIPT_HARD)
+FSTRINGVALUE(Com::tMountFilamentSoft, MOUNT_FILAMENT_SCRIPT_SOFT)
+FSTRINGVALUE(Com::tMountFilamentHard, MOUNT_FILAMENT_SCRIPT_HARD)
 
 #if FEATURE_FIND_Z_ORIGIN
-FSTRINGVALUE(Com::tFindZOrigin,FIND_Z_ORIGIN_SCRIPT)
+FSTRINGVALUE(Com::tFindZOrigin, FIND_Z_ORIGIN_SCRIPT)
 #endif // FEATURE_FIND_Z_ORIGIN
+
+; // needed because the development tool does not recognize the ; within FSTRINGVALUE definition right.
 
 void Com::printWarningF(FSTRINGPARAM(text))
 {
