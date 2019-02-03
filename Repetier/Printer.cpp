@@ -76,7 +76,6 @@ int8_t          Printer::lastDirectionSovereignty = 0;
 
 long            Printer::maxSoftEndstopSteps[3] = {0};                  // For software endstops, limit of move in positive direction. (=Homing-Offset + Achsenlänge)
 float           Printer::axisLengthMM[3] = {0};                         // Länge des überfahrbaren Bereichs im positiven Homing. (=Schienen-Fahrweg - Homing-Offset - 2x ExtruderOffset)
-float           Printer::axisHomingOffsetMM[2] = {0};                   // Homing-Offset für X und Y
 float           Printer::feedrate = 10;                                 // Last requested feedrate.
 int             Printer::feedrateMultiply = 100;                        // Multiplier for feedrate in percent (factor 100 = 100%)
 float           Printer::dynamicFeedrateFactor = 1.0;                   // Feedrate multiplier factor for digit compensation (1.0 = 100%)
@@ -229,12 +228,12 @@ void Printer::updateDerivedParameter()
 	// das extruder offset dürfen wir zur achslänge addieren, weil in dem Axis-Length von z.b. 180 mm schon angenommen wird, dass der extruder mit beiden nozzles jeden punkt erreicht.
 	// Offset von links ist gesetzt, aber überfahren rechts muss aber noch möglich werden.
 	// Darum 1x das Offset mehr zulassen und die Achsenlänge immer als reine Druckbreite definieren.
-    maxSoftEndstopSteps[X_AXIS] = (long)(axisStepsPerMM[X_AXIS] * (axisHomingOffsetMM[X_AXIS] + axisLengthMM[X_AXIS] 
+    maxSoftEndstopSteps[X_AXIS] = (long)(axisStepsPerMM[X_AXIS] * (axisLengthMM[X_AXIS] 
 #if NUM_EXTRUDER > 1
 		+ getMaxExtruderOffsetMM(X_AXIS)		
 #endif
 	));
-    maxSoftEndstopSteps[Y_AXIS] = (long)(axisStepsPerMM[Y_AXIS] * (axisHomingOffsetMM[Y_AXIS] + axisLengthMM[Y_AXIS]
+    maxSoftEndstopSteps[Y_AXIS] = (long)(axisStepsPerMM[Y_AXIS] * (axisLengthMM[Y_AXIS]
 #if NUM_EXTRUDER > 1
 		+ getMaxExtruderOffsetMM(Y_AXIS)
 #endif
@@ -943,8 +942,6 @@ void Printer::setup()
 
 	Printer::axisLengthMM[Y_AXIS] = Y_MAX_LENGTH;
 	Printer::axisLengthMM[Z_AXIS] = Z_MAX_LENGTH;
-	Printer::axisHomingOffsetMM[X_AXIS] = abs(X_MIN_POS);
-	Printer::axisHomingOffsetMM[Y_AXIS] = abs(Y_MIN_POS);
 
 #if FEATURE_CONFIGURABLE_Z_ENDSTOPS
     ZEndstopType          = DEFAULT_Z_ENDSTOP_TYPE;
@@ -1530,10 +1527,7 @@ void Printer::homeXAxis()
 
 		// currentXSteps ist die Schalter-X-Koordinate, die die X-Steps per Dir-Pin abzählt.																																			//currentYSteps ist die Schalter-Y-Koordinate, die die Y-Steps per Dir-Pin abzählt.
 		Printer::currentXSteps = (nHomeDir == -1) ? 0 : maxSoftEndstopSteps[X_AXIS];
-
-		// Goto X homing min position
-		Printer::queueRelativeMMCoordinates(-1 * nHomeDir * Printer::axisHomingOffsetMM[X_AXIS], 0, 0, 0, homingFeedrate[X_AXIS], true, false);
-		
+				
 #if NUM_EXTRUDER>1
         if( offX )
         {
@@ -1580,10 +1574,7 @@ void Printer::homeYAxis()
 
 		//currentYSteps ist die Schalter-Y-Koordinate, die die Y-Steps per Dir-Pin abzählt.
 		Printer::currentYSteps = (nHomeDir == -1) ? 0 : maxSoftEndstopSteps[Y_AXIS];
-
-		// Goto Y homing min position
-		Printer::queueRelativeMMCoordinates(0, -1 * nHomeDir * Printer::axisHomingOffsetMM[Y_AXIS], 0, 0, homingFeedrate[X_AXIS], true, false);
-
+		
 #if NUM_EXTRUDER>1
         if( offY )
         {

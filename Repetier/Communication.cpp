@@ -228,8 +228,6 @@ FSTRINGVALUE(Com::tEPRZTravelAcceleration,"Z-axis travel acceleration [mm/s^2]")
 #if FEATURE_MILLING_MODE
 FSTRINGVALUE(Com::tEPRZMillingAcceleration,"All axis milling acceleration [mm/s^2]")
 #endif //FEATURE_MILLING_MODE
-FSTRINGVALUE(Com::tEPRXHomePos, "X-Offset [mm]")
-FSTRINGVALUE(Com::tEPRYHomePos, "Y-Offset [mm]")
 FSTRINGVALUE(Com::tEPRZOffset,"Z-Offset [um]")
 FSTRINGVALUE(Com::tEPRZMode,"Z Scale")
 FSTRINGVALUE(Com::tEPRBedPIDDriveMax,"Bed PID I-drive max")

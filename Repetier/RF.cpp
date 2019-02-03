@@ -10084,7 +10084,7 @@ void processCommand( GCode* pCommand )
                         if(Lines > 5) Lines = 5;
                     }
 
-                    float y = (Printer::axisHomingOffsetMM[Y_AXIS] != 0 ? 0.0f : 23.0f);
+                    float y = 23.0f;
                     if ( pCommand->hasY() ){
                         y = (float)pCommand->Y;
                         if(y < 0.5f) y = 0.5f;

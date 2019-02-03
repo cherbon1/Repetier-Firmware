@@ -194,8 +194,6 @@ public:
     FSTRINGVAR(tEPRMaxInactiveTime)
     FSTRINGVAR(tEPRStopAfterInactivty)
     FSTRINGVAR(tEPRMaxXYJerk)
-    FSTRINGVAR(tEPRXHomePos)
-    FSTRINGVAR(tEPRYHomePos)
     FSTRINGVAR(tEPRXMaxLength)
     FSTRINGVAR(tEPRXMaxLengthMilling)
     FSTRINGVAR(tEPRYMaxLength)

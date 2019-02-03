@@ -11,6 +11,14 @@ TODO:
 # fan changes: move to performQueueMove() -> task
 # pause @RF1000: test if z max-endstop is respected while moving in dual-endstop circular setting
 
+V 01.43.62.Mod (2019-02-01)
+- removed X and Y axis offsets (which I just cleaned up) because if used there are a lot traps.
+  (Why? X-Axis does not really need an offset, Y-Axis could be usefull but z homing next to the bed is quite nice and safe.
+  changing that values would cause the need of new z matrix scans
+  changing that values would rise the need for decreasing axis length, otherwise soft endstops are useless.
+  we all have the same setting when it comes to slicer adjustment: Y offset ~-18
+  removing saves 8 bytes of ram)
+
 V 01.43.61.Mod (2019-02-01)
 - miling: fixed scan depth limit to prevent workpart matrix overflow after -12,79mm. Removed needless parameter WORK_PART_Z_COMPENSATION_MAX_MM from config.
 - matrix x+y scan max-limits are now initialised with eeprom axis length. 

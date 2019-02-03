@@ -110,11 +110,6 @@ If EEPROM is enabled these values will be overidden with the values in the EEPRO
 #define Y_MAX_LENGTH                        245                                                                         // [mm]
 #define Z_MAX_LENGTH                        200                                                                         // [mm]
 
-/** \brief Coordinates for the minimum axis. Can also be negative if you want to have the bed start at 0 and the printer can go to the left side
-of the bed. Maximum coordinate is given by adding the above MAX_LENGTH values. */
-#define X_MIN_POS                           0                                                                           // [mm]
-#define Y_MIN_POS                           0                                                                           // [mm]
-
 /** \brief Drive settings for printers with cartesian drive systems */
 /** \brief Number of steps for a 1mm move in x direction.
 For xy gantry use 2*belt moved!
