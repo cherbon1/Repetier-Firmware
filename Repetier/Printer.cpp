@@ -1505,6 +1505,7 @@ void Printer::homeXAxis()
 
     if (nHomeDir)
     {
+		outOfPrintVolume[X_AXIS] = 0;
         UI_STATUS_UPD(UI_TEXT_HOME_X);
 		Printer::resetDirectAxis(X_AXIS);
 
@@ -1552,6 +1553,7 @@ void Printer::homeYAxis()
 
     if (nHomeDir)
     {
+		outOfPrintVolume[Y_AXIS] = 0;
         UI_STATUS_UPD(UI_TEXT_HOME_Y);
 		Printer::resetDirectAxis(Y_AXIS);
 
@@ -1574,7 +1576,6 @@ void Printer::homeYAxis()
 
 		//currentYSteps ist die Schalter-Y-Koordinate, die die Y-Steps per Dir-Pin abzählt.
 		Printer::currentYSteps = (nHomeDir == -1) ? 0 : maxSoftEndstopSteps[Y_AXIS];
-		
 #if NUM_EXTRUDER>1
         if( offY )
         {
@@ -1599,6 +1600,7 @@ void Printer::homeZAxis()
 
     if( nHomeDir )
     {
+		outOfPrintVolume[Z_AXIS] = 0;
         UI_STATUS_UPD( UI_TEXT_HOME_Z );
 
         // if we have circuit-type Z endstops and we don't know at which endstop we currently are, first move down a bit

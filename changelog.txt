@@ -13,7 +13,7 @@ TODO:
 
 V 01.43.64.Mod (2019-02-03)
 - fix Gcode coordinate shift when moving out of endstop or softendstop boundaries. (The following commands in queue caused drive-backs where not needed)
-- x+y axis: we now have to endstop modes. stop+virtualize and stop+abort.
+- x+- y+- z+ axis: we now have to endstop modes. stop+virtualize and stop+abort.
 
 V 01.43.63.Mod (2019-02-02)
 - fixed harmless but wrong read of z-step-size from eeprom (removed microstep correction)

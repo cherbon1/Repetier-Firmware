@@ -1325,6 +1325,177 @@ long PrintLine::performQueueMove()
 } // performQueueMove
 
 
+long outOfPrintVolume[3] = { 0 };
+
+/** 
+ * Check if our queued move is within or without specified print volume
+ *
+ * The coordinate system might sometimes move out of the print volume box but the printer is not allowed to move then.
+ */
+bool inBauraum(uint8_t axisXY, PrintLine* move, uint8_t forQueue) {
+	// entry assumes that isXMove is true
+
+	if (Printer::isMaxEndstopHit(axisXY))
+	{
+		if (move->isPositiveMoveOfAxis(axisXY))
+		{
+			// all directMoves have abort set, some queueMoves too (Homing and optional scans etc.)
+			if (move->isAbortAtEndstops()) 
+			{ 
+				move->setMoveOfAxisFinished(axisXY);
+				if (!forQueue) Printer::stopDirectAxis(axisXY);
+
+				return false;
+			}			
+			// If we do not abort the Z-move outside of boundarys we will count the oversteps and block the physical step
+			outOfPrintVolume[axisXY]++;
+
+			return false;
+		}
+
+		if (outOfPrintVolume[axisXY] > 0)
+		{
+			// If we are in the endstop and have oversteps while moving z to minus we pay back ignored plusZ by ignoring minusZ until overMaxEndstopZ is even.
+			outOfPrintVolume[axisXY]--;
+
+			return false;
+		}
+		
+		return true;
+	}
+
+	if (Printer::isMinEndstopHit(axisXY)) 
+	{
+		if (move->isNegativeMoveOfAxis(axisXY))
+		{
+			// all directMoves have abort set, some queueMoves too (Homing and optional scans etc.)
+			if (move->isAbortAtEndstops()) 
+			{ 
+				move->setMoveOfAxisFinished(axisXY);
+				if (!forQueue) Printer::stopDirectAxis(axisXY);
+
+				return false;
+			}
+			// If we do not abort the Z-move outside of boundarys we will count the oversteps and block the physical step
+			outOfPrintVolume[axisXY]--;
+
+			return false;
+		}
+		
+		if (outOfPrintVolume[axisXY] < 0)
+		{
+			// If we are in the endstop and have oversteps while moving z to minus we pay back ignored plusZ by ignoring minusZ until overMaxEndstopZ is even.
+			outOfPrintVolume[axisXY]++;
+
+			return false;
+		}
+
+		return true;
+	}
+
+	/* Angeblich kein Knopf gedrückt, aber overSteps übrig. -> overSteps zurückbauen und output ignorieren, der Schalter könnte wackeln. */
+	if (outOfPrintVolume[axisXY] != 0)
+	{
+		if (outOfPrintVolume[axisXY] > 0 && move->isNegativeMoveOfAxis(axisXY))
+		{
+			outOfPrintVolume[axisXY]--;
+
+			return false;
+		}
+		else if (outOfPrintVolume[axisXY] < 0 && move->isPositiveMoveOfAxis(axisXY))
+		{
+			outOfPrintVolume[axisXY]++;
+
+			return false;
+		}
+	}
+
+	return true;
+}
+
+/**
+* This special Endstop treatment is only needed because if we have preplanned moves they will not care about relative move-back-restrictions otherwise.
+* we could just handle this like in x and y by comparing the coordinates towards real step count, but within Z we have all sorts of z-manipulation.
+* so I introduce one more static long to count steps we ignored while hitting an endstop. Those steps first have to by "payed back" to unlock moving z away from this endstop again.
+*
+* Even if z compensation would still adjust somehow those remembered steps have to be undone before the next relative queuemove can drive z again.
+* But on that height z-compensation is equal for all x-y-positions
+*/
+bool inBauraumZ(PrintLine* move, uint8_t forQueue) {
+	if (Printer::isZMaxEndstopHit())
+	{
+		if (move->isZPositiveMove()) 
+		{
+			if (move->isAbortAtEndstops()) 
+			{ // all directMoves have abort set, some queueMoves too (Homing and optional scans etc.)
+				move->setZMoveFinished();
+				if (!forQueue) Printer::stopDirectAxis(Z_AXIS);
+
+				return false;
+			}
+			// If we do not abort the Z-move outside of boundarys we will count the oversteps and block the physical step
+			outOfPrintVolume[Z_AXIS]++;
+
+			return false;
+		}
+
+		if (outOfPrintVolume[Z_AXIS] != 0) 
+		{
+			// If we are in the endstop and have oversteps while moving z to minus we pay back ignored plusZ by ignoring minusZ until overMaxEndstopZ is even.
+			outOfPrintVolume[Z_AXIS]--;
+
+			return false;
+		}
+
+		return true;
+	}
+	
+	if (Printer::isZMinEndstopHit())
+	{
+		/**
+		* Printer Z-Min is a very special endstop. It is not being handled by coordinate virtualizing, because:
+		*
+		* There is no chance that we will end up being limited by queue-Moves endstop crossing here
+		* because near z-min we have a warped z-coordinate system
+		* The Gcode coordinate queue is always beleaving it drives at constant levels (when driving lower than z-min-endstop as example).
+		* The Gcode coordinate queue cannot set gcode coordinates lower than Z=0 even if the system drives lower than z-min-endstop.
+		*/
+
+		// unhomed stop
+		// directDrive stop
+		// if not then we are homed
+		// we allow to overdrive Z-min a little bit so that also G-Codes are able to move to a smaller z-position even when Z-min has fired already
+		if (move->isZNegativeMove()) {
+			if (
+				!Printer::isAxisHomed(Z_AXIS)
+				|| (!forQueue && move->task == DIRECT_RUNNING_STOPPABLE)
+				|| (Printer::currentZSteps <= -1 * long(Printer::maxZOverrideSteps))
+				)
+			{
+				move->setZMoveFinished();
+
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	/* Angeblich kein Knopf gedrückt, aber overSteps übrig. -> overSteps zurückbauen und output ignorieren, der Schalter könnte wackeln. */
+	else if (outOfPrintVolume[Z_AXIS] > 0) {
+		// If we are in the endstop and have oversteps while moving z to minus we pay back ignored plusZ by ignoring minusZ until overMaxEndstopZ is even.
+		outOfPrintVolume[Z_AXIS]--;
+
+		return false;
+	}
+
+	return true;
+}
+
+bool isExtrusionInBauraum() {
+	return outOfPrintVolume[X_AXIS] == 0 && outOfPrintVolume[Y_AXIS] == 0 && outOfPrintVolume[Z_AXIS] == 0;
+}
+
 /**
   Processes the one-and-only direct move and moves the stepper motors one step.
   The function must be called from a timer loop. It returns the time for the next call. */
@@ -1369,10 +1540,9 @@ long PrintLine::performDirectMove()
     return performMove(&direct, FOR_DIRECT);
 } // performDirectMove
 
+
 long PrintLine::performMove(PrintLine* move, uint8_t forQueue)
 {
-    static bool compensatedPositionPushE = false;
-
     HAL::allowInterrupts();
 	fast8_t max_loops = Printer::stepsPerTimerCall;
     if (move->stepsRemaining < max_loops) max_loops = move->stepsRemaining;
@@ -1384,160 +1554,115 @@ long PrintLine::performMove(PrintLine* move, uint8_t forQueue)
         if(loop) HAL::delayMicroseconds(STEPPER_HIGH_DELAY+MULTI_STEP_DELAY);
 #endif // STEPPER_HIGH_DELAY+MULTI_STEP_DELAY > 0
 
+		if (move->isEMove())
+		{
+			bool doESteps = (move->error[E_AXIS] -= move->delta[E_AXIS]) < 0;
+
+			// Active pressure is to high to extrude
+			if (g_nEmergencyESkip) { //|| !isExtrusionInBauraum()
+				doESteps = false;
+				//count step as done, we wont need it later.
+				if (forQueue)  move->error[E_AXIS] += queueError;
+				else           move->error[E_AXIS] += directError;
+			}
+
+			if (doESteps)
+			{
+				int8_t dir = (move->isEPositiveMove() ? 1 : -1);
+#if USE_ADVANCE
+				if (Printer::isAdvanceActivated()) Printer::extruderStepsNeeded += dir;
+				else
+#endif // USE_ADVANCE
+				{
+					Extruder::step();
+				}
+
+#if FEATURE_HEAT_BED_Z_COMPENSATION
+				//add % parts of steps to extrusion because of higher layer heights caused by ZCMP
+				if (Printer::compensatedPositionOverPercE != 0) {
+					Printer::compensatedPositionCollectTinyE += Printer::compensatedPositionOverPercE;
+					if (Printer::compensatedPositionCollectTinyE >= 1) {
+#if USE_ADVANCE
+						if (Printer::isAdvanceActivated()) {
+							Printer::extruderStepsNeeded += dir;
+							while (Printer::compensatedPositionCollectTinyE >= 1) {
+								Printer::compensatedPositionCollectTinyE--; //notfalls bei überkompensation - sollte nicht vorkommen.
+							}
+						}
+						else
+#endif // USE_ADVANCE
+						{
+							Extruder::unstep();
+							// this is a steps spacer, not a double code from some lines above.
+							while (Printer::compensatedPositionCollectTinyE >= 1) {
+								Printer::compensatedPositionCollectTinyE--; //notfalls bei überkompensation - sollte nicht vorkommen.
+							}
+							Extruder::step();
+						}
+					}
+				}
+#endif // FEATURE_HEAT_BED_Z_COMPENSATION
+
+				if (forQueue)  move->error[E_AXIS] += queueError;
+				else {
+					g_nContinueSteps[E_AXIS] -= dir;
+					move->error[E_AXIS] += directError;
+				}
+			}
+		}
+
         if (move->isXMove())
         {			
-			//X-Axis:
-			bool noEndstop = true;
-			if (Printer::isXMaxEndstopHit() && move->isXPositiveMove())
-			{
-				noEndstop = false;
-				if (move->isAbortAtEndstops()) { // all directMoves have abort set, some queueMoves too (Homing and optional scans etc.)
-					move->setXMoveFinished();
-					if (!forQueue) {
-						Printer::stopDirectAxis(X_AXIS);
-					}
-				}
-			}
-			else if (Printer::isXMinEndstopHit() && move->isXNegativeMove()) {
-				noEndstop = false;
-				if (move->isAbortAtEndstops()) { // all directMoves have abort set, some queueMoves too (Homing and optional scans etc.)
-					move->setXMoveFinished();
-					if (!forQueue) {
-						Printer::stopDirectAxis(X_AXIS);
-					}
-				}
-			}
             if ((move->error[X_AXIS] -= move->delta[X_AXIS]) < 0)
             {
-				if (noEndstop && Printer::currentSteps[X_AXIS] + Printer::directCurrentSteps[X_AXIS] == Printer::currentXSteps) {
-					Printer::startXStep();
+				int8_t dir = (Printer::getXDirectionIsPos() ? 1 : -1);
+				if (inBauraum(X_AXIS, move, forQueue)) {
+					Printer::startXStep(dir);
 				}
 
                 if ( forQueue )
                 {
                     move->error[X_AXIS] += queueError;
-                    Printer::currentSteps[X_AXIS] += (Printer::getXDirectionIsPos() ? 1 : -1);
+                    Printer::currentSteps[X_AXIS] += dir;
                 }
                 else
                 {
                     move->error[X_AXIS] += directError;
-					int8_t dir = (Printer::getXDirectionIsPos() ? 1 : -1);
 					g_nContinueSteps[X_AXIS] -= dir;
                     Printer::directCurrentSteps[X_AXIS] += dir;
                 }
             }
         }
+
         if (move->isYMove())
         {
-			//Y-Axis:
-				// Queue ist komplexer, weil nachfolgende Bewegungen von einem Stop abhängig sind. Sonst wird zurückgefahren, wo nie hingefahren wurde. 
-			    //   Wir zählen die QueueSteps weiter, steppen aber nur innerhalb des Bauraums.
-				// Direct sind einzelne Bewegungen, die stoßen an und sind fertig.
-			bool noEndstop = true;
-			if (Printer::isYMaxEndstopHit() && move->isYPositiveMove())
-			{
-				noEndstop = false;
-				if (move->isAbortAtEndstops()) { // all directMoves have abort set, some queueMoves too (Homing and optional scans etc.)
-					move->setYMoveFinished();
-					if (!forQueue) {
-						Printer::stopDirectAxis(Y_AXIS);
-					}
-				}
-			}
-			else if (Printer::isYMinEndstopHit() && move->isYNegativeMove()) {
-				noEndstop = false;
-				if (move->isAbortAtEndstops()) { // all directMoves have abort set, some queueMoves too (Homing and optional scans etc.)
-					move->setYMoveFinished();
-					if (!forQueue) {
-						Printer::stopDirectAxis(Y_AXIS);
-					}
-				}
-			}
             if ((move->error[Y_AXIS] -= move->delta[Y_AXIS]) < 0)
             {
-				// Wenn current und directCurrent steps größer sind wie currentYSteps befinden wir uns ausserhalb Endstop.
-				if (noEndstop && Printer::currentSteps[Y_AXIS] + Printer::directCurrentSteps[Y_AXIS] == Printer::currentYSteps) {
-					Printer::startYStep();
+				int8_t dir = (Printer::getYDirectionIsPos() ? 1 : -1);
+				if (inBauraum(Y_AXIS, move, forQueue)) {
+					Printer::startYStep(dir);
 				}
 
                 if (forQueue)
                 {
                     move->error[Y_AXIS] += queueError;
-                    Printer::currentSteps[Y_AXIS] += (Printer::getYDirectionIsPos() ? 1 : -1);
+                    Printer::currentSteps[Y_AXIS] += dir;
                 }
                 else
                 {
                     move->error[Y_AXIS] += directError;
-					int8_t dir = (Printer::getYDirectionIsPos() ? 1 : -1);
 					g_nContinueSteps[Y_AXIS] -= dir;
                     Printer::directCurrentSteps[Y_AXIS] += dir;
                 }
             }
         }
 
-		static long overMaxEndstopZ = 0;
 		if (move->isZMove())
 		{
-			bool noEndstop = true;
-			if (Printer::isZMaxEndstopHit())
-			{
-				/**
-				 * This special Endstop treatment is only needed because if we have preplanned moves they will not care about relative move-back-restrictions otherwise.
-				 * we could just handle this like in x and y by comparing the coordinates towards real step count, but within Z we have all sorts of z-manipulation. 
-				 * so I introduce one more static long to count steps we ignored while hitting an endstop. Those steps first have to by "payed back" to unlock moving z away from this endstop again.
-				 *
-				 * Even if z compensation would still adjust somehow those remembered steps have to be undone before the next relative queuemove can drive z again.
-				 * But on that height z-compensation is equal for all x-y-positions
-				 */
-
-				if (move->isZPositiveMove()) {
-					noEndstop = false;
-					if (move->isAbortAtEndstops()) { // all directMoves have abort set, some queueMoves too (Homing and optional scans etc.)
-						move->setZMoveFinished();
-						move->setEMoveFinished(); //why extrude more if we reached z limit. -> stop it.
-						if (!forQueue) {
-							Printer::stopDirectAxis(Z_AXIS);
-						}
-					}
-					else {
-						// If we do not abort the Z-move outside of boundarys we will count the oversteps and block the physical step
-						overMaxEndstopZ++;
-					}
-				}
-				/* if move->isZNegativeMove() and have remembered overMaxEndstopZ: */
-				else if (overMaxEndstopZ) {
-					// If we are in the endstop and have oversteps while moving z to minus we pay back ignored plusZ by ignoring minusZ until overMaxEndstopZ is even.
-					overMaxEndstopZ--;
-					noEndstop = false;
-				}
-			}
-			else if (move->isZNegativeMove() && Printer::isZMinEndstopHit())
-			{
-				/**
-				 * Printer Z-Min is a very special endstop. It is not being handled by coordinate virtualizing, because:
-				 *
-				 * There is no chance that we will end up being limited by queue-Moves endstop crossing here 
-				 * because near z-min we have a warped z-coordinate system
-				 * The Gcode coordinate queue is always beleaving it drives at constant levels (when driving lower than z-min-endstop as example).
-				 * The Gcode coordinate queue cannot set gcode coordinates lower than Z=0 even if the system drives lower than z-min-endstop.
-				 */
-
-				// unhomed stop
-				// directDrive stop
-				// if not then we are homed
-				 // we allow to overdrive Z-min a little bit so that also G-Codes are able to move to a smaller z-position even when Z-min has fired already
-				if (
-					!Printer::isAxisHomed(Z_AXIS)
-					|| (!forQueue && move->task == DIRECT_RUNNING_STOPPABLE)
-					|| (Printer::currentZSteps <= -1 * long(Printer::maxZOverrideSteps))
-					)
-				{
-					move->setZMoveFinished();
-				}
-			}
 			if ((move->error[Z_AXIS] -= move->delta[Z_AXIS]) < 0) {
+				int8_t dir = (Printer::getZDirectionIsPos() ? 1 : -1);
 				//070118better zCMP strategy: if zCMP is against Queue/Direct, dont do some step and count it done @Queue/Direct and count it done @zCMP.
-				char dir = (Printer::getZDirectionIsPos() ? 1 : -1);
+
 #if FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
 				bool cmpup = (Printer::compensatedPositionCurrentStepsZ < Printer::compensatedPositionTargetStepsZ);
 				bool cmpdown = (Printer::compensatedPositionCurrentStepsZ > Printer::compensatedPositionTargetStepsZ);
@@ -1549,8 +1674,8 @@ long PrintLine::performMove(PrintLine* move, uint8_t forQueue)
 				}
 				else {
 					//no conflicting zCMP: Do the Z-Step.
-					if (noEndstop) {
-						Printer::startZStep();
+					if (inBauraumZ(move, forQueue)) {
+						Printer::startZStep(dir);
 					}
 				}
 #else
@@ -1576,79 +1701,7 @@ long PrintLine::performMove(PrintLine* move, uint8_t forQueue)
 			PrintLine::stepSlowedZCompensation();
 		}
 #endif // FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
-
-		if (move->isEMove())
-		{
-			bool doESteps = (move->error[E_AXIS] -= move->delta[E_AXIS]) < 0;
-
-#if FEATURE_HEAT_BED_Z_COMPENSATION
-			if (compensatedPositionPushE) {
-				doESteps = true;
-			}
-#endif // FEATURE_HEAT_BED_Z_COMPENSATION
-
-			// Active pressure is to high to extrude
-			if (g_nEmergencyESkip) {
-				doESteps = false;
-				//count step as done, we wont need it later.
-				if (forQueue)  move->error[E_AXIS] += queueError;
-				else           move->error[E_AXIS] += directError;
-			}
-
-			if (overMaxEndstopZ) {
-				doESteps = false;
-			}
-
-			if (doESteps)
-			{
-#if USE_ADVANCE
-				if (Printer::isAdvanceActivated()) // Use interrupt for movement
-				{
-					if (move->isEPositiveMove()) {
-						Printer::extruderStepsNeeded++;
-					}
-					else {
-						Printer::extruderStepsNeeded--;
-					}
-				}
-				else
-#endif // USE_ADVANCE
-					Extruder::step();
-
-#if FEATURE_HEAT_BED_Z_COMPENSATION
-				if (!compensatedPositionPushE) {
-					//add % parts of steps to extrusion because of higher layer heights caused by ZCMP
-					if (Printer::compensatedPositionOverPercE != 0.0f) {
-						//if we have primaryAxis as E_AXIS we would not be able to smuggle in steps because they are in one row - and it wouldnt make sense anyways, because those moves are retracts typically.
-						if (move->primaryAxis != E_AXIS) Printer::compensatedPositionCollectTinyE += Printer::compensatedPositionOverPercE;
-						if (Printer::compensatedPositionCollectTinyE >= 1.0f) {
-							compensatedPositionPushE = true;
-							while (Printer::compensatedPositionCollectTinyE >= 2.0f) Printer::compensatedPositionCollectTinyE--; //notfalls bei überkompensation - sollte nicht vorkommen.
-						}
-						/*
-						}else{
-						Printer::compensatedPositionCollectTinyE = 0.0f; //clear rest if out of compensation?? --> really necessary or is some part of one step acceptable because we are never gonna come back to CMP if we moved out??
-						*/
-					}
-#endif // FEATURE_HEAT_BED_Z_COMPENSATION
-					//only count step if it is not caused by ZCMP-E-Compensation
-					if (forQueue)  move->error[E_AXIS] += queueError;
-					else {
-						g_nContinueSteps[E_AXIS] -= (move->isEPositiveMove() ? 1 : -1);
-						move->error[E_AXIS] += directError;
-					}
-#if FEATURE_HEAT_BED_Z_COMPENSATION
-				}
-				else
-				{
-					//never count or update queue/direct steps if we are smuggling a step amongst others because of ZCMP-E-Compensation
-					compensatedPositionPushE = false;
-					Printer::compensatedPositionCollectTinyE--;
-				}
-#endif // FEATURE_HEAT_BED_Z_COMPENSATION
-			}
-		}
-
+		
 #if STEPPER_HIGH_DELAY>0
 		HAL::delayMicroseconds(STEPPER_HIGH_DELAY);
 #endif // #if STEPPER_HIGH_DELAY>0

@@ -49,6 +49,8 @@
 #define FOR_DIRECT                      0
 #define FOR_QUEUE                       1
 
+extern long outOfPrintVolume[3];
+
 class UIDisplay;
 class PrintLine
 {
@@ -309,10 +311,28 @@ public:
         return dir & 112;
     } // isXYZMove
 
-    inline bool isMoveOfAxis(uint8_t axis)
-    {
-        return (dir & (16<<axis));
-    } // isMoveOfAxis
+	inline bool isMoveOfAxis(uint8_t axis)
+	{
+		return (dir & (16 << axis));
+	} // isMoveOfAxis
+
+	inline void setMoveOfAxisFinished(uint8_t axis)
+	{
+		dir &= ~(16 << axis);
+		Printer::stepperDirection[axis] = 0;
+	} // setMoveOfAxisFinished
+
+	inline bool isPositiveMoveOfAxis(uint8_t axis)
+	{
+		uint8_t mask = (17 << axis);
+
+		return (dir & mask) == mask;
+	} // isPositiveMoveOfAxis
+
+	inline bool isNegativeMoveOfAxis(uint8_t axis)
+	{
+		return (dir & (17 << axis)) == (16 << axis);
+	} // isPositiveMoveOfAxis
 
     inline void setMoveOfAxis(uint8_t axis)
     {

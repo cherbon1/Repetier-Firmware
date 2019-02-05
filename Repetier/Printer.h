@@ -526,31 +526,31 @@ public:
         }
     } // setZDirection
 
-    static INLINE void startXStep()
+    static INLINE void startXStep(int8_t dir = (Printer::getXDirectionIsPos() ? 1 : -1))
     {
         WRITE( X_STEP_PIN, HIGH );
     #if FEATURE_TWO_XSTEPPER
         WRITE( X2_STEP_PIN, HIGH );
     #endif // FEATURE_TWO_XSTEPPER
-		Printer::currentXSteps += (Printer::getXDirectionIsPos() ? 1 : -1);
+		Printer::currentXSteps += dir;
     } // startXStep
 
-    static INLINE void startYStep()
+    static INLINE void startYStep(int8_t dir = (Printer::getYDirectionIsPos() ? 1 : -1))
     {
         WRITE( Y_STEP_PIN, HIGH );
     #if FEATURE_TWO_YSTEPPER
         WRITE( Y2_STEP_PIN, HIGH );
     #endif // FEATURE_TWO_YSTEPPER
-		Printer::currentYSteps += (Printer::getYDirectionIsPos() ? 1 : -1);
+		Printer::currentYSteps += dir;
     } // startYStep
 
-    static INLINE void startZStep()
+    static INLINE void startZStep(int8_t dir = (Printer::getZDirectionIsPos() ? 1 : -1))
     {
         WRITE( Z_STEP_PIN, HIGH );
     #if FEATURE_TWO_ZSTEPPER
         WRITE( Z2_STEP_PIN, HIGH );
     #endif // FEATURE_TWO_ZSTEPPER
-        Printer::currentZSteps += (Printer::getZDirectionIsPos() ? 1 : -1);
+        Printer::currentZSteps += dir;
     } // startZStep
 
     static INLINE void endZStep( void )
@@ -958,6 +958,21 @@ public:
         return isZMaxSoftEndstopHit();
 #endif // Z_MAX_PIN>-1 && MAX_HARDWARE_ENDSTOP_Z
     } // isZMaxEndstopHit
+
+	static INLINE bool isMinEndstopHit(uint8_t axis)
+	{
+		if (axis == X_AXIS) return isXMinEndstopHit();
+		if (axis == Y_AXIS) return isYMinEndstopHit();
+		if (axis == Z_AXIS) return isZMinEndstopHit();
+		return false;
+	}
+	static INLINE bool isMaxEndstopHit(uint8_t axis)
+	{
+		if (axis == X_AXIS) return isXMaxEndstopHit();
+		if (axis == Y_AXIS) return isYMaxEndstopHit();
+		if (axis == Z_AXIS) return isZMaxEndstopHit();
+		return false;
+	}
 
     static INLINE bool areAllSteppersDisabled()
     {
