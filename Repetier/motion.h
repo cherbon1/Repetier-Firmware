@@ -49,8 +49,6 @@
 #define FOR_DIRECT                      0
 #define FOR_QUEUE                       1
 
-extern long outOfPrintVolume[3];
-
 class UIDisplay;
 class PrintLine
 {

@@ -1325,7 +1325,7 @@ long PrintLine::performQueueMove()
 } // performQueueMove
 
 
-long outOfPrintVolume[3] = { 0 };
+volatile long outOfPrintVolume[3] = { 0 };
 
 /** 
  * Check if our queued move is within or without specified print volume
@@ -1344,6 +1344,7 @@ bool inBauraum(uint8_t axisXY, PrintLine* move, uint8_t forQueue) {
 			{ 
 				move->setMoveOfAxisFinished(axisXY);
 				if (!forQueue) Printer::stopDirectAxis(axisXY);
+				outOfPrintVolume[axisXY] = 0;
 
 				return false;
 			}			
@@ -1373,6 +1374,7 @@ bool inBauraum(uint8_t axisXY, PrintLine* move, uint8_t forQueue) {
 			{ 
 				move->setMoveOfAxisFinished(axisXY);
 				if (!forQueue) Printer::stopDirectAxis(axisXY);
+				outOfPrintVolume[axisXY] = 0;
 
 				return false;
 			}
@@ -1430,6 +1432,7 @@ bool inBauraumZ(PrintLine* move, uint8_t forQueue) {
 			{ // all directMoves have abort set, some queueMoves too (Homing and optional scans etc.)
 				move->setZMoveFinished();
 				if (!forQueue) Printer::stopDirectAxis(Z_AXIS);
+				outOfPrintVolume[Z_AXIS] = 0;
 
 				return false;
 			}
@@ -1473,6 +1476,7 @@ bool inBauraumZ(PrintLine* move, uint8_t forQueue) {
 				)
 			{
 				move->setZMoveFinished();
+				outOfPrintVolume[Z_AXIS] = 0;
 
 				return false;
 			}
@@ -1557,13 +1561,15 @@ long PrintLine::performMove(PrintLine* move, uint8_t forQueue)
 		if (move->isEMove())
 		{
 			bool doESteps = (move->error[E_AXIS] -= move->delta[E_AXIS]) < 0;
-
-			// Active pressure is to high to extrude
-			if (g_nEmergencyESkip) { //|| !isExtrusionInBauraum()
-				doESteps = false;
+			if(doESteps) {
 				//count step as done, we wont need it later.
 				if (forQueue)  move->error[E_AXIS] += queueError;
 				else           move->error[E_AXIS] += directError;
+			}
+
+			// Active pressure is to high to extrude
+			if (g_nEmergencyESkip || !isExtrusionInBauraum()) {
+				doESteps = false;
 			}
 
 			if (doESteps)
@@ -1576,15 +1582,18 @@ long PrintLine::performMove(PrintLine* move, uint8_t forQueue)
 				{
 					Extruder::step();
 				}
+				if (!forQueue) g_nContinueSteps[E_AXIS] -= dir;
 
 #if FEATURE_HEAT_BED_Z_COMPENSATION
-				//add % parts of steps to extrusion because of higher layer heights caused by ZCMP
+				// This Block adds % parts of steps to extrusion because of higher layer heights caused by ZCMP
+				// We calculated compensatedPositionOverPercE as a result of streched layer hightes. Here we add material to the layer to compensate stretching.
 				if (Printer::compensatedPositionOverPercE != 0) {
 					Printer::compensatedPositionCollectTinyE += Printer::compensatedPositionOverPercE;
 					if (Printer::compensatedPositionCollectTinyE >= 1) {
 #if USE_ADVANCE
 						if (Printer::isAdvanceActivated()) {
 							Printer::extruderStepsNeeded += dir;
+							if (!forQueue) g_nContinueSteps[E_AXIS] -= dir;
 							while (Printer::compensatedPositionCollectTinyE >= 1) {
 								Printer::compensatedPositionCollectTinyE--; //notfalls bei überkompensation - sollte nicht vorkommen.
 							}
@@ -1594,6 +1603,7 @@ long PrintLine::performMove(PrintLine* move, uint8_t forQueue)
 						{
 							Extruder::unstep();
 							// this is a steps spacer, not a double code from some lines above.
+							if (!forQueue) g_nContinueSteps[E_AXIS] -= dir;
 							while (Printer::compensatedPositionCollectTinyE >= 1) {
 								Printer::compensatedPositionCollectTinyE--; //notfalls bei überkompensation - sollte nicht vorkommen.
 							}
@@ -1602,12 +1612,6 @@ long PrintLine::performMove(PrintLine* move, uint8_t forQueue)
 					}
 				}
 #endif // FEATURE_HEAT_BED_Z_COMPENSATION
-
-				if (forQueue)  move->error[E_AXIS] += queueError;
-				else {
-					g_nContinueSteps[E_AXIS] -= dir;
-					move->error[E_AXIS] += directError;
-				}
 			}
 		}
 
@@ -1728,14 +1732,14 @@ long PrintLine::performMove(PrintLine* move, uint8_t forQueue)
     Printer::timer[forQueue] += (Printer::interval * max_loops);
 
     //If acceleration is enabled on this move and we are in the acceleration segment, calculate the current interval
-    if (move->moveAccelerating(forQueue))   // we are accelerating
+    if (move->moveAccelerating(forQueue)) // we are accelerating
     {
         v = HAL::ComputeV(Printer::timer[forQueue], move->fAcceleration);
         v += move->vStart;
         if(v > move->vMax) v = move->vMax;
         Printer::vMaxReached[forQueue] = v;
     }
-    else if (move->moveDecelerating(forQueue))     // time to slow down
+    else if (move->moveDecelerating(forQueue)) // time to slow down
     {
         // Printer::timer got reset the first time reaching here.
         //dieses v ist hier erst gegenbeschleunigend und wird dann gleich abgezogen -> das ist die korrektur.
