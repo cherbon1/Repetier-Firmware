@@ -1334,19 +1334,24 @@ void UIDisplay::parse(char *txt, bool ram)
                     ,3);
                     break;
                 }
-                if(c2=='m')                                                                             // %om : Speed multiplier
-                {
- #if FEATURE_DIGIT_FLOW_COMPENSATION
-                    addInt(Printer::feedrateMultiply * Printer::dynamicFeedrateFactor, 3);
- #else 
-                    addInt(Printer::feedrateMultiply, 3);
- #endif // FEATURE_DIGIT_FLOW_COMPENSATION
-                    break;
-                }
+				if (c2 == 'm')                                                                             // %om : Speed multiplier
+				{
+#if FEATURE_DIGIT_FLOW_COMPENSATION
+					addInt(Printer::feedrateMultiply * Printer::dynamicFeedrateFactor, 3);
+#else 
+					addInt(Printer::feedrateMultiply, 3);
+#endif // FEATURE_DIGIT_FLOW_COMPENSATION
+					break;
+				}
+				if (c2 == 'M')                                                                             // %oM : Printer::feedrate
+				{
+					addInt(Printer::feedrate, 3);
+					break;
+				}
                 if(c2=='v')                                                                             // %ov : Active Speed
                 {
 #if FEATURE_DIGIT_FLOW_COMPENSATION
-					addFloat(Printer::v * Printer::dynamicFeedrateFactor, 3, 2);
+					addFloat(Printer::v * Printer::dynamicFeedrateFactor, 3, 1);
 #else 
 					addFloat(Printer::v, 3, 2);
 #endif // FEATURE_DIGIT_FLOW_COMPENSATION

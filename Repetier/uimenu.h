@@ -40,7 +40,8 @@ List of placeholder:
 %Eb : Target temperature of heated bed
 %E0-9 : Target temperature of extruder 0..9
 %os : Status message
-%om : Speed multiplier
+%om : Speed multiplier 
+%oM : Printer::feedrate
 %ov : active Speed
 %op : Is double or quadstepping?
 %of : flow multiplier
@@ -241,7 +242,7 @@ for 2 row displays. You can add additional pages or change the default pages lik
         UI_PAGE4(ui_page1,UI_TEXT_PAGE_EXTRUDER,"Z%hZ%x2%x5 %sC",UI_TEXT_STRAIN_GAUGE,"%os")
     #endif // HAVE_HEATED_BED==true
 
-    UI_PAGE4(ui_page2,"X%hX%x0 %x3mm","Y%hY%x1 %x4mm","Z%hZ%x2%x5%sC","%os")
+    UI_PAGE4(ui_page2,"X%hX%x0 %x3mm","Y%hY%x1 %x4mm","Z%hZ%x2%x5%sC","F:%oM %om%%% %ovmm/s")
 
     #if NUM_EXTRUDER>1
         UI_PAGE4(ui_page3,UI_TEXT_PAGE_EXTRUDER1,UI_TEXT_PAGE_EXTRUDER2,UI_TEXT_PAGE_BED,"%os")
@@ -290,7 +291,7 @@ for 2 row displays. You can add additional pages or change the default pages lik
                                 )
     #else
         UI_PAGE4(ui_page_mod2,  "Layer Height: %LHmm",
-                                "Speed:%op %ovmm/s",
+                                "Speed: %op %ovmm/s",
                                 "zCMP: %Lm..%LM mm",   /*7+5+4*/
                                 "eCMP: %LP%%%@Z:%LC" /*6+LP%5+"@Z:"3+6:*/
                                 )
