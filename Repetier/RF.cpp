@@ -6350,7 +6350,7 @@ void handleStrainGaugeFeatures(millis_t uTime){
         {
             uLastPressureTime = uTime;
 
-            if( !Printer::isMenuMode(MENU_MODE_PAUSED) && Printer::isPrinting() && Printer::areAxisHomed() )
+            if( !g_pauseMode && Printer::isPrinting() && Printer::areAxisHomed() )
             {
                 // this check shall be done only during the printing (for example, it shall not be done in case filament is extruded manually)
                 nPressureSum    += pressure;
@@ -6368,8 +6368,11 @@ void handleStrainGaugeFeatures(millis_t uTime){
                         // the pressure is outside the allowed range, we must perform the emergency pause
                         Com::printF( PSTR( "emergency pause: " ), nPressure );
                         showWarning( (void*)ui_text_emergency_pause );
-                        pausePrint();
-                        pausePrint();
+
+						// goto pause without blocking
+						g_uPauseTime = HAL::timeInMilliseconds();
+						g_pauseMode = PAUSE_MODE_PAUSED_AND_MOVED; // Blocks Queue
+						g_pauseStatus = PAUSE_STATUS_GOTO_PAUSE_AND_MOVE;
                     }
                 }
             }
