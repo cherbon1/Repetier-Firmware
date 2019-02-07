@@ -10,6 +10,10 @@ TODO:
 # arc-support: test circles while printing and not printing
 # pause @RF1000: test if z max-endstop is respected while moving in dual-endstop circular setting
 
+V 01.43.68.Mod (2019-02-07)
+- resolved some error marks in visual studio. (they were no bug, the fix is just for better precompiler compatibility and should change nothing)
+- fixed some translation yes/no
+
 V 01.43.67.Mod (2019-02-07)
 - added last GCode feedrate, feed multiplier and active feedrate to 3rd menu underneath XYZ positions
 
