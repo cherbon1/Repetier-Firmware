@@ -1169,7 +1169,7 @@ which assigns the menu stored in ui_menu_conf_feed to the action UI_ACTION_SHOW_
 
 When do you need this? You might want a fast button to change the temperature. In the default menu you have no menu
 to change the temperature and view it the same time. So you need to make an action menu for this like:
-UI_MENU_ACTION4C(ui_menu_extrtemp,UI_ACTION_EXTRUDER0_TEMP,"Temp. 0  :%E0\002C","","","");
+UI_MENU_ACTION4(ui_menu_extrtemp,UI_ACTION_EXTRUDER0_TEMP,"Temp. 0  :%E0\002C","","","");
 Then you assign this menu to a usermenu:
 #define UI_USERMENU2 ui_menu_extrtemp
 
