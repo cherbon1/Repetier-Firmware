@@ -101,7 +101,8 @@ public:
     static int              feedrateMultiply;                   // Multiplier for feedrate in percent (factor 1 = 100)	
 	static float            dynamicFeedrateFactor;              // Feedrate multiplier factor for digit compensation (1.0 = 100%)	
 	static float            menuExtrusionFactor;                // Flow multiplier factor (1.0 = 100%)
-	static float            dynamicExtrusionFactor;             // Flow multiplier factor for digit compensation (1.0 = 100%)	
+	static float            dynamicExtrusionFactor;             // Flow multiplier factor for digit compensation (1.0 = 100%)
+	static float            extrudeMultiplyErrorSteps;               // collects the extrusion error.
     static float            maxXYJerk;                          // Maximum allowed jerk in mm/s
     static float            maxZJerk;                           // Maximum allowed jerk in z direction in mm/s
     static speed_t          vMaxReached[2];                     // Maximumu reached speed

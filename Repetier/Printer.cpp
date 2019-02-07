@@ -81,6 +81,7 @@ int             Printer::feedrateMultiply = 100;                        // Multi
 float           Printer::dynamicFeedrateFactor = 1.0;                   // Feedrate multiplier factor for digit compensation (1.0 = 100%)
 float           Printer::menuExtrusionFactor = 1.0;                     // Flow multiplier factor (1.0 = 100%)
 float           Printer::dynamicExtrusionFactor = 1.0;                  // Flow multiplier factor for digit compensation (1.0 = 100%)
+float			Printer::extrudeMultiplyErrorSteps = 0;
 float           Printer::maxXYJerk;                                     // Maximum allowed jerk in mm/s
 float           Printer::maxZJerk;                                      // Maximum allowed jerk in z direction in mm/s
 unsigned int    Printer::vMaxReached[2];                                // Maximum reached speed [FOR_DIRECT, FOR_QUEUE]

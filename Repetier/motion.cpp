@@ -109,6 +109,16 @@ void PrintLine::prepareQueueMove(uint8_t abortAtEndstops, uint8_t pathOptimize, 
     if(!pathOptimize) p->setEndSpeedFixed(true);
     p->dir = 0;
 
+	// Constrain Destinations to values we should be able to reach
+	for (uint8_t axis = 0; axis < E_AXIS; axis++)
+	{
+		float direct = Printer::getDirectMM(axis);
+		float endstop = Printer::maxSoftEndstopSteps[axis] * Printer::axisMMPerSteps[axis];
+		if (Printer::destinationMM[axis] + direct >= endstop + 0.1) {
+			Printer::destinationMM[axis] = (endstop + 0.1 - direct);
+		}
+	}
+
     // Find direction
     for(uint8_t axis=0; axis < 4; axis++)
     {
@@ -122,12 +132,15 @@ void PrintLine::prepareQueueMove(uint8_t abortAtEndstops, uint8_t pathOptimize, 
 #else
 			float axisDistanceFactor = Printer::menuExtrusionFactor;
  #endif // FEATURE_DIGIT_FLOW_COMPENSATION
-			p->delta[E_AXIS] = lroundf(axisDistanceUnscaledMM * axisDistanceFactor * Printer::axisStepsPerMM[E_AXIS]);
-			axisDistanceMM[E_AXIS] = float(p->delta[E_AXIS]) * Printer::axisMMPerSteps[E_AXIS];
-			Printer::filamentPrinted += axisDistanceMM[E_AXIS];
 
-			//Update calculated coordinate using the unscaled e-move distance.
-			Printer::destinationMMLast[E_AXIS] += (axisDistanceMM[E_AXIS] / axisDistanceFactor);
+			axisDistanceMM[E_AXIS] = axisDistanceUnscaledMM * axisDistanceFactor;
+			Printer::extrudeMultiplyErrorSteps += axisDistanceMM[E_AXIS] * Printer::axisStepsPerMM[E_AXIS];
+			p->delta[E_AXIS] = lroundf(Printer::extrudeMultiplyErrorSteps);
+			Printer::extrudeMultiplyErrorSteps -= p->delta[E_AXIS];
+
+			Printer::filamentPrinted += p->delta[E_AXIS] * Printer::axisMMPerSteps[E_AXIS];
+
+			Printer::destinationMMLast[E_AXIS] = Printer::destinationMM[E_AXIS];
         }
 		else {
 			p->delta[axis] = lroundf(axisDistanceUnscaledMM * Printer::axisStepsPerMM[axis]);
@@ -144,7 +157,7 @@ void PrintLine::prepareQueueMove(uint8_t abortAtEndstops, uint8_t pathOptimize, 
 			p->setPositiveDirectionForAxis(axis);
         else
             p->delta[axis] = -p->delta[axis];
-        if(p->delta[axis]) p->setMoveOfAxis(axis);
+        if(p->delta[axis] != 0) p->setMoveOfAxis(axis);
     }
     if(p->isNoMove())
     {
@@ -607,27 +620,27 @@ void PrintLine::updateTrapezoids()
         firstLine->unblock();
         return;
     }
-#if USE_ADVANCE
-	// if we start/stop extrusion we need to do so with lowest possible end speed
-	// or advance would leave a drolling extruder and can not adjust fast enough.
-	else if( Printer::isAdvanceActivated() && 
-			(
-				previous->isEMove() != act->isEMove()  // If e-move changes to non-e-move
-				|| (previous->isEMove() && act->isEMove() && previous->isEPositiveMove() != act->isEPositiveMove() ) // If e-move changes direction
-			)  
-	)
-	{
-		previous->endSpeed = act->startSpeed = previous->maxJunctionSpeed = RMath::min(
-			RMath::min(previous->safeSpeed(previous->primaryAxis), act->safeSpeed(act->primaryAxis)),
-			RMath::min(previous->endSpeed, act->startSpeed)
-		);
-        previous->setEndSpeedFixed(true);
-        act->setStartSpeedFixed(true);
-        act->updateStepsParameter();
-        firstLine->unblock();
-        return;
-    }
-#endif // USE_ADVANCE
+//#if USE_ADVANCE
+//	// if we start/stop extrusion we need to do so with lowest possible end speed
+//	// or advance would leave a drolling extruder and can not adjust fast enough.
+//	else if( Printer::isAdvanceActivated() && 
+//			(
+//				previous->isEMove() != act->isEMove()  // If e-move changes to non-e-move
+//				|| (previous->isEMove() && act->isEMove() && previous->isEPositiveMove() != act->isEPositiveMove() ) // If e-move changes direction
+//			)  
+//	)
+//	{
+//		previous->endSpeed = act->startSpeed = previous->maxJunctionSpeed = RMath::min(
+//			RMath::min(previous->safeSpeed(previous->primaryAxis), act->safeSpeed(act->primaryAxis)),
+//			RMath::min(previous->endSpeed, act->startSpeed)
+//		);
+//        previous->setEndSpeedFixed(true);
+//        act->setStartSpeedFixed(true);
+//        act->updateStepsParameter();
+//        firstLine->unblock();
+//        return;
+//    }
+//#endif // USE_ADVANCE
 
 	// Set maximum junction speed if we have a real move before
     computeMaxJunctionSpeed(previous, act);
@@ -1318,14 +1331,17 @@ long PrintLine::performQueueMove()
 		Printer::lastDirectionSovereignty = DIR_QUEUE;
 		Printer::v = cur->fullSpeed;
 		cur->adjustDirections();
+#if USE_ADVANCE
 		cur->updateAdvanceSteps(Printer::vMaxReached[DIR_QUEUE]);
+#endif // USE_ADVANCE
 	}
 
     return performMove(cur, FOR_QUEUE);
 } // performQueueMove
 
-
-volatile long outOfPrintVolume[3] = { 0 };
+// This is some buffer but only for a limited amount of overdrive.
+volatile int16_t outOfPrintVolume[2] = { 0 };
+volatile int32_t outOfPrintVolumeZ = 0;
 
 /** 
  * Check if our queued move is within or without specified print volume
@@ -1432,20 +1448,20 @@ bool inBauraumZ(PrintLine* move, uint8_t forQueue) {
 			{ // all directMoves have abort set, some queueMoves too (Homing and optional scans etc.)
 				move->setZMoveFinished();
 				if (!forQueue) Printer::stopDirectAxis(Z_AXIS);
-				outOfPrintVolume[Z_AXIS] = 0;
+				outOfPrintVolumeZ = 0;
 
 				return false;
 			}
 			// If we do not abort the Z-move outside of boundarys we will count the oversteps and block the physical step
-			outOfPrintVolume[Z_AXIS]++;
+			outOfPrintVolumeZ++;
 
 			return false;
 		}
 
-		if (outOfPrintVolume[Z_AXIS] != 0) 
+		if (outOfPrintVolumeZ != 0)
 		{
 			// If we are in the endstop and have oversteps while moving z to minus we pay back ignored plusZ by ignoring minusZ until overMaxEndstopZ is even.
-			outOfPrintVolume[Z_AXIS]--;
+			outOfPrintVolumeZ--;
 
 			return false;
 		}
@@ -1476,7 +1492,7 @@ bool inBauraumZ(PrintLine* move, uint8_t forQueue) {
 				)
 			{
 				move->setZMoveFinished();
-				outOfPrintVolume[Z_AXIS] = 0;
+				outOfPrintVolumeZ = 0;
 
 				return false;
 			}
@@ -1486,18 +1502,14 @@ bool inBauraumZ(PrintLine* move, uint8_t forQueue) {
 	}
 
 	/* Angeblich kein Knopf gedrückt, aber overSteps übrig. -> overSteps zurückbauen und output ignorieren, der Schalter könnte wackeln. */
-	else if (outOfPrintVolume[Z_AXIS] > 0) {
+	else if (outOfPrintVolumeZ > 0) {
 		// If we are in the endstop and have oversteps while moving z to minus we pay back ignored plusZ by ignoring minusZ until overMaxEndstopZ is even.
-		outOfPrintVolume[Z_AXIS]--;
+		outOfPrintVolumeZ--;
 
 		return false;
 	}
 
 	return true;
-}
-
-bool isExtrusionInBauraum() {
-	return outOfPrintVolume[X_AXIS] == 0 && outOfPrintVolume[Y_AXIS] == 0 && outOfPrintVolume[Z_AXIS] == 0;
 }
 
 /**
@@ -1538,12 +1550,13 @@ long PrintLine::performDirectMove()
 		Printer::lastDirectionSovereignty = DIR_DIRECT;
 		Printer::v = direct.fullSpeed;
 		direct.adjustDirections();
+#if USE_ADVANCE
 		direct.updateAdvanceSteps(Printer::vMaxReached[FOR_DIRECT]);
+#endif // USE_ADVANCE
 	}
 
     return performMove(&direct, FOR_DIRECT);
 } // performDirectMove
-
 
 long PrintLine::performMove(PrintLine* move, uint8_t forQueue)
 {
@@ -1560,6 +1573,7 @@ long PrintLine::performMove(PrintLine* move, uint8_t forQueue)
 
 		if (move->isEMove())
 		{
+			HAL::allowInterrupts();
 			bool doESteps = (move->error[E_AXIS] -= move->delta[E_AXIS]) < 0;
 			if(doESteps) {
 				//count step as done, we wont need it later.
@@ -1568,9 +1582,10 @@ long PrintLine::performMove(PrintLine* move, uint8_t forQueue)
 			}
 
 			// Active pressure is to high to extrude
-			if (g_nEmergencyESkip || !isExtrusionInBauraum()) {
+			if (g_nEmergencyESkip || !(outOfPrintVolume[X_AXIS] == 0 && outOfPrintVolume[Y_AXIS] == 0 && outOfPrintVolumeZ == 0)) {
 				doESteps = false;
 			}
+			HAL::forbidInterrupts();
 
 			if (doESteps)
 			{
@@ -1619,10 +1634,12 @@ long PrintLine::performMove(PrintLine* move, uint8_t forQueue)
         {			
             if ((move->error[X_AXIS] -= move->delta[X_AXIS]) < 0)
             {
+				HAL::allowInterrupts();
 				int8_t dir = (Printer::getXDirectionIsPos() ? 1 : -1);
 				if (inBauraum(X_AXIS, move, forQueue)) {
 					Printer::startXStep(dir);
 				}
+				HAL::forbidInterrupts();
 
                 if ( forQueue )
                 {
@@ -1642,10 +1659,12 @@ long PrintLine::performMove(PrintLine* move, uint8_t forQueue)
         {
             if ((move->error[Y_AXIS] -= move->delta[Y_AXIS]) < 0)
             {
+				HAL::allowInterrupts();
 				int8_t dir = (Printer::getYDirectionIsPos() ? 1 : -1);
 				if (inBauraum(Y_AXIS, move, forQueue)) {
 					Printer::startYStep(dir);
 				}
+				HAL::forbidInterrupts();
 
                 if (forQueue)
                 {
@@ -1677,10 +1696,12 @@ long PrintLine::performMove(PrintLine* move, uint8_t forQueue)
 					Printer::compensatedPositionCurrentStepsZ--;
 				}
 				else {
+					HAL::allowInterrupts();
 					//no conflicting zCMP: Do the Z-Step.
 					if (inBauraumZ(move, forQueue)) {
 						Printer::startZStep(dir);
 					}
+					HAL::forbidInterrupts();
 				}
 #else
 				Printer::startZStep();
@@ -1706,6 +1727,8 @@ long PrintLine::performMove(PrintLine* move, uint8_t forQueue)
 		}
 #endif // FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
 		
+        move->stepsRemaining--;
+
 #if STEPPER_HIGH_DELAY>0
 		HAL::delayMicroseconds(STEPPER_HIGH_DELAY);
 #endif // #if STEPPER_HIGH_DELAY>0
@@ -1715,7 +1738,6 @@ long PrintLine::performMove(PrintLine* move, uint8_t forQueue)
 #endif // USE_ADVANCE
             Extruder::unstep();
 
-        move->stepsRemaining--;
         Printer::endXYZSteps();
     } // for loop
     HAL::allowInterrupts(); // Allow interrupts for other types, timer1 is still disabled

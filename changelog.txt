@@ -11,10 +11,16 @@ TODO:
 # fan changes: move to performQueueMove() -> task
 # pause @RF1000: test if z max-endstop is respected while moving in dual-endstop circular setting
 
+V 01.43.65.Mod (2019-02-07)
+- going back to repetiers way of keeping extrusion errors collected.
+- test: inserted some allow-disallow interrupt lines into move interrupt.
+- probably fixed advance issue
+
 V 01.43.64.Mod (2019-02-03)
 - fix Gcode coordinate shift when moving out of endstop or softendstop boundaries. (The following commands in queue caused drive-backs where not needed)
-- x+- y+- z+ axis: we now have to endstop modes. stop+virtualize and stop+abort.
+- x+- y+- z+ axis: we now have two endstop modes: stop+virtualize and stop+abort.
 - we have no extrusion when the printer prints at any endstop or softendstop 
+- readded path planning limit with extrusion disable to prevent unaccelerated/undeccelerated stops while printing in queue mode.
 
 V 01.43.63.Mod (2019-02-02)
 - fixed harmless but wrong read of z-step-size from eeprom (removed microstep correction)

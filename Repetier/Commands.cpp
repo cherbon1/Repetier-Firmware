@@ -203,22 +203,22 @@ void Commands::printTemperatures(bool showRaw)
         //Act as heated chamber ambient temperature for Repetier-Server 0.86.2+ ---> Letter C
         TemperatureController* act = &optTempController;
         act->updateCurrentTemperature();
-        Com::printF(Com::tSpaceChamber );
-        Com::printF(Com::tColon,act->currentTemperatureC,1); //temp
-        Com::printF(Com::tSpaceSlash,0,0); // ziel-temp
-        Com::printF(Com::tSpaceCAtColon,0); // leistung
+        Com::printF(Com::tSpaceChamber);
+        Com::printF(Com::tColon, act->currentTemperatureC, 1); //temp
+        Com::printF(Com::tSpaceSlash, 0, 0); // ziel-temp
+        Com::printF(Com::tSpaceCAtColon, 0); // leistung
 #endif // RESERVE_ANALOG_INPUTS
 
 #if FEATURE_PRINT_PRESSURE
         Com::printF(Com::tSpace);
         Com::printF(Com::tF);
-        Com::printF(Com::tColon,(int)g_nLastDigits); //Kraft
+        Com::printF(Com::tColon, (int)g_nLastDigits); //Kraft
 #if FEATURE_ZERO_DIGITS
-        Com::printF(Com::tSpaceSlash,(int)(Printer::g_pressure_offset_active ? Printer::g_pressure_offset : 0) ); //Offset
+        Com::printF(Com::tSpaceSlash, (int)(Printer::g_pressure_offset_active ? Printer::g_pressure_offset : 0) ); //Offset
 #else
-        Com::printF(Com::tSpaceSlash,0); //Offset 0
+        Com::printF(Com::tSpaceSlash, 0); //Offset 0
 #endif // FEATURE_ZERO_DIGITS
-        Com::printF(Com::tSpaceAtColon,0); //Ziel ^^, nein ich halte mich nur an die PWM-Syntax
+        Com::printF(Com::tSpaceAtColon, 0); //Ziel ^^, nein ich halte mich nur an die PWM-Syntax
 #endif //FEATURE_PRINT_PRESSURE
 		Com::println();
     }
