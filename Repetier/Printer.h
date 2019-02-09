@@ -1140,7 +1140,7 @@ public:
     static void homeDigits();
     static void homeAxis(bool xaxis, bool yaxis, bool zaxis); /// Home axis
     static void setOrigin(float xOff, float yOff, float zOff);
-	static void addKurtWobbleFixOffset(bool absolute);
+	static void addKurtWobbleFixOffset();
 
 	static INLINE long getDestinationSteps(uint8_t axis)
 	{

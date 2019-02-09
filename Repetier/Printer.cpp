@@ -366,7 +366,7 @@ void Printer::updateAdvanceActivated()
 } // updateAdvanceActivated
 
 #if FEATURE_Kurt67_WOBBLE_FIX
-void Printer::addKurtWobbleFixOffset(bool absoluteXYCoordinates)
+void Printer::addKurtWobbleFixOffset()
 {
 	/*
 	Zielkoordinate in Z ist: "z"
@@ -391,13 +391,13 @@ void Printer::addKurtWobbleFixOffset(bool absoluteXYCoordinates)
 		float anglePositionWobble = cos(zweiPi*(zSchalterZ / spindelSteigung) - (float)Printer::wobblePhaseXY * hundertstelPi);
 		//für das wobble in Richtung X-Achse gilt immer dieselbe Amplitude, weil im extremfall beide gegeneinander arbeiten und sich aufheben könnten, oder die Spindeln arbeiten zusammen.
 		float wOffsetX = Printer::wobbleAmplitudes[0] * anglePositionWobble * 0.001;  //offset in [mm]
-		if (absoluteXYCoordinates) {
-			Printer::destinationMM[X_AXIS] += wOffsetX;
-		}
-		else {
+		if (Printer::relativeCoordinateMode) {
 			//fraglich wie lange das genau bleibt. Ist aber auch so beim relativen Drucken ein Problem.
 			//addiere nur die Änderung des Offsets.
 			Printer::destinationMM[X_AXIS] += (wOffsetX - Printer::lastWobbleFixOffset[X_AXIS]);
+		}
+		else {
+			Printer::destinationMM[X_AXIS] += wOffsetX;
 		}
 		Printer::lastWobbleFixOffset[X_AXIS] = wOffsetX;
 	}
@@ -406,13 +406,13 @@ void Printer::addKurtWobbleFixOffset(bool absoluteXYCoordinates)
 		//gilt eher die Y-Achsen-Richtung-Amplitude links (x=0) oder rechts (x=achsenlänge)? (abhängig von der ziel-x-position wird anteilig verrechnet.)
 		float xPosPercent = float(Printer::currentXSteps) / float(Printer::maxSoftEndstopSteps[X_AXIS]);
 		float wOffsetY = ((1 - xPosPercent) * Printer::wobbleAmplitudes[1] + (xPosPercent)* Printer::wobbleAmplitudes[2]) * anglePositionWobble * 0.001;  //offset in [mm]
-		if (absoluteXYCoordinates) {
-			Printer::destinationMM[Y_AXIS] += wOffsetY;
-		}
-		else {
+		if (Printer::relativeCoordinateMode) {
 			//fraglich wie lange das genau bleibt. Ist aber auch so beim relativen Drucken ein Problem.
 			//addiere nur die Änderung des Offsets.
 			Printer::destinationMM[Y_AXIS] += (wOffsetY - Printer::lastWobbleFixOffset[Y_AXIS]);
+		}
+		else {
+			Printer::destinationMM[Y_AXIS] += wOffsetY;
 		}
 		Printer::lastWobbleFixOffset[Y_AXIS] = wOffsetY;
 	}
@@ -498,7 +498,7 @@ bool Printer::queueGCodeCoordinates(GCode *com)
 
 #if FEATURE_Kurt67_WOBBLE_FIX
 	if (isXYZMove) {
-		addKurtWobbleFixOffset(relativeCoordinateMode);
+		addKurtWobbleFixOffset();
 	}
 #endif // FEATURE_Kurt67_WOBBLE_FIX
 

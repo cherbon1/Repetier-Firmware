@@ -10,6 +10,10 @@ TODO:
 # arc-support: test circles while printing and not printing
 # pause @RF1000: test if z max-endstop is respected while moving in dual-endstop circular setting
 
+V 01.43.69.Mod (2019-02-09)
+- fixed mixup in relative/absolute coordinate system parameter for Kurt's Wobblefix. Wobblefix works now and is tested.
+- decreased automatic spacing for Z while going into move-away-pause because we can easily drive down more by Z-buttons while paused.
+
 V 01.43.68.Mod (2019-02-07)
 - resolved some error marks in visual studio. (they were no bug, the fix is just for better precompiler compatibility and should change nothing)
 - fixed some translation yes/no
