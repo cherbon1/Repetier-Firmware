@@ -741,10 +741,6 @@ STEP_PACKING_MIN_INTERVAL can be changed in Menu-> Configuration->Stepper->DblFq
 #define MIN_STEP_PACKING_MIN_INTERVAL       3300
 #define MAX_STEP_PACKING_MIN_INTERVAL       5000
 
-/** \brief If you reach STEP_PACKING_MIN_INTERVAL the firmware will do 2, 3 or 4... steps with nearly no delay. That can be too fast
-for some printers causing an early stall. */
-#define MULTI_STEP_DELAY                   0                                                   // [us] was 1, NIBBELS: Repetier set this to 0 when removing half stepping
-
 /** \brief Number of moves we can cache in advance.
 This number of moves can be cached in advance. If you wan't to cache more, increase this. Especially on
 many very short moves the cache may go empty. The minimum value is 5. */

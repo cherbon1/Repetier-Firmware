@@ -612,7 +612,7 @@ void PrintLine::updateTrapezoids()
     */
 
     //Retract:
-    if( previous->isEOnlyMove() != act->isEOnlyMove() )
+    if (previous->isEOnlyMove() != act->isEOnlyMove())
     {
         previous->setEndSpeedFixed(true);
         act->setStartSpeedFixed(true);
@@ -621,19 +621,18 @@ void PrintLine::updateTrapezoids()
         return;
     }
 //#if USE_ADVANCE
-//	// if we start/stop extrusion we need to do so with lowest possible end speed
-//	// or advance would leave a drolling extruder and can not adjust fast enough.
-//	else if( Printer::isAdvanceActivated() && 
-//			(
-//				previous->isEMove() != act->isEMove()  // If e-move changes to non-e-move
-//				|| (previous->isEMove() && act->isEMove() && previous->isEPositiveMove() != act->isEPositiveMove() ) // If e-move changes direction
-//			)  
-//	)
+//	/** 
+//	 * If we start/stop extrusion we need to do so with lowest possible end speed
+//	 * or advance would leave a drolling extruder and can not adjust fast enough.
+//	 *
+//	 * https://github.com/repetier/Repetier-Firmware/issues/837
+//	 * This exception is for a reason. 
+//	 * Case I want to catch is fast travel move and then start with a high extrusion speed. 
+//	 * That means if angle is flat you will start with high extrusion speed and need to build up extruder pressure at an instance.
+//	 * So here starting at lower speed makes adding advance steps easy. 
+//	 */
+//	else if (Printer::isAdvanceActivated() && previous->isEMove() != act->isEMove())
 //	{
-//		previous->endSpeed = act->startSpeed = previous->maxJunctionSpeed = RMath::min(
-//			RMath::min(previous->safeSpeed(previous->primaryAxis), act->safeSpeed(act->primaryAxis)),
-//			RMath::min(previous->endSpeed, act->startSpeed)
-//		);
 //        previous->setEndSpeedFixed(true);
 //        act->setStartSpeedFixed(true);
 //        act->updateStepsParameter();
@@ -1567,9 +1566,9 @@ long PrintLine::performMove(PrintLine* move, uint8_t forQueue)
 
     for (fast8_t loop = 0; loop < max_loops; loop++) {
 
-#if STEPPER_HIGH_DELAY+MULTI_STEP_DELAY > 0
-        if(loop) HAL::delayMicroseconds(STEPPER_HIGH_DELAY+MULTI_STEP_DELAY);
-#endif // STEPPER_HIGH_DELAY+MULTI_STEP_DELAY > 0
+#if STEPPER_HIGH_DELAY > 0
+        if(loop) HAL::delayMicroseconds(STEPPER_HIGH_DELAY);
+#endif // STEPPER_HIGH_DELAY > 0
 
 		if (move->isEMove())
 		{
