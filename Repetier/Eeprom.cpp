@@ -215,12 +215,6 @@ void EEPROM::restoreEEPROMSettingsFromConfiguration()
     Printer::axisLengthMM[Y_AXIS] = Y_MAX_LENGTH;
     Printer::axisLengthMM[Z_AXIS] = Z_MAX_LENGTH;
 
-#if ENABLE_BACKLASH_COMPENSATION
-    Printer::backlash[X_AXIS] = X_BACKLASH;
-    Printer::backlash[Y_AXIS] = Y_BACKLASH;
-    Printer::backlash[Z_AXIS] = Z_BACKLASH;
-#endif // ENABLE_BACKLASH_COMPENSATION
-
 #if NUM_EXTRUDER>0
 	EEPROM::restoreEEPROMExtruderSettingsFromConfiguration(0);
 #endif // NUM_EXTRUDER>0
@@ -436,16 +430,6 @@ void EEPROM::storeDataIntoEEPROM(uint8_t corrupted)
 #endif  // FEATURE_MILLING_MODE
     HAL::eprSetFloat(EPR_Y_LENGTH,Printer::axisLengthMM[Y_AXIS]);
     HAL::eprSetFloat(EPR_Z_LENGTH,Printer::axisLengthMM[Z_AXIS]);
-
-#if ENABLE_BACKLASH_COMPENSATION
-    HAL::eprSetFloat(EPR_BACKLASH_X,Printer::backlash[X_AXIS]);
-    HAL::eprSetFloat(EPR_BACKLASH_Y,Printer::backlash[Y_AXIS]);
-    HAL::eprSetFloat(EPR_BACKLASH_Z,Printer::backlash[Z_AXIS]);
-#else
-    HAL::eprSetFloat(EPR_BACKLASH_X,0);
-    HAL::eprSetFloat(EPR_BACKLASH_Y,0);
-    HAL::eprSetFloat(EPR_BACKLASH_Z,0);
-#endif // ENABLE_BACKLASH_COMPENSATION
 
     // now the extruder
     for(uint8_t i=0; i<NUM_EXTRUDER; i++)
@@ -759,12 +743,6 @@ void EEPROM::readDataFromEEPROM()
 #endif  // FEATURE_MILLING_MODE
     Printer::axisLengthMM[Y_AXIS] = HAL::eprGetFloat(EPR_Y_LENGTH);
     Printer::axisLengthMM[Z_AXIS] = HAL::eprGetFloat(EPR_Z_LENGTH);
-
-#if ENABLE_BACKLASH_COMPENSATION
-    Printer::backlash[X_AXIS] = HAL::eprGetFloat(EPR_BACKLASH_X);
-    Printer::backlash[Y_AXIS] = HAL::eprGetFloat(EPR_BACKLASH_Y);
-    Printer::backlash[Z_AXIS] = HAL::eprGetFloat(EPR_BACKLASH_Z);
-#endif // ENABLE_BACKLASH_COMPENSATION
 
     // now the extruder
     for(uint8_t i=0; i<NUM_EXTRUDER; i++)
@@ -1317,12 +1295,6 @@ void EEPROM::writeSettings()
 	writeFloat(EPR_YAXIS_STEPS_PER_MM, Com::tEPRYStepsPerMM, 4);
 	writeFloat(EPR_ZAXIS_STEPS_PER_MM, Com::tEPRZStepsPerMM, 4);
 	writeInt(EPR_RF_STEP_PACKING_MIN_INTERVAL, Com::tEPRInterruptSpacingInterval);
-
-#if ENABLE_BACKLASH_COMPENSATION
-	writeFloat(EPR_BACKLASH_X, Com::tEPRXBacklash);
-	writeFloat(EPR_BACKLASH_Y, Com::tEPRYBacklash);
-	writeFloat(EPR_BACKLASH_Z, Com::tEPRZBacklash);
-#endif // ENABLE_BACKLASH_COMPENSATION
 
 #if FEATURE_MILLING_MODE
 	if (Printer::operatingMode == OPERATING_MODE_PRINT)

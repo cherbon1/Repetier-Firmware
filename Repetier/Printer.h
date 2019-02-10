@@ -114,12 +114,6 @@ public:
     static char             moveMode[3];                        // move mode which is applied within the Position X/Y/Z menus
 	static bool             moveKosys;                          // true = GCode, false = DirectMove / OffsetMove
 
-
-#if ENABLE_BACKLASH_COMPENSATION
-    static float            backlash[3];
-    static uint8_t          backlashDir;
-#endif // ENABLE_BACKLASH_COMPENSATION
-
 #if FEATURE_MEMORY_POSITION
     static float            memoryX;
     static float            memoryY;

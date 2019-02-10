@@ -271,13 +271,6 @@ Overridden if EEPROM activated. */
 #define DIRECT_FEEDRATE_Z                   9
 #define DIRECT_FEEDRATE_E                   25
 
-/** \brief If you have a backlash in both z-directions, you can use this. For most printer, the bed will be pushed down by it's
-own weight, so this is nearly never needed. */
-#define ENABLE_BACKLASH_COMPENSATION        false
-#define Z_BACKLASH                          0
-#define X_BACKLASH                          0
-#define Y_BACKLASH                          0
-
 // ##########################################################################################
 // ##   Acceleration settings
 // ##########################################################################################

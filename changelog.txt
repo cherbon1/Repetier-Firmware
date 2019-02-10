@@ -10,6 +10,10 @@ TODO:
 # arc-support: test circles while printing and not printing
 # pause @RF1000: test if z max-endstop is respected while moving in dual-endstop circular setting
 
+V 01.43.70.Mod (2019-02-10)
+- removed always 0 MULTI_STEP_DELAY
+- removed ENABLE_BACKLASH_COMPENSATION because RFx000 do not ever need that for xyz.
+
 V 01.43.69.Mod (2019-02-09)
 - fixed mixup in relative/absolute coordinate system parameter for Kurt's Wobblefix. Wobblefix works now and is tested.
 - decreased automatic spacing for Z while going into move-away-pause because we can easily drive down more by Z-buttons while paused.

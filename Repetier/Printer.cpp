@@ -93,11 +93,6 @@ char            Printer::ZMode = DEFAULT_Z_SCALE_MODE;                  // Z Sca
 char            Printer::moveMode[3];                                   // move mode which is applied within the Position X/Y/Z menus
 bool            Printer::moveKosys = KOSYS_GCODE;                       // true = GCode, false = DirectMove / OffsetMove
 
-#if ENABLE_BACKLASH_COMPENSATION
-float           Printer::backlash[3];
-uint8_t         Printer::backlashDir;
-#endif // ENABLE_BACKLASH_COMPENSATION
-
 #if FEATURE_MEMORY_POSITION
 float           Printer::memoryX;
 float           Printer::memoryY;
@@ -241,14 +236,6 @@ void Printer::updateDerivedParameter()
 	));
 	// Sonderbehandlung für Z.
     maxSoftEndstopSteps[Z_AXIS] = (long)(axisStepsPerMM[Z_AXIS] * axisLengthMM[Z_AXIS]);
-
-    // For which directions do we need backlash compensation
-#if ENABLE_BACKLASH_COMPENSATION
-    backlashDir &= 7;
-    if(backlashX!=0) backlashDir |= 8;
-    if(backlashY!=0) backlashDir |= 16;
-    if(backlashZ!=0) backlashDir |= 32;
-#endif // ENABLE_BACKLASH_COMPENSATION
 
     for(uint8_t axis = 0; axis < 4; axis++)
     {
@@ -897,13 +884,6 @@ void Printer::setup()
     moveMode[X_AXIS] = DEFAULT_MOVE_MODE_X;
     moveMode[Y_AXIS] = DEFAULT_MOVE_MODE_Y;
     moveMode[Z_AXIS] = DEFAULT_MOVE_MODE_Z;
-	
-#if ENABLE_BACKLASH_COMPENSATION
-    backlash[X_AXIS] = X_BACKLASH;
-    backlash[Y_AXIS] = Y_BACKLASH;
-    backlash[Z_AXIS] = Z_BACKLASH;
-    backlashDir = 0;
-#endif // ENABLE_BACKLASH_COMPENSATION
 
 #if FEATURE_HEAT_BED_Z_COMPENSATION
     doHeatBedZCompensation = 0; //init

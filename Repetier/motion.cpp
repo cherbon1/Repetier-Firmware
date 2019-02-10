@@ -219,60 +219,7 @@ void PrintLine::prepareQueueMove(uint8_t abortAtEndstops, uint8_t pathOptimize, 
 		Printer::queuePositionZLayerGuessNew = 0;
 	}
 #endif // FEATURE_HEAT_BED_Z_COMPENSATION
-
-
-    float xydist2;
-
-#if ENABLE_BACKLASH_COMPENSATION
-    if((p->isXYZMove()) && ((p->dir & 7)^(Printer::backlashDir & 7)) & (Printer::backlashDir >> 3))   // We need to compensate backlash, add a move
-    {
-        waitForXFreeLines(2);
-        uint8_t wpos2 = linesWritePos+1;
-        if(wpos2>=MOVE_CACHE_SIZE) wpos2 = 0;
-            PrintLine *p2 = &lines[wpos2];
-        memcpy(p2,p,sizeof(PrintLine));     // Move current data to p2
-        uint8_t changed = (p->dir & 7)^(Printer::backlashDir & 7);
-        float back_diff[4];                 // Axis movement in mm
-        back_diff[E_AXIS] = 0;
-        back_diff[X_AXIS] = (changed & 1 ? (p->isXPositiveMove() ? Printer::backlash[X_AXIS] : -Printer::backlash[X_AXIS]) : 0);
-        back_diff[Y_AXIS] = (changed & 2 ? (p->isYPositiveMove() ? Printer::backlash[Y_AXIS] : -Printer::backlash[Y_AXIS]) : 0);
-        back_diff[Z_AXIS] = (changed & 4 ? (p->isZPositiveMove() ? Printer::backlash[Z_AXIS] : -Printer::backlash[Z_AXIS]) : 0);
-        p->dir &=7;                         // x,y and z are already correct
-        for(uint8_t i=0; i < 4; i++)
-        {
-            float f = back_diff[i]*Printer::axisStepsPerMM[i];
-            p->delta[i] = abs((long)f);
-            if(p->delta[i]) p->dir |= 16<<i;
-        }
-        // Define variables that are needed for the Bresenham algorithm. Please note that  Z is not currently included in the Bresenham algorithm.
-        if(p->delta[Y_AXIS] > p->delta[X_AXIS] && p->delta[Y_AXIS] > p->delta[Z_AXIS])
-            p->primaryAxis = Y_AXIS;
-        else if (p->delta[X_AXIS] > p->delta[Z_AXIS])
-            p->primaryAxis = X_AXIS;
-        else
-            p->primaryAxis = Z_AXIS;
-        p->stepsRemaining = p->delta[p->primaryAxis];
-        // Feedrate calc based on XYZ travel distance
-        xydist2 = back_diff[X_AXIS] * back_diff[X_AXIS] + back_diff[Y_AXIS] * back_diff[Y_AXIS];
-        if(p->isZMove())
-            p->distance = sqrt(xydist2 + back_diff[Z_AXIS] * back_diff[Z_AXIS]);
-        else
-            p->distance = sqrt(xydist2);
-        Printer::backlashDir = (Printer::backlashDir & 56) | (p2->dir & 7);
-
-        p->calculateMove(back_diff, p->primaryAxis, feedrate);
-
-		updateTrapezoids();
-
-#if USE_ADVANCE
-		if (pathOptimize) waitRelax = 70;
-#endif // USE_ADVANCE
-		// Make result permanent
-		pushLine();
-        p = p2;                             // use saved instance for the real move
-    }
-#endif // ENABLE_BACKLASH_COMPENSATION
-	
+		
     // Define variables that are needed for the Bresenham algorithm. Please note that Z is not currently included in the Bresenham algorithm.
     if(p->delta[Y_AXIS] > p->delta[X_AXIS] && p->delta[Y_AXIS] > p->delta[Z_AXIS] && p->delta[Y_AXIS] > p->delta[E_AXIS])
         p->primaryAxis = Y_AXIS;
@@ -283,16 +230,19 @@ void PrintLine::prepareQueueMove(uint8_t abortAtEndstops, uint8_t pathOptimize, 
     else
         p->primaryAxis = E_AXIS;
     p->stepsRemaining = p->delta[p->primaryAxis];
-    if(p->isXYZMove())
+
+    if (p->isXYZMove())
     {
-        xydist2 = axisDistanceMM[X_AXIS] * axisDistanceMM[X_AXIS] + axisDistanceMM[Y_AXIS] * axisDistanceMM[Y_AXIS];
+		float xydist2 = axisDistanceMM[X_AXIS] * axisDistanceMM[X_AXIS] + axisDistanceMM[Y_AXIS] * axisDistanceMM[Y_AXIS];
         if(p->isZMove())
             p->distance = RMath::max((float)sqrt(xydist2 + axisDistanceMM[Z_AXIS] * axisDistanceMM[Z_AXIS]), axisDistanceMM[E_AXIS]);
         else
             p->distance = RMath::max((float)sqrt(xydist2), axisDistanceMM[E_AXIS]);
     }
-    else
-        p->distance = axisDistanceMM[E_AXIS];
+	else
+	{
+		p->distance = axisDistanceMM[E_AXIS];
+	}
 
     p->calculateMove(axisDistanceMM, p->primaryAxis, feedrate);
 
