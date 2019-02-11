@@ -120,6 +120,7 @@ void PrintLine::prepareQueueMove(uint8_t abortAtEndstops, uint8_t pathOptimize, 
 	}
 
     // Find direction
+	bool isNoStepsMove = true;
     for(uint8_t axis=0; axis < 4; axis++)
     {
 		//error zwischen soll und ist.
@@ -149,21 +150,25 @@ void PrintLine::prepareQueueMove(uint8_t abortAtEndstops, uint8_t pathOptimize, 
 			//Update calculated coordinate by move distance.
 			Printer::destinationMMLast[axis] += axisDistanceMM[axis];
 		}
+		
+        if(axisDistanceMM[axis] >= 0) p->setPositiveDirectionForAxis(axis);
+        if(axisDistanceMM[axis] != 0) p->setMoveOfAxis(axis);
 
-		//axisDistanceMM has to be a signless length.
+		// remove the sign from all driving length
+		p->delta[axis] = abs(p->delta[axis]);
 		axisDistanceMM[axis] = fabs(axisDistanceMM[axis]);
 
-        if(p->delta[axis] >= 0)
-			p->setPositiveDirectionForAxis(axis);
-        else
-            p->delta[axis] = -p->delta[axis];
-        if(p->delta[axis] != 0) p->setMoveOfAxis(axis);
+		// signal that we at least found some steps to queue in move cache
+		// The other option is, that we only summed up parts steps for a possible next move which are stored as rounding errors
+		if (p->delta[axis]) isNoStepsMove = false;
     }
-    if(p->isNoMove())
+
+	// need to delete dummy elements, otherwise commands can get locked.
+    if(isNoStepsMove)
     {
-        if(newPath)     // need to delete dummy elements, otherwise commands can get locked.
-            PrintLine::resetPathPlanner();
-        return;         // No steps included
+        if(newPath) PrintLine::resetPathPlanner();
+		// No steps included
+        return;
     }
 
 #if FEATURE_HEAT_BED_Z_COMPENSATION
@@ -343,8 +348,6 @@ void PrintLine::stopDirectMove( void ) //Funktion ist bereits zur ausführzeit v
 
 void PrintLine::calculateMove(float axisDistanceMM[], fast8_t drivingAxis, float feedrate)
 {
-    int32_t    axisInterval[4];
-
     float   timeForMove = (float)(F_CPU) * distance / feedrate; // time is in ticks
 	// Small element limiter: This was not present in directmove but is not harmfull.
     if(linesCount < MOVE_CACHE_LOW && timeForMove < LOW_TICKS_PER_MOVE)   // Limit speed to keep cache full.
@@ -357,26 +360,28 @@ void PrintLine::calculateMove(float axisDistanceMM[], fast8_t drivingAxis, float
     int32_t limitInterval0;
     int32_t limitInterval = limitInterval0 = timeForMove / stepsRemaining; // until not violated by other constraints it is your target speed
     float   toTicks = static_cast<float>(F_CPU) / stepsRemaining;
-    if(isXMove())
+
+    int32_t    axisInterval[4];
+    if(isXMove() && delta[X_AXIS])
     {
         axisInterval[X_AXIS] = axisDistanceMM[X_AXIS] * toTicks / (Printer::maxFeedrate[X_AXIS]); // mm*ticks/s/(mm/s*steps) = ticks/step
         limitInterval = RMath::max(axisInterval[X_AXIS], limitInterval);
     } else axisInterval[X_AXIS] = 0;
 
-    if(isYMove())
+    if(isYMove() && delta[Y_AXIS])
     {
         axisInterval[Y_AXIS] = axisDistanceMM[Y_AXIS] * toTicks / Printer::maxFeedrate[Y_AXIS];
         limitInterval = RMath::max(axisInterval[Y_AXIS], limitInterval);
     } else axisInterval[Y_AXIS] = 0;
 
 
-    if(isZMove())                   // normally no move in z direction
+    if(isZMove() && delta[Z_AXIS])                   // normally no move in z direction
     {
         axisInterval[Z_AXIS] = axisDistanceMM[Z_AXIS] * toTicks / Printer::maxFeedrate[Z_AXIS]; // must prevent overflow!
         limitInterval = RMath::max(axisInterval[Z_AXIS], limitInterval);
     } else axisInterval[Z_AXIS] = 0;
 
-    if(isEMove())
+    if(isEMove() && delta[E_AXIS])
     {
         axisInterval[E_AXIS] = axisDistanceMM[E_AXIS] * toTicks / Printer::maxFeedrate[E_AXIS];
         limitInterval = RMath::max(axisInterval[E_AXIS], limitInterval);
@@ -390,25 +395,25 @@ void PrintLine::calculateMove(float axisDistanceMM[], fast8_t drivingAxis, float
     float inverseTimeS = static_cast<float>(F_CPU) / timeForMove;
     if(isXMove())
     {
-        axisInterval[X_AXIS] = timeForMove / delta[X_AXIS];
+        if (delta[X_AXIS]) axisInterval[X_AXIS] = timeForMove / delta[X_AXIS];
         speedX = axisDistanceMM[X_AXIS] * inverseTimeS;
         if(isXNegativeMove()) speedX = -speedX;
     } else speedX = 0;
     if(isYMove())
     {
-        axisInterval[Y_AXIS] = timeForMove / delta[Y_AXIS];
+		if (delta[Y_AXIS]) axisInterval[Y_AXIS] = timeForMove / delta[Y_AXIS];
         speedY = axisDistanceMM[Y_AXIS] * inverseTimeS;
         if(isYNegativeMove()) speedY = -speedY;
     } else speedY = 0;
     if(isZMove())
     {
-        axisInterval[Z_AXIS] = timeForMove / delta[Z_AXIS];
+		if (delta[Z_AXIS]) axisInterval[Z_AXIS] = timeForMove / delta[Z_AXIS];
         speedZ = axisDistanceMM[Z_AXIS] * inverseTimeS;
         if(isZNegativeMove()) speedZ = -speedZ;
     } else speedZ = 0;
     if(isEMove())
     {
-        axisInterval[E_AXIS] = timeForMove / delta[E_AXIS];
+		if (delta[E_AXIS]) axisInterval[E_AXIS] = timeForMove / delta[E_AXIS];
         speedE = axisDistanceMM[E_AXIS] * inverseTimeS;
         if(isENegativeMove()) speedE = -speedE;
     } else speedE = 0;
@@ -421,12 +426,12 @@ void PrintLine::calculateMove(float axisDistanceMM[], fast8_t drivingAxis, float
     float slowestAxisPlateauTimeRepro = 1e15; // repro to reduce division Unit: 1/s
     uint32_t* accel = (isEPositiveMove() ? Printer::maxPrintAccelerationStepsPerSquareSecond : Printer::maxTravelAccelerationStepsPerSquareSecond);
 
-    for(uint8_t i=0; i < 4 ; i++)
+    for(uint8_t axis=0; axis < 4 ; axis++)
     {
-        if(isMoveOfAxis(i))
+        if(isMoveOfAxis(axis) && delta[axis])
         {
             // v = a * t => t = v/a = F_CPU/(c*a) => 1/t = c*a/F_CPU
-            slowestAxisPlateauTimeRepro = RMath::min(slowestAxisPlateauTimeRepro, (float)axisInterval[i] * (float)accel[i]);     // steps/s^2 * step/tick  Ticks/s^2
+            slowestAxisPlateauTimeRepro = RMath::min(slowestAxisPlateauTimeRepro, (float)axisInterval[axis] * (float)accel[axis]);     // steps/s^2 * step/tick  Ticks/s^2
         }
     }
 
@@ -570,26 +575,27 @@ void PrintLine::updateTrapezoids()
         firstLine->unblock();
         return;
     }
-//#if USE_ADVANCE
-//	/** 
-//	 * If we start/stop extrusion we need to do so with lowest possible end speed
-//	 * or advance would leave a drolling extruder and can not adjust fast enough.
-//	 *
-//	 * https://github.com/repetier/Repetier-Firmware/issues/837
-//	 * This exception is for a reason. 
-//	 * Case I want to catch is fast travel move and then start with a high extrusion speed. 
-//	 * That means if angle is flat you will start with high extrusion speed and need to build up extruder pressure at an instance.
-//	 * So here starting at lower speed makes adding advance steps easy. 
-//	 */
-//	else if (Printer::isAdvanceActivated() && previous->isEMove() != act->isEMove())
-//	{
-//        previous->setEndSpeedFixed(true);
-//        act->setStartSpeedFixed(true);
-//        act->updateStepsParameter();
-//        firstLine->unblock();
-//        return;
-//    }
-//#endif // USE_ADVANCE
+
+#if USE_ADVANCE
+	/** 
+	 * If we start/stop extrusion we need to do so with lowest possible end speed
+	 * or advance would leave a drolling extruder and can not adjust fast enough.
+	 *
+	 * https://github.com/repetier/Repetier-Firmware/issues/837
+	 * This exception rule is here for a reason:
+	 * Case I want to catch is fast travel move and then start with a high extrusion speed. 
+	 * That means if angle is flat you will start with high extrusion speed and need to build up extruder pressure at an instance.
+	 * So here starting at lower speed makes adding advance steps easy. 
+	 */
+	if (Printer::isAdvanceActivated() && previous->isEMove() != act->isEMove())
+	{
+        previous->setEndSpeedFixed(true);
+        act->setStartSpeedFixed(true);
+        act->updateStepsParameter();
+        firstLine->unblock();
+        return;
+    }
+#endif // USE_ADVANCE
 
 	// Set maximum junction speed if we have a real move before
     computeMaxJunctionSpeed(previous, act);
@@ -640,7 +646,7 @@ Speed from 100 to 200
 180°:   300               200        400
 */
 
-inline void PrintLine::computeMaxJunctionSpeed(PrintLine *previous,PrintLine *current)
+inline void PrintLine::computeMaxJunctionSpeed(PrintLine *previous, PrintLine *current)
 {
     // if we are here we have two identical move types
     // either pure extrusion -> pure extrusion or
@@ -680,7 +686,6 @@ inline void PrintLine::computeMaxJunctionSpeed(PrintLine *previous,PrintLine *cu
         factor = RMath::min(factor, Extruder::current->maxEJerk / eJerk);
     }
     previous->maxJunctionSpeed = maxJoinSpeed * factor; // set speed limit
-
 } // computeMaxJunctionSpeed
 
 
@@ -888,7 +893,6 @@ void PrintLine::waitForXFreeLines(uint8_t b)
     {
         Commands::checkForPeriodicalActions( Processing );
     }
-
 } // waitForXFreeLines
 
 
@@ -902,7 +906,6 @@ bool PrintLine::checkForXFreeLines(uint8_t freeLines)
 
     // we have more than freeLines free lines within our cache
     return true;
-
 } // checkForXFreeLines
 
 
@@ -1520,7 +1523,7 @@ long PrintLine::performMove(PrintLine* move, uint8_t forQueue)
         if(loop) HAL::delayMicroseconds(STEPPER_HIGH_DELAY);
 #endif // STEPPER_HIGH_DELAY > 0
 
-		if (move->isEMove())
+		if (move->isEMove() && move->delta[E_AXIS])
 		{
 			HAL::allowInterrupts();
 			bool doESteps = (move->error[E_AXIS] -= move->delta[E_AXIS]) < 0;
@@ -1579,7 +1582,7 @@ long PrintLine::performMove(PrintLine* move, uint8_t forQueue)
 			}
 		}
 
-        if (move->isXMove())
+        if (move->isXMove() && move->delta[X_AXIS])
         {			
             if ((move->error[X_AXIS] -= move->delta[X_AXIS]) < 0)
             {
@@ -1604,7 +1607,7 @@ long PrintLine::performMove(PrintLine* move, uint8_t forQueue)
             }
         }
 
-        if (move->isYMove())
+        if (move->isYMove() && move->delta[Y_AXIS])
         {
             if ((move->error[Y_AXIS] -= move->delta[Y_AXIS]) < 0)
             {
@@ -1629,7 +1632,7 @@ long PrintLine::performMove(PrintLine* move, uint8_t forQueue)
             }
         }
 
-		if (move->isZMove())
+		if (move->isZMove() && move->delta[Z_AXIS])
 		{
 			if ((move->error[Z_AXIS] -= move->delta[Z_AXIS]) < 0) {
 				int8_t dir = (Printer::getZDirectionIsPos() ? 1 : -1);

@@ -10,6 +10,11 @@ TODO:
 # arc-support: test circles while printing and not printing
 # pause @RF1000: test if z max-endstop is respected while moving in dual-endstop circular setting
 
+V 01.43.71.Mod (2019-02-11)
+- changed is?Move()-Strategy to check float value of axis difference
+- added checks to not use integer move->delta[axis] as 0 value at critical positions.
+- reimplemented slowdown rule for extrusion after travel moves because after 0-step rounded moves can now be "isAxisMove" we can correctly check on that case again.
+
 V 01.43.70.Mod (2019-02-10)
 - removed always 0 MULTI_STEP_DELAY
 - removed ENABLE_BACKLASH_COMPENSATION because RFx000 do not ever need that for xyz.

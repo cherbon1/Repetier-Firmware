@@ -344,7 +344,7 @@ public:
 
     inline static void resetPathPlanner()
     {
-        linesCount    = 0;
+        linesCount = 0;
         linesPos = linesWritePos;
     } // resetPathPlanner
 
