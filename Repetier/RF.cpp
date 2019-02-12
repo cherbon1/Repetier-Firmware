@@ -10565,38 +10565,58 @@ extern void processButton( int nAction )
         {
 			// show that we are active
 			previousMillisCmd = HAL::timeInMilliseconds(); //prevent inactive shutdown of steppers/temps
-			
-            if( uid.menuLevel == 0 && uid.menuPos[0] == 1 ){ //wenn im Mod-Menü für Z-Offset/Matrix Sense-Offset/Limiter, dann anders!
-                //we are in the Mod menu
-                //so dont retract, change the speed of the print to a lower speed instead of retracting:
-                //limits handled by change-function!
-                Commands::changeFeedrateMultiply(Printer::feedrateMultiply + 1);
-                beep(1,4);
-            } else {
-				Printer::offsetRelativeStepsCoordinates(0, 0, 0, int32_t(g_nManualSteps[E_AXIS]));
 
-                //In case of double pause and in case we tempered with the retract, we dont want to drive the E-Axis back to some old location - that much likely causes emergency block.
-                g_nContinueSteps[E_AXIS] = 0;
-            }
+#if FEATURE_MILLING_MODE
+			if (Printer::operatingMode == OPERATING_MODE_MILL)
+			{
+				if (Printer::feedrate < MAX_FEEDRATE_X - 1) Printer::feedrate++;
+			}
+			else
+#endif // FEATURE_MILLING_MODE
+			{
+				if (uid.menuLevel == 0 && uid.menuPos[0] == 1) { //wenn im Mod-Menü für Z-Offset/Matrix Sense-Offset/Limiter, dann anders!
+					//we are in the Mod menu
+					//so dont retract, change the speed of the print to a lower speed instead of retracting:
+					//limits handled by change-function!
+					Commands::changeFeedrateMultiply(Printer::feedrateMultiply + 1);
+					beep(1, 4);
+				}
+				else {
+					Printer::offsetRelativeStepsCoordinates(0, 0, 0, int32_t(g_nManualSteps[E_AXIS]));
+
+					//In case of double pause and in case we tempered with the retract, we dont want to drive the E-Axis back to some old location - that much likely causes emergency block.
+					g_nContinueSteps[E_AXIS] = 0;
+				}
+			}
             break;
         }
         case UI_ACTION_RF_EXTRUDER_RETRACT:
         {
 			// show that we are active
 			previousMillisCmd = HAL::timeInMilliseconds(); //prevent inactive shutdown of steppers/temps
-				
-            if( uid.menuLevel == 0 && uid.menuPos[0] == 1 ){ //wenn im Mod-Menü für Z-Offset/Matrix Sense-Offset/Limiter, dann anders!
-                //we are in the Mod menu
-                //so dont retract, change the speed of the print to a lower speed instead of retracting:
-                //limits handled by change-function!
-                Commands::changeFeedrateMultiply(Printer::feedrateMultiply - 1);
-                beep(1,4);
-            }else{
-				Printer::offsetRelativeStepsCoordinates(0, 0, 0, -1*int32_t(g_nManualSteps[E_AXIS]));
 
-                //In case of double pause and in case we tempered with the retract, we dont want to drive the E-Axis back to some old location - that much likely causes emergency block.
-                g_nContinueSteps[E_AXIS] = 0;
-            }
+#if FEATURE_MILLING_MODE
+			if (Printer::operatingMode == OPERATING_MODE_MILL)
+			{
+				if (Printer::feedrate > 1) Printer::feedrate--;
+			}
+			else
+#endif // FEATURE_MILLING_MODE
+			{
+				if (uid.menuLevel == 0 && uid.menuPos[0] == 1) { //wenn im Mod-Menü für Z-Offset/Matrix Sense-Offset/Limiter, dann anders!
+					//we are in the Mod menu
+					//so dont retract, change the speed of the print to a lower speed instead of retracting:
+					//limits handled by change-function!
+					Commands::changeFeedrateMultiply(Printer::feedrateMultiply - 1);
+					beep(1, 4);
+				}
+				else {
+					Printer::offsetRelativeStepsCoordinates(0, 0, 0, -1 * int32_t(g_nManualSteps[E_AXIS]));
+
+					//In case of double pause and in case we tempered with the retract, we dont want to drive the E-Axis back to some old location - that much likely causes emergency block.
+					g_nContinueSteps[E_AXIS] = 0;
+				}
+			}
             break;
         }
         case UI_ACTION_RF_PAUSE:
