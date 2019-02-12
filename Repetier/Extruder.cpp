@@ -1090,6 +1090,7 @@ void TemperatureController::autotunePID(float temp, uint8_t controllerId, int ma
     }
 
     autotuneIndex = controllerId;
+	extruder[controllerId].tempControl.stopDecouple();
     pwm_pos[pwmIndex] = pidMax;
     if(controllerId<NUM_EXTRUDER)
     {

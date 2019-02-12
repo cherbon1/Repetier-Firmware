@@ -9,8 +9,10 @@ TODO:
 # milling mode: test or rework milling functions
 # arc-support: test circles while printing and not printing
 # pause @RF1000: test if z max-endstop is respected while moving in dual-endstop circular setting
-# extrusion: I had a case that extrusion after a print was not possible. I have to fix that.
-# PID autotune: We found two occurences that after an pid autotune we had a sensor decoupled error and had to restart the printer because of that.
+# extrusion: I had a case that extrusion after a print was not possible. Restarting the printer fixed it temporarily.
+
+V 01.43.72.Mod (2019-02-12)
+- fixed decouple error after PID autotune by stopping decoupling test before tuning start. This error has been shown when someone startet PID autotune when a heater was turned on. (But autotune always worked)
 
 V 01.43.71.Mod (2019-02-11)
 - changed is?Move()-Strategy to check float value of axis difference
