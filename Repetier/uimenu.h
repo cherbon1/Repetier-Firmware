@@ -271,13 +271,13 @@ for 2 row displays. You can add additional pages or change the default pages lik
 
     #if UI_COLS<=16
         UI_PAGE4(ui_page_mod,UI_TEXT_STRAIN_GAUGE_SPEED,
-                        "zO: %z0um zM: %HB",
-                        "sO: %sSum%sM",
+                        "zO:%z0um zM: %HB",
+                        "sO:%sSum%sM",
                         "Z%hZ%x2%x5 %sC")
     #else
         UI_PAGE4(ui_page_mod,UI_TEXT_STRAIN_GAUGE_SPEED,
-                        "zO: %z0 um zMat: %HB",
-                        "sO: %sS um %sM",
+                        "zO:%z0 um zMat: %HB",
+                        "sO:%sS um %sM",
                         "Z%hZ %x2%x5 %sC")
     #endif
     #define UI_MOD_PAGES , &ui_page_mod

@@ -1531,7 +1531,7 @@ void UIDisplay::parse(char *txt, bool ram)
             {
                 if(c2=='0')
                 {
-                    addInt(Printer::ZOffset, 3);
+                    addInt(Printer::ZOffset, 4);
                 }
                 else if(c2=='m')                                                                        // %zm : Z Scale
                 {
@@ -1813,9 +1813,9 @@ void UIDisplay::parse(char *txt, bool ram)
 #if FEATURE_SENSIBLE_PRESSURE
                     if( Printer::doHeatBedZCompensation )
                     {
-                        addInt((int)g_nSensiblePressureOffset,3);
+                        addInt((int)g_nSensiblePressureOffset,4);
                     }else{
-                        addInt(0,3);
+                        addInt(0,4);
                     }
 #endif // FEATURE_SENSIBLE_PRESSURE
                 }
