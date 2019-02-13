@@ -10569,7 +10569,7 @@ extern void processButton( int nAction )
 #if FEATURE_MILLING_MODE
 			if (Printer::operatingMode == OPERATING_MODE_MILL)
 			{
-				if (Printer::feedrate < MAX_FEEDRATE_X - 1) Printer::feedrate++;
+				if (Printer::feedrate < RMath::min(Printer::maxFeedrate[X_AXIS], Printer::maxFeedrate[Y_AXIS]) - 1) Printer::feedrate++;
 			}
 			else
 #endif // FEATURE_MILLING_MODE

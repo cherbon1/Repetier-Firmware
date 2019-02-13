@@ -13,6 +13,7 @@ TODO:
 V 01.43.74.Mod (2019-02-13)
 - rewrite of axisInterval handling to float calculation. See and thx to https://github.com/repetier/Repetier-Firmware/issues/837#issuecomment-463218592
 - removed (now) unnecessary checks
+- changed F for digits to P like "pressure". Because F is Feedrate not Force.
 
 V 01.43.73.Mod (2019-02-13)
 - Adjust feedrate (set by GCode) with extrusion buttons when milling mode is active.

@@ -1531,7 +1531,7 @@ void UIDisplay::parse(char *txt, bool ram)
             {
                 if(c2=='0')
                 {
-                    addInt(Printer::ZOffset,4);
+                    addInt(Printer::ZOffset, 3);
                 }
                 else if(c2=='m')                                                                        // %zm : Z Scale
                 {
