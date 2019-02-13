@@ -6790,7 +6790,7 @@ void handlePauseStatus() {
 			UI_STATUS_UPD(UI_TEXT_PAUSING);
 			uid.exitmenu();
 			Com::printFLN(PSTR("RequestPause:")); //repetier
-			Com::printFLN(PSTR("// action:pause")); //octoprint
+			//Com::printFLN(PSTR("// action:pause")); //octoprint
 
 			// Reset revert count coordinates at first pause signal
 			g_nContinueSteps[X_AXIS] = 0;
@@ -6826,7 +6826,7 @@ void handlePauseStatus() {
 			UI_STATUS_UPD(UI_TEXT_PAUSING);
 			uid.exitmenu();
 			Com::printFLN(PSTR("RequestPause:")); //repetier
-			Com::printFLN(PSTR("// action:pause")); //octoprint
+			//Com::printFLN(PSTR("// action:pause")); //octoprint
 
 			// Reset revert count coordinates at first pause signal
 			g_nContinueSteps[X_AXIS] = 0;
@@ -6973,6 +6973,7 @@ void pausePrint( void )
         g_pauseMode   = PAUSE_MODE_PAUSED;
 		g_pauseStatus = PAUSE_STATUS_GOTO_PAUSE;
         waitforPauseStatus_fromButton();
+		g_uPauseTime = HAL::timeInMilliseconds();
 
         return;
     }
@@ -6983,6 +6984,7 @@ void pausePrint( void )
 		g_pauseStatus = PAUSE_STATUS_GOTO_MOVED;
 		Com::printFLN(PSTR("moving to pause position..."));
         waitforPauseStatus_fromButton();
+		g_uPauseTime = HAL::timeInMilliseconds();
 
         UI_STATUS_UPD( UI_TEXT_PAUSED );
         return;
@@ -7039,7 +7041,7 @@ void continuePrint( void )
     waitforPauseStatus_fromButton();
 
     Com::printFLN( PSTR("RequestContinue:") ); //repetier
-    Com::printFLN( PSTR( "// action:resume" ) ); //octoprint
+    //Com::printFLN( PSTR( "// action:resume" ) ); //octoprint
     // wait until the next move is started
 
 	killPausePrint();

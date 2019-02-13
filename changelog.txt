@@ -10,6 +10,12 @@ TODO:
 # pause @RF1000: test if z max-endstop is respected while moving in dual-endstop circular setting
 # extrusion: I had a case that extrusion after a print was not possible. Restarting the printer fixed it temporarily.
 
+V 01.43.75.Mod (2019-02-14)
+- repair pauseTime to sink Temperatures when getting into pause by button.
+- some lineendings fixed
+- removed octoprint upstream command for pause because octoprint 1.3.10 is not auto continuing again (without pressing the button in web ui)
+   I have to recheck https://github.com/foosel/OctoPrint/issues/2581 on this error.
+
 V 01.43.74.Mod (2019-02-13)
 - rewrite of axisInterval handling to float calculation. See and thx to https://github.com/repetier/Repetier-Firmware/issues/837#issuecomment-463218592
 - removed (now) unnecessary checks
