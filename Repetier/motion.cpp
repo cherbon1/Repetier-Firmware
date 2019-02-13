@@ -395,25 +395,25 @@ void PrintLine::calculateMove(float axisDistanceMM[], fast8_t drivingAxis, float
     float inverseTimeS = static_cast<float>(F_CPU) / timeForMove;
     if(isXMove())
     {
-        if (delta[X_AXIS]) axisInterval[X_AXIS] = timeForMove / delta[X_AXIS];
+		axisInterval[X_AXIS] = static_cast<int32_t>(timeForMove / (axisDistanceMM[X_AXIS] * Printer::axisStepsPerMM[X_AXIS]));
         speedX = axisDistanceMM[X_AXIS] * inverseTimeS;
         if(isXNegativeMove()) speedX = -speedX;
     } else speedX = 0;
     if(isYMove())
     {
-		if (delta[Y_AXIS]) axisInterval[Y_AXIS] = timeForMove / delta[Y_AXIS];
+		axisInterval[Y_AXIS] = static_cast<int32_t>(timeForMove / (axisDistanceMM[Y_AXIS] * Printer::axisStepsPerMM[Y_AXIS]));
         speedY = axisDistanceMM[Y_AXIS] * inverseTimeS;
         if(isYNegativeMove()) speedY = -speedY;
     } else speedY = 0;
     if(isZMove())
     {
-		if (delta[Z_AXIS]) axisInterval[Z_AXIS] = timeForMove / delta[Z_AXIS];
+		axisInterval[Z_AXIS] = static_cast<int32_t>(timeForMove / (axisDistanceMM[Z_AXIS] * Printer::axisStepsPerMM[Z_AXIS]));
         speedZ = axisDistanceMM[Z_AXIS] * inverseTimeS;
         if(isZNegativeMove()) speedZ = -speedZ;
     } else speedZ = 0;
     if(isEMove())
     {
-		if (delta[E_AXIS]) axisInterval[E_AXIS] = timeForMove / delta[E_AXIS];
+		axisInterval[E_AXIS] = static_cast<int32_t>(timeForMove / (axisDistanceMM[E_AXIS] * Printer::axisStepsPerMM[E_AXIS]));
         speedE = axisDistanceMM[E_AXIS] * inverseTimeS;
         if(isENegativeMove()) speedE = -speedE;
     } else speedE = 0;
@@ -428,7 +428,7 @@ void PrintLine::calculateMove(float axisDistanceMM[], fast8_t drivingAxis, float
 
     for(uint8_t axis=0; axis < 4 ; axis++)
     {
-        if(isMoveOfAxis(axis) && delta[axis])
+        if(isMoveOfAxis(axis))
         {
             // v = a * t => t = v/a = F_CPU/(c*a) => 1/t = c*a/F_CPU
             slowestAxisPlateauTimeRepro = RMath::min(slowestAxisPlateauTimeRepro, (float)axisInterval[axis] * (float)accel[axis]);     // steps/s^2 * step/tick  Ticks/s^2
@@ -1523,7 +1523,7 @@ long PrintLine::performMove(PrintLine* move, uint8_t forQueue)
         if(loop) HAL::delayMicroseconds(STEPPER_HIGH_DELAY);
 #endif // STEPPER_HIGH_DELAY > 0
 
-		if (move->isEMove() && move->delta[E_AXIS])
+		if (move->isEMove())
 		{
 			HAL::allowInterrupts();
 			bool doESteps = (move->error[E_AXIS] -= move->delta[E_AXIS]) < 0;
@@ -1582,7 +1582,7 @@ long PrintLine::performMove(PrintLine* move, uint8_t forQueue)
 			}
 		}
 
-        if (move->isXMove() && move->delta[X_AXIS])
+        if (move->isXMove())
         {			
             if ((move->error[X_AXIS] -= move->delta[X_AXIS]) < 0)
             {
@@ -1607,7 +1607,7 @@ long PrintLine::performMove(PrintLine* move, uint8_t forQueue)
             }
         }
 
-        if (move->isYMove() && move->delta[Y_AXIS])
+        if (move->isYMove())
         {
             if ((move->error[Y_AXIS] -= move->delta[Y_AXIS]) < 0)
             {
@@ -1632,7 +1632,7 @@ long PrintLine::performMove(PrintLine* move, uint8_t forQueue)
             }
         }
 
-		if (move->isZMove() && move->delta[Z_AXIS])
+		if (move->isZMove())
 		{
 			if ((move->error[Z_AXIS] -= move->delta[Z_AXIS]) < 0) {
 				int8_t dir = (Printer::getZDirectionIsPos() ? 1 : -1);
