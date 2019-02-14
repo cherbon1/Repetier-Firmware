@@ -6456,6 +6456,7 @@ void handlePauseTime(millis_t uTime){
                             //laden bei continuePrint()
                         }
                     }
+					g_pauseStatus = PAUSE_STATUS_PAUSED_STANDBY;
                 }
 #endif
                 g_uPauseTime = 0;
@@ -6927,7 +6928,7 @@ inline void waitforPauseStatus_fromButton(){
     }
 }
 
-void continuePrintLoadTemperatures() {
+bool continuePrintLoadTemperatures() {
 #if NUM_EXTRUDER > 0
 	g_pauseStatus = PAUSE_STATUS_HEATING;
 	bool wait = false;
@@ -6942,10 +6943,15 @@ void continuePrintLoadTemperatures() {
 		}
 	}
 	if (wait) {
+		UI_STATUS_UPD(UI_TEXT_HEATING_UP);
 		for (uint8_t i = 0; i < NUM_EXTRUDER; i++) {
 			extruder[i].tempControl.waitForTargetTemperature(ADD_CONTINUE_AFTER_PAUSE_TEMP_TOLERANCE);
 		}
+		g_pauseStatus = PAUSE_STATUS_PAUSED;
+		return true; // abort continue and wait for next button press because we had to wake up
 	}
+
+	return false; // we have not been in energy save mode, continue printing
 #endif //NUM_EXTRUDER > 0
 }
 
@@ -6989,6 +6995,20 @@ void pausePrint( void )
         UI_STATUS_UPD( UI_TEXT_PAUSED );
         return;
     }
+
+#if FEATURE_MILLING_MODE
+	if (Printer::operatingMode == OPERATING_MODE_PRINT)
+#endif // FEATURE_MILLING_MODE
+	{
+		// 3rd Step: go to standby fast
+		if (g_pauseMode == PAUSE_MODE_PAUSED_AND_MOVED && g_pauseStatus == PAUSE_STATUS_PAUSED)
+		{
+			g_uStartOfIdle = HAL::timeInMilliseconds() + 30000; //hold status msg
+			g_uPauseTime = HAL::timeInMilliseconds() - EXTRUDER_CURRENT_PAUSE_DELAY; //drop temps now
+			UI_STATUS_UPD(UI_TEXT_COOLING_DOWN);
+			BEEP_CONTINUE
+		}
+	}
 } // pausePrint
 
 void killPausePrint( void ) {
@@ -7021,6 +7041,9 @@ void continuePrint( void )
         }
         return;
     }
+	if (g_pauseStatus == PAUSE_STATUS_HEATING || g_pauseStatus == PAUSE_STATUS_GOTO_CONTINUE) {
+		return;
+	}
     countplays = 1; //reset counter
 
     g_uPauseTime = 0; //do not drop temps later
@@ -7033,10 +7056,21 @@ void continuePrint( void )
     if( Printer::operatingMode == OPERATING_MODE_PRINT )
     {
 #endif // FEATURE_MILLING_MODE
-		continuePrintLoadTemperatures();                
+		if (continuePrintLoadTemperatures()) {
+			UI_STATUS_UPD(UI_TEXT_CONTINUING_READY);
+			BEEP_CONTINUE
+			g_uStartOfIdle = HAL::timeInMilliseconds() + 30000; //continueprint
+			g_uPauseTime = HAL::timeInMilliseconds() + 240000; //drop temps later but have more time
+			// Aufgewacht, warte wieder auf Play-Knopf
+
+			return;
+		}
 #if FEATURE_MILLING_MODE
     }
 #endif // FEATURE_MILLING_MODE
+
+	UI_STATUS_UPD(UI_TEXT_CONTINUING);
+	BEEP_CONTINUE
 	g_pauseStatus = PAUSE_STATUS_GOTO_CONTINUE;
     waitforPauseStatus_fromButton();
 

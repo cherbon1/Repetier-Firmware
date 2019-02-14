@@ -1006,7 +1006,7 @@ Above this value the z compensation will distribute the roughness of the surface
 #if FEATURE_RGB_LIGHT_EFFECTS
 
 /** \brief Specfies the default RGB light mode */
-#define RGB_LIGHT_DEFAULT_MODE              RGB_MODE_AUTOMATIC
+#define RGB_LIGHT_DEFAULT_MODE              RGB_MODE_WHITE
 
 /** \brief Specifies the time interval after which the RGB light status switches from idle to color change */
 #define RGB_LIGHT_COLOR_CHANGE_DELAY        30                                                  // [s]

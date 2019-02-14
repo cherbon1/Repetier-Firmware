@@ -20,7 +20,7 @@
 #define CONSTANTS_H
 
 
-#define REPETIER_VERSION                    "1.43.75"
+#define REPETIER_VERSION                    "1.43.76"
 #define UI_PRINTER_COMPANY                  "Conrad Community"
 #define UI_VERSION_STRING                   "V " REPETIER_VERSION
 
@@ -97,6 +97,7 @@
 //finished pausing
 #define PAUSE_STATUS_PAUSING                6   // we are moving rightnow
 #define PAUSE_STATUS_PAUSED                 7   // we have paused the print (= pause position reached)use position reached)
+#define PAUSE_STATUS_PAUSED_STANDBY         8   // we have paused the print and dropped temps
 
 #define PAUSE_MODE_NONE                     0   // we are not paused at the moment
 #define PAUSE_MODE_PAUSED                   1   // stopp at the last printing position
