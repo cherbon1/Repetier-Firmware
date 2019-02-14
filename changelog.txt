@@ -1,4 +1,9 @@
-!!! This branch rightnow is highly experimental !!! 
+With a Version > 1.43.20 the following machine modes still have to be tested:
+- Dual-Extruder printing
+- Milling
+
+This should work awsome:
+- Single-Extruder printing
 
 TODO:
 # milling mode: retest all pause functionality
@@ -8,7 +13,7 @@ TODO:
 # milling mode: add menu point (and eeprom save) to select if direct/menu positioning feedrate shall be like the last gcode feedrate or standard. (Standard: DIRECT_FEEDRATE_XY and DIRECT_FEEDRATE_Z)
 # arc-support: test circles while printing and not printing
 # pause @RF1000: test if z max-endstop is respected while moving in dual-endstop circular setting
-# extrusion: I had a case that extrusion after a print was not possible. Restarting the printer fixed it temporarily.
+# extrusion: I had a case that extrusion after a print was not possible. Restarting the printer fixed it temporarily. (Problem still there?)
 
 V 01.43.76.Mod (2019-02-14)
 - Added a fast way to the third pause mode: If you press pause after being "paused and moved" the printer will reach standby cooldown faster.
