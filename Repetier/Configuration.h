@@ -66,7 +66,7 @@
  * IMPORTANT: With mode <>0 some changes in Configuration.h are not set any more, as they are
  *            taken from the EEPROM.
  */
-#define EEPROM_MODE                         121
+#define EEPROM_MODE                         44
 
 
 // ##########################################################################################
@@ -116,13 +116,10 @@
 #define XYZ_POSITION_BUTTON_DIRECTION       1                                                   // 1 = on, 0 = off
 
 /** \brief Enables/disables the emergency stop in case of too high pressure */
-#define FEATURE_EMERGENCY_STOP_ALL          1                                                   // 1 = on, 0 = off
+#define FEATURE_EMERGENCY_STOP_Z_AND_E          1                                                   // 1 = on, 0 = off
 
 /** \brief Enables/disables the set to x/y origin feature */
 #define FEATURE_SET_TO_XY_ORIGIN            1                                                   // 1 = on, 0 = off
-
-/** \brief Enables/disables the park feature */
-#define FEATURE_PARK                        0                                                   // 1 = on, 0 = off
 
 /**
  * \brief Ditto printing allows 2 extruders to do the same action. This effectively allows
@@ -131,7 +128,7 @@
 #define FEATURE_DITTO_PRINTING              0                                                   // 1 = on, 0 = off
 
 /** \brief You can store the current position with M401 and go back to it with M402. This works only if feature is set to true. */
-#define FEATURE_MEMORY_POSITION             1                                                   // 1 = on, 0 = off
+#define FEATURE_MEMORY_POSITION             0                                                   // 1 = on, 0 = off
 
 /** \brief If a checksum is sent, all future comamnds must also contain a checksum. Increases reliability especially for binary protocol. */
 #define FEATURE_CHECKSUM_FORCED             0                                                   // 1 = on, 0 = off
@@ -144,9 +141,6 @@
 
 /** \brief Enables/disables the beeper */
 #define FEATURE_BEEPER                      1                                                   // 1 = on, 0 = off
-
-/** \brief Defines whether a change within the menu shall be stored to the EEPROM automatically or not. */
-#define FEATURE_AUTOMATIC_EEPROM_UPDATE     1                                                   // 1 = the EEPROM is updated automatically after each change via the menu, 0 = the EEPROM must be updated manually via the "Store to EEPROM" menu item
 
 /** \brief Allows to use the service interval */
 #define FEATURE_SERVICE_INTERVAL            0                                                   // 1 = on, 0 = off
@@ -170,9 +164,6 @@
 
 /** \brief Maximal temperature which can be set for the extruder */
 #define EXTRUDER_MAX_TEMP                   275
-
-/** \brief Extruder allow cold movement which can be set for the extruder */
-#define EXTRUDER_ALLOW_COLD_MOVE            0
 
 // ##########################################################################################
 // ##   Hotend V1
@@ -235,13 +226,50 @@
  * Change your EEPROMs Steps/mm accordingly if you change RF_MICRO_STEPS_ in this configuration. Steps/mm are autoadjusted if you use FEATURE_ADJUSTABLE_MICROSTEPSs Menu!
  */
 
-#define RF_MICRO_STEPS_Z                    32                                                   // standard/best 32 or 16
+#define RF_MICRO_STEPS_Z                    16                                                   // standard/best 32 or 16
 #define RF_MICRO_STEPS_XY                   32                                                   // standard/best 32 or 64
 #define RF_MICRO_STEPS_E                    32                                                   // standard/best 32 or 64 (or 128?? --> untested!)
 
 /** \brief Enables/disables that you can switch the micro step setting within Menu->Configuration->Stepper and it is saved in hidden EEPROM */
 #define FEATURE_ADJUSTABLE_MICROSTEPS       1
 
+// ##########################################################################################
+// ##   Feedrate and Movement settings
+// ##########################################################################################
+
+/** \brief After x seconds of inactivity, the stepper motors are disabled.
+Set to 0 to leave them enabled.
+This helps cooling the Stepper motors between two print jobs.
+Overridden if EEPROM activated. */
+#define STEPPER_INACTIVE_TIME               600
+
+/** \brief After x seconds of inactivity, the system will go down as far it can.
+It will at least disable all stepper motors and heaters. If the board has
+a power pin, it will be disabled, too.
+Set value to 0 for disabled.
+Overridden if EEPROM activated. */
+#define MAX_INACTIVE_TIME                   0L
+
+/** \brief Maximum feedrate, the system allows. Higher feedrates are reduced to these values.
+The axis order in all axis related arrays is X, Y, Z
+Overridden if EEPROM activated. */
+#define MAX_FEEDRATE_X                      150
+#define MAX_FEEDRATE_Y                      150
+#define MAX_FEEDRATE_Z                      9
+
+/** \brief Home position speed in mm/s. Overridden if EEPROM activated. These values can be overridden by EEPROM but are considered as maximum allowed values */
+#define HOMING_FEEDRATE_X_PRINT             80
+#define HOMING_FEEDRATE_Y_PRINT             80
+#define HOMING_FEEDRATE_Z_PRINT             9
+
+#define HOMING_FEEDRATE_X_MILL              70
+#define HOMING_FEEDRATE_Y_MILL              70
+#define HOMING_FEEDRATE_Z_MILL              7
+
+/** \brief Speed for direct movements in mm/s. Overridden if EEPROM activated. */
+#define DIRECT_FEEDRATE_XY                  100
+#define DIRECT_FEEDRATE_Z                   9
+#define DIRECT_FEEDRATE_E                   25
 
 // ##########################################################################################
 // ##   Acceleration settings
@@ -355,7 +383,7 @@ Overridden if EEPROM activated. */
 // ##########################################################################################
 
 /** \brief The following script allows to configure the exact behavior of the automatic object output */
-#define OUTPUT_OBJECT_SCRIPT_PRINT          "G21\nG92 E0\nG1 E-" xstr(SCRIPT_RETRACT_MM) "\nG92 E0\nG90\nG1 Z200 F720\nG1 Y245 F4800"
+#define OUTPUT_OBJECT_SCRIPT_PRINT          "G21\nG92 E0\nG1 E-" xstr(SCRIPT_RETRACT_MM) "\nG4 P100\nG92 E0\nG90\nG1 Z200 F540\nG1 Y245 F4800"
 #define OUTPUT_OBJECT_SCRIPT_MILL           "G28 Z0\nG21\nG91\nG1 Y245 F4800"
 
 // ##########################################################################################
@@ -376,14 +404,13 @@ Overridden if EEPROM activated. */
 // ##   configuration of the park functionality
 // ##########################################################################################
 
-#if FEATURE_PARK
+/** \brief Enables/disables the park feature */
+#define FEATURE_PARK                        0                                                   // 1 = on, 0 = off
 
 /** \brief Specifies the park position, in [mm] */
 #define PARK_POSITION_X                     0                                                  // [mm]
 #define PARK_POSITION_Y                     120                                                // [mm]
 #define PARK_POSITION_Z                     175                                                // [mm]
-
-#endif // FEATURE_PARK
 
 
 // ##########################################################################################
@@ -397,8 +424,8 @@ Overridden if EEPROM activated. */
  * @ ca. +- 15000 the sensors tend to start bending
  * With RF1.37r2.Mod the Emergency-Pause-Features limits can be changed in EEPROM and Printers Menu. Here are the absolute maximum limits:
  */
-#define EMERGENCY_PAUSE_DIGITS_MIN          -15000
-#define EMERGENCY_PAUSE_DIGITS_MAX          15000
+#define EMERGENCY_PAUSE_DIGITS_MIN          -11000                                 // [digits]
+#define EMERGENCY_PAUSE_DIGITS_MAX           11000                                 // [digits]
 
 /** \brief Specifies the interval at which the pressure check shall be performed, in [ms] */
 #define EMERGENCY_PAUSE_INTERVAL            100
@@ -413,15 +440,18 @@ Overridden if EEPROM activated. */
 // ##   configuration of the emergency stop functionality
 // ##########################################################################################
 
-#if FEATURE_EMERGENCY_STOP_ALL
+#if FEATURE_EMERGENCY_STOP_Z_AND_E
 
 /**
- * \brief Specifies the pressure at which the emergency stop shall be performed, in [digits]
- * With RF1.37r6.Mod the Emergency-ZStop-Features limits can be changed in EEPROM and Printers Menu. Here are the absolute maximum limits:
+ * \brief 
+ * Specifies the pressure at which 
+ * - the z emergency stop shall be performed
+ * - extrusion is forbidden
+ * 
  * Do not set them to Zero.
  */
-#define EMERGENCY_STOP_DIGITS_MIN           -10000
-#define EMERGENCY_STOP_DIGITS_MAX           10000
+#define EMERGENCY_STOP_DIGITS_MIN           -12500                                 // [digits]
+#define EMERGENCY_STOP_DIGITS_MAX            12500                                 // [digits]
 
 /** \brief Specifies the interval at which the pressure check shall be performed, in [ms] */
 #define EMERGENCY_STOP_INTERVAL             10
@@ -429,7 +459,7 @@ Overridden if EEPROM activated. */
 /** \brief Specifies the number of pressure values which shall be averaged. The emergency stop can be detected each EMERGENCY_STOP_INTERVAL * EMERGENCY_STOP_CHECKS [ms] */
 #define EMERGENCY_STOP_CHECKS               3
 
-#endif // FEATURE_EMERGENCY_STOP_ALL
+#endif // FEATURE_EMERGENCY_STOP_Z_AND_E
 
 
 // ##########################################################################################
@@ -651,6 +681,7 @@ Honeywell 100K Thermistor (135-104LAG-J01)  : R0 = 100000  T0 = 25  Beta = 3974
 // ##########################################################################################
 
 /** \brief Configuration of the manual steps */
+// (Jeder dieser Werte*steps/mm der Achse muss in unsigned short passen)
 #define DEFAULT_MANUAL_MM_X                    0.1f                            // [mm]
 #define DEFAULT_MANUAL_MM_Y                    0.1f                            // [mm]
 #define DEFAULT_MANUAL_MM_Z                    0.01f                           // [mm] -> Wert im Menü->Position->Z-Steps: xxx um!
@@ -660,6 +691,7 @@ Honeywell 100K Thermistor (135-104LAG-J01)  : R0 = 100000  T0 = 25  Beta = 3974
 //Siehe: https://github.com/RF1000community/Repetier-Firmware/issues/4
 //Dieser statische Ansatz wird evtl. mal umgebaut. Man könnte auch eine Funktion schreiben, die sinnvolle Einstellwerte automatisch anhand Microsteps und Mikrometertabelle sucht.
 #define NUM_ACCEPTABLE_STEP_SIZE_TABLE    7
+// (Jeder dieser Werte muss in unsigned short passen)
 #define ACCEPTABLE_STEP_SIZE_TABLE { 5,13,26,51,64,128,256 }
 
 // ###############################################################################
@@ -692,14 +724,6 @@ Honeywell 100K Thermistor (135-104LAG-J01)  : R0 = 100000  T0 = 25  Beta = 3974
  * Select an encoder speed from 0 = fastest to 2 = slowest that results in one menu move per click.
  */
 #define UI_ENCODER_SPEED                    1
-
-/** 
- * \brief There are 2 ways to change positions. You can move by increments of 1/0.1 mm resulting in more menu entries
- * and requiring many turns on your encode. The alternative is to enable speed dependent positioning. It will change
- * the move distance depending on the speed you turn the encoder. That way you can move very fast and very slow in the
- * same setting.
- */
-#define UI_SPEEDDEPENDENT_POSITIONING       true
 
 /** \brief bounce time of keys in milliseconds */
 #define UI_KEY_BOUNCETIME                   10
@@ -871,7 +895,7 @@ we use blocks of 2 kByte size for the structure of our EEPROM
 #define Z_OFFSET_BUTTON_STEPS               5
 
 /** \brief Defines the default z scale */
-#define DEFAULT_Z_SCALE_MODE                Z_VALUE_MODE_Z_MIN
+#define DEFAULT_Z_SCALE_MODE                Z_VALUE_MODE_LAYER
 
 /** \brief Minimal temperature which can be reached by cooling */
 #define MAX_ROOM_TEMPERATURE                40                                                  // [°C]
@@ -926,7 +950,7 @@ we use blocks of 2 kByte size for the structure of our EEPROM
  * \brief Prevent extrusions longer then x mm for one command. This is especially important if you abort a print. Then the
  * extrusion position might be at any value like 23344. If you then have an G1 E-2 it will roll back 23 meter!
  */
-#define EXTRUDE_MAXLENGTH                   100
+#define EXTRUDE_MAXLENGTH                   100.0f
 
 /**
  * \brief Set PID scaling
@@ -969,18 +993,6 @@ we use blocks of 2 kByte size for the structure of our EEPROM
 
 /** \brief Communication speed. Overridden if EEPROM activated. */
 #define BAUDRATE                            115200
-
-/**
- * \brief Some boards like Gen7 have a power on pin, to enable the atx power supply. If this is defined,
- * the power will be turned on without the need to call M80 if initially started.
- */
-#define ENABLE_POWER_ON_STARTUP
-
-/**
- * \brief If you use an ATX power supply you need the power pin to work non inverting. For some special
- * boards you might need to make it inverting.
- */
-#define POWER_INVERTING                     false
 
 /**
  * \brief Cache size for incoming commands.

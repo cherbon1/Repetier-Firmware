@@ -38,6 +38,7 @@
 #define FEATURE_MILLING_MODE                  0                                                   // 1 = on, 0 = off -> RF2000v2 : OFF
 
 #if FEATURE_MILLING_MODE
+  #error REMOVE THIS LINE TO SHOW THAT YOU UNDERSTOOD THAT MILLING WITH A COMMUNITY-MOD-FW HIGHER THAN 1.43.20 HAS TO BE ALPHA-TESTED BY SOMEONE. WE CHANGED ALOT AND STILL DID NOT TEST MILLING.
 
   /** \brief Enables automatic compensation in z direction for the operationg mode "mill" */
   #define FEATURE_WORK_PART_Z_COMPENSATION    1                                                   // 1 = on, 0 = off
@@ -83,9 +84,6 @@
 #define EXT0_HOTEND_TYPE                    HOTEND_TYPE_V3
 #define EXT1_HOTEND_TYPE                    HOTEND_TYPE_V3
 
-/** \brief Define the type Z-Endstop-Installation */
-#define FEATURE_CONFIGURABLE_Z_ENDSTOPS     0                                                   // the RF2000 does not support to use the z-min and z-max endstops within one circle
-
 // ##########################################################################################
 // ##   Calibration
 // ##########################################################################################
@@ -95,19 +93,15 @@ For delta robot Z_MAX_LENGTH is the maximum travel of the towers and should be s
 and the platform when the printer is at its home position.
 If EEPROM is enabled these values will be overidden with the values in the EEPROM */
 #if NUM_EXTRUDER == 2
-#define X_MAX_LENGTH_PRINT                  (long)170
+#define X_MAX_LENGTH_PRINT                  170                                                                         // [mm]
 #else
-#define X_MAX_LENGTH_PRINT                  (long)230
+#define X_MAX_LENGTH_PRINT                  230                                                                         // [mm]
 #endif // NUM_EXTRUDER == 2
 
-#define X_MAX_LENGTH_MILL                   (long)200
-#define Y_MAX_LENGTH                        (long)290
-#define Z_MAX_LENGTH                        (long)185 //RF2000 von Nibbels: ~194,86 -> PAUSE_Z_MAX_SPACING_MM großzügig einplanen
-
-/** \brief Coordinates for the minimum axis. Can also be negative if you want to have the bed start at 0 and the printer can go to the left side
-of the bed. Maximum coordinate is given by adding the above MAX_LENGTH values. */
-#define X_MIN_POS                           0
-#define Y_MIN_POS                           0
+#define X_MAX_LENGTH_MILL                   200                                                                         // [mm]
+#define Y_MAX_LENGTH                        290                                                                         // [mm]
+//RF2000 von Nibbels: ~194,86 -> PAUSE_Z_MAX_SPACING_MM großzügig einplanen
+#define Z_MAX_LENGTH                        185                                                                         // [mm]
 
 /** \brief Drive settings for printers with cartesian drive systems */
 /** \brief Number of steps for a 1mm move in x direction.
@@ -260,16 +254,8 @@ Overridden if EEPROM activated. */
 #define EXT0_PID_MAX                        255
 
 /** \brief Faktor for the advance algorithm. 0 disables the algorithm.  Overridden if EEPROM activated.
-K is the factor for the quadratic term, which is normally disabled in newer versions. If you want to use
-the quadratic factor make sure ENABLE_QUADRATIC_ADVANCE is defined.
 L is the linear factor and seems to be working better then the quadratic dependency. */
-#define EXT0_ADVANCE_K                      0.0f
 #define EXT0_ADVANCE_L                      0.0f
-
-/** \brief Motor steps to remove backlash for advance alorithm. These are the steps
-needed to move the motor cog in reverse direction until it hits the driving
-cog. Direct drive extruder need 0. */
-#define EXT0_ADVANCE_BACKLASH_STEPS         0
 
 /** \brief Temperature to retract filament when extruder is heating up. Overridden if EEPROM activated. */
 #define EXT0_WAIT_RETRACT_TEMP              150
@@ -433,10 +419,7 @@ Overridden if EEPROM activated. */
 #define EXT1_PID_MAX                        255
 
 /** \brief Faktor for the advance algorithm. 0 disables the algorithm.  Overridden if EEPROM activated.
-K is the factor for the quadratic term, which is normally disabled in newer versions. If you want to use
-the quadratic factor make sure ENABLE_QUADRATIC_ADVANCE is defined.
 L is the linear factor and seems to be working better then the quadratic dependency. */
-#define EXT1_ADVANCE_K                      0.0f
 #define EXT1_ADVANCE_L                      0.0f
 
 /** \brief Motor steps to remove backlash for advance alorithm. These are the steps
@@ -615,24 +598,26 @@ on this endstop. */
 #define MIN_HARDWARE_ENDSTOP_Z              true
 #define MAX_HARDWARE_ENDSTOP_X              false
 #define MAX_HARDWARE_ENDSTOP_Y              false
+
+/** \brief Define the type Z-Endstop-Installation */
+// the RF2000 does not support to use the z-min and z-max endstops within one circle
+#define FEATURE_CONFIGURABLE_Z_ENDSTOPS     0
 // the RF2000 always has the z-min and z-max endstops
 #define MAX_HARDWARE_ENDSTOP_Z              true
+
+/** \brief Set order of axis homing. Use HOME_ORDER_XYZ and replace XYZ with your order. */
+#if FEATURE_MILLING_MODE
+#define HOMING_ORDER_PRINT              HOME_ORDER_XYZ           //if you work with springloaded hotend or positive Z-Matrix home Z last! You might otherwise hit the surface.
+#define HOMING_ORDER_MILL               HOME_ORDER_ZXY
+#else
+#define HOMING_ORDER_PRINT              HOME_ORDER_XYZ           //if you work with springloaded hotend or positive Z-Matrix home Z last!! You might otherwise hit the surface.
+#endif // FEATURE_MILLING_MODE
 
 /** \brief Sets direction of endstops when homing; 1=MAX, -1=MIN */
 #define X_HOME_DIR                          -1
 #define Y_HOME_DIR                          -1
 //gets inverted when searching home dir in milling mode:
 #define Z_HOME_DIR                          -1
-
-/** \brief If true, axis won't move to coordinates less than zero. */
-#define min_software_endstop_x              false
-#define min_software_endstop_y              false
-#define min_software_endstop_z              false
-
-/** \brief If true, axis won't move to coordinates greater than the defined lengths below. */
-#define max_software_endstop_x              true
-#define max_software_endstop_y              true
-#define max_software_endstop_z              true
 
 /** \brief If during homing the endstop is reached, how many mm should the printer move back for the second try */
 #define ENDSTOP_X_BACK_MOVE                 5.0f
@@ -648,11 +633,6 @@ during homing operation. The homing speed is divided by the value. 1 = same spee
 /** \brief When you have several endstops in one circuit you need to disable it after homing by moving a
 small amount back. This is also the case with H-belt systems. */
 #define LEAVE_Z_MAX_ENDSTOP_AFTER_HOME      2.0f                                                  // [mm] positive value, because homedir is known.
-
-/** \brief You can disable endstop checking for print moves. This is needed, if you get sometimes
-false signals from your endstops. If your endstops don't give false signals, you
-can set it on for safety. */
-#define ALWAYS_CHECK_ENDSTOPS               true
 
 
 // ##########################################################################################
@@ -694,9 +674,6 @@ included delay is already enough. */
 #define X_ENABLE_ON                         1
 #define Y_ENABLE_ON                         1
 #define Z_ENABLE_ON                         1
-
-/** \brief Disables axis when it's not being used. */
-#define DISABLE_E                           false
 
 /** \brief Inverting axis direction */
 #define INVERT_X_DIR                        true
@@ -749,59 +726,6 @@ Only values which are a factor of 10ms or 0==OFF will work precisely */
 // --> set EEPROM value or change mode in printers menu
 
 // ##########################################################################################
-// ##   Movement settings
-// ##########################################################################################
-
-/** \brief After x seconds of inactivity, the stepper motors are disabled.
-    Set to 0 to leave them enabled.
-    This helps cooling the Stepper motors between two print jobs.
-    Overridden if EEPROM activated. */
-#define STEPPER_INACTIVE_TIME               600
-
-/** \brief After x seconds of inactivity, the system will go down as far it can.
-    It will at least disable all stepper motors and heaters. If the board has
-    a power pin, it will be disabled, too.
-    Set value to 0 for disabled.
-    Overridden if EEPROM activated. */
-#define MAX_INACTIVE_TIME                   0L
-
-/** \brief Maximum feedrate, the system allows. Higher feedrates are reduced to these values.
-    The axis order in all axis related arrays is X, Y, Z
-     Overridden if EEPROM activated. */
-#define MAX_FEEDRATE_X                      150
-#define MAX_FEEDRATE_Y                      150
-#define MAX_FEEDRATE_Z                      9
-
-/** \brief Home position speed in mm/s. Overridden if EEPROM activated. These values can be overridden by EEPROM but are considered as maximum allowed values */
-#define HOMING_FEEDRATE_X_PRINT             80
-#define HOMING_FEEDRATE_Y_PRINT             80
-#define HOMING_FEEDRATE_Z_PRINT             9
-
-#define HOMING_FEEDRATE_X_MILL              70
-#define HOMING_FEEDRATE_Y_MILL              70
-#define HOMING_FEEDRATE_Z_MILL              7
-
-/** \brief Speed for direct movements in mm/s. Overridden if EEPROM activated. */
-#define DIRECT_FEEDRATE_XY                  80
-#define DIRECT_FEEDRATE_Z                   7
-#define DIRECT_FEEDRATE_E                   25
-
-/** \brief Set order of axis homing. Use HOME_ORDER_XYZ and replace XYZ with your order. */
-#if FEATURE_MILLING_MODE
-    #define HOMING_ORDER_PRINT              HOME_ORDER_XYZ           //if you work with springloaded hotend or positive Z-Matrix home Z last! You might otherwise hit the surface.
-    #define HOMING_ORDER_MILL               HOME_ORDER_ZXY
-#else
-    #define HOMING_ORDER_PRINT              HOME_ORDER_XYZ           //if you work with springloaded hotend or positive Z-Matrix home Z last!! You might otherwise hit the surface.
-#endif // FEATURE_MILLING_MODE
-
-/** \brief If you have a backlash in both z-directions, you can use this. For most printer, the bed will be pushed down by it's
-own weight, so this is nearly never needed. */
-#define ENABLE_BACKLASH_COMPENSATION        false
-#define Z_BACKLASH                          0
-#define X_BACKLASH                          0
-#define Y_BACKLASH                          0
-
-// ##########################################################################################
 // ##   configuration of the speed vs. cpu usage
 // ##########################################################################################
 
@@ -814,14 +738,10 @@ additional stepper interrupts with all it's overhead. As a result you can gain h
 
 STEP_PACKING_MIN_INTERVAL can be changed in Menu-> Configuration->Stepper->DblFq:
 */
-#define STEP_PACKING_MIN_INTERVAL           2900 // (F_CPU / safe Steprate)
+#define STEP_PACKING_MIN_INTERVAL           3300 // (F_CPU / safe Steprate)
 
-#define MIN_STEP_PACKING_MIN_INTERVAL       2900
-#define MAX_STEP_PACKING_MIN_INTERVAL       4000
-
-/** \brief If you reach STEP_PACKING_MIN_INTERVAL the firmware will do 2, 3 or 4... steps with nearly no delay. That can be too fast
-for some printers causing an early stall. */
-#define MULTI_STEP_DELAY                   0                                                   // [us] was 1, NIBBELS: Repetier set this to 0 when removing half stepping
+#define MIN_STEP_PACKING_MIN_INTERVAL       3300
+#define MAX_STEP_PACKING_MIN_INTERVAL       5000
 
 /** \brief Number of moves we can cache in advance.
 This number of moves can be cached in advance. If you wan't to cache more, increase this. Especially on
@@ -846,26 +766,11 @@ if you are printing many very short segments at high speed.*/
 // ##   Extruder control
 // ##########################################################################################
 
-/* \brief Minimum temperature for extruder operation
-This is a saftey value. If your extruder temperature is below this temperature, no
-extruder steps are executed. This is to prevent your extruder to move unless the filament
-is at least molten. After havong some complains that the extruder does not work, I leave
-it 0 as default. */
-#if EXTRUDER_ALLOW_COLD_MOVE
-  #define MIN_EXTRUDER_TEMP                   0
-#else
-  #define MIN_EXTRUDER_TEMP                   80
-#endif
 /** \brief Enable advance algorithm.
 Without a correct adjusted advance algorithm, you get blobs at points, where acceleration changes. The
 effect increases with speed and acceleration difference. Using the advance method decreases this effect.
 For more informations, read the wiki. */
 #define USE_ADVANCE                         1
-
-/** \brief enables quadratic component.
-Uncomment to allow a quadratic advance dependency. Linear is the dominant value, so no real need
-to activate the quadratic term. Only adds lots of computations and storage usage. */
-//#define ENABLE_QUADRATIC_ADVANCE
 
 
 // ##########################################################################################
@@ -875,8 +780,7 @@ to activate the quadratic term. Only adds lots of computations and storage usage
 #if FEATURE_HEAT_BED_Z_COMPENSATION
 
 /** \brief Specifies if you want to adjust minimal and maximum compensation steps to first layer */
-#define AUTOADJUST_MIN_MAX_ZCOMP                1
-#define AUTOADJUST_STARTMADEN_AUSSCHLUSS        0.35f
+#define AUTOADJUST_STARTMADEN_AUSSCHLUSS        0.352f
 
 /** \brief Specifies until which height the z compensation must complete
 This value should be roughly the double amount of mm which is detected as error of the heat bed. */
@@ -970,10 +874,6 @@ Above this value the z compensation will distribute the roughness of the surface
 
 #if FEATURE_WORK_PART_Z_COMPENSATION
 
-/** \brief Specifies the maximal allowed z-error of the scanned work part.
-*/
-#define WORK_PART_Z_COMPENSATION_MAX_MM         20                                                                      // [mm]
-
 /** \brief Specifies the maximal static z-offset which can be configured.
 */
 #define WORK_PART_MAX_STATIC_Z_OFFSET_MM        10                                                                      // [mm]
@@ -1026,20 +926,16 @@ Above this value the z compensation will distribute the roughness of the surface
 // ##########################################################################################
 
 /** \brief Configuration of the pause steps */
-//Nibbels: 29122017 dont know what happens if pause hits max endstop etc. ... might get shifted coordinates!
-  //look here if you want to prevent clamp crashes while milling! choose your pause position right.
+//look here if you want to prevent clamp crashes while milling! choose your pause position right.
 #define DEFAULT_PAUSE_MM_X_MILL                0                                                                     // [mm]
-#define DEFAULT_PAUSE_MM_X_PRINT            -200                                                                     // [mm]
+#define DEFAULT_PAUSE_MM_X_PRINT               0                                                                     // [mm]
 #define DEFAULT_PAUSE_MM_Y_MILL              200                                                                     // [mm]
-#define DEFAULT_PAUSE_MM_Y_PRINT            -200                                                                     // [mm]
+#define DEFAULT_PAUSE_MM_Y_PRINT             200                                                                     // [mm]
 #define DEFAULT_PAUSE_MM_Z_MILL               20                                                                     // [mm]
-#define DEFAULT_PAUSE_MM_Z_PRINT              20                                                                     // [mm]
-#define DEFAULT_PAUSE_MM_E                   SCRIPT_RETRACT_MM                                                       // [mm] Zahl immer positiv, sie wird abgezogen = Retract!
+#define DEFAULT_PAUSE_MM_Z_PRINT              30                                                                     // [mm]
+#define DEFAULT_PAUSE_MM_E                   SCRIPT_RETRACT_MM                                                       // [mm] Zahl wird immer vorzeichenlos als Retract benutzt
 
-#define PAUSE_X_SPACING_MM                     5                                                                     // [mm]
-#define PAUSE_Y_SPACING_MM                     5                                                                     // [mm]
-#define PAUSE_Z_MAX_SPACING_MM                15                                                                     // [mm]
-#define PAUSE_COOLDOWN                       100                                                // [°C] 0=Off and 1..255=Temp down while paused
+#define PAUSE_COOLDOWN                       100                                                                     // [°C] 0=Off and 1..255=Temp down while paused
 
 
 // ##########################################################################################
@@ -1111,7 +1007,7 @@ Above this value the z compensation will distribute the roughness of the surface
 #if FEATURE_RGB_LIGHT_EFFECTS
 
 /** \brief Specfies the default RGB light mode */
-#define RGB_LIGHT_DEFAULT_MODE              RGB_MODE_AUTOMATIC
+#define RGB_LIGHT_DEFAULT_MODE              RGB_MODE_WHITE
 
 /** \brief Specifies the time interval after which the RGB light status switches from idle to color change */
 #define RGB_LIGHT_COLOR_CHANGE_DELAY        30                                                  // [s]

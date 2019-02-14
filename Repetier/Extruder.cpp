@@ -347,15 +347,6 @@ void Extruder::initExtruder()
         act->tempControl.lastTemperatureUpdate = HAL::timeInMilliseconds();
         act->tempControl.updateTempControlVars();
     }
-
-#if HEATED_BED_HEATER_PIN>-1
-    SET_OUTPUT(HEATED_BED_HEATER_PIN);
-    WRITE(HEATED_BED_HEATER_PIN,HEATER_PINS_INVERTED);
-    Extruder::initHeatedBed();
-#endif // HEATED_BED_HEATER_PIN>-1
-
-    HAL::analogStart();
-
 } // initExtruder
 
 
@@ -387,63 +378,55 @@ void Extruder::selectExtruderById(uint8_t extruderId)
 
 #if NUM_EXTRUDER>1
     bool executeSelect = false;
-    if(extruderId!=Extruder::current->id)
+    if(extruderId != Extruder::current->id)
     {
         GCode::executeFString(Extruder::current->deselectCommands);
         executeSelect = true;
     }
 #endif // NUM_EXTRUDER>1
+	
+	// Update extruder head position
+	// We only move an axis to its corrected position if we are homed. Otherwise homing will do this job.
+	int32_t dOffset[3] = { 0 };
+	if (Printer::isAxisHomed(X_AXIS)) dOffset[X_AXIS] = (extruder[extruderId].offsetMM[X_AXIS] - Extruder::current->offsetMM[X_AXIS]) * Printer::axisStepsPerMM[X_AXIS]; //neu - alt -> geht negativ als bewegung rein.
+	if (Printer::isAxisHomed(Y_AXIS)) dOffset[Y_AXIS] = (extruder[extruderId].offsetMM[Y_AXIS] - Extruder::current->offsetMM[Y_AXIS]) * Printer::axisStepsPerMM[Y_AXIS];
+	if (Printer::isAxisHomed(Z_AXIS)) dOffset[Z_AXIS] = (extruder[extruderId].offsetMM[Z_AXIS] - Extruder::current->offsetMM[Z_AXIS]) * Printer::axisStepsPerMM[Z_AXIS];
+	// Shift the extruder-offset negatively to stay at the same point after switch
+	Printer::offsetRelativeStepsCoordinates(-dOffset[X_AXIS], -dOffset[Y_AXIS], -dOffset[Z_AXIS], 0);
 
 #if STEPPER_ON_DELAY
     Extruder::current->enabled = 0;
 #endif // STEPPER_ON_DELAY
 
-    Extruder::current->extrudePosition = Printer::queuePositionLastSteps[E_AXIS];
     Extruder::current = &extruder[extruderId];
 
-#ifdef SEPERATE_EXTRUDER_POSITIONS
-    // Use seperate extruder positions only if beeing told. Slic3r e.g. creates a continuous extruder position increment
-    Printer::queuePositionLastSteps[E_AXIS] = Extruder::current->extrudePosition;
-#endif // SEPERATE_EXTRUDER_POSITIONS
-
-    Printer::queuePositionTargetSteps[E_AXIS] = Printer::queuePositionLastSteps[E_AXIS];
     Printer::axisStepsPerMM[E_AXIS] = Extruder::current->stepsPerMM;
-    Printer::invAxisStepsPerMM[E_AXIS] = 1.0f/Printer::axisStepsPerMM[E_AXIS];
+    Printer::axisMMPerSteps[E_AXIS] = 1.0f/Printer::axisStepsPerMM[E_AXIS];
     Printer::maxFeedrate[E_AXIS] = Extruder::current->maxFeedrate;
     Printer::maxAccelerationMMPerSquareSecond[E_AXIS] = Printer::maxTravelAccelerationMMPerSquareSecond[E_AXIS] = Extruder::current->maxAcceleration;
     Printer::maxPrintAccelerationStepsPerSquareSecond[E_AXIS] = Printer::maxTravelAccelerationStepsPerSquareSecond[E_AXIS] = uint32_t(Printer::maxAccelerationMMPerSquareSecond[E_AXIS] * Printer::axisStepsPerMM[E_AXIS]);
 
-    g_nManualSteps[E_AXIS] = uint32_t(Printer::axisStepsPerMM[E_AXIS] * DEFAULT_MANUAL_MM_E);
-    g_nPauseSteps[E_AXIS]  = long    (Printer::axisStepsPerMM[E_AXIS] * DEFAULT_PAUSE_MM_E);
+    g_nManualSteps[E_AXIS] = (unsigned short)lroundf(Printer::axisStepsPerMM[E_AXIS] * DEFAULT_MANUAL_MM_E);
+    g_nPauseSteps[E_AXIS]  = long   (Printer::axisStepsPerMM[E_AXIS] * DEFAULT_PAUSE_MM_E);
 
 #if USE_ADVANCE
     Printer::maxExtruderSpeed = (uint8_t)floor(HAL::maxExtruderTimerFrequency() / (Extruder::current->maxFeedrate * Extruder::current->stepsPerMM));
-    if(Printer::maxExtruderSpeed>15) Printer::maxExtruderSpeed = 15;
-    float fmax=((float)HAL::maxExtruderTimerFrequency()/((float)Printer::maxExtruderSpeed*Printer::axisStepsPerMM[E_AXIS])); // Limit feedrate to interrupt speed
-    if(fmax<Printer::maxFeedrate[E_AXIS]) Printer::maxFeedrate[E_AXIS] = fmax;
-#endif // USE_ADVANCE
-
-    Extruder::current->tempControl.updateTempControlVars();
-    Printer::extruderOffset[X_AXIS] = -Extruder::current->xOffset*Printer::invAxisStepsPerMM[X_AXIS];
-    Printer::extruderOffset[Y_AXIS] = -Extruder::current->yOffset*Printer::invAxisStepsPerMM[Y_AXIS];
-    Printer::extruderOffset[Z_AXIS] = -Extruder::current->zOffset*Printer::invAxisStepsPerMM[Z_AXIS];
-
-    //uncomment when inserting diameter for hotend x // Commands::changeFlowrateMultiply(static_cast<float>(Printer::extrudeMultiply)); // needed to adjust extrusionFactor to possibly different diameter
-
-    if(Printer::areAxisHomed())
-    {
-        Printer::moveToReal(IGNORE_COORDINATE,IGNORE_COORDINATE,IGNORE_COORDINATE,IGNORE_COORDINATE,Printer::homingFeedrate[X_AXIS]);
-    }
-    Printer::updateCurrentPosition();
-#if USE_ADVANCE
+    if (Printer::maxExtruderSpeed > 15) Printer::maxExtruderSpeed = 15;
+    float fmax = (HAL::maxExtruderTimerFrequency() / ((float)Printer::maxExtruderSpeed * Printer::axisStepsPerMM[E_AXIS]));
+	// Limit feedrate to interrupt speed
+    if (fmax < Printer::maxFeedrate[E_AXIS]) Printer::maxFeedrate[E_AXIS] = fmax;
     HAL::resetExtruderDirection();
 #endif // USE_ADVANCE
+
+	Extruder::current->tempControl.updateTempControlVars();
+	
+	// When inserting diameter for hotend 1/2
+	// We needed to adjust extrusionFactor to possibly different diameter
 
 #if NUM_EXTRUDER>1
     if(executeSelect) // Run only when changing
         GCode::executeFString(Extruder::current->selectCommands);
 #endif // NUM_EXTRUDER>1
-
 } // selectExtruderById
 
 
@@ -591,29 +574,6 @@ float Extruder::getHeatedBedTemperature()
 #endif // HAVE_HEATED_BED
 
 } // getHeatedBedTemperature
-
-
-void Extruder::disableCurrentExtruderMotor()
-{
-    if(Extruder::current->enablePin > -1)
-        HAL::digitalWrite(Extruder::current->enablePin,!Extruder::current->enableOn);
-
-#if FEATURE_DITTO_PRINTING
-    if(Extruder::dittoMode)
-    {
-        if(extruder[1].enablePin > -1)
-            HAL::digitalWrite(extruder[1].enablePin,!extruder[1].enableOn);
-    }
-#endif // FEATURE_DITTO_PRINTING
-
-#if STEPPER_ON_DELAY
-    Extruder::current->enabled = 0;
-#endif // STEPPER_ON_DELAY
-
-    cleanupEPositions();
-
-} // disableCurrentExtruderMotor
-
 
 void Extruder::disableAllExtruders()
 {
@@ -1067,7 +1027,6 @@ void TemperatureController::waitForTargetTemperature(uint8_t plus_temp_tolerance
     }
     g_uStartOfIdle = 0; //start waitForTargetTemperature
     while(true) {
-        Commands::printTemperatures();
         Commands::checkForPeriodicalActions( WaitHeater );
         if( fabs(targetTemperatureC - currentTemperatureC) <= TEMP_TOLERANCE + plus_temp_tolerance ) break;
         if( !dirRising && currentTemperatureC < MAX_ROOM_TEMPERATURE ) break;
@@ -1131,6 +1090,7 @@ void TemperatureController::autotunePID(float temp, uint8_t controllerId, int ma
     }
 
     autotuneIndex = controllerId;
+	extruder[controllerId].tempControl.stopDecouple();
     pwm_pos[pwmIndex] = pidMax;
     if(controllerId<NUM_EXTRUDER)
     {
@@ -1248,10 +1208,7 @@ see also: http://www.mstarlabs.com/control/znrule.html
             showError( (void*)ui_text_autodetect_pid, (void*)ui_text_temperature_wrong );
             autotuneIndex = 255;
             break;
-        }
-
-        Commands::printTemperatures();
-
+        }		
         if(((time - t1) + (time - t2)) > (10L*60L*1000L*2L))   // 20 Minutes
         {
             Com::printErrorFLN(Com::tAPIDFailedTimeout);
@@ -1317,18 +1274,21 @@ Extruder extruder[NUM_EXTRUDER] =
 {
 #if NUM_EXTRUDER>0
     {
-        0,(int32_t)(EXT0_X_OFFSET_MM * XAXIS_STEPS_PER_MM),(int32_t)(EXT0_Y_OFFSET_MM * YAXIS_STEPS_PER_MM),(int32_t)(EXT0_Z_OFFSET_MM * ZAXIS_STEPS_PER_MM),EXT0_STEPS_PER_MM,EXT0_ENABLE_PIN,EXT0_ENABLE_ON,
-        EXT0_MAX_FEEDRATE,EXT0_MAX_ACCELERATION,EXT0_MAX_START_FEEDRATE,0
-        ,EXT0_WAIT_RETRACT_TEMP,EXT0_WAIT_RETRACT_UNITS,0
-
+        0,
+		{EXT0_X_OFFSET_MM, EXT0_Y_OFFSET_MM, EXT0_Z_OFFSET_MM},
+		EXT0_STEPS_PER_MM,
+		EXT0_ENABLE_PIN,
+		EXT0_ENABLE_ON,
+        EXT0_MAX_FEEDRATE,
+		EXT0_MAX_ACCELERATION,
+		EXT0_MAX_START_FEEDRATE,
+        EXT0_WAIT_RETRACT_TEMP,
+		EXT0_WAIT_RETRACT_UNITS,
+		0,
 #if USE_ADVANCE
-#ifdef ENABLE_QUADRATIC_ADVANCE
-        ,EXT0_ADVANCE_K
-#endif // ENABLE_QUADRATIC_ADVANCE
-        ,EXT0_ADVANCE_L,EXT0_ADVANCE_BACKLASH_STEPS
+        EXT0_ADVANCE_L,
 #endif // USE_ADVANCE
-
-        ,{
+        {
             0,EXT0_TEMPSENSOR_TYPE,EXT0_SENSOR_INDEX,0,0,0,
 #if FEATURE_HEAT_BED_TEMP_COMPENSATION
             0,
@@ -1339,8 +1299,11 @@ Extruder extruder[NUM_EXTRUDER] =
             0,
             0, 0, EXT0_DECOUPLE_TEST_PERIOD
 			,0 //uint8_t paused
-        }
-        ,ext0_select_cmd,ext0_deselect_cmd,EXT0_EXTRUDER_COOLER_SPEED,0
+        },
+        ext0_select_cmd,
+		ext0_deselect_cmd,
+		EXT0_EXTRUDER_COOLER_SPEED,
+		0
 #if STEPPER_ON_DELAY
         , 0
 #endif // STEPPER_ON_DELAY by Nibbels gegen xtruder.cpp:1620:1: warning: missing initializer for member 'Extruder::enabled'
@@ -1349,18 +1312,21 @@ Extruder extruder[NUM_EXTRUDER] =
 
 #if NUM_EXTRUDER>1
     ,{
-        1,(int32_t)(EXT1_X_OFFSET_MM * XAXIS_STEPS_PER_MM),(int32_t)(EXT1_Y_OFFSET_MM * YAXIS_STEPS_PER_MM),(int32_t)(EXT1_Z_OFFSET_MM * ZAXIS_STEPS_PER_MM),EXT1_STEPS_PER_MM,EXT1_ENABLE_PIN,EXT1_ENABLE_ON,
-        EXT1_MAX_FEEDRATE,EXT1_MAX_ACCELERATION,EXT1_MAX_START_FEEDRATE,0
-        ,EXT1_WAIT_RETRACT_TEMP,EXT1_WAIT_RETRACT_UNITS,0
-
+        1,
+		{EXT1_X_OFFSET_MM, EXT1_Y_OFFSET_MM, EXT1_Z_OFFSET_MM},
+		EXT1_STEPS_PER_MM,
+		EXT1_ENABLE_PIN,
+		EXT1_ENABLE_ON,
+        EXT1_MAX_FEEDRATE,
+		EXT1_MAX_ACCELERATION,
+		EXT1_MAX_START_FEEDRATE,
+        EXT1_WAIT_RETRACT_TEMP,
+		EXT1_WAIT_RETRACT_UNITS,
+		0,
 #if USE_ADVANCE
-#ifdef ENABLE_QUADRATIC_ADVANCE
-        ,EXT1_ADVANCE_K
-#endif // ENABLE_QUADRATIC_ADVANCE
-        ,EXT1_ADVANCE_L,EXT1_ADVANCE_BACKLASH_STEPS
+        EXT1_ADVANCE_L,
 #endif // USE_ADVANCE
-
-        ,{
+        {
             1,EXT1_TEMPSENSOR_TYPE,EXT1_SENSOR_INDEX,0,0,0,
 #if FEATURE_HEAT_BED_TEMP_COMPENSATION
             0,
@@ -1371,10 +1337,13 @@ Extruder extruder[NUM_EXTRUDER] =
             0,
             0, 0, EXT1_DECOUPLE_TEST_PERIOD
 			,0 //uint8_t paused
-        }
-        ,ext1_select_cmd,ext1_deselect_cmd,EXT1_EXTRUDER_COOLER_SPEED,0
+        },
+        ext1_select_cmd,
+		ext1_deselect_cmd,
+		EXT1_EXTRUDER_COOLER_SPEED,
+		0
 #if STEPPER_ON_DELAY
-        , 0
+        ,0
 #endif // STEPPER_ON_DELAY by Nibbels gegen xtruder.cpp:1620:1: warning: missing initializer for member 'Extruder::enabled'
     }
 #endif // NUM_EXTRUDER>1
@@ -1397,7 +1366,6 @@ TemperatureController heatedBedController = {
 #else
 #define NUM_TEMPERATURE_LOOPS NUM_EXTRUDER
 #endif // HAVE_HEATED_BED
-
 
 
 #if RESERVE_ANALOG_INPUTS
@@ -1439,4 +1407,3 @@ TemperatureController *tempController[NUM_TEMPERATURE_LOOPS] =
 #endif // NUM_EXTRUDER==0
 #endif // HAVE_HEATED_BED
 };
-

@@ -98,34 +98,50 @@ void FatFile::dmpFile(uint32_t pos, size_t n) {
 //------------------------------------------------------------------------------
 
 /*
-void FatFile::ls(uint8_t flags, uint8_t indent) {
-  FatFile file;
-  rewind();
-  while (file.openNext(this, O_READ)) {
-    // indent for dir level
-    if (!file.isHidden() || (flags & LS_A)) {
-      for (uint8_t i = 0; i < indent; i++) {
-        Com::print(' ');
-      }
-      if (flags & LS_DATE) {
-        file.printModifyDateTime();
-        Com::print(' ');
-      }
-      if (flags & LS_SIZE) {
-        file.printFileSize();
-        Com::print(' ');
-      }
-      file.printName();
-      if (file.isDir()) {
-        Com::print('/');
-      }
-      Com::println();
-      if ((flags & LS_R) && file.isDir()) {
-        file.ls(flags, indent + 2);
-      }
-    }
-    file.close();
-  }
+bool FatFile::ls(print_t* pr, uint8_t flags, uint8_t indent) {
+FatFile file;
+if (!isDir() || getError()) {
+DBG_FAIL_MACRO;
+goto fail;
+}
+rewind();
+while (file.openNext(this, O_RDONLY)) {
+if (!file.isHidden() || (flags & LS_A)) {
+// indent for dir level
+for (uint8_t i = 0; i < indent; i++) {
+pr->write(' ');
+}
+if (flags & LS_DATE) {
+file.printModifyDateTime(pr);
+pr->write(' ');
+}
+if (flags & LS_SIZE) {
+file.printFileSize(pr);
+pr->write(' ');
+}
+file.printName(pr);
+if (file.isDir()) {
+pr->write('/');
+}
+pr->write('\r');
+pr->write('\n');
+if ((flags & LS_R) && file.isDir()) {
+if (!file.ls(pr, flags, indent + 2)) {
+DBG_FAIL_MACRO;
+goto fail;
+}
+}
+}
+file.close();
+}
+if (getError()) {
+DBG_FAIL_MACRO;
+goto fail;
+}
+return true;
+
+fail:
+return false;
 }
 */
 
@@ -231,11 +247,13 @@ void FatFile::lsRecursive(uint8_t level, bool isJson)
  * \param[in] indent Amount of space before file name. Used for recursive
  * list to indicate subdirectory level.
  */
-void FatFile::ls(uint8_t flags, uint8_t indent) {
+bool FatFile::ls(uint8_t flags, uint8_t indent) {
   (void)flags;
   (void)indent;
   *fullName = 0;
   lsRecursive(0, false);
+  //Nibbels
+  return true;
 }
 
 #if JSON_OUTPUT

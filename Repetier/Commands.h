@@ -31,18 +31,16 @@ public:
 #if FAN_PIN>-1 && FEATURE_FAN_CONTROL
     static void setFanSpeed(uint8_t speed, bool recalc = false); /// Set fan speed 0..255
     static void adjustFanFrequency(uint8_t speed_mode);
-    static void adjustFanMode(uint8_t output_mode = 0);
+	static void adjustFanMode(uint8_t output_mode = 0);
 #endif // FAN_PIN>-1 && FEATURE_FAN_CONTROL
     static void changeFeedrateMultiply(int factorInPercent);
-    static void changeFlowrateMultiply(float factorInPercent);
+    static void changeFlowrateMultiply(float newExtrusionFactor);
     static void reportPrinterUsage();
     static void emergencyStop();
     static void checkFreeMemory();
     static void writeLowestFreeRAM();
     static int lowestRAMValue;
     static int lowestRAMValueSend;
-
 }; // Commands
-
 
 #endif // COMMANDS_H

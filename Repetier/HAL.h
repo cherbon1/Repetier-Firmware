@@ -441,67 +441,6 @@ public:
 
     } // ComputeV
 
-    // Multiply two 16 bit values and return 32 bit result
-    static inline uint32_t mulu16xu16to32(unsigned int a,unsigned int b)
-    {
-        uint32_t res;
-
-
-        // 18 Ticks = 1.125 us
-        __asm volatile ( // 0 = res, 1 = timer, 2 = accel %D2=0 ,%A1 are unused is free
-            // Result LSB first: %A0, %B0, %A1
-            "clr r18 \n\t"
-            "mul %B2,%B1 \n\t" // mul hig bytes
-            "movw %C0,r0 \n\t"
-            "mul %A1,%A2 \n\t" // mul low bytes
-            "movw %A0,r0 \n\t"
-            "mul %A1,%B2 \n\t"
-            "add %B0,r0 \n\t"
-            "adc %C0,r1 \n\t"
-            "adc %D0,r18 \n\t"
-            "mul %B1,%A2 \n\t"
-            "add %B0,r0 \n\t"
-            "adc %C0,r1 \n\t"
-            "adc %D0,r18 \n\t"
-            "clr r1 \n\t"
-            :"=&r"(res),"=r"(a),"=r"(b)
-            :"1"(a),"2"(b)
-            :"r18" );
-        // return (long)a*b;
-        return res;
-
-    } // mulu16xu16to32
-
-    // Multiply two 16 bit values and return 16 bit result
-    static inline unsigned int mulu6xu16shift16(unsigned int a,unsigned int b)
-    {
-        unsigned int res;
-
-
-        // 18 Ticks = 1.125 us
-        __asm volatile ( // 0 = res, 1 = timer, 2 = accel %D2=0 ,%A1 are unused is free
-            // Result LSB first: %A0, %B0, %A1
-            "clr r18 \n\t"
-            "mul %B2,%B1 \n\t" // mul hig bytes
-            "movw %A0,r0 \n\t"
-            "mul %A1,%A2 \n\t" // mul low bytes
-            "mov r19,r1 \n\t"
-            "mul %A1,%B2 \n\t"
-            "add r19,r0 \n\t"
-            "adc %A0,r1 \n\t"
-            "adc %B0,r18 \n\t"
-            "mul %B1,%A2 \n\t"
-            "add r19,r0 \n\t"
-            "adc %A0,r1 \n\t"
-            "adc %B0,r18 \n\t"
-            "clr r1 \n\t"
-            :"=&r"(res),"=r"(a),"=r"(b)
-            :"1"(a),"2"(b)
-            :"r18","r19" );
-        return res;
-
-    } // mulu6xu16shift16
-
     static inline void digitalWrite(uint8_t pin,uint8_t value)
     {
         ::digitalWrite(pin,value);
@@ -788,29 +727,9 @@ public:
     static void WDT_Init(void);
 
     // Watchdog support FEATURE_WATCHDOG
-    inline static void startWatchdog()
-    {
-        // external watchdog
-        SET_OUTPUT(WATCHDOG_PIN);
-        g_bPingWatchdog = 1; //allow pinging
-        tellWatchdogOk(); //Nibbels: Init für g_uLastCommandLoop
-        pingWatchdog(); //Nibbels: Hier macht der mehr sinn!
-        HAL::WDT_Init(); //Nibbels: use watchdogtimer to test var and trigger
-    } // startWatchdog
-
-    inline static void stopWatchdog()
-    {
-        g_bPingWatchdog = 0; //disallow pinging
-        // external watchdog
-        WRITE(WATCHDOG_PIN,LOW); //Nibbels: In case you stop the watchdog it has to be set floating. thatwhy disable internal pullup as this will make the state like OUTPUT-high. This is not really needed as this function does not do anything when starting the arduino. rightnow at start it sets a pin to input which is already input.
-        SET_INPUT(WATCHDOG_PIN);
-    } // stopWatchdog
-
-    inline static void tellWatchdogOk()
-    {
-        g_uLastCommandLoop = HAL::timeInMilliseconds();
-    } // pingWatchdog
-
+	static void startWatchdog();
+	static void stopWatchdog();
+	static void tellWatchdogOk();
     inline static void pingWatchdog()
     {
         if( !g_bPingWatchdog )
@@ -850,8 +769,6 @@ public:
 #if USE_ADVANCE
     static void resetExtruderDirection();
 #endif // USE_ADVANCE
-protected:
-private:
 };
 
 #define EXTRUDER_TIMER_VECTOR   TIMER0_COMPA_vect

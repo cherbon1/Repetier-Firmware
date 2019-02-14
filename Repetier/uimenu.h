@@ -40,7 +40,8 @@ List of placeholder:
 %Eb : Target temperature of heated bed
 %E0-9 : Target temperature of extruder 0..9
 %os : Status message
-%om : Speed multiplier
+%om : Speed multiplier 
+%oM : Printer::feedrate
 %ov : active Speed
 %op : Is double or quadstepping?
 %of : flow multiplier
@@ -52,11 +53,16 @@ List of placeholder:
 %x0 : X position
 %x1 : Y position
 %x2 : Z position
-%hx : X homed
-%hy : Y homed
-%hz : Z homed
-%ha : all homed
-%x3 : Current extruder position
+%x3 : X offset position
+%x4 : Y offset position
+%x5 : Z offset position
+%hx : X homed = *
+%hy : Y homed = *
+%hz : Z homed = *
+%hX : X homed (? or :)
+%hY : Y homed (? or :)
+%hZ : Z homed (? or :)
+%x6 : Current extruder position
 %sx : State of x min endstop
 %sX : State of x max endstop
 %sy : State of y min endstop
@@ -107,6 +113,7 @@ List of placeholder:
 %S0 : Steps per mm extruder0
 %S1 : Steps per mm extruder1
 %Sz : Mikrometer per Z-Single_Step (Z_Axis)
+%sk : Positioning coordinate system for XY (move by gode or directoffset)
 %SM : Matrix has changed in Ram and is ready to Save. -> *)
 %Ss : active current value of HEAT_BED_SCAN_Z_START_MM
 %is : Stepper inactive time in seconds
@@ -164,8 +171,8 @@ List of placeholder:
 %pz : mode of the Position Z menu
 %pl : g_nEmergencyPauseDigitsMin [1700/kg]
 %ph : g_nEmergencyPauseDigitsMax [1700/kg]
-%pL : g_nZEmergencyStopAllMin [1700/kg]
-%pH : g_nZEmergencyStopAllMax [1700/kg]
+%pL : g_nEmergencyStopZAndEMin [1700/kg]
+%pH : g_nEmergencyStopZAndEMax [1700/kg]
 %HB : active heat bed z matrix
 %HO : active heat bed min z offset in um
 %WP : active work part z matrix
@@ -202,8 +209,8 @@ List of placeholder:
 %FH : Digit Homing to Zero ON/OFF
 %FC : Digits force-bend-hotend-down Compensation Z ON/OFF
 
-%LL : Last Layer (Direct + Queue + Extr. Zoffset)
-%LC : Current Layer (Direct + Queue + Extr. Zoffset)
+%LL : Last Layer (Queue)
+%LC : Current Layer (Queue)
 %LH : Layer Height
 %LP : ECMP %
 %Lm : g_minZCompensationSteps
@@ -227,15 +234,15 @@ for 2 row displays. You can add additional pages or change the default pages lik
 #if UI_ROWS>=4
     #if HAVE_HEATED_BED==true
         #if UI_COLS<=16
-            UI_PAGE4(ui_page1,"%U1%ec/%EcB%eb/%Eb%U2","Z:%x2 mm %sC%hz",UI_TEXT_STRAIN_GAUGE,"%os")
+            UI_PAGE4(ui_page1,"%U1%ec/%EcB%eb/%Eb%U2","Z%hZ%x2%x5%sC",UI_TEXT_STRAIN_GAUGE,"%os")
         #else
-            UI_PAGE4(ui_page1,"%U1%ec/%Ec\002 B%eb/%Eb\002%U2","Z:%x2 mm %sC%hz",UI_TEXT_STRAIN_GAUGE,"%os")
+            UI_PAGE4(ui_page1,"%U1%ec/%Ec\002 B%eb/%Eb\002%U2","Z%hZ%x2%x5 %sC",UI_TEXT_STRAIN_GAUGE,"%os")
         #endif // UI_COLS<=16
     #else
-        UI_PAGE4(ui_page1,UI_TEXT_PAGE_EXTRUDER,"Z:%x2 mm %sC%hz",UI_TEXT_STRAIN_GAUGE,"%os")
+        UI_PAGE4(ui_page1,UI_TEXT_PAGE_EXTRUDER,"Z%hZ%x2%x5 %sC",UI_TEXT_STRAIN_GAUGE,"%os")
     #endif // HAVE_HEATED_BED==true
 
-    UI_PAGE4(ui_page2,"X:%x0 mm %hx","Y:%x1 mm %hy","Z:%x2 mm %sC%hz","%os")
+    UI_PAGE4(ui_page2,"X%hX%x0 %x3mm","Y%hY%x1 %x4mm","Z%hZ%x2%x5%sC","F:%oM %om%%% %ovmm/s")
 
     #if NUM_EXTRUDER>1
         UI_PAGE4(ui_page3,UI_TEXT_PAGE_EXTRUDER1,UI_TEXT_PAGE_EXTRUDER2,UI_TEXT_PAGE_BED,"%os")
@@ -264,14 +271,14 @@ for 2 row displays. You can add additional pages or change the default pages lik
 
     #if UI_COLS<=16
         UI_PAGE4(ui_page_mod,UI_TEXT_STRAIN_GAUGE_SPEED,
-                        "zO: %z0um zM: %HB",
-                        "sO: %sSum%sM",
-                        "Z: %x2mm %sC%hz")
+                        "zO:%z0um zM: %HB",
+                        "sO:%sSum%sM",
+                        "Z%hZ%x2%x5 %sC")
     #else
         UI_PAGE4(ui_page_mod,UI_TEXT_STRAIN_GAUGE_SPEED,
-                        "zO: %z0 um zMat: %HB",
-                        "sO: %sS um %sM",
-                        "Z: %x2 mm %sC%hz")
+                        "zO:%z0 um zMat: %HB",
+                        "sO:%sS um %sM",
+                        "Z%hZ %x2%x5 %sC")
     #endif
     #define UI_MOD_PAGES , &ui_page_mod
     #define UI_MOD_COUNT 1
@@ -284,7 +291,7 @@ for 2 row displays. You can add additional pages or change the default pages lik
                                 )
     #else
         UI_PAGE4(ui_page_mod2,  "Layer Height: %LHmm",
-                                "Speed:%op %ovmm/s",
+                                "Speed: %op %ovmm/s",
                                 "zCMP: %Lm..%LM mm",   /*7+5+4*/
                                 "eCMP: %LP%%%@Z:%LC" /*6+LP%5+"@Z:"3+6:*/
                                 )
@@ -342,22 +349,20 @@ UI_MENU_ACTION4(ui_menu_message,UI_ACTION_DUMMY,"%m1","%m2","%m3","%m4")
 
 /** \brief Positions submenus */
 #if UI_ROWS>=4
-UI_MENU_ACTION4C(ui_menu_xpos,UI_ACTION_XPOSITION,UI_TEXT_ACTION_XPOSITION4)
-UI_MENU_ACTION4C(ui_menu_ypos,UI_ACTION_YPOSITION,UI_TEXT_ACTION_YPOSITION4)
-UI_MENU_ACTION4C(ui_menu_zpos,UI_ACTION_ZPOSITION,UI_TEXT_ACTION_ZPOSITION4)
-UI_MENU_ACTION4C(ui_menu_xpos_fast,UI_ACTION_XPOSITION_FAST,UI_TEXT_ACTION_XPOSITION_FAST4)
-UI_MENU_ACTION4C(ui_menu_ypos_fast,UI_ACTION_YPOSITION_FAST,UI_TEXT_ACTION_YPOSITION_FAST4)
-UI_MENU_ACTION4C(ui_menu_zpos_fast,UI_ACTION_ZPOSITION_FAST,UI_TEXT_ACTION_ZPOSITION_FAST4)
+UI_MENU_ACTION4(ui_menu_xpos,UI_ACTION_XPOSITION, "X%hX%x0 %x3mm", "Endstop min:%sx", "Endstop max:%sX", "%px")
+UI_MENU_ACTION4(ui_menu_ypos,UI_ACTION_YPOSITION, "Y%hY%x1 %x4mm", "Endstop min:%sy", "Endstop max:%sY", "%py")
+UI_MENU_ACTION4(ui_menu_zpos,UI_ACTION_ZPOSITION, "Z%hZ%x2%x5 %sC", "Endstop min:%sz", "Endstop max:%sZ", "%pz")
 #endif // UI_ROWS>=4
 
-UI_MENU_ACTION2C(ui_menu_epos,UI_ACTION_EPOSITION,UI_TEXT_ACTION_EPOSITION_FAST2)
+UI_MENU_ACTION2(ui_menu_epos,UI_ACTION_EPOSITION, UI_TEXT_ACTION_EPOSITION_FAST2a, UI_TEXT_ACTION_EPOSITION_FAST2b)
 
 /* Next step is to define submenus leading to the action. */
 
 /** \brief Positionening menu */
+// This is a milling mode option
 #if FEATURE_SET_TO_XY_ORIGIN
 UI_MENU_ACTIONCOMMAND_FILTER(ui_menu_quick_xy_origin,UI_TEXT_SET_XY_ORIGIN,UI_ACTION_SET_XY_ORIGIN,0,MENU_MODE_PRINTER)
-#define SET_TO_XY_ORIGIN_ENTRY ,&ui_menu_quick_xy_origin
+#define SET_TO_XY_ORIGIN_ENTRY &ui_menu_quick_xy_origin,
 #define SET_TO_XY_ORIGIN_COUNT 1
 #else
 #define SET_TO_XY_ORIGIN_ENTRY
@@ -373,38 +378,37 @@ UI_MENU_ACTIONCOMMAND(ui_menu_back,UI_TEXT_BACK,UI_ACTION_BACK)
 #define UI_MENU_BACKCNT 0
 #endif // UI_HAS_BACK_KEY==0
 
-UI_MENU_ACTIONCOMMAND_FILTER(ui_menu_home_all,UI_TEXT_HOME_ALL,UI_ACTION_HOME_ALL,0, MENU_MODE_PRINTING | MENU_MODE_SD_PRINTING | MENU_MODE_PAUSED)
-UI_MENU_ACTIONCOMMAND(ui_menu_home_x,UI_TEXT_HOME_X,UI_ACTION_HOME_X)
-UI_MENU_ACTIONCOMMAND(ui_menu_home_y,UI_TEXT_HOME_Y,UI_ACTION_HOME_Y)
-UI_MENU_ACTIONCOMMAND(ui_menu_home_z,UI_TEXT_HOME_Z,UI_ACTION_HOME_Z)
-UI_MENU_ACTIONSELECTOR(ui_menu_go_xpos,UI_TEXT_X_POSITION,ui_menu_xpos)
-UI_MENU_ACTIONSELECTOR(ui_menu_go_ypos,UI_TEXT_Y_POSITION,ui_menu_ypos)
-UI_MENU_ACTIONSELECTOR(ui_menu_go_zpos,UI_TEXT_Z_POSITION,ui_menu_zpos)
-UI_MENU_ACTIONSELECTOR_FILTER(ui_menu_go_epos,UI_TEXT_E_POSITION,ui_menu_epos,MENU_MODE_PRINTER, MENU_MODE_PRINTING | MENU_MODE_SD_PRINTING | MENU_MODE_PAUSED)
+UI_MENU_ACTIONCOMMAND_FILTER(ui_menu_home_all,UI_TEXT_HOME_ALL,UI_ACTION_HOME_ALL, 0, MENU_MODE_PRINTING | MENU_MODE_SD_PRINTING | MENU_MODE_PAUSED)
+UI_MENU_ACTIONCOMMAND_FILTER(ui_menu_home_x,UI_TEXT_HOME_X,UI_ACTION_HOME_X, 0, MENU_MODE_PRINTING | MENU_MODE_SD_PRINTING | MENU_MODE_PAUSED)
+UI_MENU_ACTIONCOMMAND_FILTER(ui_menu_home_y,UI_TEXT_HOME_Y,UI_ACTION_HOME_Y, 0, MENU_MODE_PRINTING | MENU_MODE_SD_PRINTING | MENU_MODE_PAUSED)
+UI_MENU_ACTIONCOMMAND_FILTER(ui_menu_home_z,UI_TEXT_HOME_Z,UI_ACTION_HOME_Z, 0, MENU_MODE_PRINTING | MENU_MODE_SD_PRINTING | MENU_MODE_PAUSED)
+#define UI_HOME_COND &ui_menu_home_all, &ui_menu_home_x, &ui_menu_home_y, &ui_menu_home_z,
+#define UI_HOME_COUNT 4
+
+UI_MENU_ACTIONSELECTOR(ui_menu_go_xpos, UI_TEXT_X_POSITION, ui_menu_xpos)
+UI_MENU_ACTIONSELECTOR(ui_menu_go_ypos, UI_TEXT_Y_POSITION, ui_menu_ypos)
+UI_MENU_ACTIONSELECTOR(ui_menu_go_zpos, UI_TEXT_Z_POSITION, ui_menu_zpos)
+#define UI_SPEED_COND &ui_menu_go_xpos, &ui_menu_go_ypos, &ui_menu_go_zpos,
+#define UI_SPEED_COUNT 3
 
 //Nibbels: Das Einstellmenü für die Z-Step-Höhe:
-UI_MENU_ACTIONCOMMAND(ui_menu_config_single_steps,UI_TEXT_CONFIG_SINGLE_STEPS,UI_ACTION_CONFIG_SINGLE_STEPS)
-#define UI_CONFIG_SINGLE_STEPS ,&ui_menu_config_single_steps
-#define UI_CONFIG_SINGLE_STEPS_CNT 1
+UI_MENU_ACTIONCOMMAND(ui_menu_config_single_steps, UI_TEXT_CONFIG_SINGLE_STEPS, UI_ACTION_CONFIG_SINGLE_STEPS)
+#define UI_CONFIG_SINGLE_STEPS &ui_menu_config_single_steps,
+#define UI_CONFIG_SINGLE_STEPS_COUNT 1
 
-#if !UI_SPEEDDEPENDENT_POSITIONING
-UI_MENU_ACTIONSELECTOR(ui_menu_go_xfast,UI_TEXT_X_POS_FAST,ui_menu_xpos_fast)
-UI_MENU_ACTIONSELECTOR(ui_menu_go_yfast,UI_TEXT_Y_POS_FAST,ui_menu_ypos_fast)
-UI_MENU_ACTIONSELECTOR(ui_menu_go_zfast,UI_TEXT_Z_POS_FAST,ui_menu_zpos_fast)
-#define UI_SPEED 2
-#define UI_SPEED_X ,&ui_menu_go_xfast,&ui_menu_go_xpos
-#define UI_SPEED_Y ,&ui_menu_go_yfast,&ui_menu_go_ypos
-#define UI_SPEED_Z ,&ui_menu_go_zfast,&ui_menu_go_zpos
-#else
-#define UI_SPEED 1
-#define UI_SPEED_X ,&ui_menu_go_xpos
-#define UI_SPEED_Y ,&ui_menu_go_ypos
-#define UI_SPEED_Z ,&ui_menu_go_zpos
-#endif // UI_SPEEDDEPENDENT_POSITIONING
+UI_MENU_ACTIONCOMMAND(ui_menu_config_single_steps_kosys, UI_TEXT_CONFIG_SINGLE_STEPS_KOSYS, UI_ACTION_CONFIG_SINGLE_STEPS_KOSYS)
+#define UI_CONFIG_SINGLE_STEPS_KOSYS &ui_menu_config_single_steps_kosys,
+#define UI_CONFIG_SINGLE_STEPS_KOSYS_COUNT 1
 
-#define UI_MENU_POSITIONS {UI_MENU_ADDCONDBACK &ui_menu_home_all,&ui_menu_home_x,&ui_menu_home_y,&ui_menu_home_z UI_SPEED_X UI_SPEED_Y UI_SPEED_Z UI_CONFIG_SINGLE_STEPS SET_TO_XY_ORIGIN_ENTRY  ,&ui_menu_go_epos}
-UI_MENU(ui_menu_positions,UI_MENU_POSITIONS,5 + 3 * UI_SPEED + UI_MENU_BACKCNT + UI_CONFIG_SINGLE_STEPS_CNT+SET_TO_XY_ORIGIN_COUNT)
+UI_MENU_ACTIONSELECTOR_FILTER(ui_menu_go_epos, UI_TEXT_E_POSITION, ui_menu_epos, MENU_MODE_PRINTER, MENU_MODE_PRINTING | MENU_MODE_SD_PRINTING | MENU_MODE_PAUSED)
+#define UI_E_POSITION_COND &ui_menu_go_epos
+#define UI_E_POSITION_COUNT 1
 
+#define UI_MENU_POSITIONS {UI_MENU_ADDCONDBACK UI_HOME_COND UI_CONFIG_SINGLE_STEPS_KOSYS UI_SPEED_COND UI_CONFIG_SINGLE_STEPS SET_TO_XY_ORIGIN_ENTRY UI_E_POSITION_COND}
+UI_MENU(ui_menu_positions, UI_MENU_POSITIONS, UI_MENU_BACKCNT + UI_HOME_COUNT + UI_CONFIG_SINGLE_STEPS_KOSYS_COUNT + UI_SPEED_COUNT + UI_CONFIG_SINGLE_STEPS_COUNT + SET_TO_XY_ORIGIN_COUNT + UI_E_POSITION_COUNT)
+
+#define UI_MENU_PAUSE_POSITIONS {UI_MENU_ADDCONDBACK UI_SPEED_COND}
+UI_MENU(ui_menu_pause_positions, UI_MENU_PAUSE_POSITIONS, UI_MENU_BACKCNT + UI_SPEED_COUNT)
 
 UI_MENU_ACTIONCOMMAND(ui_menu_z_mode,UI_TEXT_Z_MODE,UI_ACTION_ZMODE)
 #define UI_MENU_Z_MODE_COUNT 1
@@ -427,7 +431,7 @@ UI_MENU_ACTIONCOMMAND_FILTER(ui_menu_mhier_auto_matrix_leveling,UI_TEXT_DO_MHIER
 #endif // FEATURE_HEAT_BED_Z_COMPENSATION
 
 #if NUM_EXTRUDER>1 && UI_SHOW_TIPDOWN_IN_ZCONFIGURATION
-UI_MENU_ACTION2C(ui_menu_extruder_offsetz2,UI_ACTION_EXTRUDER_OFFSET_Z,UI_TEXT_EXTRUDER_OFFSET_Z2)
+UI_MENU_ACTION2(ui_menu_extruder_offsetz2,UI_ACTION_EXTRUDER_OFFSET_Z,UI_TEXT_EXTRUDER_OFFSET_Z2, "")
 UI_MENU_ACTIONSELECTOR_FILTER(ui_menu_extruder_offset_z,UI_TEXT_EXTRUDER_OFFSET_Z,ui_menu_extruder_offsetz2, MENU_MODE_PRINTER, MENU_MODE_MILLER)
 #define EXTRUDER_OFFSET_TYPE_ENTRY_Z ,&ui_menu_extruder_offset_z
 #define EXTRUDER_OFFSET_TYPE_COUNT_Z 1
@@ -457,7 +461,7 @@ UI_MENU_ACTIONCOMMAND_FILTER(ui_menu_save_active_zMatrix,UI_TEXT_DO_SAVE_ACTIVE_
 UI_MENU_ACTIONCOMMAND_FILTER(ui_menu_work_part_scan,UI_TEXT_DO_WORK_PART_SCAN,UI_ACTION_RF_SCAN_WORK_PART,0,MENU_MODE_PRINTER | MENU_MODE_PRINTING | MENU_MODE_SD_PRINTING | MENU_MODE_PAUSED)
 #define UI_MENU_WORKPART_SCAN_COUNT 1
 
-UI_MENU_ACTION4C(ui_menu_zoffset,UI_ACTION_ZOFFSET,UI_TEXT_ACTION_ZOFFSET)
+UI_MENU_ACTION4(ui_menu_zoffset,UI_ACTION_ZOFFSET, UI_TEXT_ACTION_ZOFFSET, "", "", "")
 UI_MENU_ACTIONSELECTOR_FILTER(ui_menu_zoffset_z,UI_TEXT_Z_OFFSET,ui_menu_zoffset,MENU_MODE_PRINTER,0)
 #define UI_MENU_Z_OFFSET_COUNT 1
 
@@ -595,19 +599,11 @@ UI_MENU(ui_menu_extruder,UI_MENU_EXTRUDER,UI_MENU_BACKCNT+UI_MENU_BEDCNT+UI_MENU
 #endif //FEATURE_READ_CALIPER
 
 /** \brief Quick menu */
-#if PS_ON_PIN>=0
-UI_MENU_ACTIONCOMMAND(ui_menu_quick_power,UI_TEXT_POWER,UI_ACTION_POWER)
-#define MENU_PSON_COUNT 1
-#define MENU_PSON_ENTRY ,&ui_menu_quick_power
-#else
-#define MENU_PSON_COUNT 0
-#define MENU_PSON_ENTRY
-#endif // PS_ON_PIN>=0
 
-UI_MENU_ACTION4C(ui_menu_quick_stop_print_ack, UI_ACTION_STOP_ACK, UI_TEXT_STOP_PRINT_ACK)
+UI_MENU_ACTION4(ui_menu_quick_stop_print_ack, UI_ACTION_STOP_ACK, UI_TEXT_STOP_PRINT_ACK, "", UI_ACTION_TEXT_YES, UI_ACTION_TEXT_NO)
 //das stoppen kann auch über den repetierserver laufen, wenn man dem "RequestStop:" schickt, also parallel machen!! und für normale drucke das menü auch zulassen:
 UI_MENU_ACTIONSELECTOR_FILTER(ui_menu_quick_stop_print, UI_TEXT_STOP_PRINT, ui_menu_quick_stop_print_ack, MENU_MODE_SD_PRINTING | MENU_MODE_PRINTING, MENU_MODE_MILLER)
-UI_MENU_ACTION4C(ui_menu_quick_stop_mill_ack, UI_ACTION_STOP_ACK, UI_TEXT_STOP_MILL_ACK)
+UI_MENU_ACTION4(ui_menu_quick_stop_mill_ack, UI_ACTION_STOP_ACK, UI_TEXT_STOP_MILL_ACK, "", UI_ACTION_TEXT_YES, UI_ACTION_TEXT_NO)
 UI_MENU_ACTIONSELECTOR_FILTER(ui_menu_quick_stop_mill, UI_TEXT_STOP_MILL, ui_menu_quick_stop_mill_ack, MENU_MODE_SD_PRINTING | MENU_MODE_PRINTING, MENU_MODE_PRINTER)
 
 
@@ -664,14 +660,14 @@ UI_MENU_ACTIONCOMMAND(ui_menu_toggle_FET2_output,UI_TEXT_FET2_OUTPUT,UI_ACTION_F
 #define OUTPUT_FET2_COUNT 0
 #endif // FEATURE_24V_FET_OUTPUTS
 
-UI_MENU_ACTION4C(ui_menu_quick_reset_ack,UI_ACTION_RF_RESET_ACK,UI_TEXT_RESET_ACK)
+UI_MENU_ACTION4(ui_menu_quick_reset_ack, UI_ACTION_RF_RESET_ACK, UI_TEXT_RESET_ACK, "", UI_ACTION_TEXT_YES, UI_ACTION_TEXT_NO)
 UI_MENU_ACTIONSELECTOR(ui_menu_quick_reset,UI_TEXT_RESET,ui_menu_quick_reset_ack)
 #define RESET_VIA_MENU_COUNT 1
 #define RESET_VIA_MENU_ENTRY ,&ui_menu_quick_reset
 
 //das LIGHT_MODE_ENTRY ist der X19! Könnte verwirrend sein... RGB-Light gibts in Configuration->General
-#define UI_MENU_QUICK {UI_MENU_ADDCONDBACK &ui_menu_quick_stop_print, &ui_menu_home_all, &ui_menu_quick_stopstepper, &ui_menu_quick_stop_mill OUTPUT_OBJECT_ENTRY ,&ui_menu_quick_speedmultiply, UI_MENU_CONFIGURATION_CAL_COND &ui_menu_quick_flowmultiply  PARK_ENTRY OUTPUT_230V_ENTRY LIGHT_MODE_ENTRY OUTPUT_FET1_ENTRY OUTPUT_FET2_ENTRY RESET_VIA_MENU_ENTRY MENU_PSON_ENTRY }
-UI_MENU(ui_menu_quick,UI_MENU_QUICK,6+UI_MENU_BACKCNT+MENU_PSON_COUNT+OUTPUT_OBJECT_COUNT+UI_MENU_CONFIGURATION_CAL_COUNT+PARK_COUNT+OUTPUT_230V_COUNT+LIGHT_MODE_COUNT+OUTPUT_FET1_COUNT+OUTPUT_FET2_COUNT+RESET_VIA_MENU_COUNT)
+#define UI_MENU_QUICK {UI_MENU_ADDCONDBACK &ui_menu_quick_stop_print, &ui_menu_home_all, &ui_menu_quick_stopstepper, &ui_menu_quick_stop_mill OUTPUT_OBJECT_ENTRY ,&ui_menu_quick_speedmultiply, UI_MENU_CONFIGURATION_CAL_COND &ui_menu_quick_flowmultiply  PARK_ENTRY OUTPUT_230V_ENTRY LIGHT_MODE_ENTRY OUTPUT_FET1_ENTRY OUTPUT_FET2_ENTRY RESET_VIA_MENU_ENTRY }
+UI_MENU(ui_menu_quick,UI_MENU_QUICK,6+UI_MENU_BACKCNT+OUTPUT_OBJECT_COUNT+UI_MENU_CONFIGURATION_CAL_COUNT+PARK_COUNT+OUTPUT_230V_COUNT+LIGHT_MODE_COUNT+OUTPUT_FET1_COUNT+OUTPUT_FET2_COUNT+RESET_VIA_MENU_COUNT)
 
 /** \brief Fan menu */
 
@@ -720,12 +716,12 @@ UI_MENU_SUBMENU_FILTER(ui_menu_conf_fan, UI_TEXT_FAN_CONF_MENU, ui_menu_settings
 #if SDSUPPORT && (MOTHERBOARD == DEVICE_TYPE_RF1000)
  UI_MENU_ACTIONCOMMAND_FILTER(ui_menu_sd_pause_print,    UI_TEXT_PAUSE_PRINT,    UI_ACTION_SD_PAUSE, MENU_MODE_PRINTING | MENU_MODE_SD_PRINTING, MENU_MODE_PAUSED | MENU_MODE_MILLER)
  UI_MENU_ACTIONCOMMAND_FILTER(ui_menu_sd_continue_print, UI_TEXT_CONTINUE_PRINT, UI_ACTION_SD_CONTINUE, MENU_MODE_PAUSED, MENU_MODE_MILLER)
- UI_MENU_ACTION4C(ui_menu_sd_stop_print_ack, UI_ACTION_STOP_ACK, UI_TEXT_STOP_PRINT_ACK)
+ UI_MENU_ACTION4(ui_menu_sd_stop_print_ack, UI_ACTION_STOP_ACK, UI_TEXT_STOP_PRINT_ACK, "", UI_ACTION_TEXT_YES, UI_ACTION_TEXT_NO)
  UI_MENU_ACTIONSELECTOR_FILTER(ui_menu_sd_stop_print, UI_TEXT_STOP_PRINT, ui_menu_sd_stop_print_ack, MENU_MODE_PRINTING | MENU_MODE_SD_PRINTING, MENU_MODE_MILLER)
 
  UI_MENU_ACTIONCOMMAND_FILTER(ui_menu_sd_pause_mill,    UI_TEXT_PAUSE_MILL,    UI_ACTION_SD_PAUSE, MENU_MODE_PRINTING | MENU_MODE_SD_PRINTING, MENU_MODE_PAUSED | MENU_MODE_PRINTER)
  UI_MENU_ACTIONCOMMAND_FILTER(ui_menu_sd_continue_mill, UI_TEXT_CONTINUE_MILL, UI_ACTION_SD_CONTINUE, MENU_MODE_PAUSED, MENU_MODE_PRINTER)
- UI_MENU_ACTION4C(ui_menu_sd_stop_mill_ack, UI_ACTION_STOP_ACK, UI_TEXT_STOP_MILL_ACK)
+ UI_MENU_ACTION4(ui_menu_sd_stop_mill_ack, UI_ACTION_STOP_ACK, UI_TEXT_STOP_MILL_ACK, "", UI_ACTION_TEXT_YES, UI_ACTION_TEXT_NO)
  UI_MENU_ACTIONSELECTOR_FILTER(ui_menu_sd_stop_mill, UI_TEXT_STOP_MILL, ui_menu_sd_stop_mill_ack, MENU_MODE_SD_PRINTING, MENU_MODE_PRINTER)
 
  #if defined(SDCARDDETECT) && SDCARDDETECT>-1
@@ -786,7 +782,7 @@ UI_MENU_CHANGEACTION_FILTER(ui_menu_advanceL_e1, UI_TEXT_EXTR_ADVANCE_L_E1, UI_A
 UI_MENU(ui_menu_accel, UI_MENU_ACCEL, UI_MENU_ACCEL_COUNT)
 
 /** \brief Feedrate Interrupt Shift */
-UI_MENU_CHANGEACTION(ui_menu_freq_dbl, UI_TEXT_FREQ_DBL, UI_ACTION_SHIFT_INTERVAL)
+UI_MENU_CHANGEACTION(ui_menu_freq_dbl, UI_TEXT_INTERRUPT_SHIFT_INTERVAL, UI_ACTION_SHIFT_INTERVAL)
 #define UI_MENU_FREQ_DBL_COND   ,&ui_menu_freq_dbl
 #define UI_MENU_FREQ_DBL_COUNT 1
 /** \brief Feedrates */
@@ -812,8 +808,8 @@ UI_MENU(ui_menu_feedrate, UI_MENU_FEEDRATE, UI_MENU_FEEDRATE_COUNT)
 /** \brief General configuration settings */
 /** \brief Configuration->General menu */
 
-UI_MENU_ACTION2C(ui_menu_stepper2,UI_ACTION_STEPPER_INACTIVE,UI_TEXT_STEPPER_OFF2)
-UI_MENU_ACTION2C(ui_menu_maxinactive2,UI_ACTION_MAX_INACTIVE,UI_TEXT_ALL_OFF2)
+UI_MENU_ACTION2(ui_menu_stepper2,UI_ACTION_STEPPER_INACTIVE, UI_TEXT_STEPPER_OFF2_a, UI_TEXT_STEPPER_OFF2_b)
+UI_MENU_ACTION2(ui_menu_maxinactive2,UI_ACTION_MAX_INACTIVE, UI_TEXT_ALL_OFF2_a, UI_TEXT_ALL_OFF2_b)
 UI_MENU_CHANGEACTION(ui_menu_general_baud,UI_TEXT_BAUDRATE,UI_ACTION_BAUDRATE)
 UI_MENU_ACTIONSELECTOR(ui_menu_general_stepper_inactive,UI_TEXT_STEPPER_OFF,ui_menu_stepper2)
 UI_MENU_ACTIONSELECTOR_FILTER(ui_menu_general_max_inactive,UI_TEXT_ALL_OFF,ui_menu_maxinactive2,MENU_MODE_PRINTER,0)
@@ -871,9 +867,9 @@ UI_MENU_ACTIONCOMMAND_FILTER(ui_menu_miller_type,UI_TEXT_MILLER_TYPE,UI_ACTION_M
 #endif // FEATURE_MILLING_MODE
 
 #if NUM_EXTRUDER>1
-UI_MENU_ACTION2C(ui_menu_extruder_offsetx2,UI_ACTION_EXTRUDER_OFFSET_X,UI_TEXT_EXTRUDER_OFFSET_X2)
+UI_MENU_ACTION2(ui_menu_extruder_offsetx2,UI_ACTION_EXTRUDER_OFFSET_X, UI_TEXT_EXTRUDER_OFFSET_X2, "")
 UI_MENU_ACTIONSELECTOR_FILTER(ui_menu_extruder_offset_x,UI_TEXT_EXTRUDER_OFFSET_X,ui_menu_extruder_offsetx2, MENU_MODE_PRINTER, MENU_MODE_MILLER)
-UI_MENU_ACTION2C(ui_menu_extruder_offsety2,UI_ACTION_EXTRUDER_OFFSET_Y,UI_TEXT_EXTRUDER_OFFSET_Y2)
+UI_MENU_ACTION2(ui_menu_extruder_offsety2,UI_ACTION_EXTRUDER_OFFSET_Y, UI_TEXT_EXTRUDER_OFFSET_Y2, "")
 UI_MENU_ACTIONSELECTOR_FILTER(ui_menu_extruder_offset_y,UI_TEXT_EXTRUDER_OFFSET_Y,ui_menu_extruder_offsety2, MENU_MODE_PRINTER, MENU_MODE_MILLER)
 #define EXTRUDER_OFFSET_TYPE_ENTRY_XY ,&ui_menu_extruder_offset_x ,&ui_menu_extruder_offset_y
 #define EXTRUDER_OFFSET_TYPE_COUNT_XY 2
@@ -941,7 +937,7 @@ UI_MENU_ACTIONSELECTOR_FILTER(ui_menu_extruder_offset_y,UI_TEXT_EXTRUDER_OFFSET_
 #endif //FEATURE_EMERGENCY_PAUSE
 
 /** \brief Configuration->DMS-Features->Emergency Z-Stop */
-#if FEATURE_EMERGENCY_STOP_ALL
+#if FEATURE_EMERGENCY_STOP_Z_AND_E
  UI_MENU_CHANGEACTION( ui_menu_emergency_zstop_min, UI_TEXT_EMERGENCY_ZSTOP_MIN, UI_ACTION_EMERGENCY_ZSTOP_MIN )
  UI_MENU_CHANGEACTION( ui_menu_emergency_zstop_max, UI_TEXT_EMERGENCY_ZSTOP_MAX, UI_ACTION_EMERGENCY_ZSTOP_MAX )
 
@@ -952,10 +948,10 @@ UI_MENU_ACTIONSELECTOR_FILTER(ui_menu_extruder_offset_y,UI_TEXT_EXTRUDER_OFFSET_
  #define UI_MENU_CONFIGURATION_EMERGENCY_ZSTOP_COND &ui_menu_conf_emerg_zstop,
  #define UI_MENU_CONFIGURATION_EMERGENCY_ZSTOP_COUNT 1
 
-#else //FEATURE_EMERGENCY_STOP_ALL
+#else //FEATURE_EMERGENCY_STOP_Z_AND_E
  #define UI_MENU_CONFIGURATION_EMERGENCY_ZSTOP_COND
  #define UI_MENU_CONFIGURATION_EMERGENCY_ZSTOP_COUNT 0
-#endif //FEATURE_EMERGENCY_STOP_ALL
+#endif //FEATURE_EMERGENCY_STOP_Z_AND_E
 
 /** \brief Configuration->DMS-Features->Zero Digits ON OFF */
 #if FEATURE_ZERO_DIGITS
@@ -1006,13 +1002,13 @@ UI_MENU_SUBMENU_FILTER(ui_menu_conf_dms, UI_TEXT_DMS, ui_menu_dms, MENU_MODE_PRI
 
 //############################################################### PID MENU
 
-UI_MENU_ACTION4C(ui_menu_pid_choose_classicpid_ack,UI_ACTION_CHOOSE_CLASSICPID,UI_TEXT_PID_ACK)
+UI_MENU_ACTION4(ui_menu_pid_choose_classicpid_ack,UI_ACTION_CHOOSE_CLASSICPID, UI_TEXT_AUTODETECT_PID "?", "%Xt", UI_ACTION_TEXT_YES, UI_ACTION_TEXT_NO)
 UI_MENU_ACTIONSELECTOR(ui_menu_pid_choose_classicpid,UI_ACTION_TEXT_CLASSICPID,ui_menu_pid_choose_classicpid_ack)
-UI_MENU_ACTION4C(ui_menu_pid_choose_lesserintegral_ack,UI_ACTION_CHOOSE_LESSERINTEGRAL,UI_TEXT_PID_ACK)
+UI_MENU_ACTION4(ui_menu_pid_choose_lesserintegral_ack,UI_ACTION_CHOOSE_LESSERINTEGRAL, UI_TEXT_AUTODETECT_PID "?", "%Xt", UI_ACTION_TEXT_YES, UI_ACTION_TEXT_NO)
 UI_MENU_ACTIONSELECTOR(ui_menu_pid_choose_lesserintegral,UI_ACTION_TEXT_PESSEN,ui_menu_pid_choose_lesserintegral_ack)
-UI_MENU_ACTION4C(ui_menu_pid_choose_no_ack,UI_ACTION_CHOOSE_NO,UI_TEXT_PID_ACK)
-UI_MENU_ACTIONSELECTOR(ui_menu_pid_choose_no,UI_ACTION_TEXT_NO,ui_menu_pid_choose_no_ack)
-UI_MENU_ACTION4C(ui_menu_pid_choose_tyreus_lyben_ack,UI_ACTION_CHOOSE_TYREUS_LYBEN,UI_TEXT_PID_ACK)
+UI_MENU_ACTION4(ui_menu_pid_choose_no_ack,UI_ACTION_CHOOSE_NO, UI_TEXT_AUTODETECT_PID "?", "%Xt", UI_ACTION_TEXT_YES, UI_ACTION_TEXT_NO)
+UI_MENU_ACTIONSELECTOR(ui_menu_pid_choose_no, UI_ACTION_TEXT_NO_OVER,ui_menu_pid_choose_no_ack)
+UI_MENU_ACTION4(ui_menu_pid_choose_tyreus_lyben_ack,UI_ACTION_CHOOSE_TYREUS_LYBEN, UI_TEXT_AUTODETECT_PID "?", "%Xt", UI_ACTION_TEXT_YES, UI_ACTION_TEXT_NO)
 UI_MENU_ACTIONSELECTOR(ui_menu_pid_choose_tyreus_lyben,UI_ACTION_TEXT_TYREUS_LYBEN,ui_menu_pid_choose_tyreus_lyben_ack)
 UI_MENU_CHANGEACTION(ui_menu_pid_choose_drivemin,UI_TEXT_EXTR_DMIN,UI_ACTION_CHOOSE_DMIN)
 UI_MENU_CHANGEACTION(ui_menu_pid_choose_drivemax,UI_TEXT_EXTR_DMAX,UI_ACTION_CHOOSE_DMAX)
@@ -1116,7 +1112,7 @@ UI_MENU_SUBMENU_FILTER(ui_menu_conf_pid, UI_TEXT_TEMPERATURES, ui_menu_pid, MENU
 UI_MENU_SUBMENU(ui_menu_conf_motor, UI_TEXT_STEPPER,      ui_menu_motor)
 UI_MENU_SUBMENU(ui_menu_z_calibration, UI_TEXT_ZCALIB,         ui_menu_z)
 
-UI_MENU_ACTION4C(ui_menu_restore_defaults_ack,UI_ACTION_RESTORE_DEFAULTS,UI_TEXT_RESTORE_DEFAULTS4)
+UI_MENU_ACTION4(ui_menu_restore_defaults_ack,UI_ACTION_RESTORE_DEFAULTS, UI_TEXT_RESTORE_DEFAULTS, UI_TEXT_CONFIGURATION "?", UI_ACTION_TEXT_YES, UI_ACTION_TEXT_NO)
 UI_MENU_ACTIONSELECTOR_FILTER(ui_menu_restore_defaults,UI_TEXT_RESTORE_DEFAULTS,ui_menu_restore_defaults_ack, 0, MENU_MODE_PRINTING | MENU_MODE_SD_PRINTING | MENU_MODE_PAUSED)
 
 #define UI_MENU_CONFIGURATION {UI_MENU_ADDCONDBACK &ui_menu_conf_general, &ui_menu_z_calibration, UI_MENU_CONFIGURATION_DMS_COND UI_MENU_CONFIGURATION_WOBBLE_COND UI_MENU_CONFIGURATION_FAN_COND &ui_menu_conf_pid, &ui_menu_conf_motor, &ui_menu_conf_accel, UI_MENU_ACCEL_MILL_COND &ui_menu_conf_feed,  &ui_menu_restore_defaults }
@@ -1129,6 +1125,11 @@ UI_MENU_SUBMENU(ui_menu_main1, UI_TEXT_QUICK_SETTINGS,  ui_menu_quick)
 UI_MENU_SUBMENU_FILTER(ui_menu_main2, UI_TEXT_POSITION, ui_menu_positions, 0, MENU_MODE_PRINTING | MENU_MODE_SD_PRINTING | MENU_MODE_PAUSED)
 #define UI_MENU_POSITION_ENTRY    &ui_menu_main2,
 #define UI_MENU_POSITION_COUNT    1
+
+UI_MENU_SUBMENU_FILTER(ui_menu_main2a, UI_TEXT_PAUSE_POSITION, ui_menu_pause_positions, MENU_MODE_PAUSED, 0)
+#define UI_MENU_PAUSE_POSITION_ENTRY    &ui_menu_main2a,
+#define UI_MENU_PAUSE_POSITION_COUNT    1
+
 UI_MENU_SUBMENU_FILTER(ui_menu_main3, UI_TEXT_EXTRUDER, ui_menu_extruder, MENU_MODE_PRINTER, 0)
 #define UI_MENU_EXTRUDER_ENTRY    &ui_menu_main3,
 #define UI_MENU_EXTRUDER_COUNT    1
@@ -1154,8 +1155,8 @@ UI_MENU_SUBMENU(ui_menu_main5, UI_TEXT_CONFIGURATION,  ui_menu_configuration)
 #define UI_MENU_RF2000_FILE_COUNT   0
 #endif // MOTHERBOARD == DEVICE_TYPE_RF2000 || MOTHERBOARD == DEVICE_TYPE_RF2000v2
 
-#define UI_MENU_MAIN {UI_MENU_ADDCONDBACK UI_MENU_QUICK_SETTINGS_ENTRY UI_MENU_RF2000_FILE_COND UI_MENU_POSITION_ENTRY UI_MENU_EXTRUDER_ENTRY UI_MENU_FAN_COND UI_MENU_SD_COND DEBUGGING_MENU_ENTRY UI_MENU_CONFIGURATION_ENTRY}
-UI_MENU(ui_menu_main,UI_MENU_MAIN,UI_MENU_BACKCNT+UI_MENU_QUICK_SETTINGS_COUNT+UI_MENU_RF2000_FILE_COUNT+UI_MENU_POSITION_COUNT+UI_MENU_EXTRUDER_COUNT+UI_MENU_FAN_CNT+UI_MENU_SD_CNT+DEBUGGING_MENU_COUNT+UI_MENU_CONFIGURATION_COUNT)
+#define UI_MENU_MAIN {UI_MENU_ADDCONDBACK UI_MENU_QUICK_SETTINGS_ENTRY UI_MENU_RF2000_FILE_COND UI_MENU_POSITION_ENTRY UI_MENU_PAUSE_POSITION_ENTRY UI_MENU_EXTRUDER_ENTRY UI_MENU_FAN_COND UI_MENU_SD_COND DEBUGGING_MENU_ENTRY UI_MENU_CONFIGURATION_ENTRY}
+UI_MENU(ui_menu_main,UI_MENU_MAIN,UI_MENU_BACKCNT+UI_MENU_QUICK_SETTINGS_COUNT+UI_MENU_RF2000_FILE_COUNT+UI_MENU_PAUSE_POSITION_COUNT+UI_MENU_POSITION_COUNT+UI_MENU_EXTRUDER_COUNT+UI_MENU_FAN_CNT+UI_MENU_SD_CNT+DEBUGGING_MENU_COUNT+UI_MENU_CONFIGURATION_COUNT)
 
 /* Define menus accessible by action commands
 
@@ -1168,7 +1169,7 @@ which assigns the menu stored in ui_menu_conf_feed to the action UI_ACTION_SHOW_
 
 When do you need this? You might want a fast button to change the temperature. In the default menu you have no menu
 to change the temperature and view it the same time. So you need to make an action menu for this like:
-UI_MENU_ACTION4C(ui_menu_extrtemp,UI_ACTION_EXTRUDER0_TEMP,"Temp. 0  :%E0\002C","","","");
+UI_MENU_ACTION4(ui_menu_extrtemp,UI_ACTION_EXTRUDER0_TEMP,"Temp. 0  :%E0\002C","","","");
 Then you assign this menu to a usermenu:
 #define UI_USERMENU2 ui_menu_extrtemp
 

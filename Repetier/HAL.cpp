@@ -246,7 +246,7 @@ void HAL::setupTimer()
 {
 #if USE_ADVANCE
     EXTRUDER_TCCR = 0;                              // need Normal not fastPWM set by arduino init
-    EXTRUDER_TIMSK |= (1 << EXTRUDER_OCIE);           // Activate compa interrupt on timer 0
+    EXTRUDER_TIMSK |= (1 << EXTRUDER_OCIE);         // Activate compa interrupt on timer 0
 #endif // USE_ADVANCE
 
     PWM_TCCR = 0;                                   // Setup PWM interrupt
@@ -705,6 +705,31 @@ ISR(WDT_vect)
     execute16msPeriodical = 1; //Tell commandloop that 16ms have passed
 }
 
+// Watchdog support FEATURE_WATCHDOG
+void HAL::startWatchdog()
+{
+	Com::printFLN(Com::tStartWatchdog);
+	// external watchdog
+	SET_OUTPUT(WATCHDOG_PIN);
+	g_bPingWatchdog = 1; //allow pinging
+	tellWatchdogOk(); //Nibbels: Init für g_uLastCommandLoop
+	pingWatchdog(); //Nibbels: Hier macht der mehr sinn!
+	HAL::WDT_Init(); //Nibbels: use watchdogtimer to test var and trigger
+} // startWatchdog
+
+void HAL::stopWatchdog()
+{
+	g_bPingWatchdog = 0; //disallow pinging
+						 // external watchdog
+	WRITE(WATCHDOG_PIN, LOW); //Nibbels: In case you stop the watchdog it has to be set floating. thatwhy disable internal pullup as this will make the state like OUTPUT-high. This is not really needed as this function does not do anything when starting the arduino. rightnow at start it sets a pin to input which is already input.
+	SET_INPUT(WATCHDOG_PIN);
+} // stopWatchdog
+
+void HAL::tellWatchdogOk()
+{
+	g_uLastCommandLoop = HAL::timeInMilliseconds();
+} // pingWatchdog
+
 // ================== Interrupt handling ======================
 /** \brief Sets the timer 1 compare value to delay ticks.
 This function sets the OCR1A compare counter to get the next interrupt
@@ -801,61 +826,57 @@ ISR(TIMER1_COMPA_vect)
 
     cbi(TIMSK1, OCIE1A); // prevent retrigger timer by disabling timer interrupt. Should be faster than guarding with insideTimer1.
 
-    OCR1A        = 61000;
+    OCR1A = 61000;
 
 #if FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
-    Printer::performZCompensation(); //no interrupttempering
+	if (PrintLine::cur == NULL && PrintLine::direct.task == TASK_NO_TASK)
+	{
+		PrintLine::stepSlowedZCompensation();
+		// Wait if the z-CMP is under heavy workload
+		if (PrintLine::needCmpWait())
+		{
+			HAL::forbidInterrupts();
+			setTimer(3000);
+			DEBUG_MEMORY;
+			sbi(TIMSK1, OCIE1A);
+
+			return;
+		}
+	}
 #endif // FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
-
-    if( Printer::allowDirectSteps() )
-    {
-        PrintLine::performDirectSteps(); //no interrupttempering
-    }
-
-    if(PrintLine::performPauseCheck()){
-        setTimer(1000);
-        DEBUG_MEMORY;
-        sbi(TIMSK1, OCIE1A);
-        return;
-    }
-
-    if(Printer::allowQueueMove())
-    {
-        setTimer(PrintLine::performQueueMove());
-        DEBUG_MEMORY;
-        sbi(TIMSK1, OCIE1A);
-        return;
-    }
-
-    if(Printer::allowDirectMove())
+	
+    if (PrintLine::direct.task)
     {
         setTimer(PrintLine::performDirectMove());
         DEBUG_MEMORY;
         sbi(TIMSK1, OCIE1A);
+
         return;
     }
 
-    if(waitRelax == 0)
+    if (PrintLine::hasLines() && !g_pauseMode)
     {
+        setTimer(PrintLine::performQueueMove());
+        DEBUG_MEMORY;
+        sbi(TIMSK1, OCIE1A);
+
+        return;
+    }
+
 #if USE_ADVANCE
-        if(Printer::advanceStepsSet)
+    if (waitRelax == 0)
+    {
+        if (Printer::advanceStepsSet)
         {
             Printer::extruderStepsNeeded -= Printer::advanceStepsSet;
- #ifdef ENABLE_QUADRATIC_ADVANCE
-            Printer::advanceExecuted = 0;
- #endif // ENABLE_QUADRATIC_ADVANCE
             Printer::advanceStepsSet = 0;
         }
-
-        if(!Printer::extruderStepsNeeded) if(DISABLE_E) Extruder::disableCurrentExtruderMotor();
-#else
-        if(DISABLE_E) Extruder::disableCurrentExtruderMotor();
-#endif // USE_ADVANCE
     }
     else waitRelax--;
+#endif // USE_ADVANCE
 
-    stepperWait = 0;        // Important because of optimization in asm at begin
-    OCR1A = 3000;           // Nicht zu hohe Werte, weil sonst die DirectSteps limitiert werden. Ansonsten hoch.
+    stepperWait = 0; // Important because of optimization in asm at begin
+    OCR1A = 3000;
 
     DEBUG_MEMORY;
     sbi(TIMSK1, OCIE1A);
@@ -943,54 +964,54 @@ ISR(PWM_TIMER_VECTOR)
 #endif
     PWM_OCR += 64;
 
-    if(pwm_count_heater == 0)
+    if (pwm_count_heater == 0)
     {
 #if EXT0_HEATER_PIN>-1
-        if((pwm_pos_set[0] = (pwm_pos[0] & HEATER_PWM_MASK)) > 0) WRITE(EXT0_HEATER_PIN,!HEATER_PINS_INVERTED);
+        if ((pwm_pos_set[0] = (pwm_pos[0] & HEATER_PWM_MASK)) > 0) WRITE(EXT0_HEATER_PIN,!HEATER_PINS_INVERTED);
 #endif // EXT0_HEATER_PIN>-1
 
 #if defined(EXT1_HEATER_PIN) && EXT1_HEATER_PIN>-1 && NUM_EXTRUDER>1
-        if((pwm_pos_set[1] = (pwm_pos[1] & HEATER_PWM_MASK)) > 0) WRITE(EXT1_HEATER_PIN,!HEATER_PINS_INVERTED);
+        if ((pwm_pos_set[1] = (pwm_pos[1] & HEATER_PWM_MASK)) > 0) WRITE(EXT1_HEATER_PIN,!HEATER_PINS_INVERTED);
 #endif // defined(EXT1_HEATER_PIN) && EXT1_HEATER_PIN>-1 && NUM_EXTRUDER>1
 
 #if HEATED_BED_HEATER_PIN>-1 && HAVE_HEATED_BED
-        if((pwm_pos_set[NUM_EXTRUDER] = (pwm_pos[NUM_EXTRUDER] & HEATER_PWM_MASK)) > 0) WRITE(HEATED_BED_HEATER_PIN, !HEATER_PINS_INVERTED);
+        if ((pwm_pos_set[NUM_EXTRUDER] = (pwm_pos[NUM_EXTRUDER] & HEATER_PWM_MASK)) > 0) WRITE(HEATED_BED_HEATER_PIN, !HEATER_PINS_INVERTED);
 #endif // HEATED_BED_HEATER_PIN>-1 && HAVE_HEATED_BED
     }
 
-    if(pwm_count_cooler == 0)
+    if (pwm_count_cooler == 0)
     {
 #if EXT0_HEATER_PIN>-1 && EXT0_EXTRUDER_COOLER_PIN>-1
-        if((pwm_cooler_pos_set[0] = extruder[0].coolerPWM) > 0) WRITE(EXT0_EXTRUDER_COOLER_PIN,1);
+        if ((pwm_cooler_pos_set[0] = extruder[0].coolerPWM) > 0) WRITE(EXT0_EXTRUDER_COOLER_PIN,1);
 #endif // EXT0_HEATER_PIN>-1 && EXT0_EXTRUDER_COOLER_PIN>-1
 
 #if defined(EXT1_HEATER_PIN) && EXT1_HEATER_PIN>-1 && NUM_EXTRUDER>1
  #if EXT1_EXTRUDER_COOLER_PIN>-1 && EXT1_EXTRUDER_COOLER_PIN != EXT0_EXTRUDER_COOLER_PIN
-        if((pwm_cooler_pos_set[1] = extruder[1].coolerPWM) > 0) WRITE(EXT1_EXTRUDER_COOLER_PIN,1);
+        if ((pwm_cooler_pos_set[1] = extruder[1].coolerPWM) > 0) WRITE(EXT1_EXTRUDER_COOLER_PIN,1);
  #endif // EXT1_EXTRUDER_COOLER_PIN>-1 && EXT1_EXTRUDER_COOLER_PIN!=EXT0_EXTRUDER_COOLER_PIN
 #endif // defined(EXT1_HEATER_PIN) && EXT1_HEATER_PIN>-1 && NUM_EXTRUDER>1
 
 #if FAN_BOARD_PIN>-1
-        if((pwm_pos_set[NUM_EXTRUDER+1] = (pwm_pos[NUM_EXTRUDER+1] & COOLER_PWM_MASK)) > 0) WRITE(FAN_BOARD_PIN,1);
+        if ((pwm_pos_set[NUM_EXTRUDER+1] = (pwm_pos[NUM_EXTRUDER+1] & COOLER_PWM_MASK)) > 0) WRITE(FAN_BOARD_PIN,1);
 #endif // FAN_BOARD_PIN>-1
     }
 
 #if EXT0_HEATER_PIN>-1
-    if(pwm_pos_set[0] == pwm_count_heater && pwm_pos_set[0]!=HEATER_PWM_MASK) WRITE(EXT0_HEATER_PIN,HEATER_PINS_INVERTED);
+    if (pwm_pos_set[0] == pwm_count_heater && pwm_pos_set[0]!=HEATER_PWM_MASK) WRITE(EXT0_HEATER_PIN,HEATER_PINS_INVERTED);
 #if EXT0_EXTRUDER_COOLER_PIN>-1
-    if(pwm_cooler_pos_set[0] == pwm_count_cooler && pwm_cooler_pos_set[0]!=255) WRITE(EXT0_EXTRUDER_COOLER_PIN,0);
+    if (pwm_cooler_pos_set[0] == pwm_count_cooler && pwm_cooler_pos_set[0]!=255) WRITE(EXT0_EXTRUDER_COOLER_PIN,0);
 #endif // #if EXT0_EXTRUDER_COOLER_PIN>-1
 #endif // #if EXT0_HEATER_PIN>-1
 
 #if defined(EXT1_HEATER_PIN) && EXT1_HEATER_PIN>-1 && NUM_EXTRUDER>1
-    if(pwm_pos_set[1] == pwm_count_heater && pwm_pos_set[1]!=HEATER_PWM_MASK) WRITE(EXT1_HEATER_PIN,HEATER_PINS_INVERTED);
+    if (pwm_pos_set[1] == pwm_count_heater && pwm_pos_set[1]!=HEATER_PWM_MASK) WRITE(EXT1_HEATER_PIN,HEATER_PINS_INVERTED);
 #if EXT1_EXTRUDER_COOLER_PIN>-1 && EXT1_EXTRUDER_COOLER_PIN!=EXT0_EXTRUDER_COOLER_PIN
-    if(pwm_cooler_pos_set[1] == pwm_count_cooler && pwm_cooler_pos_set[1]!=255) WRITE(EXT1_EXTRUDER_COOLER_PIN,0);
+    if (pwm_cooler_pos_set[1] == pwm_count_cooler && pwm_cooler_pos_set[1]!=255) WRITE(EXT1_EXTRUDER_COOLER_PIN,0);
 #endif // EXT1_EXTRUDER_COOLER_PIN>-1 && EXT1_EXTRUDER_COOLER_PIN!=EXT0_EXTRUDER_COOLER_PIN
 #endif // defined(EXT1_HEATER_PIN) && EXT1_HEATER_PIN>-1 && NUM_EXTRUDER>1
 
 #if HEATED_BED_HEATER_PIN>-1 && HAVE_HEATED_BED
-    if(pwm_pos_set[NUM_EXTRUDER] == pwm_count_heater && pwm_pos_set[NUM_EXTRUDER] != HEATER_PWM_MASK) WRITE(HEATED_BED_HEATER_PIN,HEATER_PINS_INVERTED);
+    if (pwm_pos_set[NUM_EXTRUDER] == pwm_count_heater && pwm_pos_set[NUM_EXTRUDER] != HEATER_PWM_MASK) WRITE(HEATED_BED_HEATER_PIN,HEATER_PINS_INVERTED);
 #endif // HEATED_BED_HEATER_PIN>-1 && HAVE_HEATED_BED
 
 #if FAN_BOARD_PIN>-1
@@ -1006,9 +1027,9 @@ ISR(PWM_TIMER_VECTOR)
     /**
     PART FAN SPEED CONTROL
     */
-    if(part_fan_frequency_modulation == PART_FAN_MODE_PDM){
+    if (part_fan_frequency_modulation == PART_FAN_MODE_PDM) {
         pulseDensityModulate(FAN_PIN, (fanKickstart ? 255 : pwm_pos[NUM_EXTRUDER+2]), pwm_pos_set[NUM_EXTRUDER+2], false);
-    }else{
+    } else {
         // divide part fan 15.3Hz PWM by factor:
         static int counterSpeed15_3Div = 0;
         if(++counterSpeed15_3Div >= part_fan_pwm_speed){
@@ -1036,7 +1057,7 @@ ISR(PWM_TIMER_VECTOR)
 
     static int counter100Periodical = 0; // Approximate a 100ms timer :: blocks pingwatchdog s commandloop if not working
 	counter100Periodical++;
-    if(counter100Periodical == 196) //halbe 100ms Zeit -> Ping 50ms
+    if (counter100Periodical == 196) //halbe 100ms Zeit -> Ping 50ms
     {
         execute50msPeriodical = 1;
     }
@@ -1052,7 +1073,7 @@ ISR(PWM_TIMER_VECTOR)
 #endif // FEATURE_RGB_LIGHT_EFFECTS
 
     static char counter10Periodical = 0; // Approximate a 10ms timer :: blocks pingwatchdog s commandloop if not working
-    if(++counter10Periodical >= 39)
+    if (++counter10Periodical >= 39)
     {
         counter10Periodical = 0;
         execute10msPeriodical = 1;
@@ -1069,10 +1090,10 @@ ISR(PWM_TIMER_VECTOR)
 
     // read analog values
 #if ANALOG_INPUTS>0
-    if((ADCSRA & _BV(ADSC))==0)   // Conversion finished?
+    if ((ADCSRA & _BV(ADSC))==0)   // Conversion finished?
     {
         osAnalogInputBuildup[osAnalogInputPos] += ADCW;
-        if(++osAnalogInputCounter[osAnalogInputPos]>=_BV(ANALOG_INPUT_SAMPLE))
+        if (++osAnalogInputCounter[osAnalogInputPos]>=_BV(ANALOG_INPUT_SAMPLE))
         {
 #if ANALOG_INPUT_BITS+ANALOG_INPUT_SAMPLE<12
             osAnalogInputValues[osAnalogInputPos] =
@@ -1094,12 +1115,12 @@ ISR(PWM_TIMER_VECTOR)
             osAnalogInputBuildup[osAnalogInputPos] = 0;
             osAnalogInputCounter[osAnalogInputPos] = 0;
             // Start next conversion
-            if(osAnalogInputPos < ANALOG_INPUTS-1) osAnalogInputPos++;
+            if (osAnalogInputPos < ANALOG_INPUTS-1) osAnalogInputPos++;
             else osAnalogInputPos = 0;
             uint8_t channel = pgm_read_byte(&osAnalogInputChannels[osAnalogInputPos]);
 
 #if defined(ADCSRB) && defined(MUX5)
-            if(channel & 8)  // Reading channel 0-7 or 8-15?
+            if (channel & 8)  // Reading channel 0-7 or 8-15?
                 ADCSRB |= _BV(MUX5);
             else
                 ADCSRB &= ~_BV(MUX5);
@@ -1114,7 +1135,7 @@ ISR(PWM_TIMER_VECTOR)
     UI_FAST; // Short timed user interface action
 
 #if FEATURE_RGB_LIGHT_EFFECTS
-    if( rgb_10ms_change_should_be_now )
+    if ( rgb_10ms_change_should_be_now )
     {
         char    change = 0;
         if( g_uRGBTargetR > g_uRGBCurrentR )        { g_uRGBCurrentR ++; change = 1; }
@@ -1132,7 +1153,6 @@ ISR(PWM_TIMER_VECTOR)
 } // ISR(PWM_TIMER_VECTOR)
 
 #if USE_ADVANCE
-
 static int8_t extruderLastDirection = 0;
 #ifndef ADVANCE_DIR_FILTER_STEPS
 #define ADVANCE_DIR_FILTER_STEPS 2
@@ -1153,31 +1173,34 @@ allowable speed for the extruder.
 ISR(EXTRUDER_TIMER_VECTOR)
 {
     uint8_t timer = EXTRUDER_OCR;
-    if(!Printer::isAdvanceActivated()) return; // currently no need
-    if(Printer::extruderStepsNeeded > 0 && extruderLastDirection != 1)
+    if (!Printer::isAdvanceActivated()) return; // currently no need
+
+    if (Printer::extruderStepsNeeded > 0 && extruderLastDirection != 1)
     {
-        if(Printer::extruderStepsNeeded >= ADVANCE_DIR_FILTER_STEPS)
+        if (Printer::extruderStepsNeeded >= ADVANCE_DIR_FILTER_STEPS)
         {
             Extruder::setDirection(true);
             extruderLastDirection = 1;
             timer += 40; // Add some more wait time to prevent blocking
         }
     }
-    else if(Printer::extruderStepsNeeded < 0 && extruderLastDirection != -1)
+    else if (Printer::extruderStepsNeeded < 0 && extruderLastDirection != -1)
     {
-        if(-Printer::extruderStepsNeeded >= ADVANCE_DIR_FILTER_STEPS)
+        if (-Printer::extruderStepsNeeded >= ADVANCE_DIR_FILTER_STEPS)
         {
             Extruder::setDirection(false);
             extruderLastDirection = -1;
             timer += 40; // Add some more wait time to prevent blocking
         }
     }
-    else if(Printer::extruderStepsNeeded != 0)
+    else if (Printer::extruderStepsNeeded != 0)
     {
-        Extruder::step();
-        Printer::extruderStepsNeeded -= extruderLastDirection;
-        Printer::insertStepperHighDelay();
-        Extruder::unstep();
+		Extruder::step();
+		Printer::extruderStepsNeeded -= extruderLastDirection;
+#if STEPPER_HIGH_DELAY>0
+		HAL::delayMicroseconds(STEPPER_HIGH_DELAY);
+#endif // #if STEPPER_HIGH_DELAY>0
+		Extruder::unstep();
     }
     EXTRUDER_OCR = timer + Printer::maxExtruderSpeed;
 }

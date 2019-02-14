@@ -180,27 +180,19 @@ class Extruder   // Size: 12*1 Byte+12*4 Byte+4*2Byte = 68 Byte
 #endif // FEATURE_DITTO_PRINTING
 
     uint8_t     id;
-    int32_t     xOffset;
-    int32_t     yOffset;
-    int32_t     zOffset;
+    float       offsetMM[3];
     float       stepsPerMM;                 ///< Steps per mm.
     int8_t      enablePin;                  ///< Pin to enable extruder stepper motor.
     uint8_t     enableOn;
     float       maxFeedrate;                ///< Maximum feedrate in mm/s.
     float       maxAcceleration;            ///< Maximum acceleration in mm/s^2.
     float       maxEJerk;           ///< Maximum start feedrate in mm/s.
-    int32_t     extrudePosition;            ///< Current extruder position in steps.
     int16_t     waitRetractTemperature;     ///< Temperature to retract the filament when waiting for heatup
     int16_t     waitRetractUnits;           ///< Units to retract the filament when waiting for heatup
     volatile int8_t stepperDirection;
 
 #if USE_ADVANCE
-#ifdef ENABLE_QUADRATIC_ADVANCE
-    float       advanceK;                   ///< Koefficient for advance algorithm. 0 = off
-#endif // ENABLE_QUADRATIC_ADVANCE
-
     float       advanceL;
-    int16_t     advanceBacklash;
 #endif // USE_ADVANCE
 
     TemperatureController   tempControl;
@@ -375,7 +367,6 @@ class Extruder   // Size: 12*1 Byte+12*4 Byte+4*2Byte = 68 Byte
 
     } // enable
     static void manageTemperatures();
-    static void disableCurrentExtruderMotor();
     static void disableAllExtruders();
     static void selectExtruderById(uint8_t extruderId);
     static void initExtruder();
@@ -384,7 +375,6 @@ class Extruder   // Size: 12*1 Byte+12*4 Byte+4*2Byte = 68 Byte
     static float getHeatedBedTemperature();
     static void setTemperatureForExtruder(float temperatureInCelsius,uint8_t extr,bool beep = false);
     static void setTemperatureForAllExtruders(float temperatureInCelsius, bool beep);
-
 }; // Extruder
 
 
@@ -405,6 +395,5 @@ extern TemperatureController optTempController;
 
 extern TemperatureController *tempController[NUM_TEMPERATURE_LOOPS];
 extern uint8_t autotuneIndex;
-
 
 #endif // EXTRUDER_H

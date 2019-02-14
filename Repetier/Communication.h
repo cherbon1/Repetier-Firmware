@@ -111,6 +111,7 @@ public:
     FSTRINGVAR(tSpaceCAtColon)
     FSTRINGVAR(tHSpace)
     FSTRINGVAR(tLSpace)
+    FSTRINGVAR(tSoftDash)
     FSTRINGVAR(tXMinColon)
     FSTRINGVAR(tXMaxColon)
     FSTRINGVAR(tYMinColon)
@@ -193,8 +194,6 @@ public:
     FSTRINGVAR(tEPRMaxInactiveTime)
     FSTRINGVAR(tEPRStopAfterInactivty)
     FSTRINGVAR(tEPRMaxXYJerk)
-    FSTRINGVAR(tEPRXHomePos)
-    FSTRINGVAR(tEPRYHomePos)
     FSTRINGVAR(tEPRXMaxLength)
     FSTRINGVAR(tEPRXMaxLengthMilling)
     FSTRINGVAR(tEPRYMaxLength)
@@ -287,10 +286,10 @@ public:
     FSTRINGVAR(tEPRPrinterEPR_RF_EmergencyPauseDigitsMax)
 #endif //FEATURE_EMERGENCY_PAUSE
 
-#if FEATURE_EMERGENCY_STOP_ALL
+#if FEATURE_EMERGENCY_STOP_Z_AND_E
     FSTRINGVAR(tEPRPrinterEPR_RF_EmergencyStopAllMin)
     FSTRINGVAR(tEPRPrinterEPR_RF_EmergencyStopAllMax)
-#endif //FEATURE_EMERGENCY_STOP_ALL
+#endif //FEATURE_EMERGENCY_STOP_Z_AND_E
 
     FSTRINGVAR(tEPRPrinter_STEPPER_X)
     FSTRINGVAR(tEPRPrinter_STEPPER_Y)
@@ -334,7 +333,6 @@ public:
 #endif // SDSUPPORT
 
     FSTRINGVAR(tHeaterDecoupledWarning)
-
     FSTRINGVAR(tOutputObjectPrint)
     FSTRINGVAR(tOutputObjectMill)
     FSTRINGVAR(tUnmountFilamentSoft)
@@ -374,9 +372,10 @@ public:
     static void print(const char *text);
     static inline void print(char c) {HAL::serialWriteByte(c);}
     static void printFloat(float number, uint8_t digits, bool komma_as_dot=false);
-    static inline void println() {HAL::serialWriteByte('\r');HAL::serialWriteByte('\n');}
-
+    static inline void println() {
+		HAL::serialWriteByte('\r');
+		HAL::serialWriteByte('\n');
+	}
 }; // Com
-
 
 #endif // COMMUNICATION_H
