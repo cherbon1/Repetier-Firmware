@@ -181,6 +181,7 @@ void EEPROM::restoreEEPROMSettingsFromConfiguration()
 	Printer::moveMode[Y_AXIS] = DEFAULT_MOVE_MODE_Y;
 	Printer::moveMode[Z_AXIS] = DEFAULT_MOVE_MODE_Z;
 	Printer::moveKosys = KOSYS_GCODE;
+	Printer::movePositionFeedrateChoice = FEEDRATE_DIRECTCONFIG;
 
     Printer::maxAccelerationMMPerSquareSecond[X_AXIS] = MAX_ACCELERATION_UNITS_PER_SQ_SECOND_X;
     Printer::maxAccelerationMMPerSquareSecond[Y_AXIS] = MAX_ACCELERATION_UNITS_PER_SQ_SECOND_Y;
@@ -358,6 +359,7 @@ void EEPROM::storeDataIntoEEPROM(uint8_t corrupted)
     HAL::eprSetByte(EPR_RF_MOVE_MODE_Y,Printer::moveMode[Y_AXIS]);
 	HAL::eprSetByte(EPR_RF_MOVE_MODE_Z, Printer::moveMode[Z_AXIS]);
 	HAL::eprSetByte(EPR_RF_MOVE_MODE_XY_KOSYS, Printer::moveKosys);
+	HAL::eprSetByte(EPR_RF_MOVE_POSITION_FEEDRATE, Printer::movePositionFeedrateChoice);
 	
 #if FEATURE_MILLING_MODE
     if( Printer::operatingMode == OPERATING_MODE_PRINT )
@@ -669,7 +671,8 @@ void EEPROM::readDataFromEEPROM()
     Printer::moveMode[Y_AXIS] = HAL::eprGetByte(EPR_RF_MOVE_MODE_Y);
 	Printer::moveMode[Z_AXIS] = HAL::eprGetByte(EPR_RF_MOVE_MODE_Z);
 	Printer::moveKosys = (bool)HAL::eprGetByte(EPR_RF_MOVE_MODE_XY_KOSYS);
-	
+	Printer::movePositionFeedrateChoice = (bool)HAL::eprGetByte(EPR_RF_MOVE_POSITION_FEEDRATE);
+
     Printer::maxXYJerk = HAL::eprGetFloat(EPR_MAX_XYJERK);
     Printer::maxZJerk = HAL::eprGetFloat(EPR_MAX_ZJERK);
 

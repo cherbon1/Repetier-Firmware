@@ -49,6 +49,9 @@
 #define KOSYS_GCODE                             true
 #define KOSYS_DIRECTOFFSET                      false
 
+#define FEEDRATE_GCODE                          true
+#define FEEDRATE_DIRECTCONFIG                   false
+
 #define DIR_QUEUE                               1
 #define DIR_DIRECT                              -1
 
@@ -113,7 +116,8 @@ public:
     static char             ZMode;                              // Z Scale
     static char             moveMode[3];                        // move mode which is applied within the Position X/Y/Z menus
 	static bool             moveKosys;                          // true = GCode, false = DirectMove / OffsetMove
-
+	static bool             movePositionFeedrateChoice;           // select the feedrate for menu positioning: feedrate from last gcode or standard speed
+	
 #if FEATURE_MEMORY_POSITION
     static float            memoryX;
     static float            memoryY;

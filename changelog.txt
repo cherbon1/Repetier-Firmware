@@ -10,10 +10,20 @@ TODO:
 # milling mode: test move while pause in respect to z-first and z direction
 # milling mode: test origin scan, workpart scan
 # milling mode: test or rework milling functions
-# milling mode: add menu point (and eeprom save) to select if direct/menu positioning feedrate shall be like the last gcode feedrate or standard. (Standard: DIRECT_FEEDRATE_XY and DIRECT_FEEDRATE_Z)
 # arc-support: test circles while printing and not printing
 # pause @RF1000: test if z max-endstop is respected while moving in dual-endstop circular setting
-# extrusion: I had a case that extrusion after a print was not possible. Restarting the printer fixed it temporarily. (Problem still there?)
+# extrusion: I had a case that extrusion after a print was not possible. Restarting the printer or moving with position Z fixed it temporarily(??self lock??)
+
+V 01.43.77.Mod (2019-02-14)
+- added a new option in menu->position: "Pos-Feedrate: Std. or Gcode".
+   Here we can choose if we want to use standard feedrate for positioning or the last set gcode feedrate (Printer::feedrate)
+   The second choice might be usefull in milling mode because since 01.43.73 we (only in milling mode) can adjust the "gcode" feedrate using our hardware extrusion buttons.
+- menu->Position->X/Y/Z Position: replaced the two lines "Endstop Min..." and "Endstop Max: xxx" with one Line "Min:xxx Max:xxx"
+- menu->Position->X/Y/Z Position: added active feedrate in line 3 of the position menus. This feedrate depends on "Pos-Feedrate: Std. or Gcode".
+- menu->Position->X/Y/Z Position: Standard-Feedrates STANDARD_POSITION_FEEDRATE_XY, STANDARD_POSITION_FEEDRATE_Z, STANDARD_POSITION_FEEDRATE_E are set for Gcode and Offset drives when "Pos-Feedrate: Std." is set.
+   (Moves with the hardware buttons z-up and z-down have always the same configured feedrate as menu->Position->Z Position->...)
+   (If we have chosen Pos-Feedrate = "Gcode" then a Z feedrate is always limited to the value in STANDARD_POSITION_FEEDRATE_Z and configured max feedrate.)
+- cleanup in function prepareDirectMove()
 
 V 01.43.76.Mod (2019-02-14)
 - Added a fast way to the third pause mode: If you press pause after being "paused and moved" the printer will reach standby cooldown faster.

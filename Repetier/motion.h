@@ -442,7 +442,7 @@ public:
     static void updateTrapezoids();
     static uint8_t insertWaitMovesIfNeeded(uint8_t pathOptimize, uint8_t waitExtraLines);
     static void prepareQueueMove(uint8_t abortAtEndstops, uint8_t pathOptimize, float feedrate);
-    static void prepareDirectMove( bool stoppable );
+    static void prepareDirectMove(bool stoppable, bool feedrateSource);
     static void stopDirectMove( void );
 
 #if FEATURE_ARC_SUPPORT

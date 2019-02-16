@@ -261,7 +261,7 @@ void PrintLine::prepareQueueMove(uint8_t abortAtEndstops, uint8_t pathOptimize, 
 } // prepareQueueMove
 
 
-void PrintLine::prepareDirectMove(bool stoppable)
+void PrintLine::prepareDirectMove(bool stoppable, bool feedrateSource)
 {
 	if (direct.task) {
 		// Do not overwrite a running directstep process. 
@@ -269,66 +269,69 @@ void PrintLine::prepareDirectMove(bool stoppable)
 		// Rework your code if you see this happening.
 		return;
 	}
-    Printer::unmarkAllSteppersDisabled(); // ??? hier wird nichts enabled. Nur markiert, auch wenn später oder früher "enablestepper" passiert.
-    //evtl. weil dadurch in jedem fall gleich ein stepper aktiviert werden würde -> darum hier schon als aktiv markieren, weil umumgänglich ist.
-	// Aber dann müsste man das (timingsicher) auch schon in den Funktionen über prepareDirectMove erledigt haben.
-
-    PrintLine *p = &PrintLine::direct;
-	p->task = DIRECT_PREPARING;
-
-    float axisDistanceMM[4]; // Axis movement in mm
-    p->flags = FLAG_ABORT_AT_ENDSTOPS;
-    p->joinFlags = 0;
-    p->setEndSpeedFixed(true);
-    p->dir = 0;
+	direct.block();
+	direct.task = DIRECT_PREPARING;
+	direct.flags = FLAG_ABORT_AT_ENDSTOPS;
+	direct.joinFlags = 0;
+	direct.setEndSpeedFixed(true);
+	direct.dir = 0;
 	
     // Find direction
+	float axisDistanceMM[4]; // Axis movement in mm
     for(uint8_t axis=0; axis < 4; axis++)
     {
-        p->delta[axis] = Printer::directDestinationSteps[axis] - Printer::directCurrentSteps[axis];
+		direct.delta[axis] = Printer::directDestinationSteps[axis] - Printer::directCurrentSteps[axis];
 		// no special extrusion handling. this direct drive is only for manual move and button feed. no precision needed.
-        if(p->delta[axis] >= 0)
-            p->setPositiveDirectionForAxis(axis);
+        if(direct.delta[axis] >= 0)
+			direct.setPositiveDirectionForAxis(axis);
         else
-            p->delta[axis] = -p->delta[axis];
-        axisDistanceMM[axis] = fabs(p->delta[axis] * Printer::axisMMPerSteps[axis]);
-        if(p->delta[axis]) p->setMoveOfAxis(axis);
+			direct.delta[axis] = -direct.delta[axis];
+        axisDistanceMM[axis] = fabs(direct.delta[axis] * Printer::axisMMPerSteps[axis]);
+        if(direct.delta[axis]) direct.setMoveOfAxis(axis);
     }
-    if(p->isNoMove())
+    if(direct.isNoMove())
     {
-        p->stepsRemaining = 0;
+		direct.stepsRemaining = 0;
+		direct.unblock();
+		direct.task = TASK_NO_TASK;
         return;         // No steps included
     }
-    float xydist2;
 
     // Define variables that are needed for the Bresenham algorithm. Please note that Z is not currently included in the Bresenham algorithm.
-    if(p->delta[Y_AXIS] > p->delta[X_AXIS] && p->delta[Y_AXIS] > p->delta[Z_AXIS] && p->delta[Y_AXIS] > p->delta[E_AXIS])
-        p->primaryAxis = Y_AXIS;
-    else if (p->delta[X_AXIS] > p->delta[Z_AXIS] && p->delta[X_AXIS] > p->delta[E_AXIS])
-        p->primaryAxis = X_AXIS;
-    else if (p->delta[Z_AXIS] > p->delta[E_AXIS])
-        p->primaryAxis = Z_AXIS;
+    if(direct.delta[Y_AXIS] > direct.delta[X_AXIS] && direct.delta[Y_AXIS] > direct.delta[Z_AXIS] && direct.delta[Y_AXIS] > direct.delta[E_AXIS])
+		direct.primaryAxis = Y_AXIS;
+    else if (direct.delta[X_AXIS] > direct.delta[Z_AXIS] && direct.delta[X_AXIS] > direct.delta[E_AXIS])
+        direct.primaryAxis = X_AXIS;
+    else if (direct.delta[Z_AXIS] > direct.delta[E_AXIS])
+		direct.primaryAxis = Z_AXIS;
     else
-        p->primaryAxis = E_AXIS;
+		direct.primaryAxis = E_AXIS;
 
-    p->stepsRemaining = p->delta[p->primaryAxis];
-
-    if(p->isXYZMove())
+    if(direct.isXYZMove())
     {
-        xydist2 = axisDistanceMM[X_AXIS] * axisDistanceMM[X_AXIS] + axisDistanceMM[Y_AXIS] * axisDistanceMM[Y_AXIS];
-        if(p->isZMove())
-            p->distance = RMath::max((float)sqrt(xydist2 + axisDistanceMM[Z_AXIS] * axisDistanceMM[Z_AXIS]), axisDistanceMM[E_AXIS]);
+		float xydist2 = axisDistanceMM[X_AXIS] * axisDistanceMM[X_AXIS] + axisDistanceMM[Y_AXIS] * axisDistanceMM[Y_AXIS];
+        if(direct.isZMove())
+			direct.distance = RMath::max((float)sqrt(xydist2 + axisDistanceMM[Z_AXIS] * axisDistanceMM[Z_AXIS]), axisDistanceMM[E_AXIS]);
         else
-            p->distance = RMath::max((float)sqrt(xydist2), axisDistanceMM[E_AXIS]);
+			direct.distance = RMath::max((float)sqrt(xydist2), axisDistanceMM[E_AXIS]);
     }
     else
-        p->distance = axisDistanceMM[E_AXIS];
+		direct.distance = axisDistanceMM[E_AXIS];
+			
+	direct.stepsRemaining = direct.delta[direct.primaryAxis];
 
-	float feedrate = (p->isXOrYMove() ? DIRECT_FEEDRATE_XY : p->isZMove() ? DIRECT_FEEDRATE_Z : DIRECT_FEEDRATE_E);
+	float feedrate = (direct.isXOrYMove() ? STANDARD_POSITION_FEEDRATE_XY : direct.isZMove() ? STANDARD_POSITION_FEEDRATE_Z : STANDARD_POSITION_FEEDRATE_E);
+	if (feedrateSource == FEEDRATE_GCODE) {
+		feedrate = Printer::feedrate;
+		// Menu positioning means only one axis moves at once. Hoever this is not valid for continue moves etc. but they should not have gcode feedrates at all.
+		if (direct.isZMove() && feedrate > STANDARD_POSITION_FEEDRATE_Z) {
+			feedrate = STANDARD_POSITION_FEEDRATE_Z;
+		}
+	}
 
-	p->calculateMove(axisDistanceMM, p->primaryAxis, feedrate);
-
-	p->task = (stoppable ? DIRECT_PREPARED_STOPPABLE : DIRECT_PREPARED);
+	direct.calculateMove(axisDistanceMM, direct.primaryAxis, feedrate);
+	direct.unblock();
+	direct.task = (stoppable ? DIRECT_PREPARED_STOPPABLE : DIRECT_PREPARED);
 } // prepareDirectMove
 
 
@@ -361,27 +364,27 @@ void PrintLine::calculateMove(float axisDistanceMM[], fast8_t drivingAxis, float
     int32_t limitInterval = limitInterval0 = timeForMove / stepsRemaining; // until not violated by other constraints it is your target speed
     float   toTicks = static_cast<float>(F_CPU) / stepsRemaining;
 
-    int32_t    axisInterval[4];
-    if(isXMove() && delta[X_AXIS])
+    int32_t axisInterval[4];
+    if(isXMove())
     {
         axisInterval[X_AXIS] = axisDistanceMM[X_AXIS] * toTicks / (Printer::maxFeedrate[X_AXIS]); // mm*ticks/s/(mm/s*steps) = ticks/step
         limitInterval = RMath::max(axisInterval[X_AXIS], limitInterval);
     } else axisInterval[X_AXIS] = 0;
 
-    if(isYMove() && delta[Y_AXIS])
+    if(isYMove())
     {
         axisInterval[Y_AXIS] = axisDistanceMM[Y_AXIS] * toTicks / Printer::maxFeedrate[Y_AXIS];
         limitInterval = RMath::max(axisInterval[Y_AXIS], limitInterval);
     } else axisInterval[Y_AXIS] = 0;
 
 
-    if(isZMove() && delta[Z_AXIS])                   // normally no move in z direction
+    if(isZMove())                   // normally no move in z direction
     {
         axisInterval[Z_AXIS] = axisDistanceMM[Z_AXIS] * toTicks / Printer::maxFeedrate[Z_AXIS]; // must prevent overflow!
         limitInterval = RMath::max(axisInterval[Z_AXIS], limitInterval);
     } else axisInterval[Z_AXIS] = 0;
 
-    if(isEMove() && delta[E_AXIS])
+    if(isEMove())
     {
         axisInterval[E_AXIS] = axisDistanceMM[E_AXIS] * toTicks / Printer::maxFeedrate[E_AXIS];
         limitInterval = RMath::max(axisInterval[E_AXIS], limitInterval);
@@ -472,9 +475,6 @@ void PrintLine::calculateMove(float axisDistanceMM[], fast8_t drivingAxis, float
         }
     }
  #endif // USE_ADVANCE
-
-    // how much steps on primary axis do we need to reach target feedrate
-    // p->plateauSteps = (long) (((float)p->acceleration *0.5f / slowestAxisPlateauTimeRepro + p->vMin) *1.01f/slowestAxisPlateauTimeRepro);
 	
     DEBUG_MEMORY;
 } // calculateMove
@@ -1470,21 +1470,21 @@ bool inBauraumZ(PrintLine* move, uint8_t forQueue) {
 long directError;
 long PrintLine::performDirectMove()
 {
+	if (direct.isBlocked())   // This step is in computation - shouldn't happen
+	{
+		return 2000;
+	}
     if (direct.task == DIRECT_PREPARED_STOPPABLE || direct.task == DIRECT_PREPARED)
 	{
-        if(direct.isBlocked())   // This step is in computation - shouldn't happen
-        {
-            return 2000;
-        }
 		direct.task = (direct.task == DIRECT_PREPARED_STOPPABLE ? DIRECT_RUNNING_STOPPABLE : DIRECT_RUNNING);
 
-        direct.enableSteppers(); //set Z direction etc.
+        direct.enableSteppers();
 		direct.adjustDirections();
 		Printer::lastDirectionSovereignty = DIR_DIRECT;
         direct.fixStartAndEndSpeed();
 
         directError = direct.delta[direct.primaryAxis];
-        if (!direct.areParameterUpToDate()) direct.updateStepsParameter(); // should never happen, but with bad timings???
+        direct.updateStepsParameter(); // should never be needed, but with bad timings???
         Printer::vMaxReached[FOR_DIRECT] = direct.vStart;
         Printer::stepNumber[FOR_DIRECT] = 0;
         Printer::timer[FOR_DIRECT] = 0;

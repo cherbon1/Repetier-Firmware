@@ -253,23 +253,23 @@ Overridden if EEPROM activated. */
 /** \brief Maximum feedrate, the system allows. Higher feedrates are reduced to these values.
 The axis order in all axis related arrays is X, Y, Z
 Overridden if EEPROM activated. */
-#define MAX_FEEDRATE_X                      150
-#define MAX_FEEDRATE_Y                      150
+#define MAX_FEEDRATE_X                    150
+#define MAX_FEEDRATE_Y                    150
 #define MAX_FEEDRATE_Z                      9
 
 /** \brief Home position speed in mm/s. Overridden if EEPROM activated. These values can be overridden by EEPROM but are considered as maximum allowed values */
-#define HOMING_FEEDRATE_X_PRINT             80
-#define HOMING_FEEDRATE_Y_PRINT             80
+#define HOMING_FEEDRATE_X_PRINT            80
+#define HOMING_FEEDRATE_Y_PRINT            80
 #define HOMING_FEEDRATE_Z_PRINT             9
 
-#define HOMING_FEEDRATE_X_MILL              70
-#define HOMING_FEEDRATE_Y_MILL              70
+#define HOMING_FEEDRATE_X_MILL             70
+#define HOMING_FEEDRATE_Y_MILL             70
 #define HOMING_FEEDRATE_Z_MILL              7
 
 /** \brief Speed for direct movements in mm/s. Overridden if EEPROM activated. */
-#define DIRECT_FEEDRATE_XY                  100
-#define DIRECT_FEEDRATE_Z                   9
-#define DIRECT_FEEDRATE_E                   25
+#define STANDARD_POSITION_FEEDRATE_XY     100
+#define STANDARD_POSITION_FEEDRATE_Z        9
+#define STANDARD_POSITION_FEEDRATE_E       25
 
 // ##########################################################################################
 // ##   Acceleration settings

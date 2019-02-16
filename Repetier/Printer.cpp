@@ -30,7 +30,7 @@ uint8_t         Printer::unitIsInches = 0;                              // 0 = U
 //Stepper Movement Variables
 float           Printer::axisStepsPerMM[4] = {XAXIS_STEPS_PER_MM,YAXIS_STEPS_PER_MM,ZAXIS_STEPS_PER_MM,1};                   ///< Number of steps per mm needed.
 float           Printer::axisMMPerSteps[4] = {1.0f/XAXIS_STEPS_PER_MM,1.0f/YAXIS_STEPS_PER_MM,1.0f/ZAXIS_STEPS_PER_MM,1}; ///< Inverse of axisStepsPerMM for faster conversion
-float           Printer::maxFeedrate[4] = {MAX_FEEDRATE_X, MAX_FEEDRATE_Y, MAX_FEEDRATE_Z, DIRECT_FEEDRATE_E};               ///< Maximum allowed feedrate. //DIRECT_FEEDRATE_E added by nibbels, wird aber überschrieben.
+float           Printer::maxFeedrate[4] = {MAX_FEEDRATE_X, MAX_FEEDRATE_Y, MAX_FEEDRATE_Z, STANDARD_POSITION_FEEDRATE_E};               ///< Maximum allowed feedrate. //STANDARD_POSITION_FEEDRATE_E added by nibbels, wird aber überschrieben.
 float           Printer::homingFeedrate[3] = {HOMING_FEEDRATE_X_PRINT,HOMING_FEEDRATE_Y_PRINT,HOMING_FEEDRATE_Z_PRINT};      ///< dass zumindest etwas sinnvolles drin steht, wird überschrieben.
 
 float           Printer::maxAccelerationMMPerSquareSecond[4] = {MAX_ACCELERATION_UNITS_PER_SQ_SECOND_X,MAX_ACCELERATION_UNITS_PER_SQ_SECOND_Y,MAX_ACCELERATION_UNITS_PER_SQ_SECOND_Z}; ///< X, Y, Z and E max acceleration in mm/s^2 for printing moves or retracts
@@ -92,7 +92,8 @@ long            Printer::ZOffset = 0;                                   // Z Off
 char            Printer::ZMode = DEFAULT_Z_SCALE_MODE;                  // Z Scale  1 = show the z-distance to z-min (print) or to the z-origin (mill), 2 = show the z-distance to the surface of the heat bed (print) or work part (mill)
 char            Printer::moveMode[3];                                   // move mode which is applied within the Position X/Y/Z menus
 bool            Printer::moveKosys = KOSYS_GCODE;                       // true = GCode, false = DirectMove / OffsetMove
-
+bool            Printer::movePositionFeedrateChoice = FEEDRATE_DIRECTCONFIG; // select the feedrate for menu positioning: feedrate from last gcode or standard speed
+	
 #if FEATURE_MEMORY_POSITION
 float           Printer::memoryX;
 float           Printer::memoryY;
@@ -594,16 +595,22 @@ void Printer::offsetRelativeStepsCoordinates(int32_t dx, int32_t dy, int32_t dz,
 		Printer::directDestinationSteps[Z_AXIS] += dz;
 		Printer::directDestinationSteps[E_AXIS] += de;
 
+		bool feedrateSource = FEEDRATE_DIRECTCONFIG;
+		if (configuration == TASK_MOVE_FROM_BUTTON || configuration == TASK_MOVE_POSITION_MANUAL) {
+			// In position menu or when moving using z-buttons we always choose the feedrate type configured in menu->position->Pos-Feedrate {direct or gcode}
+			// single Z feedrate is always limited to direct config as well as max-feedrate
+			feedrateSource = Printer::movePositionFeedrateChoice;
+		}
 
 		// If we start this move by pressing a button we dont want to wait for it to finish and instead have it listening to the buttons release
 		if (configuration == TASK_MOVE_FROM_BUTTON) {
-			PrintLine::prepareDirectMove(STOPPABLE_DIRECT);
+			PrintLine::prepareDirectMove(STOPPABLE_DIRECT, feedrateSource);
 			//noInts handled by destructor
 
 			return;
 		}
 
-		PrintLine::prepareDirectMove(NORMAL_DIRECT);
+		PrintLine::prepareDirectMove(NORMAL_DIRECT, feedrateSource);
 
 		//release Interrupts for processing
 		noInts.unprotect();

@@ -111,7 +111,8 @@ have problems with other modules using the eeprom */
 #define EPR_RF_MOVE_MODE_Y              1043
 #define EPR_RF_MOVE_MODE_Z              1044
 #define EPR_RF_Z_MODE                   1045
-#define EPR_RF_MOVE_MODE_XY_KOSYS       1046  //das ist byte, 1047 wäre frei.
+#define EPR_RF_MOVE_MODE_XY_KOSYS       1046
+#define EPR_RF_MOVE_POSITION_FEEDRATE   1047  //das ist byte, 1048 wäre frei.
 
 //vorsicht bei mehrbytigen Variablen, dann freilassen.
 
