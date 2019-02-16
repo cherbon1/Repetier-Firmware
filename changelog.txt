@@ -10,8 +10,13 @@ TODO:
 # milling mode: test move while pause in respect to z-first and z direction
 # milling mode: test origin scan, workpart scan
 # milling mode: test or rework milling functions
-# arc-support: test circles while printing and not printing
 # pause @RF1000: test if z max-endstop is respected while moving in dual-endstop circular setting
+
+V 01.43.79.Mod (2019-02-16)
+- tested arc support. It seems to work however I might have not understood details. I tested relative and absolut coordinates full circles in a row using I+J (Not R). Extrusion works too.
+   -> Extrusion is possible
+   -> I did not mix up coordinate SI units / steps
+- refactored arc support into a seperate commands-function like todays repetier branch has it.
 
 V 01.43.78.Mod (2019-02-16)
 - Changed UI_SET_MIN_HEATED_BED_TEMP from 55 to 50.
