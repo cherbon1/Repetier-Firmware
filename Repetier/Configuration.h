@@ -780,7 +780,7 @@ Honeywell 100K Thermistor (135-104LAG-J01)  : R0 = 100000  T0 = 25  Beta = 3974
 #define UI_SET_EXTRUDER_TEMP_MOUNT          210
 
 /** \brief Extreme values */
-#define UI_SET_MIN_HEATED_BED_TEMP          55
+#define UI_SET_MIN_HEATED_BED_TEMP          50
 #define UI_SET_MAX_HEATED_BED_TEMP          160
 #define UI_SET_MIN_EXTRUDER_TEMP            70
 #define UI_SET_MAX_EXTRUDER_TEMP            270
@@ -855,7 +855,7 @@ we use blocks of 2 kByte size for the structure of our EEPROM
 #define EEPROM_OFFSET_Y_STEP_MM                     22
 #define EEPROM_OFFSET_X_END_MM                      24
 #define EEPROM_OFFSET_Y_END_MM                      26
-#define EEPROM_OFFSET_MATRIX_START                 28
+#define EEPROM_OFFSET_MATRIX_START                  28
 
 #define EEPROM_SECTOR_SIZE                          1536                                        // [bytes]
 #define EEPROM_MAX_WORK_PART_SECTORS                9

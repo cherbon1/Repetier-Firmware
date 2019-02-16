@@ -93,7 +93,11 @@ char            Printer::ZMode = DEFAULT_Z_SCALE_MODE;                  // Z Sca
 char            Printer::moveMode[3];                                   // move mode which is applied within the Position X/Y/Z menus
 bool            Printer::moveKosys = KOSYS_GCODE;                       // true = GCode, false = DirectMove / OffsetMove
 bool            Printer::movePositionFeedrateChoice = FEEDRATE_DIRECTCONFIG; // select the feedrate for menu positioning: feedrate from last gcode or standard speed
-	
+
+// This is some buffer but only for a limited amount of overdrive.
+volatile int16_t Printer::outOfPrintVolume[2] = { 0 };
+volatile int32_t Printer::outOfPrintVolumeZ = 0;
+
 #if FEATURE_MEMORY_POSITION
 float           Printer::memoryX;
 float           Printer::memoryY;

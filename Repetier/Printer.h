@@ -105,7 +105,7 @@ public:
 	static float            dynamicFeedrateFactor;              // Feedrate multiplier factor for digit compensation (1.0 = 100%)	
 	static float            menuExtrusionFactor;                // Flow multiplier factor (1.0 = 100%)
 	static float            dynamicExtrusionFactor;             // Flow multiplier factor for digit compensation (1.0 = 100%)
-	static float            extrudeMultiplyErrorSteps;               // collects the extrusion error.
+	static float            extrudeMultiplyErrorSteps;          // collects the extrusion error.
     static float            maxXYJerk;                          // Maximum allowed jerk in mm/s
     static float            maxZJerk;                           // Maximum allowed jerk in z direction in mm/s
     static speed_t          vMaxReached[2];                     // Maximumu reached speed
@@ -116,8 +116,12 @@ public:
     static char             ZMode;                              // Z Scale
     static char             moveMode[3];                        // move mode which is applied within the Position X/Y/Z menus
 	static bool             moveKosys;                          // true = GCode, false = DirectMove / OffsetMove
-	static bool             movePositionFeedrateChoice;           // select the feedrate for menu positioning: feedrate from last gcode or standard speed
-	
+	static bool             movePositionFeedrateChoice;         // select the feedrate for menu positioning: feedrate from last gcode or standard speed
+
+	// This is some buffer but only for a limited amount of overdrive.
+	static volatile int16_t outOfPrintVolume[2];
+	static volatile int32_t outOfPrintVolumeZ;
+
 #if FEATURE_MEMORY_POSITION
     static float            memoryX;
     static float            memoryY;
@@ -661,10 +665,18 @@ public:
 
     static inline void setHomed(int8_t x = -1, int8_t y = -1, int8_t z = -1)
     {
-        if(x != -1) flag3 = (x ? flag3 | PRINTER_FLAG3_X_HOMED : flag3 & ~PRINTER_FLAG3_X_HOMED);
-        if(y != -1) flag3 = (y ? flag3 | PRINTER_FLAG3_Y_HOMED : flag3 & ~PRINTER_FLAG3_Y_HOMED);
-        if(z != -1) flag3 = (z ? flag3 | PRINTER_FLAG3_Z_HOMED : flag3 & ~PRINTER_FLAG3_Z_HOMED);
-
+		if (x != -1) { 
+			flag3 = (x ? flag3 | PRINTER_FLAG3_X_HOMED : flag3 & ~PRINTER_FLAG3_X_HOMED); 
+		}
+		if (y != -1) { 
+			flag3 = (y ? flag3 | PRINTER_FLAG3_Y_HOMED : flag3 & ~PRINTER_FLAG3_Y_HOMED);
+		}
+		if (z != -1) {
+			flag3 = (z ? flag3 | PRINTER_FLAG3_Z_HOMED : flag3 & ~PRINTER_FLAG3_Z_HOMED);
+		}
+		if (x == false)	Printer::outOfPrintVolume[X_AXIS] = 0;
+		if (y == false)	Printer::outOfPrintVolume[Y_AXIS] = 0;
+		if (z == false)	Printer::outOfPrintVolumeZ = 0;
 #if FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
         if( !isAxisHomed(Z_AXIS) ){
             Printer::disableCMPnow(true); //true == wait for move while HOMING

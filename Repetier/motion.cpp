@@ -1291,10 +1291,6 @@ long PrintLine::performQueueMove()
     return performMove(cur, FOR_QUEUE);
 } // performQueueMove
 
-// This is some buffer but only for a limited amount of overdrive.
-volatile int16_t outOfPrintVolume[2] = { 0 };
-volatile int32_t outOfPrintVolumeZ = 0;
-
 /** 
  * Check if our queued move is within or without specified print volume
  *
@@ -1312,20 +1308,20 @@ bool inBauraum(uint8_t axisXY, PrintLine* move, uint8_t forQueue) {
 			{ 
 				move->setMoveOfAxisFinished(axisXY);
 				if (!forQueue) Printer::stopDirectAxis(axisXY);
-				outOfPrintVolume[axisXY] = 0;
+				Printer::outOfPrintVolume[axisXY] = 0;
 
 				return false;
 			}			
 			// If we do not abort the Z-move outside of boundarys we will count the oversteps and block the physical step
-			outOfPrintVolume[axisXY]++;
+			Printer::outOfPrintVolume[axisXY]++;
 
 			return false;
 		}
 
-		if (outOfPrintVolume[axisXY] > 0)
+		if (Printer::outOfPrintVolume[axisXY] > 0)
 		{
 			// If we are in the endstop and have oversteps while moving z to minus we pay back ignored plusZ by ignoring minusZ until overMaxEndstopZ is even.
-			outOfPrintVolume[axisXY]--;
+			Printer::outOfPrintVolume[axisXY]--;
 
 			return false;
 		}
@@ -1342,20 +1338,20 @@ bool inBauraum(uint8_t axisXY, PrintLine* move, uint8_t forQueue) {
 			{ 
 				move->setMoveOfAxisFinished(axisXY);
 				if (!forQueue) Printer::stopDirectAxis(axisXY);
-				outOfPrintVolume[axisXY] = 0;
+				Printer::outOfPrintVolume[axisXY] = 0;
 
 				return false;
 			}
 			// If we do not abort the Z-move outside of boundarys we will count the oversteps and block the physical step
-			outOfPrintVolume[axisXY]--;
+			Printer::outOfPrintVolume[axisXY]--;
 
 			return false;
 		}
 		
-		if (outOfPrintVolume[axisXY] < 0)
+		if (Printer::outOfPrintVolume[axisXY] < 0)
 		{
 			// If we are in the endstop and have oversteps while moving z to minus we pay back ignored plusZ by ignoring minusZ until overMaxEndstopZ is even.
-			outOfPrintVolume[axisXY]++;
+			Printer::outOfPrintVolume[axisXY]++;
 
 			return false;
 		}
@@ -1364,17 +1360,17 @@ bool inBauraum(uint8_t axisXY, PrintLine* move, uint8_t forQueue) {
 	}
 
 	/* Angeblich kein Knopf gedrückt, aber overSteps übrig. -> overSteps zurückbauen und output ignorieren, der Schalter könnte wackeln. */
-	if (outOfPrintVolume[axisXY] != 0)
+	if (Printer::outOfPrintVolume[axisXY] != 0)
 	{
-		if (outOfPrintVolume[axisXY] > 0 && move->isNegativeMoveOfAxis(axisXY))
+		if (Printer::outOfPrintVolume[axisXY] > 0 && move->isNegativeMoveOfAxis(axisXY))
 		{
-			outOfPrintVolume[axisXY]--;
+			Printer::outOfPrintVolume[axisXY]--;
 
 			return false;
 		}
-		else if (outOfPrintVolume[axisXY] < 0 && move->isPositiveMoveOfAxis(axisXY))
+		else if (Printer::outOfPrintVolume[axisXY] < 0 && move->isPositiveMoveOfAxis(axisXY))
 		{
-			outOfPrintVolume[axisXY]++;
+			Printer::outOfPrintVolume[axisXY]++;
 
 			return false;
 		}
@@ -1400,20 +1396,20 @@ bool inBauraumZ(PrintLine* move, uint8_t forQueue) {
 			{ // all directMoves have abort set, some queueMoves too (Homing and optional scans etc.)
 				move->setZMoveFinished();
 				if (!forQueue) Printer::stopDirectAxis(Z_AXIS);
-				outOfPrintVolumeZ = 0;
+				Printer::outOfPrintVolumeZ = 0;
 
 				return false;
 			}
 			// If we do not abort the Z-move outside of boundarys we will count the oversteps and block the physical step
-			outOfPrintVolumeZ++;
+			Printer::outOfPrintVolumeZ++;
 
 			return false;
 		}
 
-		if (outOfPrintVolumeZ != 0)
+		if (Printer::outOfPrintVolumeZ != 0)
 		{
 			// If we are in the endstop and have oversteps while moving z to minus we pay back ignored plusZ by ignoring minusZ until overMaxEndstopZ is even.
-			outOfPrintVolumeZ--;
+			Printer::outOfPrintVolumeZ--;
 
 			return false;
 		}
@@ -1444,7 +1440,7 @@ bool inBauraumZ(PrintLine* move, uint8_t forQueue) {
 				)
 			{
 				move->setZMoveFinished();
-				outOfPrintVolumeZ = 0;
+				Printer::outOfPrintVolumeZ = 0;
 
 				return false;
 			}
@@ -1454,9 +1450,9 @@ bool inBauraumZ(PrintLine* move, uint8_t forQueue) {
 	}
 
 	/* Angeblich kein Knopf gedrückt, aber overSteps übrig. -> overSteps zurückbauen und output ignorieren, der Schalter könnte wackeln. */
-	else if (outOfPrintVolumeZ > 0) {
+	else if (Printer::outOfPrintVolumeZ > 0) {
 		// If we are in the endstop and have oversteps while moving z to minus we pay back ignored plusZ by ignoring minusZ until overMaxEndstopZ is even.
-		outOfPrintVolumeZ--;
+		Printer::outOfPrintVolumeZ--;
 
 		return false;
 	}
@@ -1534,7 +1530,7 @@ long PrintLine::performMove(PrintLine* move, uint8_t forQueue)
 			}
 
 			// Active pressure is to high to extrude
-			if (g_nEmergencyESkip || !(outOfPrintVolume[X_AXIS] == 0 && outOfPrintVolume[Y_AXIS] == 0 && outOfPrintVolumeZ == 0)) {
+			if (g_nEmergencyESkip || !(Printer::outOfPrintVolume[X_AXIS] == 0 && Printer::outOfPrintVolume[Y_AXIS] == 0 && Printer::outOfPrintVolumeZ == 0)) {
 				doESteps = false;
 			}
 			HAL::forbidInterrupts();
