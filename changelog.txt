@@ -12,7 +12,6 @@ TODO:
 # milling mode: test or rework milling functions
 # arc-support: test circles while printing and not printing
 # pause @RF1000: test if z max-endstop is respected while moving in dual-endstop circular setting
-# extrusion: I had a case that extrusion after a print was not possible. Restarting the printer or moving with position Z fixed it temporarily(??self lock??)
 
 V 01.43.78.Mod (2019-02-16)
 - Changed UI_SET_MIN_HEATED_BED_TEMP from 55 to 50.
