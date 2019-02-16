@@ -275,14 +275,12 @@ void Commands::setFanSpeed(uint8_t speed, bool recalc)
         */
     }
 
-#if FAN_KICKSTART_TIME
     //if specified calculate a kickstart time when the fan speed is commanded to rise
     //use fanSpeed (not "speed") to compare with PART_FAN_KICKSTART_THRESHOLD so we dont have to recalculate the threshold according min-max.
     if (fanKickstart == 0 && speed > pwm_pos[NUM_EXTRUDER+2] && fanSpeed < PART_FAN_KICKSTART_THRESHOLD) {
         if(speed) fanKickstart = PART_FAN_KICKSTART_TIME_BOOST / 10;
         else      fanKickstart = PART_FAN_KICKSTART_TIME_OFF_ON / 10;
     }
-#endif // FAN_KICKSTART_TIME
 
     pwm_pos[NUM_EXTRUDER+2] = speed;
 } // setFanSpeed
@@ -395,6 +393,143 @@ void Commands::reportPrinterUsage()
 #endif // EEPROM_MODE
 } // reportPrinterUsage
 
+/**
+\brief Execute the Arc command stored in com.
+*/
+#if FEATURE_ARC_SUPPORT
+void Commands::processArc(GCode *com) {
+	//TODO: Check if coordinates must be relative here. I guess so ...
+	
+	float position[4];
+	position[X_AXIS] = Printer::destinationMM[X_AXIS];
+	position[Y_AXIS] = Printer::destinationMM[Y_AXIS];
+	position[Z_AXIS] = Printer::destinationMM[Z_AXIS];
+	position[E_AXIS] = Printer::destinationMM[E_AXIS];
+	
+	float target[4];
+	// inhere destinationMM will change
+	target[E_AXIS] = Printer::convertToMM(com->hasE() ? com->E : 0.0f);
+
+	com->E = 0.0f; //do not extrude all the amount while going to arc start	
+	if(!Printer::queueGCodeCoordinates(com)) return; // For X Y Z E F
+				
+	// get start position for arc lines
+	target[X_AXIS] = Printer::destinationMM[X_AXIS];
+	target[Y_AXIS] = Printer::destinationMM[Y_AXIS];
+	target[Z_AXIS] = Printer::destinationMM[Z_AXIS];
+	
+	float offset[2] = {
+		Printer::convertToMM(com->hasI()?com->I:0),
+		Printer::convertToMM(com->hasJ()?com->J:0)
+	};
+	
+	float r;
+	if (com->hasR()) {
+		/*
+		We need to calculate the center of the circle that has the designated radius and passes
+		through both the current position and the target position. This method calculates the following
+		set of equations where [x,y] is the vector from current to target position, d == magnitude of
+		that vector, h == hypotenuse of the triangle formed by the radius of the circle, the distance to
+		the center of the travel vector. A vector perpendicular to the travel vector [-y,x] is scaled to the
+		length of h [-y/d*h, x/d*h] and added to the center of the travel vector [x/2,y/2] to form the new point
+		[i,j] at [x/2-y/d*h, y/2+x/d*h] which will be the center of our arc.
+
+		d^2 == x^2 + y^2
+		h^2 == r^2 - (d/2)^2
+		i == x/2 - y/d*h
+		j == y/2 + x/d*h
+
+		                             O <- [i,j]
+		                          -  |
+		                r      -     |
+		                    -        |
+		                 -           | h
+		              -              |
+		[0,0] ->  C -----------------+--------------- T  <- [x,y]
+		          | <------ d/2 ---->|
+
+		C - Current position
+		T - Target position
+		O - center of circle that pass through both C and T
+		d - distance from C to T
+		r - designated radius
+		h - distance from center of CT to O
+
+		Expanding the equations:
+
+		d -> sqrt(x^2 + y^2)
+		h -> sqrt(4 * r^2 - x^2 - y^2)/2
+		i -> (x - (y * sqrt(4 * r^2 - x^2 - y^2)) / sqrt(x^2 + y^2)) / 2
+		j -> (y + (x * sqrt(4 * r^2 - x^2 - y^2)) / sqrt(x^2 + y^2)) / 2
+
+		Which can be written:
+
+		i -> (x - (y * sqrt(4 * r^2 - x^2 - y^2))/sqrt(x^2 + y^2))/2
+		j -> (y + (x * sqrt(4 * r^2 - x^2 - y^2))/sqrt(x^2 + y^2))/2
+
+		Which we for size and speed reasons optimize to:
+
+		h_x2_div_d = sqrt(4 * r^2 - x^2 - y^2)/sqrt(x^2 + y^2)
+		i = (x - (y * h_x2_div_d))/2
+		j = (y + (x * h_x2_div_d))/2
+
+		*/
+		r = Printer::convertToMM(com->R);
+		// Calculate the change in position along each selected axis
+		double x = target[X_AXIS] - position[X_AXIS];
+		double y = target[Y_AXIS] - position[Y_AXIS];
+
+		double h_x2_div_d = -sqrt(4 * r * r - x * x - y * y) / hypot(x, y); // == -(h * 2 / d)
+																			// If r is smaller than d, the arc is now traversing the complex plane beyond the reach of any
+																			// real CNC, and thus - for practical reasons - we will terminate promptly:
+		if (isnan(h_x2_div_d)) {
+			Com::printErrorFLN(Com::tInvalidArc);
+			return;
+		}
+		// Invert the sign of h_x2_div_d if the circle is counter clockwise (see sketch below)
+		if (com->G == 3) {
+			h_x2_div_d = -h_x2_div_d;
+		}
+
+        /* The counter clockwise circle lies to the left of the target direction. When offset is positive,
+            the left hand circle will be generated - when it is negative the right hand circle is generated.
+
+
+                                                               T  <-- Target position
+
+                                                               ^
+        Clockwise circles with this center                     |          Clockwise circles with this center will have
+        will have > 180 deg of angular travel                  |          < 180 deg of angular travel, which is a good thing!
+                                                     \         |          /
+        center of arc when h_x2_div_d is positive ->  x <----- | -----> x <- center of arc when h_x2_div_d is negative
+                                                               |
+                                                               |
+
+                                                               C  <-- Current position                                 */
+
+
+		// Negative R is g-code-alias for "I want a circle with more than 180 degrees of travel" (go figure!),
+		// even though it is advised against ever generating such circles in a single line of g-code. By
+		// inverting the sign of h_x2_div_d the center of the circles is placed on the opposite side of the line of
+		// travel and thus we get the inadvisable long arcs as prescribed.
+		if (r < 0) {
+			h_x2_div_d = -h_x2_div_d;
+			r = -r; // Finished with r. Set to positive for mc_arc
+		}
+		// Complete the operation by calculating the actual center of the arc
+		offset[0] = 0.5 * (x - (y * h_x2_div_d));
+		offset[1] = 0.5 * (y + (x * h_x2_div_d));
+
+	}
+	else { // Offset mode specific computations
+		r = hypot(offset[0], offset[1]); // Compute arc radius for arc
+	}
+	// Set clockwise/counter-clockwise sign for arc computations
+	uint8_t isclockwise = com->G == 2;
+	// Trace the arc
+	PrintLine::arc(position, target, offset, r, isclockwise);
+}
+#endif
 
 /** \brief Execute the command stored in com. */
 void Commands::executeGCode(GCode *com)
@@ -416,164 +551,11 @@ void Commands::executeGCode(GCode *com)
         }
 
 #if FEATURE_ARC_SUPPORT
-        case 2: // G2 - Clockwise Arc
-        {
-            if(!isMovingAllowed(PSTR("G2")))
-            {
-                break;
-            }
-
-            // fall through
-        }
-        case 3: // G3 - Counter-clockwise Arc
-        {
-            if(!isMovingAllowed(PSTR("G3")))
-            {
-                break;
-            }
-
-			//TODO: Check if coordinates must be relative here. I guess so ...
-
-            float position[4];
-			position[X_AXIS] = Printer::destinationMM[X_AXIS];
-			position[Y_AXIS] = Printer::destinationMM[Y_AXIS];
-			position[Z_AXIS] = Printer::destinationMM[Z_AXIS];
-			position[E_AXIS] = Printer::destinationMM[E_AXIS];
-
-			float target[4];
-			// inhere destinationMM will change
-			target[E_AXIS] = Printer::convertToMM(com->hasE() ? com->E : 0.0f);
-			com->E = 0.0f; //do not extrude all the amount while going to arc start
-
-            if(!Printer::queueGCodeCoordinates(com)) break; // For X Y Z E F
-			
-			// get start position for arc lines
-			target[X_AXIS] = Printer::destinationMM[X_AXIS];
-			target[Y_AXIS] = Printer::destinationMM[Y_AXIS];
-			target[Z_AXIS] = Printer::destinationMM[Z_AXIS];
-
-            float offset[2] = {
-				Printer::convertToMM(com->hasI()?com->I:0),
-				Printer::convertToMM(com->hasJ()?com->J:0)
-			};
-
-            float r;
-            if (com->hasR())
-            {
-                /*
-                  We need to calculate the center of the circle that has the designated radius and passes
-                  through both the current position and the target position. This method calculates the following
-                  set of equations where [x,y] is the vector from current to target position, d == magnitude of
-                  that vector, h == hypotenuse of the triangle formed by the radius of the circle, the distance to
-                  the center of the travel vector. A vector perpendicular to the travel vector [-y,x] is scaled to the
-                  length of h [-y/d*h, x/d*h] and added to the center of the travel vector [x/2,y/2] to form the new point
-                  [i,j] at [x/2-y/d*h, y/2+x/d*h] which will be the center of our arc.
-
-                  d^2 == x^2 + y^2
-                  h^2 == r^2 - (d/2)^2
-                  i == x/2 - y/d*h
-                  j == y/2 + x/d*h
-
-                                                                       O <- [i,j]
-                                                                    -  |
-                                                          r      -     |
-                                                              -        |
-                                                           -           | h
-                                                        -              |
-                                          [0,0] ->  C -----------------+--------------- T  <- [x,y]
-                                                    | <------ d/2 ---->|
-
-                  C - Current position
-                  T - Target position
-                  O - center of circle that pass through both C and T
-                  d - distance from C to T
-                  r - designated radius
-                  h - distance from center of CT to O
-
-                  Expanding the equations:
-
-                  d -> sqrt(x^2 + y^2)
-                  h -> sqrt(4 * r^2 - x^2 - y^2)/2
-                  i -> (x - (y * sqrt(4 * r^2 - x^2 - y^2)) / sqrt(x^2 + y^2)) / 2
-                  j -> (y + (x * sqrt(4 * r^2 - x^2 - y^2)) / sqrt(x^2 + y^2)) / 2
-
-                  Which can be written:
-
-                  i -> (x - (y * sqrt(4 * r^2 - x^2 - y^2))/sqrt(x^2 + y^2))/2
-                  j -> (y + (x * sqrt(4 * r^2 - x^2 - y^2))/sqrt(x^2 + y^2))/2
-
-                  Which we for size and speed reasons optimize to:
-
-                  h_x2_div_d = sqrt(4 * r^2 - x^2 - y^2)/sqrt(x^2 + y^2)
-                  i = (x - (y * h_x2_div_d))/2
-                  j = (y + (x * h_x2_div_d))/2
-
-                */
-                r = Printer::convertToMM(com->R);
-                // Calculate the change in position along each selected axis
-                double x = double(target[X_AXIS]) - double(position[X_AXIS]);
-                double y = double(target[Y_AXIS]) - double(position[Y_AXIS]);
-
-                double h_x2_div_d = -sqrt(4 * r*r - x*x - y*y)/hypot(x,y); // == -(h * 2 / d)
-                // If r is smaller than d, the arc is now traversing the complex plane beyond the reach of any
-                // real CNC, and thus - for practical reasons - we will terminate promptly:
-                if(isnan(h_x2_div_d))
-                {
-                    if( Printer::debugErrors() )
-                    {
-                        Com::printErrorFLN(Com::tInvalidArc);
-                    }
-                    break;
-                }
-                // Invert the sign of h_x2_div_d if the circle is counter clockwise (see sketch below)
-                if (com->G==3)
-                {
-                    h_x2_div_d = -h_x2_div_d;
-                }
-
-                /* The counter clockwise circle lies to the left of the target direction. When offset is positive,
-                   the left hand circle will be generated - when it is negative the right hand circle is generated.
-
-
-                                                                 T  <-- Target position
-
-                                                                 ^
-                      Clockwise circles with this center         |          Clockwise circles with this center will have
-                      will have > 180 deg of angular travel      |          < 180 deg of angular travel, which is a good thing!
-                                                       \         |          /
-                center of arc when h_x2_div_d is positive ->  x <----- | -----> x <- center of arc when h_x2_div_d is negative
-                                                                 |
-                                                                 |
-
-                                                                 C  <-- Current position                                 */
-
-
-                // Negative R is g-code-alese for "I want a circle with more than 180 degrees of travel" (go figure!),
-                // even though it is advised against ever generating such circles in a single line of g-code. By
-                // inverting the sign of h_x2_div_d the center of the circles is placed on the opposite side of the line of
-                // travel and thus we get the unadvisably long arcs as prescribed.
-                if (r < 0)
-                {
-                    h_x2_div_d = -h_x2_div_d;
-                    r = -r; // Finished with r. Set to positive for mc_arc
-                }
-
-                // Complete the operation by calculating the actual center of the arc
-                offset[0] = 0.5*(x-(y*h_x2_div_d));
-                offset[1] = 0.5*(y+(x*h_x2_div_d));
-            }
-            else     // Offset mode specific computations
-            {
-                r = hypot(offset[0], offset[1]); // Compute arc radius for arc
-            }
-
-            // Set clockwise/counter-clockwise sign for arc computations
-            uint8_t isclockwise = com->G == 2;
-            // Trace the arc
-            PrintLine::arc(position, target, offset, r, isclockwise);
-            break;
-        }
-#endif // FEATURE_ARC_SUPPORT
+		case 2: // CW Arc
+		case 3: // CCW Arc MOTION_MODE_CW_ARC: case MOTION_MODE_CCW_ARC:
+			processArc(com);            
+		break;
+#endif
 
         case 4: // G4 dwell
         {

@@ -24,6 +24,9 @@ class Commands
 public:
     static void commandLoop();
     static void checkForPeriodicalActions( enum FirmwareState state = NotBusy );
+#if FEATURE_ARC_SUPPORT
+	static void processArc(GCode *com);
+#endif // FEATURE_ARC_SUPPORT
     static void executeGCode(GCode *com);
     static void waitUntilEndOfAllMoves();
     static void printCurrentPosition();

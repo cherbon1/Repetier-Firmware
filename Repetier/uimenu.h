@@ -114,6 +114,9 @@ List of placeholder:
 %S1 : Steps per mm extruder1
 %Sz : Mikrometer per Z-Single_Step (Z_Axis)
 %sk : Positioning coordinate system for XY (move by gode or directoffset)
+%sK : Feedrate source config for direct positioning moves
+%sf : Feedrate for menu postition xy
+%sF : Feedrate for menu postition z
 %SM : Matrix has changed in Ram and is ready to Save. -> *)
 %Ss : active current value of HEAT_BED_SCAN_Z_START_MM
 %is : Stepper inactive time in seconds
@@ -349,9 +352,9 @@ UI_MENU_ACTION4(ui_menu_message,UI_ACTION_DUMMY,"%m1","%m2","%m3","%m4")
 
 /** \brief Positions submenus */
 #if UI_ROWS>=4
-UI_MENU_ACTION4(ui_menu_xpos,UI_ACTION_XPOSITION, "X%hX%x0 %x3mm", "Endstop min:%sx", "Endstop max:%sX", "%px")
-UI_MENU_ACTION4(ui_menu_ypos,UI_ACTION_YPOSITION, "Y%hY%x1 %x4mm", "Endstop min:%sy", "Endstop max:%sY", "%py")
-UI_MENU_ACTION4(ui_menu_zpos,UI_ACTION_ZPOSITION, "Z%hZ%x2%x5 %sC", "Endstop min:%sz", "Endstop max:%sZ", "%pz")
+UI_MENU_ACTION4(ui_menu_xpos,UI_ACTION_XPOSITION, "X%hX%x0 %x3mm", "Min:%sx Max:%sX", "F=%sf(%sK)", "%px")
+UI_MENU_ACTION4(ui_menu_ypos,UI_ACTION_YPOSITION, "Y%hY%x1 %x4mm", "Min:%sy Max:%sY", "F=%sf(%sK)", "%py")
+UI_MENU_ACTION4(ui_menu_zpos,UI_ACTION_ZPOSITION, "Z%hZ%x2%x5 %sC", "Min:%sz Max:%sZ", "F=%sF(%sK)", "%pz")
 #endif // UI_ROWS>=4
 
 UI_MENU_ACTION2(ui_menu_epos,UI_ACTION_EPOSITION, UI_TEXT_ACTION_EPOSITION_FAST2a, UI_TEXT_ACTION_EPOSITION_FAST2b)
@@ -400,12 +403,16 @@ UI_MENU_ACTIONCOMMAND(ui_menu_config_single_steps_kosys, UI_TEXT_CONFIG_SINGLE_S
 #define UI_CONFIG_SINGLE_STEPS_KOSYS &ui_menu_config_single_steps_kosys,
 #define UI_CONFIG_SINGLE_STEPS_KOSYS_COUNT 1
 
+UI_MENU_ACTIONCOMMAND(ui_menu_config_position_feedrate, UI_TEXT_CONFIG_POSITION_FEEDRATE, UI_ACTION_CONFIG_POSITION_FEEDRATE)
+#define UI_CONFIG_POSITION_FEEDRATE &ui_menu_config_position_feedrate,
+#define UI_CONFIG_POSITION_FEEDRATE_COUNT 1
+
 UI_MENU_ACTIONSELECTOR_FILTER(ui_menu_go_epos, UI_TEXT_E_POSITION, ui_menu_epos, MENU_MODE_PRINTER, MENU_MODE_PRINTING | MENU_MODE_SD_PRINTING | MENU_MODE_PAUSED)
 #define UI_E_POSITION_COND &ui_menu_go_epos
 #define UI_E_POSITION_COUNT 1
 
-#define UI_MENU_POSITIONS {UI_MENU_ADDCONDBACK UI_HOME_COND UI_CONFIG_SINGLE_STEPS_KOSYS UI_SPEED_COND UI_CONFIG_SINGLE_STEPS SET_TO_XY_ORIGIN_ENTRY UI_E_POSITION_COND}
-UI_MENU(ui_menu_positions, UI_MENU_POSITIONS, UI_MENU_BACKCNT + UI_HOME_COUNT + UI_CONFIG_SINGLE_STEPS_KOSYS_COUNT + UI_SPEED_COUNT + UI_CONFIG_SINGLE_STEPS_COUNT + SET_TO_XY_ORIGIN_COUNT + UI_E_POSITION_COUNT)
+#define UI_MENU_POSITIONS {UI_MENU_ADDCONDBACK UI_HOME_COND UI_CONFIG_SINGLE_STEPS_KOSYS UI_CONFIG_POSITION_FEEDRATE UI_SPEED_COND UI_CONFIG_SINGLE_STEPS SET_TO_XY_ORIGIN_ENTRY UI_E_POSITION_COND}
+UI_MENU(ui_menu_positions, UI_MENU_POSITIONS, UI_MENU_BACKCNT + UI_HOME_COUNT + UI_CONFIG_SINGLE_STEPS_KOSYS_COUNT + UI_CONFIG_POSITION_FEEDRATE_COUNT + UI_SPEED_COUNT + UI_CONFIG_SINGLE_STEPS_COUNT + SET_TO_XY_ORIGIN_COUNT + UI_E_POSITION_COUNT)
 
 #define UI_MENU_PAUSE_POSITIONS {UI_MENU_ADDCONDBACK UI_SPEED_COND}
 UI_MENU(ui_menu_pause_positions, UI_MENU_PAUSE_POSITIONS, UI_MENU_BACKCNT + UI_SPEED_COUNT)

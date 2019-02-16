@@ -10808,12 +10808,16 @@ void nextPreviousXAction( int8_t increment )
 
 			if (moveKosys == KOSYS_GCODE)
 			{
-				Printer::queueRelativeStepsCoordinates(steps, 0, 0, 0, Printer::homingFeedrate[X_AXIS], true);
+				float feedrate = STANDARD_POSITION_FEEDRATE_XY;
+				if (Printer::movePositionFeedrateChoice == FEEDRATE_GCODE) {
+					feedrate = Printer::feedrate;
+				}
+				Printer::queueRelativeStepsCoordinates(steps, 0, 0, 0, feedrate, true);
 				Commands::printCurrentPosition();
 			}
 			else /*if (Printer::moveKosys == KOSYS_DIRECTOFFSET) */
 			{
-				Printer::offsetRelativeStepsCoordinates(steps, 0, 0, 0);
+				Printer::offsetRelativeStepsCoordinates(steps, 0, 0, 0, TASK_MOVE_POSITION_MANUAL);
 			}
 
             break;
@@ -10834,12 +10838,16 @@ void nextPreviousXAction( int8_t increment )
 
 			if (moveKosys == KOSYS_GCODE)
 			{
-				Printer::queueRelativeMMCoordinates(distanceMM * increment, 0, 0, 0, Printer::homingFeedrate[X_AXIS], true);
+				float feedrate = STANDARD_POSITION_FEEDRATE_XY;
+				if (Printer::movePositionFeedrateChoice == FEEDRATE_GCODE) {
+					feedrate = Printer::feedrate;					
+				}
+				Printer::queueRelativeMMCoordinates(distanceMM * increment, 0, 0, 0, feedrate, true);
 				Commands::printCurrentPosition();
 			}
 			else /*if (Printer::moveKosys == KOSYS_DIRECTOFFSET) */
 			{
-				Printer::offsetRelativeStepsCoordinates(distanceMM * Printer::axisStepsPerMM[Y_AXIS] * increment, 0, 0, 0);
+				Printer::offsetRelativeStepsCoordinates(distanceMM * Printer::axisStepsPerMM[Y_AXIS] * increment, 0, 0, 0, TASK_MOVE_POSITION_MANUAL);
 			}
 
             break;
@@ -10909,12 +10917,16 @@ void nextPreviousYAction( int8_t increment )
 
 			if (moveKosys == KOSYS_GCODE)
 			{
-				Printer::queueRelativeStepsCoordinates(0, steps, 0, 0, Printer::homingFeedrate[Y_AXIS], true);
+				float feedrate = STANDARD_POSITION_FEEDRATE_XY;
+				if (Printer::movePositionFeedrateChoice == FEEDRATE_GCODE) {
+					feedrate = Printer::feedrate;
+				}
+				Printer::queueRelativeStepsCoordinates(0, steps, 0, 0, feedrate, true);
 				Commands::printCurrentPosition();
 			}
 			else /*if (Printer::moveKosys == KOSYS_DIRECTOFFSET) */
 			{
-				Printer::offsetRelativeStepsCoordinates(0, steps, 0, 0);
+				Printer::offsetRelativeStepsCoordinates(0, steps, 0, 0, TASK_MOVE_POSITION_MANUAL);
 			}
 
             break;
@@ -10935,12 +10947,16 @@ void nextPreviousYAction( int8_t increment )
 
 			if (moveKosys == KOSYS_GCODE)
 			{
-				Printer::queueRelativeMMCoordinates(0, distanceMM * increment, 0, 0, Printer::homingFeedrate[Y_AXIS], true); 
+				float feedrate = STANDARD_POSITION_FEEDRATE_XY;
+				if (Printer::movePositionFeedrateChoice == FEEDRATE_GCODE) {
+					feedrate = Printer::feedrate;
+				}
+				Printer::queueRelativeMMCoordinates(0, distanceMM * increment, 0, 0, feedrate, true);
 				Commands::printCurrentPosition();
 			}
 			else /*if (Printer::moveKosys == KOSYS_DIRECTOFFSET) */
 			{
-				Printer::offsetRelativeStepsCoordinates(0, distanceMM * Printer::axisStepsPerMM[Y_AXIS] * increment, 0, 0);
+				Printer::offsetRelativeStepsCoordinates(0, distanceMM * Printer::axisStepsPerMM[Y_AXIS] * increment, 0, 0, TASK_MOVE_POSITION_MANUAL);
 			}
 
             break;
@@ -11063,7 +11079,7 @@ void nextPreviousZAction( int8_t increment )
 			//}
 			//else /*if (Printer::moveKosys == KOSYS_DIRECTOFFSET) */
 			//{
-				Printer::offsetRelativeStepsCoordinates(0, 0, steps, 0);
+				Printer::offsetRelativeStepsCoordinates(0, 0, steps, 0, TASK_MOVE_POSITION_MANUAL);
 			//}
 
             break;
@@ -11082,8 +11098,9 @@ void nextPreviousZAction( int8_t increment )
 				|| Printer::currentZSteps * Printer::axisMMPerSteps[Z_AXIS] >= (float)distanceMM)
 			{
 //#if MENU_POSITION_ALL_DIRECT
-				Printer::offsetRelativeStepsCoordinates(0, 0, distanceMM * Printer::axisStepsPerMM[Z_AXIS] * increment, 0);
+				Printer::offsetRelativeStepsCoordinates(0, 0, distanceMM * Printer::axisStepsPerMM[Z_AXIS] * increment, 0, TASK_MOVE_POSITION_MANUAL);
 //#else 
+				// if enabled fix feedrate
 //				Printer::queueRelativeMMCoordinates(0, 0, distanceMM * increment, 0, Printer::homingFeedrate[Z_AXIS], true);
 //#endif
 
@@ -11095,7 +11112,7 @@ void nextPreviousZAction( int8_t increment )
             if (Printer::operatingMode != OPERATING_MODE_PRINT)
 			{
 //#if MENU_POSITION_ALL_DIRECT
-				Printer::offsetRelativeStepsCoordinates(0, 0, distanceMM * Printer::axisStepsPerMM[Z_AXIS] * increment, 0);
+				Printer::offsetRelativeStepsCoordinates(0, 0, distanceMM * Printer::axisStepsPerMM[Z_AXIS] * increment, 0, TASK_MOVE_POSITION_MANUAL);
 //#else 
 //				Printer::queueRelativeMMCoordinates(0, 0, distanceMM * increment, 0, Printer::feedrate, true);
 //#endif
@@ -11108,8 +11125,9 @@ void nextPreviousZAction( int8_t increment )
 			if (Printer::currentZSteps > 0)
 			{
 //#if MENU_POSITION_ALL_DIRECT
-				Printer::offsetRelativeStepsCoordinates(0, 0, -Printer::currentZSteps, 0);
+				Printer::offsetRelativeStepsCoordinates(0, 0, -Printer::currentZSteps, 0, TASK_MOVE_POSITION_MANUAL);
 //#else 
+				// if enabled fix feedrate
 //				Printer::queueRelativeStepsCoordinates(0, 0, -Printer::currentZSteps, 0, Printer::homingFeedrate[Z_AXIS], true);
 //#endif
 
@@ -11118,8 +11136,9 @@ void nextPreviousZAction( int8_t increment )
 
 //#if MENU_POSITION_ALL_DIRECT
 			// Sonst Stepweise
-			Printer::offsetRelativeStepsCoordinates(0, 0, -1 * int32_t(g_nManualSteps[Z_AXIS]), 0);
+			Printer::offsetRelativeStepsCoordinates(0, 0, -1 * int32_t(g_nManualSteps[Z_AXIS]), 0, TASK_MOVE_POSITION_MANUAL);
 //#else 
+				// if enabled fix feedrate
 //			Printer::queueRelativeStepsCoordinates(0, 0, -1 * int32_t(g_nManualSteps[Z_AXIS]), 0, Printer::homingFeedrate[Z_AXIS], true);
 //#endif
 

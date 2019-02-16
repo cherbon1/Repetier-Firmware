@@ -1863,9 +1863,43 @@ void UIDisplay::parse(char *txt, bool ram)
 					{
 						addStringP(PSTR(UI_TEXT_MOVE_MODE_GCODE));
 					}
-					else /* if (Printer::moveKosys == KOSYS_DIRECTOFFSET) */{
+					else /* if (Printer::moveKosys == KOSYS_DIRECTOFFSET) */ {
 						addStringP(PSTR(UI_TEXT_MOVE_MODE_OFFSET));
 					}
+				}
+
+				if (c2 == 'K')                                                                             // %sK : Feedrate source config for direct positioning moves
+				{
+					if (Printer::movePositionFeedrateChoice == FEEDRATE_DIRECTCONFIG)
+					{
+						addStringP(PSTR(UI_TEXT_MOVE_FEEDRATE_STANDARD));
+					}
+					else /* if (Printer::movePositionFeedrateChoice == FEEDRATE_GCODE) */ {
+						addStringP(PSTR(UI_TEXT_MOVE_MODE_GCODE));
+					}
+				}
+
+				if (c2 == 'f')                                                                             // %sf : Feedrate for menu postition xy
+				{
+					if (Printer::movePositionFeedrateChoice == FEEDRATE_DIRECTCONFIG)
+					{
+						addInt(STANDARD_POSITION_FEEDRATE_XY, 3);
+					}
+					else /* if (Printer::movePositionFeedrateChoice == FEEDRATE_GCODE) */ {
+						addInt(Printer::feedrate, 3);
+					}
+					addStringP(PSTR("mm/s"));
+				}
+				if (c2 == 'F')                                                                             // %sF : Feedrate for menu postition z
+				{
+					if (Printer::movePositionFeedrateChoice == FEEDRATE_GCODE && Printer::feedrate <= STANDARD_POSITION_FEEDRATE_Z)
+					{
+						addInt(Printer::feedrate, 3);
+					}
+					else {
+						addInt(STANDARD_POSITION_FEEDRATE_Z, 3);
+					}
+					addStringP(PSTR("mm/s"));
 				}
 
                 break;
@@ -4610,6 +4644,16 @@ void UIDisplay::executeAction(int action)
 				else                      Printer::moveKosys = true;
 
 				HAL::eprSetByte(EPR_RF_MOVE_MODE_XY_KOSYS, Printer::moveKosys);
+				EEPROM::updateChecksum();
+				break;
+			}
+
+			case UI_ACTION_CONFIG_POSITION_FEEDRATE:
+			{
+				if (Printer::movePositionFeedrateChoice)   Printer::movePositionFeedrateChoice = false;
+				else                                     Printer::movePositionFeedrateChoice = true;
+
+				HAL::eprSetByte(EPR_RF_MOVE_POSITION_FEEDRATE, Printer::movePositionFeedrateChoice);
 				EEPROM::updateChecksum();
 				break;
 			}

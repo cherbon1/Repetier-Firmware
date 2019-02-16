@@ -253,23 +253,23 @@ Overridden if EEPROM activated. */
 /** \brief Maximum feedrate, the system allows. Higher feedrates are reduced to these values.
 The axis order in all axis related arrays is X, Y, Z
 Overridden if EEPROM activated. */
-#define MAX_FEEDRATE_X                      150
-#define MAX_FEEDRATE_Y                      150
+#define MAX_FEEDRATE_X                    150
+#define MAX_FEEDRATE_Y                    150
 #define MAX_FEEDRATE_Z                      9
 
 /** \brief Home position speed in mm/s. Overridden if EEPROM activated. These values can be overridden by EEPROM but are considered as maximum allowed values */
-#define HOMING_FEEDRATE_X_PRINT             80
-#define HOMING_FEEDRATE_Y_PRINT             80
+#define HOMING_FEEDRATE_X_PRINT            80
+#define HOMING_FEEDRATE_Y_PRINT            80
 #define HOMING_FEEDRATE_Z_PRINT             9
 
-#define HOMING_FEEDRATE_X_MILL              70
-#define HOMING_FEEDRATE_Y_MILL              70
+#define HOMING_FEEDRATE_X_MILL             70
+#define HOMING_FEEDRATE_Y_MILL             70
 #define HOMING_FEEDRATE_Z_MILL              7
 
 /** \brief Speed for direct movements in mm/s. Overridden if EEPROM activated. */
-#define DIRECT_FEEDRATE_XY                  100
-#define DIRECT_FEEDRATE_Z                   9
-#define DIRECT_FEEDRATE_E                   25
+#define STANDARD_POSITION_FEEDRATE_XY     100
+#define STANDARD_POSITION_FEEDRATE_Z        9
+#define STANDARD_POSITION_FEEDRATE_E       25
 
 // ##########################################################################################
 // ##   Acceleration settings
@@ -780,7 +780,7 @@ Honeywell 100K Thermistor (135-104LAG-J01)  : R0 = 100000  T0 = 25  Beta = 3974
 #define UI_SET_EXTRUDER_TEMP_MOUNT          210
 
 /** \brief Extreme values */
-#define UI_SET_MIN_HEATED_BED_TEMP          55
+#define UI_SET_MIN_HEATED_BED_TEMP          50
 #define UI_SET_MAX_HEATED_BED_TEMP          160
 #define UI_SET_MIN_EXTRUDER_TEMP            70
 #define UI_SET_MAX_EXTRUDER_TEMP            270
@@ -855,7 +855,7 @@ we use blocks of 2 kByte size for the structure of our EEPROM
 #define EEPROM_OFFSET_Y_STEP_MM                     22
 #define EEPROM_OFFSET_X_END_MM                      24
 #define EEPROM_OFFSET_Y_END_MM                      26
-#define EEPROM_OFFSET_MATRIX_START                 28
+#define EEPROM_OFFSET_MATRIX_START                  28
 
 #define EEPROM_SECTOR_SIZE                          1536                                        // [bytes]
 #define EEPROM_MAX_WORK_PART_SECTORS                9
