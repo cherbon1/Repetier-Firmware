@@ -275,14 +275,12 @@ void Commands::setFanSpeed(uint8_t speed, bool recalc)
         */
     }
 
-#if FAN_KICKSTART_TIME
     //if specified calculate a kickstart time when the fan speed is commanded to rise
     //use fanSpeed (not "speed") to compare with PART_FAN_KICKSTART_THRESHOLD so we dont have to recalculate the threshold according min-max.
     if (fanKickstart == 0 && speed > pwm_pos[NUM_EXTRUDER+2] && fanSpeed < PART_FAN_KICKSTART_THRESHOLD) {
         if(speed) fanKickstart = PART_FAN_KICKSTART_TIME_BOOST / 10;
         else      fanKickstart = PART_FAN_KICKSTART_TIME_OFF_ON / 10;
     }
-#endif // FAN_KICKSTART_TIME
 
     pwm_pos[NUM_EXTRUDER+2] = speed;
 } // setFanSpeed
