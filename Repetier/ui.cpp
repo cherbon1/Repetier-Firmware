@@ -4918,6 +4918,18 @@ void UIDisplay::executeAction(int action)
             }
 #endif // NUM_EXTRUDER == 2
 
+#if FEATURE_BEEPER
+            case UI_ACTION_BEEPER:
+            {
+                if( Printer::enableBeeper ) Printer::enableBeeper = 0;
+                else                        Printer::enableBeeper = 1;
+
+                HAL::eprSetByte( EPR_RF_BEEPER_MODE, Printer::enableBeeper );
+                EEPROM::updateChecksum();
+                break;
+            }
+#endif // FEATURE_BEEPER
+
 #if SDSUPPORT
             case UI_ACTION_SD_PRINT:
             {
@@ -4939,19 +4951,6 @@ void UIDisplay::executeAction(int action)
                 continuePrint();
                 break;
             }
-
-#if FEATURE_BEEPER
-            case UI_ACTION_BEEPER:
-            {
-                if( Printer::enableBeeper ) Printer::enableBeeper = 0;
-                else                        Printer::enableBeeper = 1;
-
-                HAL::eprSetByte( EPR_RF_BEEPER_MODE, Printer::enableBeeper );
-                EEPROM::updateChecksum();
-                break;
-            }
-#endif // FEATURE_BEEPER
-
             case UI_ACTION_SD_UNMOUNT:
             {
                 sd.unmount();

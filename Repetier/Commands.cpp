@@ -514,12 +514,31 @@ void Commands::processArc(GCode *com) {
 			r = -r; // Finished with r. Set to positive for mc_arc
 		}
 		// Complete the operation by calculating the actual center of the arc
-		offset[0] = 0.5 * (x - (y * h_x2_div_d));
-		offset[1] = 0.5 * (y + (x * h_x2_div_d));
+		offset[X_AXIS] = 0.5 * (x - (y * h_x2_div_d));
+		offset[Y_AXIS] = 0.5 * (y + (x * h_x2_div_d));
 
 	}
 	else { // Offset mode specific computations
-		r = hypot(offset[0], offset[1]); // Compute arc radius for arc
+		// here we have an offset for the center. A radius is being calculated.
+
+		// this is a radius from start coordinates to the center of arc.
+		r = hypot(offset[X_AXIS], offset[Y_AXIS]); // Compute arc radius for arc
+
+		// to reach the end coordinates we should have the same radius from center to end.
+		// Vector from start to end minus offset is the vector from offset to end:
+		double centerToEndX = target[X_AXIS] - position[X_AXIS] - offset[X_AXIS];
+		double centerToEndY = target[Y_AXIS] - position[Y_AXIS] - offset[Y_AXIS];
+		// distance from center of circle to endpoint
+		float r2 = hypot(centerToEndX, centerToEndY); // Compute arc radius for arc
+
+		// What is a valid calculation error? 
+		// For this check 0.01 circle perfectness is probably enough
+		// as this is only a validation for totally wrong generated gcodes.
+		// The last move is a move to the perfect end-point, but if the slicer/user calculated the center a bit wrong the actual drawn circle would not end at the endpoint.
+		if (fabs(r2 - r) > 0.01f) {
+			Com::printErrorFLN(Com::tInvalidArc);
+			return;
+		}
 	}
 	// Set clockwise/counter-clockwise sign for arc computations
 	uint8_t isclockwise = com->G == 2;

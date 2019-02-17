@@ -4,6 +4,7 @@ With a Version > 1.43.20 the following machine modes still have to be tested:
 
 This should work awsome:
 - Single-Extruder printing
+- Arc support G2/G3
 
 TODO:
 # milling mode: retest all pause functionality
@@ -12,12 +13,21 @@ TODO:
 # milling mode: test or rework milling functions
 # pause @RF1000: test if z max-endstop is respected while moving in dual-endstop circular setting
 
+V 01.43.80.Mod (2019-02-17)
+- fixed menu action for Beeper-on-off when SD-Support was disabled.
+- reactivated arc support becaus it does not cost ram.
+- implemented a radius constraint validation for arcs which are drawn by start coordinates, end coordinates and center position. https://github.com/repetier/Repetier-Firmware/issues/850
+(- broke very long changelog lines into next lines.)
+
 V 01.43.79.Mod (2019-02-16)
-- tested arc support. It seems to work however I might have not understood details. I tested relative and absolut coordinates full circles in a row using I+J (Not R). Extrusion works too.
+- tested arc support. It seems to work however I might have not understood details. 
+  I tested relative and absolut coordinates full circles in a row using I+J (Not R). Extrusion works too.
    -> Extrusion is possible
    -> I did not mix up coordinate SI units / steps
 - refactored arc support into a seperate commands-function like todays repetier branch has it.
-- Full circles and other partly circles are no problem, but the person which has knowledge about milling should really look over the correctness of circle calculations. -> Disabled the feature until I got reports about arcs.
+- Full circles and other partly circles are no problem, 
+  but the person which has knowledge about milling should really look over the correctness of circle calculations. 
+  -> Disabled the feature until I got reports about arcs.
 
 V 01.43.78.Mod (2019-02-16)
 - Changed UI_SET_MIN_HEATED_BED_TEMP from 55 to 50.
@@ -29,7 +39,8 @@ V 01.43.77.Mod (2019-02-15)
    The second choice might be usefull in milling mode because since 01.43.73 we (only in milling mode) can adjust the "gcode" feedrate using our hardware extrusion buttons.
 - menu->Position->X/Y/Z Position: replaced the two lines "Endstop Min..." and "Endstop Max: xxx" with one Line "Min:xxx Max:xxx"
 - menu->Position->X/Y/Z Position: added active feedrate in line 3 of the position menus. This feedrate depends on "Pos-Feedrate: Std. or Gcode".
-- menu->Position->X/Y/Z Position: Standard-Feedrates STANDARD_POSITION_FEEDRATE_XY, STANDARD_POSITION_FEEDRATE_Z, STANDARD_POSITION_FEEDRATE_E are set for Gcode and Offset drives when "Pos-Feedrate: Std." is set.
+- menu->Position->X/Y/Z Position: Standard-Feedrates STANDARD_POSITION_FEEDRATE_XY, STANDARD_POSITION_FEEDRATE_Z, STANDARD_POSITION_FEEDRATE_E 
+   are set for Gcode and Offset drives when "Pos-Feedrate: Std." is set.
    (Moves with the hardware buttons z-up and z-down have always the same configured feedrate as menu->Position->Z Position->...)
    (If we have chosen Pos-Feedrate = "Gcode" then a Z feedrate is always limited to the value in STANDARD_POSITION_FEEDRATE_Z and configured max feedrate.)
 - cleanup in function prepareDirectMove()
