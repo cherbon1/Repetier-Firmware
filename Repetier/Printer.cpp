@@ -446,7 +446,7 @@ For the computation of the destination, the following facts are considered:
 
 - originOffsetMM is only affecting gcode coordinates??
 */
-bool Printer::queueGCodeCoordinates(GCode *com)
+bool Printer::queueGCodeCoordinates(GCode *com, bool noDriving)
 {
 	InterruptProtectedBlock noInts;
 	bool isXYZMove = !com->hasNoXYZ();
@@ -493,6 +493,10 @@ bool Printer::queueGCodeCoordinates(GCode *com)
 		addKurtWobbleFixOffset();
 	}
 #endif // FEATURE_Kurt67_WOBBLE_FIX
+
+	if (noDriving) {
+		return isXYZMove || isEMove;
+	}
 
 	if (isXYZMove || isEMove)
 	{
