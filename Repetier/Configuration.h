@@ -137,7 +137,22 @@
 #define FEATURE_FAN_CONTROL                 1                                                   // 1 = on, 0 = off
 
 /** \brief Enables/disables the support for G2/G3 arc commands */
-#define FEATURE_ARC_SUPPORT                 1                                                   // 1 = on, 0 = off
+#define FEATURE_ARC_SUPPORT                 0                                                   // 1 = on, 0 = off
+#if FEATURE_ARC_SUPPORT
+ #error Remove this safety seal if you want arc support. Please read the lines below first.
+ /*
+ I did my best to test and fix arc support
+  but if you are some professional milling guy please test some arc gcodes for me (Nibbels) and tell me if everything is totally right.
+
+  What surely works:
+  - Full circles seem to be working and their behaviour seems to be good.
+  - If I stand at X=0 Y=0 the G3 X0 Y50 I0 J25 draws a half circle. Thats correct.
+    -> but if I do the same with G3 X0 Y50 I0 J30 F5000 (Center is set wrong, impossible) we get a half circle plus a driveback. Is that correct?
+  - From X0 Y0 the half circle G3 X0 Y50 R25 seems to work too.
+  - From X0 Y0 the half circle G3 X0 Y50 R35 flattens the curve because of the higher radius.
+  - From X0 Y0 the half circle G3 X0 Y50 R15 has an impossible radius and sets octoprint to disconnect because of the error message.
+ */
+#endif 
 
 /** \brief Enables/disables the beeper */
 #define FEATURE_BEEPER                      1                                                   // 1 = on, 0 = off

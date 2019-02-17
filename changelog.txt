@@ -17,6 +17,7 @@ V 01.43.79.Mod (2019-02-16)
    -> Extrusion is possible
    -> I did not mix up coordinate SI units / steps
 - refactored arc support into a seperate commands-function like todays repetier branch has it.
+- Full circles and other partly circles are no problem, but the person which has knowledge about milling should really look over the correctness of circle calculations. -> Disabled the feature until I got reports about arcs.
 
 V 01.43.78.Mod (2019-02-16)
 - Changed UI_SET_MIN_HEATED_BED_TEMP from 55 to 50.

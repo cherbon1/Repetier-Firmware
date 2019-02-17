@@ -406,18 +406,15 @@ void Commands::processArc(GCode *com) {
 	position[Z_AXIS] = Printer::destinationMM[Z_AXIS];
 	position[E_AXIS] = Printer::destinationMM[E_AXIS];
 	
-	float target[4];
-	// inhere destinationMM will change
-	target[E_AXIS] = Printer::convertToMM(com->hasE() ? com->E : 0.0f);
-
-	com->E = 0.0f; //do not extrude all the amount while going to arc start	
-	if(!Printer::queueGCodeCoordinates(com)) return; // For X Y Z E F
+	Printer::queueGCodeCoordinates(com, true); // For X Y Z E F
 				
 	// get start position for arc lines
+	float target[4];
 	target[X_AXIS] = Printer::destinationMM[X_AXIS];
 	target[Y_AXIS] = Printer::destinationMM[Y_AXIS];
 	target[Z_AXIS] = Printer::destinationMM[Z_AXIS];
-	
+	target[E_AXIS] = Printer::destinationMM[E_AXIS];
+
 	float offset[2] = {
 		Printer::convertToMM(com->hasI()?com->I:0),
 		Printer::convertToMM(com->hasJ()?com->J:0)
