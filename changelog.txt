@@ -13,6 +13,9 @@ TODO:
 # milling mode: test or rework milling functions
 # pause @RF1000: test if z max-endstop is respected while moving in dual-endstop circular setting
 
+V 01.43.82.Mod (2019-02-17)
+- fix possible workpart matrix shift when directpositioning was used after homing. + comments.
+
 V 01.43.81.Mod (2019-02-17)
 - fix displayed layer height and compensation limit choice when first layer height is higher than start line M3912.
 - adjusted standard zcompensation upper limit to a better fallback value

@@ -3440,8 +3440,20 @@ long getZMatrixDepth(long x, long y){
 }
 
 long getZMatrixDepth_CurrentXY(void){
+#if FEATURE_MILLING_MODE
+	if (Printer::operatingMode == OPERATING_MODE_MILL)
+	{
+		// While milling direct positioning is not exclusive for extruder offsets and pausing.
+		// We have to respect the absolute position in steps.
+		// This is valid if a workpart scan is always done having zero direct steps. -> to scan we home and move by gcode coordinates. so this is true.
+		return getZMatrixDepth(
+			Printer::currentXSteps,
+			Printer::currentYSteps
+		);
+	}
+#endif
 	// We need the current queue steps here. No Direct, No Offsets.
-	// We need to insert where the nozzle is, relative to 0 homing coordinate
+	// We need to insert where the nozzle is, relative to 0 homing coordinates which are always min endstop because we dropped axis offsets.
 	// Because our RF2000 Matrix is 180mm width. That is the center of the bed. left and right are spaces. -> Center buildarea starts at 0 gcode coordinates and thats what we want.
     return getZMatrixDepth(
 		Printer::currentSteps[X_AXIS], 
