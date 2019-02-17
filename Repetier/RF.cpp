@@ -10208,6 +10208,10 @@ void processCommand( GCode* pCommand )
                     g_nDigitFlowCompensation_intense = save_g_nDigitFlowCompensation_intense;
 
 					Printer::setEAxisSteps(0); //G92 E0
+					
+                    // Fix layer height if first layer is higher than start line
+					Printer::queuePositionZLayerLast = 0;
+					Printer::queuePositionZLayerCurrent = 0;
 
                     Printer::relativeExtruderCoordinateMode = save_relativeExtruderCoordinateMode;
                 }else{
