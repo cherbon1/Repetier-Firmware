@@ -1307,12 +1307,12 @@ void SDCardGCodeSource::writeByte(uint8_t byte) {
 	(void)byte;
 	// dummy
 }
-void SDCardGCodeSource::close() {
-	sd.sdmode = 0;
+void SDCardGCodeSource::close() {	
 	GCodeSource::removeSource(this);
-	Printer::setPrinting(false);
+	Printer::stopPrint(); //sd.sdmode = 0;
+	//Printer::setPrinting(false);
 	Printer::setMenuMode(MENU_MODE_SD_PRINTING, false);
-	Printer::setMenuMode(MENU_MODE_PAUSED, false);
-	Com::printFLN(Com::tDonePrinting);
+	//Printer::setMenuMode(MENU_MODE_PAUSED, false);
+	//Com::printFLN(Com::tDonePrinting);
 }
 #endif
