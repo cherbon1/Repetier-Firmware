@@ -348,8 +348,15 @@ public:
     FSTRINGVAR(tFindZOrigin)
 #endif // FEATURE_FIND_Z_ORIGIN
 	FSTRINGVAR(tCap)
+	FSTRINGVAR(tConfig)
 
 	static void cap(FSTRINGPARAM(text));
+	static void config(FSTRINGPARAM(text));
+	static void config(FSTRINGPARAM(text), int value);
+	static void config(FSTRINGPARAM(text), const char *msg);
+	static void config(FSTRINGPARAM(text), int32_t value);
+	static void config(FSTRINGPARAM(text), uint32_t value);
+	static void config(FSTRINGPARAM(text), float value, uint8_t digits = 2);
     static void printNumber(uint32_t n);
     static void printWarningF(FSTRINGPARAM(text));
     static void printInfoF(FSTRINGPARAM(text));

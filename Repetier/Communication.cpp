@@ -349,6 +349,7 @@ FSTRINGVALUE(Com::tMountFilamentHard, MOUNT_FILAMENT_SCRIPT_HARD)
 FSTRINGVALUE(Com::tFindZOrigin, FIND_Z_ORIGIN_SCRIPT)
 #endif // FEATURE_FIND_Z_ORIGIN
 FSTRINGVALUE(Com::tCap, "Cap:")
+FSTRINGVALUE(Com::tConfig, "Config:")
 
 ; // needed because the development tool does not recognize the ; within FSTRINGVALUE definition right.
 
@@ -358,7 +359,32 @@ void Com::cap(FSTRINGPARAM(text)) {
 	printF(tCap);
 	printFLN(text);
 }
-
+void Com::config(FSTRINGPARAM(text)) {
+	printF(tConfig);
+	printFLN(text);
+}
+void Com::config(FSTRINGPARAM(text), int value) {
+	printF(tConfig);
+	printFLN(text, value);
+}
+void Com::config(FSTRINGPARAM(text), const char *msg) {
+	printF(tConfig);
+	printF(text);
+	print(msg);
+	println();
+}
+void Com::config(FSTRINGPARAM(text), int32_t value) {
+	printF(tConfig);
+	printFLN(text, value);
+}
+void Com::config(FSTRINGPARAM(text), uint32_t value) {
+	printF(tConfig);
+	printFLN(text, value);
+}
+void Com::config(FSTRINGPARAM(text), float value, uint8_t digits) {
+	printF(tConfig);
+	printFLN(text, value, digits);
+}
 void Com::printWarningF(FSTRINGPARAM(text))
 {
     printF(tWarning);

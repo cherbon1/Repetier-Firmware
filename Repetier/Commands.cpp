@@ -1513,6 +1513,12 @@ void Commands::processMCode(GCode *com) {
 		break;
 	}
 #endif // USE_ADVANCE
+
+	case 360: // M360 - show configuration
+		Com::writeToAll = false;
+		Printer::showConfiguration();
+		break;
+
 #if FEATURE_CASE_LIGHT
 	case 355: // M355  - Turn case light on/off / Turn X19 on and off.
 	{

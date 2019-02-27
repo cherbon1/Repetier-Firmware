@@ -1865,6 +1865,70 @@ void Printer::stopPrint() //function for aborting USB and SD-Prints
     UI_STATUS_UPD( UI_TEXT_STOP_PRINT );
 } // stopPrint
 
+#define START_EXTRUDER_CONFIG(i)     Com::printF(Com::tConfig);Com::printF(Com::tExtrDot,i+1);Com::print(':');
+void Printer::showConfiguration() {
+	Com::config(PSTR("Baudrate:"), baudrate);
+#ifndef EXTERNALSERIAL
+	Com::config(PSTR("InputBuffer:"), SERIAL_BUFFER_SIZE - 1);
+#endif
+	Com::config(PSTR("NumExtruder:"), NUM_EXTRUDER);
+	Com::config(PSTR("MixingExtruder:"), 0);
+	Com::config(PSTR("HeatedBed:"), HAVE_HEATED_BED);
+	Com::config(PSTR("SDCard:"), SDSUPPORT);
+	Com::config(PSTR("Fan:"), FAN_PIN > -1 && FEATURE_FAN_CONTROL);
+	Com::config(PSTR("Fan2:0"));
+	Com::config(PSTR("LCD:"), 0);
+	Com::config(PSTR("SoftwarePowerSwitch:"), 0);
+	Com::config(PSTR("XHomeDir:"), X_HOME_DIR);
+	Com::config(PSTR("YHomeDir:"), Y_HOME_DIR);
+	Com::config(PSTR("ZHomeDir:"), Z_HOME_DIR);
+
+	Com::config(PSTR("XHomePos:"), (X_HOME_DIR > 0 ? Printer::axisLengthMM[X_AXIS] : 0), 2);
+	Com::config(PSTR("YHomePos:"), (Y_HOME_DIR > 0 ? Printer::axisLengthMM[Y_AXIS] : 0), 2);
+	Com::config(PSTR("ZHomePos:"), (Z_HOME_DIR > 0 ? Printer::axisLengthMM[Z_AXIS] : 0), 2);
+
+	Com::config(PSTR("SupportG10G11:"), 0);
+	Com::config(PSTR("SupportLocalFilamentchange:"), 0);
+	Com::config(PSTR("CaseLights:"), 0);
+	Com::config(PSTR("EEPROM:"), EEPROM_MODE != 0);
+	Com::config(PSTR("PrintlineCache:"), MOVE_CACHE_SIZE);
+	Com::config(PSTR("JerkXY:"), Printer::maxXYJerk);
+	Com::config(PSTR("JerkZ:"), Printer::maxZJerk);
+	Com::config(PSTR("KeepAliveInterval:"), KEEP_ALIVE_INTERVAL);
+
+	Com::config(PSTR("XMin:"), 0);
+	Com::config(PSTR("YMin:"), 0);
+	Com::config(PSTR("ZMin:"), 0);
+	Com::config(PSTR("XMax:"), Printer::axisLengthMM[X_AXIS]);
+	Com::config(PSTR("YMax:"), Printer::axisLengthMM[Y_AXIS]);
+	Com::config(PSTR("ZMax:"), Printer::axisLengthMM[Z_AXIS]);
+	Com::config(PSTR("XSize:"), Printer::axisLengthMM[X_AXIS]);
+	Com::config(PSTR("YSize:"), Printer::axisLengthMM[Y_AXIS]);
+	Com::config(PSTR("ZSize:"), Printer::axisLengthMM[Z_AXIS]);
+	Com::config(PSTR("XPrintAccel:"), Printer::maxAccelerationMMPerSquareSecond[X_AXIS]);
+	Com::config(PSTR("YPrintAccel:"), Printer::maxAccelerationMMPerSquareSecond[Y_AXIS]);
+	Com::config(PSTR("ZPrintAccel:"), Printer::maxAccelerationMMPerSquareSecond[Z_AXIS]);
+	Com::config(PSTR("XTravelAccel:"), Printer::maxTravelAccelerationMMPerSquareSecond[X_AXIS]);
+	Com::config(PSTR("YTravelAccel:"), Printer::maxTravelAccelerationMMPerSquareSecond[Y_AXIS]);
+	Com::config(PSTR("ZTravelAccel:"), Printer::maxTravelAccelerationMMPerSquareSecond[Z_AXIS]);
+	Com::config(PSTR("PrinterType:Cartesian"));
+
+	Com::config(PSTR("MaxBedTemp:"), HEATED_BED_MAX_TEMP);
+	for (fast8_t i = 0; i < NUM_EXTRUDER; i++) {
+		START_EXTRUDER_CONFIG(i)
+			Com::printFLN(PSTR("Jerk:"), extruder[i].maxEJerk);
+		START_EXTRUDER_CONFIG(i)
+			Com::printFLN(PSTR("MaxSpeed:"), extruder[i].maxFeedrate);
+		START_EXTRUDER_CONFIG(i)
+			Com::printFLN(PSTR("Acceleration:"), extruder[i].maxAcceleration);
+		//START_EXTRUDER_CONFIG(i)
+		//	Com::printFLN(PSTR("Diameter:"), extruder[i].diameter);
+		START_EXTRUDER_CONFIG(i)
+			Com::printFLN(PSTR("MaxTemp:"), EXTRUDER_MAX_TEMP);
+	}
+}
+
+
 extern void ui_check_keys(int &action);
 
 bool Printer::checkAbortKeys( void ){

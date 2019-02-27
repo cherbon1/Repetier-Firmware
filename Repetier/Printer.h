@@ -1188,6 +1188,7 @@ public:
     static void stopPrint();
     static bool checkAbortKeys( void );
     static bool checkPlayKey( void );
+	static void showConfiguration();
 
 private:
     static void homeXAxis();
