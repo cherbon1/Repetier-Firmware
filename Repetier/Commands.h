@@ -28,6 +28,8 @@ public:
 	static void processArc(GCode *com);
 #endif // FEATURE_ARC_SUPPORT
     static void executeGCode(GCode *com);
+	static void processGCode(GCode *com);
+	static void processMCode(GCode *com);
     static void waitUntilEndOfAllMoves();
     static void printCurrentPosition();
     static void printTemperatures(bool showRaw = false);

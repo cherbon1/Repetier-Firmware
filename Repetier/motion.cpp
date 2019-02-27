@@ -102,12 +102,10 @@ void PrintLine::prepareQueueMove(uint8_t abortAtEndstops, uint8_t pathOptimize, 
     PrintLine *p = PrintLine::getNextWriteLine();
 
     p->task = TASK_NO_TASK;
-
-    float axisDistanceMM[4]; // Axis movement in mm
     p->flags = (abortAtEndstops ? FLAG_ABORT_AT_ENDSTOPS : 0);
     p->joinFlags = 0;
-    if(!pathOptimize) p->setEndSpeedFixed(true);
     p->dir = 0;
+	if (!pathOptimize) p->setEndSpeedFixed(true);
 
 	// Constrain Destinations to values we should be able to reach
 	for (uint8_t axis = 0; axis < E_AXIS; axis++)
@@ -119,6 +117,7 @@ void PrintLine::prepareQueueMove(uint8_t abortAtEndstops, uint8_t pathOptimize, 
 		}
 	}
 
+    float axisDistanceMM[4]; // Axis movement in mm
     // Find direction
 	bool isNoStepsMove = true;
     for(uint8_t axis=0; axis < 4; axis++)
@@ -889,24 +888,11 @@ uint8_t PrintLine::insertWaitMovesIfNeeded(uint8_t pathOptimize, uint8_t waitExt
 
 void PrintLine::waitForXFreeLines(uint8_t b)
 {
-    while(linesCount + b > MOVE_CACHE_SIZE)     // wait for a free entry in movement cache
+    while(getLinesCount() + b > MOVE_CACHE_SIZE)     // wait for a free entry in movement cache
     {
         Commands::checkForPeriodicalActions( Processing );
     }
 } // waitForXFreeLines
-
-
-bool PrintLine::checkForXFreeLines(uint8_t freeLines)
-{
-    if(linesCount+freeLines>MOVE_CACHE_SIZE)
-    {
-        // we have less than freeLines free lines within our cache
-        return false;
-    }
-
-    // we have more than freeLines free lines within our cache
-    return true;
-} // checkForXFreeLines
 
 #if FEATURE_ARC_SUPPORT
   // Arc function taken from grbl

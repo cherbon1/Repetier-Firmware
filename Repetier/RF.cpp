@@ -7155,7 +7155,7 @@ void setExtruderCurrent( uint8_t nr, uint8_t current )
 } // setExtruderCurrent
 
 
-void processCommand( GCode* pCommand )
+void processSpecialGCode( GCode* pCommand )
 {
     long    nTemp;
 	
@@ -10520,7 +10520,7 @@ void processCommand( GCode* pCommand )
 #endif //FEATURE_READ_CALIPER
         }
     }
-} // processCommand
+} // processSpecialGCode
 
 void queueTask( char task )
 {

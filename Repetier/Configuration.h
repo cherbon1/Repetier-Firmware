@@ -54,6 +54,7 @@
     #error This Mod-Firmware has not been massively tested on a RF2000v2 yet. But the firmware has been created with care. Please remove this message if you acknowledged this.
 #endif // MOTHERBOARD == DEVICE_TYPE_RF2000v2
 
+#error Experimental Branch 1.43.83: We are currently testing a new Gcode Source engine. If you read the changelog and want to test with us, great! Remove this #error. But otherwise use github.com/RF1000community/Repetier-Firmware
 
 /**
  * \brief EEPROM storage mode
@@ -68,6 +69,8 @@
  */
 #define EEPROM_MODE                         44
 
+//mandatory while testing the new gcode source classes
+#define NEW_COMMUNICATION                     1
 
 // ##########################################################################################
 // ##    supported features

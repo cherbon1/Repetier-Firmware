@@ -5257,6 +5257,7 @@ void UIDisplay::slowAction()
         noInts.unprotect(); //HAL::allowInterrupts();
         if(epos)
         {
+			Com::writeToAll = true;
             nextPreviousAction(epos); //Nibbels: Funktion, die rechts links auswertet oder Errors wegklicken lässt. abhängig von this->encoderPos .. sonst verwendet mit -1 oder 1
             BEEP_SHORT
             refresh=1;
@@ -5276,15 +5277,18 @@ void UIDisplay::slowAction()
             else if(time-lastButtonStart>UI_KEY_BOUNCETIME)     // New key pressed
             {
                 lastAction = lastButtonAction;
+				Com::writeToAll = true;
                 executeAction(lastAction);
                 nextRepeat = time+UI_KEY_FIRST_REPEAT;
                 repeatDuration = UI_KEY_FIRST_REPEAT;
+				//TODO hier ist ein anderer Code bei REpetier. "DelayedAction" -> Prüfen, warum.
             }
         }
         else if(lastAction<1000 && lastAction)     // Repeatable key
         {
             if(time-nextRepeat<10000)
             {
+				//TODO hier ist ein anderer Code bei REpetier. "DelayedAction" -> Prüfen, warum.
                 executeAction(lastAction);
                 repeatDuration -= UI_KEY_REDUCE_REPEAT;
                 if(repeatDuration<UI_KEY_MIN_REPEAT) repeatDuration = UI_KEY_MIN_REPEAT;

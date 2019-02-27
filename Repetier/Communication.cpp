@@ -34,12 +34,14 @@ FSTRINGVALUE(Com::tNewline,"\r\n")
 FSTRINGVALUE(Com::tNAN,"NAN")
 FSTRINGVALUE(Com::tINF,"INF")
 FSTRINGVALUE(Com::tError,"Error:")
+FSTRINGVALUE(Com::tFatal, "fatal:")
 FSTRINGVALUE(Com::tInfo,"Info:")
 FSTRINGVALUE(Com::tWarning,"Warning:")
 FSTRINGVALUE(Com::tResend,"Resend:")
 FSTRINGVALUE(Com::tEcho,"Echo:")
 FSTRINGVALUE(Com::tOkSpace,"ok ")
 FSTRINGVALUE(Com::tWrongChecksum,"Wrong checksum")
+FSTRINGVALUE(Com::tFormatError, "Format error")
 FSTRINGVALUE(Com::tMissingChecksum,"Missing checksum")
 FSTRINGVALUE(Com::tDonePrinting,"Done printing file")
 FSTRINGVALUE(Com::tX, " X")
@@ -346,8 +348,16 @@ FSTRINGVALUE(Com::tMountFilamentHard, MOUNT_FILAMENT_SCRIPT_HARD)
 #if FEATURE_FIND_Z_ORIGIN
 FSTRINGVALUE(Com::tFindZOrigin, FIND_Z_ORIGIN_SCRIPT)
 #endif // FEATURE_FIND_Z_ORIGIN
+FSTRINGVALUE(Com::tCap, "Cap:")
 
 ; // needed because the development tool does not recognize the ; within FSTRINGVALUE definition right.
+
+bool Com::writeToAll = true; // transmit start messages to all devices!
+
+void Com::cap(FSTRINGPARAM(text)) {
+	printF(tCap);
+	printFLN(text);
+}
 
 void Com::printWarningF(FSTRINGPARAM(text))
 {
@@ -409,7 +419,11 @@ void Com::printF(FSTRINGPARAM(ptr))
 {
   char c;
   while ((c=HAL::readFlashByte(ptr++)) != 0)
-     HAL::serialWriteByte(c);
+#if NEW_COMMUNICATION
+	  GCodeSource::writeToAll(c);
+#else
+      HAL::serialWriteByte(c);
+#endif
 } // printF
 
 
@@ -488,7 +502,11 @@ void Com::print(const char *text)
 {
     while(*text)
     {
+#if NEW_COMMUNICATION
+		GCodeSource::writeToAll(*text++);
+#else
         HAL::serialWriteByte(*text++);
+#endif
     }
 } // print
 
@@ -497,7 +515,11 @@ void Com::print(int32_t value)
 {
     if(value<0)
     {
+#if NEW_COMMUNICATION
+		GCodeSource::writeToAll('-');
+#else
         HAL::serialWriteByte('-');
+#endif
         value = -value;
     }
     printNumber(value);

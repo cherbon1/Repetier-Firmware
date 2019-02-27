@@ -66,6 +66,7 @@ void Extruder::manageTemperatures()
     }
 #endif // FEATURE_MILLING_MODE
 
+	Com::writeToAll = true;
     uint8_t errorDetected = 0;
 
     for(uint8_t controller=0; controller<NUM_TEMPERATURE_LOOPS; controller++)

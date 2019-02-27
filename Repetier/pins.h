@@ -98,7 +98,6 @@
 #define ORIG_E1_ENABLE_PIN      -1
 #endif // NUM_EXTRUDER == 2
 
-#define SDPOWER                 -1
 #define SDSS                    53
 // PINB.0, 19, SS
 #define LED_PIN                 13
@@ -350,7 +349,6 @@
 #define ORIG_E1_ENABLE_PIN      30
 // PINC.7, 60, ENA_DRV5
 
-#define SDPOWER                 -1
 #define SDSS                    53
 // PINB.0, 19, SS
 #define LED_PIN                 -1
@@ -593,7 +591,6 @@
 // PINC.7, 60, ENA_DRV5
 #define ORIG_E1_ENABLE_PIN      30
 
-#define SDPOWER				    -1
 // PINB.0, 19, SS
 #define SDSS				    53
 #define LED_PIN				    -1
