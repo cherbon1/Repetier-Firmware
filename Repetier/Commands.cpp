@@ -548,12 +548,11 @@ void Commands::processArc(GCode *com) {
 /** \brief Execute the command stored in com. */
 void Commands::executeGCode(GCode *com)
 {
-#if NEW_COMMUNICATION
 	// Set return channel for private commands. By default all commands send to all receivers.
 	GCodeSource *actSource = GCodeSource::activeSource;
 	GCodeSource::activeSource = com->source;
 	Com::writeToAll = true;
-#endif
+
     if(com->hasG())
     {
 	    Commands::processGCode(com);
@@ -576,9 +575,8 @@ void Commands::executeGCode(GCode *com)
             com->printCommand();
         }
     }
-#if NEW_COMMUNICATION
+
 	GCodeSource::activeSource = actSource;
-#endif
 } // executeGCode
 
 /**

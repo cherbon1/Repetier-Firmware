@@ -13,7 +13,13 @@ TODO:
 # milling mode: test or rework milling functions
 # pause @RF1000: test if z max-endstop is respected while moving in dual-endstop circular setting
 # maybe implement a activatable serial3 for direct connection of a raspberry inside of the printer
-# testing if we still need a Printer::stopPrint() when a sd print stops -> evtl. gcodecpp ganz unten?
+
+Rightnow: If we pull the usb cable or pull the sdcard the printer will just stop. After 600 seconds the steppers will be shut down but temps stay.
+
+V 01.43.85.Mod (2019-02-27)
+- Make any sethomed impossible if we are in g_uBlockCommands!=0 state. So Aborting a print while homing cannot shift axis.
+  Without that fix soft-endstops can be in an undefined state when we abort while homing. OutputObject() might crash then.
+- Removed NEW_COMMUNICATION define flag within the code because there is no old communication anywhere anymore.
 
 V 01.43.84.Mod (2019-02-27)
 - Added M360 Printer::showConfiguration()

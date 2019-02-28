@@ -101,14 +101,12 @@ public:
 };
 #endif
 
-#if NEW_COMMUNICATION
 extern SerialGCodeSource serial0Source;
 #if BLUETOOTH_SERIAL > 0
 extern SerialGCodeSource serial1Source;
 #endif
 #if SDSUPPORT
 extern SDCardGCodeSource sdSource;
-#endif
 #endif
 
 class GCode   // 52 uint8_ts per command needed

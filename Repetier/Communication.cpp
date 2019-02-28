@@ -445,11 +445,7 @@ void Com::printF(FSTRINGPARAM(ptr))
 {
   char c;
   while ((c=HAL::readFlashByte(ptr++)) != 0)
-#if NEW_COMMUNICATION
 	  GCodeSource::writeToAll(c);
-#else
-      HAL::serialWriteByte(c);
-#endif
 } // printF
 
 
@@ -528,11 +524,7 @@ void Com::print(const char *text)
 {
     while(*text)
     {
-#if NEW_COMMUNICATION
 		GCodeSource::writeToAll(*text++);
-#else
-        HAL::serialWriteByte(*text++);
-#endif
     }
 } // print
 
@@ -541,11 +533,7 @@ void Com::print(int32_t value)
 {
     if(value<0)
     {
-#if NEW_COMMUNICATION
 		GCodeSource::writeToAll('-');
-#else
-        HAL::serialWriteByte('-');
-#endif
         value = -value;
     }
     printNumber(value);

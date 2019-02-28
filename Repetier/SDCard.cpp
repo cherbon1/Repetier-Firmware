@@ -22,9 +22,7 @@
 
 char tempLongFilename[LONG_FILENAME_LENGTH+1];
 char fullName[LONG_FILENAME_LENGTH * SD_MAX_FOLDER_DEPTH + SD_MAX_FOLDER_DEPTH + 1];
-#if NEW_COMMUNICATION
 SDCardGCodeSource sdSource;
-#endif
 SDCard sd;
 
 SDCard::SDCard() {
@@ -173,9 +171,7 @@ void SDCard::startPrint()
     Printer::setMenuMode(MENU_MODE_SD_PRINTING, true);
     Printer::setMenuMode(MENU_MODE_PAUSED, false);
     Printer::setPrinting(true);
-#if NEW_COMMUNICATION
 	GCodeSource::registerSource(&sdSource);
-#endif
 } // startPrint
 
 void SDCard::writeCommand(GCode *code)

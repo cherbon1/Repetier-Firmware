@@ -181,14 +181,12 @@ void GCode::requestResend()
 {
     HAL::serialFlush();
     commandsReceivingWritePosition=0;
-#if NEW_COMMUNICATION
 	if (sendAsBinary)
 		GCodeSource::activeSource->waitingForResend = 30;
 	else
 		GCodeSource::activeSource->waitingForResend = 14;
 	Com::println();
 	Com::printFLN(Com::tResend, GCodeSource::activeSource->lastLineNumber + 1);
-#endif    
     Com::printFLN(Com::tOk);
 } // requestResend
 
@@ -202,11 +200,9 @@ void GCode::checkAndPushCommand()
     {
         if(M==110)   // Reset line number
         {
-#if NEW_COMMUNICATION            
 			GCodeSource::activeSource->lastLineNumber = actLineNumber;
 			Com::printFLN(Com::tOk);
 			GCodeSource::activeSource->waitingForResend = -1;
-#endif            
             return;
         }
         if(M==112)   // Emergency kill - freeze/reset printer
@@ -216,46 +212,34 @@ void GCode::checkAndPushCommand()
     }
     if(hasN())
     {
-#if NEW_COMMUNICATION
 		if ((((GCodeSource::activeSource->lastLineNumber + 1) & 0xffff) != (actLineNumber & 0xffff)))
-#endif        
         {
-#if NEW_COMMUNICATION
 			if (static_cast<uint16_t>(GCodeSource::activeSource->lastLineNumber - actLineNumber) < 40)
-#endif            
             {
                 // we have seen that line already. So we assume it is a repeated resend and we ignore it
                 commandsReceivingWritePosition = 0;
                 Com::printFLN(Com::tSkip, actLineNumber);
                 Com::printFLN(Com::tOk);
             }
-#if NEW_COMMUNICATION            
 			else if (GCodeSource::activeSource->waitingForResend < 0)  // after a resend, we have to skip the garbage in buffers, no message for this
-#endif
             {
                 if(Printer::debugErrors())
                 {
-#if NEW_COMMUNICATION
 					Com::printF(Com::tExpectedLine, GCodeSource::activeSource->lastLineNumber + 1);
-#endif                    
                     Com::printFLN(Com::tGot, actLineNumber);
                 }
                 requestResend(); // Line missing, force resend
             }
             else
             {
-#if NEW_COMMUNICATION
 				--GCodeSource::activeSource->waitingForResend;
-#endif
                 commandsReceivingWritePosition = 0;
                 Com::printFLN(Com::tSkip, actLineNumber);
                 Com::printFLN(Com::tOk);
             }
             return;
         }
-#if NEW_COMMUNICATION
 		GCodeSource::activeSource->lastLineNumber = actLineNumber;
-#endif
     }
 	if (GCode::hasFatalError()) {
 		GCode::reportFatalError();
@@ -270,11 +254,9 @@ void GCode::checkAndPushCommand()
     Com::printFLN(Com::tOk);
 #endif // ACK_WITH_LINENUMBER
 
-#if NEW_COMMUNICATION
 	GCodeSource::activeSource->wasLastCommandReceivedAsBinary = sendAsBinary;
 	keepAlive(NotBusy);
 	GCodeSource::activeSource->waitingForResend = -1; // everything is ok.
-#endif    
 } // checkAndPushCommand
 
 
@@ -415,7 +397,6 @@ void GCode::readFromSerial()
     waitUntilAllCommandsAreParsed=false;
     millis_t time = HAL::timeInMilliseconds();
 
-#if NEW_COMMUNICATION
 	bool lastWTA = Com::writeToAll;
 	Com::writeToAll = false;
 	if (!GCodeSource::activeSource->dataAvailable())
@@ -547,9 +528,6 @@ void GCode::readFromSerial()
 		}
 	} // while
 	Com::writeToAll = lastWTA;
-
-	//Hier muss noch irgendwo stopprint hin??Printer::stopPrint();
-#endif
 } // readFromSerial
 
 
@@ -980,9 +958,7 @@ bool GCode::parseAscii(char *line,bool fromSerial)
             break;
         }// end switch
     }// end while
-#if NEW_COMMUNICATION
 	if (GCodeSource::activeSource->wasLastCommandReceivedAsBinary && !hasChecksum && fromSerial && !waitUntilAllCommandsAreParsed) {
-#endif       
         Com::printErrorFLN(PSTR("Checksum required when switching back to ASCII protocol."));
         return false;
     }
@@ -1123,31 +1099,23 @@ void GCode::outputGCommand()
     }
 } // outputGCommand
 
-#if NEW_COMMUNICATION
 SerialGCodeSource serial0Source(&RFSERIAL);
 #if BLUETOOTH_SERIAL > 0
 SerialGCodeSource serial1Source(&RFSERIAL2);
-#endif
 #endif
 
 #if BLUETOOTH_SERIAL > 0
 	fast8_t GCodeSource::numSources = 2; ///< Number of data sources available
 	fast8_t GCodeSource::numWriteSources = 2;
-	#if NEW_COMMUNICATION
-	  GCodeSource *GCodeSource::sources[MAX_DATA_SOURCES] = { &serial0Source,&serial1Source };
-	  GCodeSource *GCodeSource::writeableSources[MAX_DATA_SOURCES] = { &serial0Source,&serial1Source };
-	#endif
+	GCodeSource *GCodeSource::sources[MAX_DATA_SOURCES] = { &serial0Source,&serial1Source };
+	GCodeSource *GCodeSource::writeableSources[MAX_DATA_SOURCES] = { &serial0Source,&serial1Source };
 #else
 	fast8_t GCodeSource::numSources = 1; ///< Number of data sources available
 	fast8_t GCodeSource::numWriteSources = 1;
-	#if NEW_COMMUNICATION
-	  GCodeSource *GCodeSource::sources[MAX_DATA_SOURCES] = { &serial0Source };
-	  GCodeSource *GCodeSource::writeableSources[MAX_DATA_SOURCES] = { &serial0Source };
-	#endif
+	GCodeSource *GCodeSource::sources[MAX_DATA_SOURCES] = { &serial0Source };
+	GCodeSource *GCodeSource::writeableSources[MAX_DATA_SOURCES] = { &serial0Source };
 #endif    
-#if NEW_COMMUNICATION
 GCodeSource *GCodeSource::activeSource = &serial0Source;
-#endif
 
 void GCodeSource::registerSource(GCodeSource *newSource) {
 	for (fast8_t i = 0; i < numSources; i++) { // skip register if already contained
@@ -1202,7 +1170,6 @@ void GCodeSource::rotateSource() { ///< Move active to next source
 }
 
 void GCodeSource::writeToAll(uint8_t byte) { ///< Write to all listening sources 
-#if NEW_COMMUNICATION
 	if (Com::writeToAll) {
 		fast8_t i;
 		for (i = 0; i < numWriteSources; i++) {
@@ -1211,8 +1178,7 @@ void GCodeSource::writeToAll(uint8_t byte) { ///< Write to all listening sources
 	}
 	else {
 		activeSource->writeByte(byte);
-	}
-#endif       
+	}  
 }
 
 void GCodeSource::printAllFLN(FSTRINGPARAM(text)) {

@@ -384,16 +384,12 @@ public:
     static inline void print(int value) {print((int32_t)value);}
     static void print(const char *text);
     static inline void print(char c) {
-#if NEW_COMMUNICATION
 		GCodeSource::writeToAll(c);
-#endif
 	}
     static void printFloat(float number, uint8_t digits, bool komma_as_dot=false);
     static inline void println() {
-#if NEW_COMMUNICATION
 		GCodeSource::writeToAll('\r');
 		GCodeSource::writeToAll('\n');
-#endif
 	}
 	static bool writeToAll;
 }; // Com
