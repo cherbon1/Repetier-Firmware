@@ -350,6 +350,9 @@ void PrintLine::stopDirectMove( void ) //Funktion ist bereits zur ausführzeit v
 
 void PrintLine::calculateMove(float axisDistanceMM[], fast8_t drivingAxis, float feedrate)
 {
+	if (stepsRemaining == 0) { // need at least one step for bresenham
+		return;
+	}
     float   timeForMove = (float)(F_CPU) * distance / feedrate; // time is in ticks
 	// Small element limiter: This was not present in directmove but is not harmfull.
     if(linesCount < MOVE_CACHE_LOW && timeForMove < LOW_TICKS_PER_MOVE)   // Limit speed to keep cache full.
