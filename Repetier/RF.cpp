@@ -3632,7 +3632,8 @@ void showAbortScanReason(const void* scanName, char abortScanIdentifier) {
 	}
 	case SCAN_ABORT_REASON_SCAN_STEP_DELTA_OUT_OF_RANGE:
 	{
-		//Möglich, Fehler trat auf, als ich die Düse beim HBS ein Blatt Papier mitschleppen hab lassen.
+		// Fehler trat auf, als ich die Düse beim HBS ein Blatt Papier mitschleppen hab lassen.
+		// Marius1 hatte den Fehler durch ein sehr schräg eingebautes Bett.
 		showError(scanName, PSTR("Leftovers, snot"), PSTR("incrustation"));
 		break;
 	}
@@ -10529,237 +10530,6 @@ void queueTask( char task )
     return;
 } // queueTask
 
-extern void processButton( int nAction )
-{
-    switch( nAction )
-    {
-        case UI_ACTION_RF_HEAT_BED_UP:
-        {
-            // show that we are active
-            previousMillisCmd = HAL::timeInMilliseconds(); //prevent inactive shutdown of steppers/temps
-			
-            //DO NOT MOVE Z: ALTER Z-OFFSET
-            if( uid.menuLevel == 0 && uid.menuPos[0] == 1 ){ //wenn im Mod-Menü für Z-Offset/Matrix Sense-Offset/Limiter, dann anders!
-                beep(1,4);
-                long nTemp = Printer::ZOffset; //um --> mm*1000
-                nTemp -= Z_OFFSET_BUTTON_STEPS;
-                //beim Unterschreiten von 0, soll 0 erreicht werden, sodass man nicht mit krummen Zahlen rumhantieren muss.
-                if(nTemp < 0 && nTemp > -Z_OFFSET_BUTTON_STEPS) nTemp = 0;
-        #if FEATURE_SENSIBLE_PRESSURE
-                /* IDEE: Wenn automatisches Offset und wir korrigieren dagegen, soll erst dieses abgebaut werden */
-                if(g_nSensiblePressureOffset > 0){ //aus: dann 0, an: dann > 0
-                    //automatik hat das bett runtergefahren, wir fahren es mit negativem offset hoch.
-                    //blöd: damit ist die automatik evtl. weiter am limit und kann nachfolgend nichts mehr tun.
-                    //also erst ausgleichen! dann verändern.
-                    if(g_nSensiblePressureOffset > Z_OFFSET_BUTTON_STEPS){
-                        nTemp += Z_OFFSET_BUTTON_STEPS;
-                        g_nSensiblePressureOffset -= Z_OFFSET_BUTTON_STEPS;
-                    }else{
-                        nTemp += g_nSensiblePressureOffset;
-                        g_nSensiblePressureOffset = 0;
-                    }
-                }
-        #endif //FEATURE_SENSIBLE_PRESSURE
-                if( nTemp < -(HEAT_BED_Z_COMPENSATION_MAX_MM * 1000) ) nTemp = -(HEAT_BED_Z_COMPENSATION_MAX_MM * 1000);
-                if( nTemp > (HEAT_BED_Z_COMPENSATION_MAX_MM * 1000) ) nTemp = (HEAT_BED_Z_COMPENSATION_MAX_MM * 1000);
-                Printer::ZOffset = nTemp;
-        #if FEATURE_SENSIBLE_PRESSURE
-                g_staticZSteps = long(( (Printer::ZOffset+g_nSensiblePressureOffset) * Printer::axisStepsPerMM[Z_AXIS] ) / 1000);
-        #else
-                g_staticZSteps = long(( Printer::ZOffset * Printer::axisStepsPerMM[Z_AXIS] ) / 1000);
-        #endif //FEATURE_SENSIBLE_PRESSURE
-                if( HAL::eprGetInt32( EPR_RF_Z_OFFSET ) != Printer::ZOffset )
-                {
-                    HAL::eprSetInt32( EPR_RF_Z_OFFSET, Printer::ZOffset );
-                    EEPROM::updateChecksum();
-                }
-            } //ELSE DO MOVE Z:
-            else
-            {
-                nextPreviousZAction( -1 );
-            }
-            break;
-        }
-        case UI_ACTION_RF_HEAT_BED_DOWN:
-        {
-            // show that we are active
-            previousMillisCmd = HAL::timeInMilliseconds(); //prevent inactive shutdown of steppers/temps
-				
-            //DO NOT MOVE Z: ALTER Z-OFFSET
-            if( uid.menuLevel == 0 && uid.menuPos[0] == 1 ){ //wenn im Mod-Menü für Z-Offset/Matrix Z-Offset/Matrix Sense-Offset/Limiter, dann anders!
-                beep(1,4);
-
-                long nTemp = Printer::ZOffset; //um --> mm*1000
-                nTemp += Z_OFFSET_BUTTON_STEPS;
-                //beim Überschreiten von 0, soll 0 erreicht werden, sodass man nicht mit krummen Zahlen rumhantieren muss.
-                if(nTemp < Z_OFFSET_BUTTON_STEPS && nTemp > 0) nTemp = 0;
-                if( nTemp < -(HEAT_BED_Z_COMPENSATION_MAX_MM * 1000) ) nTemp = -(HEAT_BED_Z_COMPENSATION_MAX_MM * 1000);
-                if( nTemp > (HEAT_BED_Z_COMPENSATION_MAX_MM * 1000) ) nTemp = (HEAT_BED_Z_COMPENSATION_MAX_MM * 1000);
-                Printer::ZOffset = nTemp;
-        #if FEATURE_SENSIBLE_PRESSURE
-                g_staticZSteps = long(( (Printer::ZOffset+g_nSensiblePressureOffset) * Printer::axisStepsPerMM[Z_AXIS] ) / 1000);
-        #else
-                g_staticZSteps = long(( Printer::ZOffset * Printer::axisStepsPerMM[Z_AXIS] ) / 1000);
-        #endif //FEATURE_SENSIBLE_PRESSURE
-                if( HAL::eprGetInt32( EPR_RF_Z_OFFSET ) != Printer::ZOffset )
-                {
-                    HAL::eprSetInt32( EPR_RF_Z_OFFSET, Printer::ZOffset );
-                    EEPROM::updateChecksum();
-                }
-            } //ELSE DO MOVE Z:
-            else
-            {
-                nextPreviousZAction( 1 );
-            }
-            break;
-        }
-        case UI_ACTION_RF_EXTRUDER_OUTPUT:
-        {
-			// show that we are active
-			previousMillisCmd = HAL::timeInMilliseconds(); //prevent inactive shutdown of steppers/temps
-
-#if FEATURE_MILLING_MODE
-			if (Printer::operatingMode == OPERATING_MODE_MILL)
-			{
-				if (Printer::feedrate < RMath::min(Printer::maxFeedrate[X_AXIS], Printer::maxFeedrate[Y_AXIS]) - 1) Printer::feedrate++;
-			}
-			else
-#endif // FEATURE_MILLING_MODE
-			{
-				if (uid.menuLevel == 0 && uid.menuPos[0] == 1) { //wenn im Mod-Menü für Z-Offset/Matrix Sense-Offset/Limiter, dann anders!
-					//we are in the Mod menu
-					//so dont retract, change the speed of the print to a lower speed instead of retracting:
-					//limits handled by change-function!
-					Commands::changeFeedrateMultiply(Printer::feedrateMultiply + 1);
-					beep(1, 4);
-				}
-				else {
-					Printer::offsetRelativeStepsCoordinates(0, 0, 0, int32_t(g_nManualSteps[E_AXIS]));
-
-					//In case of double pause and in case we tempered with the retract, we dont want to drive the E-Axis back to some old location - that much likely causes emergency block.
-					g_nContinueSteps[E_AXIS] = 0;
-				}
-			}
-            break;
-        }
-        case UI_ACTION_RF_EXTRUDER_RETRACT:
-        {
-			// show that we are active
-			previousMillisCmd = HAL::timeInMilliseconds(); //prevent inactive shutdown of steppers/temps
-
-#if FEATURE_MILLING_MODE
-			if (Printer::operatingMode == OPERATING_MODE_MILL)
-			{
-				if (Printer::feedrate > 1) Printer::feedrate--;
-			}
-			else
-#endif // FEATURE_MILLING_MODE
-			{
-				if (uid.menuLevel == 0 && uid.menuPos[0] == 1) { //wenn im Mod-Menü für Z-Offset/Matrix Sense-Offset/Limiter, dann anders!
-					//we are in the Mod menu
-					//so dont retract, change the speed of the print to a lower speed instead of retracting:
-					//limits handled by change-function!
-					Commands::changeFeedrateMultiply(Printer::feedrateMultiply - 1);
-					beep(1, 4);
-				}
-				else {
-					Printer::offsetRelativeStepsCoordinates(0, 0, 0, -1 * int32_t(g_nManualSteps[E_AXIS]));
-
-					//In case of double pause and in case we tempered with the retract, we dont want to drive the E-Axis back to some old location - that much likely causes emergency block.
-					g_nContinueSteps[E_AXIS] = 0;
-				}
-			}
-            break;
-        }
-        case UI_ACTION_RF_PAUSE:
-        {
-            pausePrint();
-            break;
-        }
-        case UI_ACTION_RF_CONTINUE:
-        {
-            continuePrint();
-            break;
-        }
-
-#if FEATURE_HEAT_BED_Z_COMPENSATION
-        case UI_ACTION_RF_SCAN_HEAT_BED:
-        {
-            g_nHeatBedScanMode = 0;
-            startHeatBedScan();
-            //gehe zurück und zeige dem User was passiert.
-            uid.exitmenu();
-            break;
-        }
-        case UI_ACTION_RF_SCAN_HEAT_BED_PLA:
-        {
-            g_nHeatBedScanMode = HEAT_BED_SCAN_MODE_PLA;
-            startHeatBedScan();
-            //gehe zurück und zeige dem User was passiert.
-            uid.exitmenu();
-            break;
-        }
-        case UI_ACTION_RF_SCAN_HEAT_BED_ABS:
-        {
-            g_nHeatBedScanMode = HEAT_BED_SCAN_MODE_ABS;
-            startHeatBedScan();
-            //gehe zurück und zeige dem User was passiert.
-            uid.exitmenu();
-            break;
-        }
-
-#if FEATURE_WORK_PART_Z_COMPENSATION
-        case UI_ACTION_RF_SCAN_WORK_PART:
-        {
-            startWorkPartScan( 0 );
-            break;
-        }
-        case UI_ACTION_RF_SET_SCAN_XY_START:
-        {
-            setScanXYStart();
-            break;
-        }
-        case UI_ACTION_RF_SET_SCAN_XY_END:
-        {
-            setScanXYEnd();
-            break;
-        }
-#endif // FEATURE_WORK_PART_Z_COMPENSATION
-#endif // FEATURE_HEAT_BED_Z_COMPENSATION
-
-#if FEATURE_ALIGN_EXTRUDERS
-        case UI_ACTION_RF_ALIGN_EXTRUDERS:
-        {
-            startAlignExtruders();
-            break;
-        }
-#endif // FEATURE_ALIGN_EXTRUDERS
-
-        case UI_ACTION_RF_OUTPUT_OBJECT:
-        {
-            outputObject(); //als UI_ACTION_RF_OUTPUT_OBJECT
-            break;
-        }
-
-#if FEATURE_FIND_Z_ORIGIN
-        case UI_ACTION_RF_FIND_Z_ORIGIN:
-        {
-            startFindZOrigin();
-            break;
-        }
-#endif // FEATURE_FIND_Z_ORIGIN
-
-#if FEATURE_PARK
-        case UI_ACTION_RF_PARK:
-        {
-            parkPrinter();
-            break;
-        }
-#endif // FEATURE_PARK
-    }
-    return;
-
-} // processButton
 
 bool isAnyScanRunning() {
 #if FEATURE_ALIGN_EXTRUDERS
@@ -10779,7 +10549,7 @@ bool isAnyScanRunning() {
 	return false;
 }
 
-void nextPreviousXAction( int8_t increment )
+void moveXAction( int8_t direction )
 {
 	bool moveKosys = Printer::moveKosys;
 
@@ -10793,14 +10563,14 @@ void nextPreviousXAction( int8_t increment )
         return;
     }
 
-    if (increment < 0 && Printer::isXMinEndstopHit())
+    if (direction < 0 && Printer::isXMinEndstopHit())
     {
         // we shall move to the left but the x-min-endstop is hit already, so we do nothing
         showInformation( (void*)ui_text_x_axis, (void*)ui_text_min_reached );
         return;
     }
 
-    if (increment > 0 && Printer::isXMaxEndstopHit())
+    if (direction > 0 && Printer::isXMaxEndstopHit())
     {
         // we shall move to the right but the end of the x-axis has been reached already, so we do nothing
         showInformation( (void*)ui_text_x_axis, (void*)ui_text_max_reached );
@@ -10814,9 +10584,9 @@ void nextPreviousXAction( int8_t increment )
     {
         case MOVE_MODE_SINGLE_STEPS:
         {
-			int32_t steps = int32_t(g_nManualSteps[X_AXIS]) * increment;
+			int32_t steps = int32_t(g_nManualSteps[X_AXIS]) * direction;
 
-			if (increment < 0 && Printer::currentXSteps + steps < 0 && Printer::isAxisHomed(X_AXIS))
+			if (direction < 0 && Printer::currentXSteps + steps < 0 && Printer::isAxisHomed(X_AXIS))
 			{
 				// If we are very close to the homed known Y-Endstop go to 0-Coordinate
 				steps = -Printer::currentXSteps;
@@ -10846,7 +10616,7 @@ void nextPreviousXAction( int8_t increment )
 			if (Printer::moveMode[X_AXIS] == MOVE_MODE_10_MM) distanceMM = 10;
 			if (Printer::moveMode[X_AXIS] == MOVE_MODE_50_MM) distanceMM = 50;
 
-			int32_t plannedDestination = Printer::getPlannedDirectAxisSteps(X_AXIS) + (int32_t)(increment * distanceMM * Printer::axisStepsPerMM[X_AXIS]);
+			int32_t plannedDestination = Printer::getPlannedDirectAxisSteps(X_AXIS) + (int32_t)(direction * distanceMM * Printer::axisStepsPerMM[X_AXIS]);
 			if (plannedDestination > Printer::maxSoftEndstopSteps[X_AXIS]) {
 				showInformation((void*)ui_text_x_axis, (void*)ui_text_max_reached);
 				return;
@@ -10858,12 +10628,12 @@ void nextPreviousXAction( int8_t increment )
 				if (Printer::movePositionFeedrateChoice == FEEDRATE_GCODE) {
 					feedrate = Printer::feedrate;					
 				}
-				Printer::queueRelativeMMCoordinates(distanceMM * increment, 0, 0, 0, feedrate, true);
+				Printer::queueRelativeMMCoordinates(distanceMM * direction, 0, 0, 0, feedrate, true);
 				Commands::printCurrentPosition();
 			}
 			else /*if (Printer::moveKosys == KOSYS_DIRECTOFFSET) */
 			{
-				Printer::offsetRelativeStepsCoordinates(distanceMM * Printer::axisStepsPerMM[Y_AXIS] * increment, 0, 0, 0, TASK_MOVE_POSITION_MANUAL);
+				Printer::offsetRelativeStepsCoordinates(distanceMM * Printer::axisStepsPerMM[Y_AXIS] * direction, 0, 0, 0, TASK_MOVE_POSITION_MANUAL);
 			}
 
             break;
@@ -10878,17 +10648,17 @@ void nextPreviousXAction( int8_t increment )
 			
 			int32_t steps;
 			//errate homed möglichst den erzwungenen stop-punkt wegen dem bonus der decelleration
-            if( increment < 0 ) steps = (Printer::isAxisHomed(X_AXIS) ? -Printer::currentXSteps : -Printer::maxSoftEndstopSteps[X_AXIS]);
+            if( direction < 0 ) steps = (Printer::isAxisHomed(X_AXIS) ? -Printer::currentXSteps : -Printer::maxSoftEndstopSteps[X_AXIS]);
             else                steps = (Printer::isAxisHomed(X_AXIS) ? Printer::maxSoftEndstopSteps[X_AXIS] - Printer::currentXSteps : Printer::maxSoftEndstopSteps[X_AXIS]);
 
 			Printer::offsetRelativeStepsCoordinates(steps, 0, 0, 0, TASK_MOVE_FROM_BUTTON);
             break;
         }	
     }
-} // nextPreviousXAction
+} // moveXAction
 
 
-void nextPreviousYAction( int8_t increment )
+void moveYAction( int8_t direction )
 {
 	bool moveKosys = Printer::moveKosys;
 
@@ -10902,14 +10672,14 @@ void nextPreviousYAction( int8_t increment )
         return;
     }
 
-    if (increment < 0 && Printer::isYMinEndstopHit())
+    if (direction < 0 && Printer::isYMinEndstopHit())
     {
         // we shall move to the back but the y-min-endstop is hit already, so we do nothing
         showInformation( (void*)ui_text_y_axis, (void*)ui_text_min_reached );
         return;
     }
 
-    if (increment > 0 && Printer::isYMaxEndstopHit())
+    if (direction > 0 && Printer::isYMaxEndstopHit())
     {
         // we shall move to the front but the end of the y-axis has been reached already, so we do nothing
         showInformation( (void*)ui_text_y_axis, (void*)ui_text_max_reached );
@@ -10923,9 +10693,9 @@ void nextPreviousYAction( int8_t increment )
     {
         case MOVE_MODE_SINGLE_STEPS:
         {
-			int32_t steps = int32_t(g_nManualSteps[Y_AXIS]) * increment;
+			int32_t steps = int32_t(g_nManualSteps[Y_AXIS]) * direction;
 			
-            if (increment < 0 && Printer::currentYSteps + steps < 0 && Printer::isAxisHomed(Y_AXIS))
+            if (direction < 0 && Printer::currentYSteps + steps < 0 && Printer::isAxisHomed(Y_AXIS))
             {
 				// If we are very close to the homed known Y-Endstop go to 0-Coordinate
 				steps = -Printer::currentYSteps;
@@ -10955,7 +10725,7 @@ void nextPreviousYAction( int8_t increment )
 			if (Printer::moveMode[Y_AXIS] == MOVE_MODE_10_MM) distanceMM = 10;
 			if (Printer::moveMode[Y_AXIS] == MOVE_MODE_50_MM) distanceMM = 50;
 
-            int32_t plannedDestination = Printer::getPlannedDirectAxisSteps(Y_AXIS) + (int32_t)(increment * distanceMM * Printer::axisStepsPerMM[Y_AXIS]);
+            int32_t plannedDestination = Printer::getPlannedDirectAxisSteps(Y_AXIS) + (int32_t)(direction * distanceMM * Printer::axisStepsPerMM[Y_AXIS]);
 			if (plannedDestination > Printer::maxSoftEndstopSteps[Y_AXIS]) {
 				showInformation((void*)ui_text_y_axis, (void*)ui_text_max_reached);
 				return;
@@ -10967,12 +10737,12 @@ void nextPreviousYAction( int8_t increment )
 				if (Printer::movePositionFeedrateChoice == FEEDRATE_GCODE) {
 					feedrate = Printer::feedrate;
 				}
-				Printer::queueRelativeMMCoordinates(0, distanceMM * increment, 0, 0, feedrate, true);
+				Printer::queueRelativeMMCoordinates(0, distanceMM * direction, 0, 0, feedrate, true);
 				Commands::printCurrentPosition();
 			}
 			else /*if (Printer::moveKosys == KOSYS_DIRECTOFFSET) */
 			{
-				Printer::offsetRelativeStepsCoordinates(0, distanceMM * Printer::axisStepsPerMM[Y_AXIS] * increment, 0, 0, TASK_MOVE_POSITION_MANUAL);
+				Printer::offsetRelativeStepsCoordinates(0, distanceMM * Printer::axisStepsPerMM[Y_AXIS] * direction, 0, 0, TASK_MOVE_POSITION_MANUAL);
 			}
 
             break;
@@ -10987,17 +10757,17 @@ void nextPreviousYAction( int8_t increment )
 
 			int32_t steps;
 			//errate homed möglichst den erzwungenen stop-punkt wegen dem bonus der decelleration
-            if( increment < 0 ) steps = (Printer::isAxisHomed(Y_AXIS) ? -Printer::currentYSteps : -Printer::maxSoftEndstopSteps[Y_AXIS]);
+            if( direction < 0 ) steps = (Printer::isAxisHomed(Y_AXIS) ? -Printer::currentYSteps : -Printer::maxSoftEndstopSteps[Y_AXIS]);
             else                steps = (Printer::isAxisHomed(Y_AXIS) ? Printer::maxSoftEndstopSteps[Y_AXIS] - Printer::currentYSteps : Printer::maxSoftEndstopSteps[Y_AXIS]);
 
 			Printer::offsetRelativeStepsCoordinates(0, steps, 0, 0, TASK_MOVE_FROM_BUTTON);
             break;
         }
     }
-} // nextPreviousYAction
+} // moveYAction
 
 
-void nextPreviousZAction( int8_t increment )
+void moveZAction( int8_t direction )
 {
 	if (isAnyScanRunning())
 	{
@@ -11044,14 +10814,14 @@ void nextPreviousZAction( int8_t increment )
     }
 
     //Limits für die Bewegung in Z
-	if (increment > 0 && Printer::isZMaxEndstopHit())
+	if (direction > 0 && Printer::isZMaxEndstopHit())
 	{
 		// we shall move to the front but the end of the y-axis has been reached already, so we do nothing
 		showInformation((void*)ui_text_z_axis, (void*)ui_text_max_reached);
 		return;
 	}
 
-    if (increment < 0 && Printer::isZMinEndstopHit())
+    if (direction < 0 && Printer::isZMinEndstopHit())
 	{
 		if (!Printer::isAxisHomed(Z_AXIS))
 		{
@@ -11068,16 +10838,16 @@ void nextPreviousZAction( int8_t increment )
     {
         case MOVE_MODE_SINGLE_STEPS:
         {
-			int32_t steps = int32_t(g_nManualSteps[Z_AXIS]) * increment;
+			int32_t steps = int32_t(g_nManualSteps[Z_AXIS]) * direction;
 
-            if (increment < 0 && Printer::isZMinEndstopHit() && Printer::currentZSteps + steps < -1 * int32_t(Printer::maxZOverrideSteps))
+            if (direction < 0 && Printer::isZMinEndstopHit() && Printer::currentZSteps + steps < -1 * int32_t(Printer::maxZOverrideSteps))
             {
                 // do not allow to drive the bed into the extruder
                 showInformation((void*)ui_text_z_axis, (void*)ui_text_min_reached);
 				return;
             }
 
-			if (g_pauseMode && increment < 0) {
+			if (g_pauseMode && direction < 0) {
 				if (g_nContinueSteps[Z_AXIS] >= 0) {
 					return;
 				}
@@ -11110,14 +10880,14 @@ void nextPreviousZAction( int8_t increment )
 
 			// Normale Bewegung möglich:
 			if (!Printer::isAxisHomed(Z_AXIS)
-				|| increment > 0
+				|| direction > 0
 				|| Printer::currentZSteps * Printer::axisMMPerSteps[Z_AXIS] >= (float)distanceMM)
 			{
 //#if MENU_POSITION_ALL_DIRECT
-				Printer::offsetRelativeStepsCoordinates(0, 0, distanceMM * Printer::axisStepsPerMM[Z_AXIS] * increment, 0, TASK_MOVE_POSITION_MANUAL);
+				Printer::offsetRelativeStepsCoordinates(0, 0, distanceMM * Printer::axisStepsPerMM[Z_AXIS] * direction, 0, TASK_MOVE_POSITION_MANUAL);
 //#else 
 				// if enabled fix feedrate
-//				Printer::queueRelativeMMCoordinates(0, 0, distanceMM * increment, 0, Printer::homingFeedrate[Z_AXIS], true);
+//				Printer::queueRelativeMMCoordinates(0, 0, distanceMM * direction, 0, Printer::homingFeedrate[Z_AXIS], true);
 //#endif
 
 				return;
@@ -11128,9 +10898,9 @@ void nextPreviousZAction( int8_t increment )
             if (Printer::operatingMode != OPERATING_MODE_PRINT)
 			{
 //#if MENU_POSITION_ALL_DIRECT
-				Printer::offsetRelativeStepsCoordinates(0, 0, distanceMM * Printer::axisStepsPerMM[Z_AXIS] * increment, 0, TASK_MOVE_POSITION_MANUAL);
+				Printer::offsetRelativeStepsCoordinates(0, 0, distanceMM * Printer::axisStepsPerMM[Z_AXIS] * direction, 0, TASK_MOVE_POSITION_MANUAL);
 //#else 
-//				Printer::queueRelativeMMCoordinates(0, 0, distanceMM * increment, 0, Printer::feedrate, true);
+//				Printer::queueRelativeMMCoordinates(0, 0, distanceMM * direction, 0, Printer::feedrate, true);
 //#endif
 
 				return;
@@ -11170,10 +10940,10 @@ void nextPreviousZAction( int8_t increment )
 
 			int32_t steps;
 			//errate homed möglichst den erzwungenen stop-punkt wegen dem bonus der decelleration
-			if (increment < 0) steps = (Printer::isAxisHomed(Z_AXIS) ? -Printer::currentZSteps : -Printer::maxSoftEndstopSteps[Z_AXIS]);
+			if (direction < 0) steps = (Printer::isAxisHomed(Z_AXIS) ? -Printer::currentZSteps : -Printer::maxSoftEndstopSteps[Z_AXIS]);
 			else               steps = (Printer::isAxisHomed(Z_AXIS) ? Printer::maxSoftEndstopSteps[Z_AXIS] - Printer::currentZSteps : Printer::maxSoftEndstopSteps[Z_AXIS]);
 			
-			if (g_pauseMode && increment < 0) {
+			if (g_pauseMode && direction < 0) {
 				// z limit at part pause position
 				if (g_nContinueSteps[Z_AXIS] >= 0) {
 					return;
@@ -11188,7 +10958,7 @@ void nextPreviousZAction( int8_t increment )
             break;
         }
     }
-} // nextPreviousZAction
+} // moveZAction
 
 
 #if STEPPER_CURRENT_CONTROL==CURRENT_CONTROL_DRV8711

@@ -14,7 +14,9 @@ TODO:
 # pause @RF1000: test if z max-endstop is respected while moving in dual-endstop circular setting
 # maybe implement a activatable serial3 for direct connection of a raspberry inside of the printer
 
-Rightnow: If we pull the usb cable or pull the sdcard the printer will just stop. After 600 seconds the steppers will be shut down but temps stay.
+V 01.43.86.Mod (2019-03-10)
+- Refactoring to understand and cleanup action-"switch case" definitions 
+- Replaced some pgm_read_word_near (which had definition to pgm_read_word) by pgm_read_word to prevent error markers showing up
 
 V 01.43.85.Mod (2019-02-27)
 - Make any sethomed impossible if we are in g_uBlockCommands!=0 state. So Aborting a print while homing cannot shift axis.
