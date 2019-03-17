@@ -22,9 +22,7 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
  */
-#include "../../../Repetier.h"
 #include "FatFile.h"
-#if SDSUPPORT
 //------------------------------------------------------------------------------
 //
 uint8_t FatFile::lfnChecksum(uint8_t* name) {
@@ -128,7 +126,7 @@ bool FatFile::getName(char* name, size_t size) {
     DBG_FAIL_MACRO;
     goto fail;
   }
-  if (!isLFN() /*|| m_lfnOrd > MAX_VFAT_ENTRIES*/) {
+  if (!isLFN()) {
     return getSFN(name);
   }
   if (!dirFile.openCluster(this)) {
@@ -403,7 +401,7 @@ found:
   goto open;
 
 create:
-  // don't create unless O_CREAT and write mode
+  // don't create unless O_CREAT and write mode.
   if (!(oflag & O_CREAT) || !isWriteMode(oflag)) {
     DBG_FAIL_MACRO;
     goto fail;
@@ -502,34 +500,33 @@ fail:
   return false;
 }
 //------------------------------------------------------------------------------
-void FatFile::printName() {
+size_t FatFile::printName(print_t* pr) {
   FatFile dirFile;
   uint16_t u;
   size_t n = 0;
   ldir_t* ldir;
 
   if (!isLFN()) {
-    printSFN();
-    return;
+    return printSFN(pr);
   }
   if (!dirFile.openCluster(this)) {
     DBG_FAIL_MACRO;
-    return;
+    goto fail;
   }
   for (uint8_t ord = 1; ord <= m_lfnOrd; ord++) {
     if (!dirFile.seekSet(32UL*(m_dirIndex - ord))) {
       DBG_FAIL_MACRO;
-      return;
+      goto fail;
     }
     ldir = reinterpret_cast<ldir_t*>(dirFile.readDirCache());
     if (!ldir) {
       DBG_FAIL_MACRO;
-      return;
+      goto fail;
     }
     if (ldir->attr != DIR_ATT_LONG_NAME ||
         ord != (ldir->ord & 0X1F)) {
       DBG_FAIL_MACRO;
-      return;
+      goto fail;
     }
     for (uint8_t i = 0; i < 13; i++) {
       u = lfnGetChar(ldir, i);
@@ -540,15 +537,18 @@ void FatFile::printName() {
       if (u > 0X7E) {
         u = '?';
       }
-      Com::print(static_cast<char>(u));
+      pr->write(static_cast<char>(u));
       n++;
     }
     if (ldir->ord & LDIR_ORD_LAST_LONG_ENTRY) {
-      return;
+      return n;
     }
   }
   // Fall into fail;
   DBG_FAIL_MACRO;
+
+fail:
+  return 0;
 }
 //------------------------------------------------------------------------------
 bool FatFile::remove() {
@@ -686,4 +686,3 @@ done:
   return true;
 }
 #endif  // #if USE_LONG_FILE_NAMES
-#endif

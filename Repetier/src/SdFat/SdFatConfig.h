@@ -71,32 +71,33 @@
 #define ENABLE_EXTENDED_TRANSFER_CLASS 0
 //------------------------------------------------------------------------------
 /**
- * If the symbol USE_STANDARD_SPI_LIBRARY is nonzero, the classes SdFat and
- * SdFatEX use the standard Arduino SPI.h library. If USE_STANDARD_SPI_LIBRARY
- * is zero, an optimized custom SPI driver is used if it exists.
- */
-#define USE_STANDARD_SPI_LIBRARY 0
-//------------------------------------------------------------------------------
-/**
  * If the symbol USE_STANDARD_SPI_LIBRARY is zero, an optimized custom SPI
  * driver is used if it exists.  If the symbol USE_STANDARD_SPI_LIBRARY is
  * one, the standard Arduino SPI.h library is used with SPI. If the symbol
  * USE_STANDARD_SPI_LIBRARY is two, the SPI port can be selected with the
  * constructors SdFat(SPIClass* spiPort) and SdFatEX(SPIClass* spiPort).
  */
+#define USE_STANDARD_SPI_LIBRARY 0
+//------------------------------------------------------------------------------
+/**
+ * If the symbol ENABLE_SOFTWARE_SPI_CLASS is nonzero, the class SdFatSoftSpi
+ * will be defined. If ENABLE_EXTENDED_TRANSFER_CLASS is also nonzero,
+ * the class SdFatSoftSpiEX will be defined.
+ */
 #define ENABLE_SOFTWARE_SPI_CLASS 0
- /** If the symbol USE_FCNTL_H is nonzero, open flags for access modes O_RDONLY,
+//------------------------------------------------------------------------------
+/** If the symbol USE_FCNTL_H is nonzero, open flags for access modes O_RDONLY,
  * O_WRONLY, O_RDWR and the open modifiers O_APPEND, O_CREAT, O_EXCL, O_SYNC
  * will be defined by including the system file fcntl.h.
  */
 #if defined(__AVR__)
- // AVR fcntl.h does not define open flags.
+// AVR fcntl.h does not define open flags.
 #define USE_FCNTL_H 0
 #elif defined(PLATFORM_ID)
- // Particle boards - use fcntl.h.
+// Particle boards - use fcntl.h.
 #define USE_FCNTL_H 1
 #elif defined(__arm__)
- // ARM gcc defines open flags.
+// ARM gcc defines open flags.
 #define USE_FCNTL_H 1
 #else  // defined(__AVR__)
 #define USE_FCNTL_H 0
@@ -147,7 +148,7 @@
  * Set FAT12_SUPPORT nonzero to enable use if FAT12 volumes.
  * FAT12 has not been well tested and requires additional flash.
  */
-#define FAT12_SUPPORT 0 //Nibbels: Made some workaround to get my small SDs working. They are not formated with FAT12, but FAT16 even if they have sectors count (Windows 10?).
+#define FAT12_SUPPORT 0
 //------------------------------------------------------------------------------
 /**
  * Set DESTRUCTOR_CLOSES_FILE nonzero to close a file in its destructor.

@@ -24,11 +24,11 @@
  */
 #ifndef FatApiConstants_h
 #define FatApiConstants_h
-#include "../SdFatConfig.h"
+#include "SdFatConfig.h"
 
 #if USE_FCNTL_H
 #include <fcntl.h>
- /* values for GNU Arm Embedded Toolchain.
+/* values for GNU Arm Embedded Toolchain.
  * O_RDONLY:   0x0
  * O_WRONLY:   0x1
  * O_RDWR:     0x2
@@ -40,7 +40,7 @@
  * O_SYNC:     0x2000
  * O_NONBLOCK: 0x4000
  */
- /** Use O_NONBLOCK for open at EOF */
+/** Use O_NONBLOCK for open at EOF */
 #define O_AT_END O_NONBLOCK  ///< Open at EOF.
 typedef int oflag_t;
 #else  // USE_FCNTL_H
@@ -62,26 +62,26 @@ typedef uint8_t oflag_t;
 #define O_WRITE   O_WRONLY
 
 inline bool isWriteMode(oflag_t oflag) {
-	oflag &= O_ACCMODE;
-	return oflag == O_WRONLY || oflag == O_RDWR;
+  oflag &= O_ACCMODE;
+  return oflag == O_WRONLY || oflag == O_RDWR;
 }
 
 // FatFile class static and const definitions
 // flags for ls()
 /** ls() flag for list all files including hidden. */
-const uint8_t LS_A = 1;
+#define LS_A 1
 /** ls() flag to print modify. date */
-const uint8_t LS_DATE = 2;
+#define LS_DATE 2
 /** ls() flag to print file size. */
-const uint8_t LS_SIZE = 4;
+#define LS_SIZE 4
 /** ls() flag for recursive list of subdirectories */
-const uint8_t LS_R = 8;
+#define LS_R 8
 
 // flags for timestamp
 /** set the file's last access date */
-const uint8_t T_ACCESS = 1;
+#define T_ACCESS 1
 /** set the file's creation date and time */
-const uint8_t T_CREATE = 2;
+#define T_CREATE 2
 /** Set the file's write date and time */
-const uint8_t T_WRITE = 4;
+#define T_WRITE 4
 #endif  // FatApiConstants_h

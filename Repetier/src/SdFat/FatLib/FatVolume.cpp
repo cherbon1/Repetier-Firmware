@@ -22,8 +22,6 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
  */
- 
-#include "../../../Repetier.h"
 #include <string.h>
 #include "FatVolume.h"
 //------------------------------------------------------------------------------
@@ -76,31 +74,30 @@ bool FatVolume::allocateCluster(uint32_t current, uint32_t* next) {
   uint32_t find;
   bool setStart;
   if (m_allocSearchStart < current) {
-	  // Try to keep file contiguous. Start just after current cluster.
-	  find = current;
-	  setStart = false;
-  }
-  else {
-	  find = m_allocSearchStart;
-	  setStart = true;
+    // Try to keep file contiguous. Start just after current cluster.
+    find = current;
+    setStart = false;
+  } else {
+    find = m_allocSearchStart;
+    setStart = true;
   }
   while (1) {
     find++;
     if (find > m_lastCluster) {
-		if (setStart) {
-			// Can't find space, checked all clusters.
-			DBG_FAIL_MACRO;
-			goto fail;
-		}
-		find = m_allocSearchStart;
-		setStart = true;
-		continue;
+      if (setStart) {
+        // Can't find space, checked all clusters.
+        DBG_FAIL_MACRO;
+        goto fail;
+      }
+      find = m_allocSearchStart;
+      setStart = true;
+      continue;
     }
-	if (find == current) {
-		// Can't find space, already searched clusters after current.
-		DBG_FAIL_MACRO;
-		goto fail;
-	}
+    if (find == current) {
+      // Can't find space, already searched clusters after current.
+      DBG_FAIL_MACRO;
+      goto fail;
+    }
     uint32_t f;
     int8_t fg = fatGet(find, &f);
     if (fg < 0) {
@@ -114,7 +111,7 @@ bool FatVolume::allocateCluster(uint32_t current, uint32_t* next) {
   if (setStart) {
     m_allocSearchStart = find;
   }
-  // Mark end of chain
+  // Mark end of chain.
   if (!fatPutEOC(find)) {
     DBG_FAIL_MACRO;
     goto fail;
@@ -135,22 +132,29 @@ fail:
 }
 //------------------------------------------------------------------------------
 // find a contiguous group of clusters
-bool FatVolume::allocContiguous(uint32_t count, uint32_t* firstCluster) {
+bool FatVolume::allocContiguous(uint32_t count,
+                                uint32_t* firstCluster, uint32_t startCluster) {
   // flag to save place to start next search
-  bool setStart = true;
+  bool setStart;
   // start of group
   uint32_t bgnCluster;
   // end of group
   uint32_t endCluster;
-  // Start at cluster after last allocated cluster.
-  endCluster = bgnCluster = m_allocSearchStart + 1;
-
+  if (startCluster != 0) {
+    bgnCluster = startCluster;
+    setStart = false;
+  } else {
+    // Start at cluster after last allocated cluster.
+    bgnCluster = m_allocSearchStart + 1;
+    setStart = true;
+  }
+  endCluster = bgnCluster;
   // search the FAT for free clusters
   while (1) {
     if (endCluster > m_lastCluster) {
-		// Can't find space.
-		DBG_FAIL_MACRO;
-		goto fail;
+      // Can't find space.
+      DBG_FAIL_MACRO;
+      goto fail;
     }
     uint32_t f;
     int8_t fg = fatGet(endCluster, &f);
@@ -159,16 +163,20 @@ bool FatVolume::allocContiguous(uint32_t count, uint32_t* firstCluster) {
       goto fail;
     }
     if (f || fg == 0) {
+      if (startCluster) {
+        DBG_FAIL_MACRO;
+        goto fail;
+      }
       // don't update search start if unallocated clusters before endCluster.
       if (bgnCluster != endCluster) {
         setStart = false;
       }
-	  // cluster in use try next cluster as bgnCluster
-	  bgnCluster = endCluster + 1;
+      // cluster in use try next cluster as bgnCluster
+      bgnCluster = endCluster + 1;
     } else if ((endCluster - bgnCluster + 1) == count) {
       // done - found space
       break;
-    }   
+    }
     endCluster++;
   }
   // Remember possible next free cluster.
@@ -539,7 +547,7 @@ fail:
   return false;
 }
 //------------------------------------------------------------------------------
-bool FatVolume::wipe() {
+bool FatVolume::wipe(print_t* pr) {
   cache_t* cache;
   uint16_t count;
   uint32_t lbn;
@@ -571,8 +579,8 @@ bool FatVolume::wipe() {
   count = 2*m_blocksPerFat;
   lbn = m_fatStartBlock;
   for (uint32_t nb = 0; nb < count; nb++) {
-    if ((nb & 0XFF) == 0) {
-      Com::print('.');
+    if (pr && (nb & 0XFF) == 0) {
+      pr->write('.');
     }
     if (!writeBlock(lbn + nb, cache->data)) {
       DBG_FAIL_MACRO;
@@ -604,7 +612,10 @@ bool FatVolume::wipe() {
       goto fail;
     }
   }
-  Com::println();
+  if (pr) {
+    pr->write('\r');
+    pr->write('\n');
+  }
   m_fatType = 0;
   return true;
 

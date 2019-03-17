@@ -129,8 +129,8 @@ fail:
   return false;
 }
 //------------------------------------------------------------------------------
-bool FatFile::createContiguous(FatFile* dirFile,
-                               const char* path, uint32_t size) {
+bool FatFile::createContiguous(FatFile* dirFile, const char* path,
+                               uint32_t size, uint32_t startCluster) {
   uint32_t count;
 
   // don't allow zero length file
@@ -146,7 +146,7 @@ bool FatFile::createContiguous(FatFile* dirFile,
   count = ((size - 1) >> (m_vol->clusterSizeShift() + 9)) + 1;
 
   // allocate clusters
-  if (!m_vol->allocContiguous(count, &m_firstCluster)) {
+  if (!m_vol->allocContiguous(count, &m_firstCluster, startCluster)) {
     remove();
     DBG_FAIL_MACRO;
     goto fail;
@@ -505,27 +505,27 @@ bool FatFile::openCachedEntry(FatFile* dirFile, uint16_t dirIndex,
     m_attr |= FILE_ATTR_FILE;
   }
   m_lfnOrd = lfnOrd;
-  // Write, truncate, or at end is an error for a directory or read-only file.
+
   switch (oflag & O_ACCMODE) {
-  case O_RDONLY:
-	  if (oflag & O_TRUNC) {
-		  DBG_FAIL_MACRO;
-		  goto fail;
-	  }
-	  m_flags = F_READ;
-	  break;
+    case O_RDONLY:
+      if (oflag & O_TRUNC) {
+        DBG_FAIL_MACRO;
+        goto fail;
+      }
+      m_flags = F_READ;
+      break;
 
-  case O_RDWR:
-	  m_flags = F_READ | F_WRITE;
-	  break;
+    case O_RDWR:
+      m_flags = F_READ | F_WRITE;
+      break;
 
-  case O_WRONLY:
-	  m_flags = F_WRITE;
-	  break;
+    case O_WRONLY:
+      m_flags = F_WRITE;
+      break;
 
-  default:
-	  DBG_FAIL_MACRO;
-	  goto fail;
+    default:
+      DBG_FAIL_MACRO;
+      goto fail;
   }
 
   if (m_flags & F_WRITE) {
@@ -534,7 +534,7 @@ bool FatFile::openCachedEntry(FatFile* dirFile, uint16_t dirIndex,
       goto fail;
     }
   }
-  // save open flags for read/write
+
   m_flags |= (oflag & O_APPEND ? F_APPEND : 0) | (oflag & O_SYNC ? F_SYNC : 0);
 
   m_dirBlock = m_vol->cacheBlockNumber();
@@ -566,13 +566,13 @@ fail:
 }
 //------------------------------------------------------------------------------
 bool FatFile::openCwd() {
-	if (!cwd()) {
-		DBG_FAIL_MACRO;
-		return false;
-	}
-	*this = *cwd();
-	rewind();
-	return true;
+  if (!cwd()) {
+    DBG_FAIL_MACRO;
+    return false;
+  }
+  *this = *cwd();
+  rewind();
+  return true;
 }
 //------------------------------------------------------------------------------
 bool FatFile::openNext(FatFile* dirFile, oflag_t oflag) {
@@ -1476,7 +1476,7 @@ int FatFile::write(const void* buf, size_t nbyte) {
     } else if (nToWrite >= 1024) {
       // use multiple block write command
       uint8_t maxBlocks = m_vol->blocksPerCluster() - blockOfCluster;
-	  size_t nb = nToWrite >> 9;
+      size_t nb = nToWrite >> 9;
       if (nb > maxBlocks) {
         nb = maxBlocks;
       }

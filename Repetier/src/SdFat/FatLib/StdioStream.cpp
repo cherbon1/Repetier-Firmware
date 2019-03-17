@@ -105,8 +105,8 @@ bool StdioStream::fopen(const char* path, const char* mode) {
     break;
 
   case 'r':
-	m = O_RDONLY;
-	oflag = 0;
+    m = O_RDONLY;
+    oflag = 0;
     m_status = S_SRD;
     break;
 
@@ -436,15 +436,15 @@ bool StdioStream::fillBuf() {
   if (!(m_status &
         S_SRD)) {  // check for S_ERR and S_EOF ??/////////////////
     if (!(m_status & S_SRW)) {
-		m_status |= S_ERR;
+      m_status |= S_ERR;
       return false;
     }
     if (m_status & S_SWR) {
       if (!flushBuf()) {
         return false;
       }
-	  m_status &= ~S_SWR;
-	  m_status |= S_SRD;
+      m_status &= ~S_SWR;
+      m_status |= S_SRD;
       m_w = 0;
     }
   }

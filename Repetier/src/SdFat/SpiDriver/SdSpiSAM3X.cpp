@@ -22,10 +22,6 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
  */
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-variable"
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-
 #include "SdSpiDriver.h"
 #if defined(__SAM3X8E__) || defined(__SAM3X8H__)
 /** Use SAM3X DMAC if nonzero */
@@ -220,4 +216,3 @@ void SdSpiAltDriver::send(const uint8_t* buf , size_t n) {
   pSpi->SPI_RDR;
 }
 #endif  // defined(__SAM3X8E__) || defined(__SAM3X8H__)
-#pragma GCC diagnostic pop
