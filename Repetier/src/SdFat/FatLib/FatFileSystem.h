@@ -64,9 +64,9 @@ class FatFileSystem : public  FatVolume {
    *
    * \return true for success or false if an error occurred.
    */
-  bool ls(uint8_t flags = 0) {
-    return ls(&Serial, flags);
-  }
+  //bool ls(uint8_t flags = 0) {
+  //  return ls(&Serial, flags);
+  //}
   /** List the directory contents of a directory to Serial.
    *
    * \param[in] path directory to list.
@@ -81,9 +81,9 @@ class FatFileSystem : public  FatVolume {
    *
    * \return true for success or false if an error occurred.
    */
-  bool ls(const char* path, uint8_t flags = 0) {
-    return ls(&Serial, path, flags);
-  }
+  //bool ls(const char* path, uint8_t flags = 0) {
+  //  return ls(&Serial, path, flags);
+  //}
   /** open a file
    *
    * \param[in] path location of file to be opened.
@@ -318,12 +318,11 @@ fail:
   }
   /** Wipe all data from the volume. You must reinitialize the volume before
    *  accessing it again.
-   * \param[in] pr print stream for status dots.
    * \return true for success else false.
    */
-  bool wipe(print_t* pr = 0) {
+  bool wipe() {
     vwd()->close();
-    return FatVolume::wipe(pr);
+    return FatVolume::wipe();
   }
 
  private:

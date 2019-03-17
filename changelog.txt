@@ -14,6 +14,10 @@ TODO:
 # pause @RF1000: test if z max-endstop is respected while moving in dual-endstop circular setting
 # maybe implement a activatable serial3 for direct connection of a raspberry inside of the printer
 
+V 01.43.88.Mod (2019-03-10)
+- complete reintegration of SdFat-lib 1.1.0 downloaded from https://github.com/greiman/SdFat in order to avoid possible transcription errors.
+- #define USE_MULTI_BLOCK_IO 0
+
 V 01.43.87.Mod (2019-03-10)
 - prepare fresh integration of SD-Fat-Lib by overwriting whole library.
 

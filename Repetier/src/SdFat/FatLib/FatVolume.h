@@ -31,7 +31,7 @@
 #include <stddef.h>
 #include "FatLibConfig.h"
 #include "FatStructs.h"
-#include "BlockDriver.h"
+#include "../BlockDriver.h"
 //------------------------------------------------------------------------------
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 /** Macro for debug. */
@@ -270,7 +270,7 @@ class FatVolume {
    * \param[in] pr print stream for status dots.
    * \return true for success else false.
    */
-  bool wipe(print_t* pr = 0);
+  bool wipe();
   /** Debug access to FAT table
    *
    * \param[in] n cluster number.

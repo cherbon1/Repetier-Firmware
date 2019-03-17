@@ -192,11 +192,13 @@
  *
  * Don't use mult-block read/write on small AVR boards.
  */
-#if defined(RAMEND) && RAMEND < 3000
+//#if defined(RAMEND) && RAMEND < 3000
+//#define USE_MULTI_BLOCK_IO 0
+//#else  // RAMEND
+//#define USE_MULTI_BLOCK_IO 1
+//#endif  // RAMEND
 #define USE_MULTI_BLOCK_IO 0
-#else  // RAMEND
-#define USE_MULTI_BLOCK_IO 1
-#endif  // RAMEND
+
 //-----------------------------------------------------------------------------
 /** Enable SDIO driver if available. */
 #if defined(__MK64FX512__) || defined(__MK66FX1M0__)
