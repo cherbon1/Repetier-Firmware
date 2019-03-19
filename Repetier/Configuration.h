@@ -54,7 +54,6 @@
     #error This Mod-Firmware has not been massively tested on a RF2000v2 yet. But the firmware has been created with care. Please remove this message if you acknowledged this.
 #endif // MOTHERBOARD == DEVICE_TYPE_RF2000v2
 
-
 /**
  * \brief EEPROM storage mode
  * Set the EEPROM_MODE to 0 if you always want to use the settings in this configuration file. If not,
@@ -67,7 +66,6 @@
  *            taken from the EEPROM.
  */
 #define EEPROM_MODE                         44
-
 
 // ##########################################################################################
 // ##    supported features

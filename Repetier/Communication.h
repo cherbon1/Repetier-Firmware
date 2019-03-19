@@ -19,6 +19,8 @@
 #ifndef COMMUNICATION_H
 #define COMMUNICATION_H
 
+extern const char* const axisNames[] PROGMEM;
+
 class Com
 {
 public:
@@ -30,12 +32,14 @@ public:
     FSTRINGVAR(tNAN)
     FSTRINGVAR(tINF)
     FSTRINGVAR(tError)
+	FSTRINGVAR(tFatal)
     FSTRINGVAR(tInfo)
     FSTRINGVAR(tWarning)
     FSTRINGVAR(tResend)
     FSTRINGVAR(tEcho)
     FSTRINGVAR(tOkSpace)
     FSTRINGVAR(tWrongChecksum)
+	FSTRINGVAR(tFormatError)
     FSTRINGVAR(tMissingChecksum)
     FSTRINGVAR(tDonePrinting)
     FSTRINGVAR(tX)
@@ -343,7 +347,16 @@ public:
 #if FEATURE_FIND_Z_ORIGIN
     FSTRINGVAR(tFindZOrigin)
 #endif // FEATURE_FIND_Z_ORIGIN
+	FSTRINGVAR(tCap)
+	FSTRINGVAR(tConfig)
 
+	static void cap(FSTRINGPARAM(text));
+	static void config(FSTRINGPARAM(text));
+	static void config(FSTRINGPARAM(text), int value);
+	static void config(FSTRINGPARAM(text), const char *msg);
+	static void config(FSTRINGPARAM(text), int32_t value);
+	static void config(FSTRINGPARAM(text), uint32_t value);
+	static void config(FSTRINGPARAM(text), float value, uint8_t digits = 2);
     static void printNumber(uint32_t n);
     static void printWarningF(FSTRINGPARAM(text));
     static void printInfoF(FSTRINGPARAM(text));
@@ -370,12 +383,15 @@ public:
     static inline void print(uint32_t value) {printNumber(value);}
     static inline void print(int value) {print((int32_t)value);}
     static void print(const char *text);
-    static inline void print(char c) {HAL::serialWriteByte(c);}
+    static inline void print(char c) {
+		GCodeSource::writeToAll(c);
+	}
     static void printFloat(float number, uint8_t digits, bool komma_as_dot=false);
     static inline void println() {
-		HAL::serialWriteByte('\r');
-		HAL::serialWriteByte('\n');
+		GCodeSource::writeToAll('\r');
+		GCodeSource::writeToAll('\n');
 	}
+	static bool writeToAll;
 }; // Com
 
 #endif // COMMUNICATION_H

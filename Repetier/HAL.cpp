@@ -1309,7 +1309,7 @@ ring_buffer_tx tx_buffer = { { 0 }, 0, 0};
 
 inline void rf_store_char(unsigned char c, ring_buffer_rx *buffer)
 {
-    uint8_t i = (buffer->head + 1) & SERIAL_RX_BUFFER_MASK;
+    uint8_t i = (buffer->head + 1) & SERIAL_BUFFER_MASK;
 
     // if we should be storing the received character into the location
     // just before the tail (meaning that the head would advance to the
@@ -1398,6 +1398,88 @@ inline void rf_store_char(unsigned char c, ring_buffer_rx *buffer)
  #endif // !defined(UART0_UDRE_vect) && !defined(UART_UDRE_vect) && !defined(USART0_UDRE_vect) && !defined(USART_UDRE_vect)
 #endif // !defined(USART0_UDRE_vect) && defined(USART1_UDRE_vect)
 
+#if defined(BLUETOOTH_SERIAL) && BLUETOOTH_SERIAL > 0
+#if !(defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1284P__) || defined(__AVR_ATmega1284__) || defined(__AVR_ATmega2561__) || defined(__AVR_ATmega1281__) || defined (__AVR_ATmega644__) || defined (__AVR_ATmega644P__))
+#error BlueTooth option cannot be used with your mainboard
+#endif
+#if BLUETOOTH_SERIAL > 1 && !(defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__))
+#error BlueTooth serial 2 or 3 can be used only with boards based on ATMega2560 or ATMega1280
+#endif
+#if (BLUETOOTH_SERIAL == 1)
+#if defined(USART1_RX_vect)
+#define SIG_USARTx_RECV   USART1_RX_vect
+#define USARTx_UDRE_vect  USART1_UDRE_vect
+#else
+#define SIG_USARTx_RECV   SIG_USART1_RECV
+#define USARTx_UDRE_vect  SIG_USART1_DATA
+#endif
+#define UDRx              UDR1
+#define UCSRxA            UCSR1A
+#define UCSRxB            UCSR1B
+#define UBRRxH            UBRR1H
+#define UBRRxL            UBRR1L
+#define U2Xx              U2X1
+#define UARTxENABLE       ((1<<RXEN1)|(1<<TXEN1)|(1<<RXCIE1)|(1<<UDRIE1))
+#define UDRIEx            UDRIE1
+#define RXxPIN            19
+#elif (BLUETOOTH_SERIAL == 2)
+#if defined(USART2_RX_vect)
+#define SIG_USARTx_RECV   USART2_RX_vect
+#define USARTx_UDRE_vect  USART2_UDRE_vect
+#else
+#define SIG_USARTx_RECV SIG_USART2_RECV
+#define USARTx_UDRE_vect  SIG_USART2_DATA
+#endif
+#define UDRx              UDR2
+#define UCSRxA            UCSR2A
+#define UCSRxB            UCSR2B
+#define UBRRxH            UBRR2H
+#define UBRRxL            UBRR2L
+#define U2Xx              U2X2
+#define UARTxENABLE       ((1<<RXEN2)|(1<<TXEN2)|(1<<RXCIE2)|(1<<UDRIE2))
+#define UDRIEx            UDRIE2
+#define RXxPIN            17
+#elif (BLUETOOTH_SERIAL == 3)
+#if defined(USART3_RX_vect)
+#define SIG_USARTx_RECV   USART3_RX_vect
+#define USARTx_UDRE_vect  USART3_UDRE_vect
+#else
+#define SIG_USARTx_RECV SIG_USART3_RECV
+#define USARTx_UDRE_vect  SIG_USART3_DATA
+#endif
+#define UDRx              UDR3
+#define UCSRxA            UCSR3A
+#define UCSRxB            UCSR3B
+#define UBRRxH            UBRR3H
+#define UBRRxL            UBRR3L
+#define U2Xx              U2X3
+#define UARTxENABLE       ((1<<RXEN3)|(1<<TXEN3)|(1<<RXCIE3)|(1<<UDRIE3))
+#define UDRIEx            UDRIE3
+#define RXxPIN            15
+#else
+#error Wrong serial port number for BlueTooth
+#endif
+
+   SIGNAL(SIG_USARTx_RECV) {
+	   uint8_t c = UDRx;
+	   rf_store_char(c, &rx_buffer);
+   }
+
+   volatile uint8_t txx_buffer_tail = 0;
+
+   ISR(USARTx_UDRE_vect) {
+	   if (tx_buffer.head == txx_buffer_tail) {
+		   // Buffer empty, so disable interrupts
+		   bit_clear(UCSRxB, UDRIEx);
+	   }
+	   else {
+		   // There is more data in the output buffer. Send the next byte
+		   uint8_t c = tx_buffer.buffer[txx_buffer_tail];
+		   txx_buffer_tail = (txx_buffer_tail + 1) & SERIAL_TX_BUFFER_MASK;
+		   UDRx = c;
+	   }
+   }
+#endif
 
 // Constructors ////////////////////////////////////////////////////////////////
 
@@ -1468,7 +1550,15 @@ try_again:
     bit_set(*_ucsrb, _txen);
     bit_set(*_ucsrb, _rxcie);
     bit_clear(*_ucsrb, _udrie);
+#if defined(BLUETOOTH_SERIAL) && BLUETOOTH_SERIAL > 0
+#define BLUETOOTH_BAUD     115200                 // communication speed
 
+	WRITE(RXxPIN, 1);           // Pullup on RXDx
+	UCSRxA = (1 << U2Xx);
+	UBRRxH = (uint8_t)(((F_CPU / 4 / BLUETOOTH_BAUD - 1) / 2) >> 8);
+	UBRRxL = (uint8_t)(((F_CPU / 4 / BLUETOOTH_BAUD - 1) / 2) & 0xFF);
+	UCSRxB |= UARTxENABLE;
+#endif
 } // begin
 
 
@@ -1482,6 +1572,10 @@ void RFHardwareSerial::end()
     bit_clear(*_ucsrb, _rxcie);
     bit_clear(*_ucsrb, _udrie);
 
+#if defined(BLUETOOTH_SERIAL) && BLUETOOTH_SERIAL > 0
+	UCSRxB = 0;
+#endif
+
     // clear a  ny received data
     _rx_buffer->head = _rx_buffer->tail;
 
@@ -1490,15 +1584,13 @@ void RFHardwareSerial::end()
 
 int RFHardwareSerial::available(void)
 {
-    return (unsigned int)(SERIAL_RX_BUFFER_SIZE + _rx_buffer->head - _rx_buffer->tail) & SERIAL_RX_BUFFER_MASK;
-
+    return (unsigned int)(SERIAL_BUFFER_SIZE + _rx_buffer->head - _rx_buffer->tail) & SERIAL_BUFFER_MASK;
 } // available
 
 
 int RFHardwareSerial::outputUnused(void)
 {
     return SERIAL_TX_BUFFER_SIZE - (unsigned int)((SERIAL_TX_BUFFER_SIZE + _tx_buffer->head - _tx_buffer->tail) & SERIAL_TX_BUFFER_MASK);
-
 } // outputUnused
 
 
@@ -1508,8 +1600,8 @@ int RFHardwareSerial::peek(void)
     {
         return -1;
     }
-    return _rx_buffer->buffer[_rx_buffer->tail];
 
+    return _rx_buffer->buffer[_rx_buffer->tail];
 } // peek
 
 
@@ -1521,38 +1613,46 @@ int RFHardwareSerial::read(void)
         return -1;
     }
     unsigned char c = _rx_buffer->buffer[_rx_buffer->tail];
-    _rx_buffer->tail = (_rx_buffer->tail + 1) & SERIAL_RX_BUFFER_MASK;
-    return c;
+    _rx_buffer->tail = (_rx_buffer->tail + 1) & SERIAL_BUFFER_MASK;
 
+    return c;
 } // read
 
 
 void RFHardwareSerial::flush()
 {
     while (_tx_buffer->head != _tx_buffer->tail);
+
+#if defined(BLUETOOTH_SERIAL) && BLUETOOTH_SERIAL > 0
+	while (_tx_buffer->head != txx_buffer_tail);
+#endif
 } // flush
 
 
 size_t RFHardwareSerial::write(uint8_t c)
 {
     uint8_t i = (_tx_buffer->head + 1) & SERIAL_TX_BUFFER_MASK;
-
-
+	
     // If the output buffer is full, there's nothing for it other than to
     // wait for the interrupt handler to empty it a bit
     while (i == _tx_buffer->tail);
+#if defined(BLUETOOTH_SERIAL) && BLUETOOTH_SERIAL > 0
+	while (i == txx_buffer_tail) {}
+#endif
 
     _tx_buffer->buffer[_tx_buffer->head] = c;
     _tx_buffer->head = i;
 
     bit_set(*_ucsrb, _udrie);
-    return 1;
+#if defined(BLUETOOTH_SERIAL) && BLUETOOTH_SERIAL > 0
+	bit_set(UCSRxB, UDRIEx);
+#endif
 
+    return 1;
 } // write
 
 
 // Preinstantiate Objects //////////////////////////////////////////////////////
-
 
 #if defined(UBRRH) && defined(UBRRL)
  RFHardwareSerial RFSerial(&rx_buffer, &tx_buffer, &UBRRH, &UBRRL, &UCSRA, &UCSRB, &UDR, RXEN, TXEN, RXCIE, UDRIE, U2X);
@@ -1564,11 +1664,10 @@ size_t RFHardwareSerial::write(uint8_t c)
  #error no serial port defined  (port 0)
 #endif // defined(UBRRH) && defined(UBRRL)
 
-#if FEATURE_CASE_LIGHT
- #if !defined CASE_LIGHT_PIN || CASE_LIGHT_PIN < 0
-    #error The case light pin must be defined in case the case light feature shall be used.
- #endif //!defined CASE_LIGHT_PIN || CASE_LIGHT_PIN < 0
-#endif // FEATURE_CASE_LIGHT
-
 #endif // EXTERNALSERIAL
 
+#if FEATURE_CASE_LIGHT
+#if !defined CASE_LIGHT_PIN || CASE_LIGHT_PIN < 0
+#error The case light pin must be defined in case the case light feature shall be used.
+#endif //!defined CASE_LIGHT_PIN || CASE_LIGHT_PIN < 0
+#endif // FEATURE_CASE_LIGHT

@@ -782,9 +782,8 @@ For more informations, read the wiki. */
 /** \brief Specifies if you want to adjust minimal and maximum compensation steps to first layer */
 #define AUTOADJUST_STARTMADEN_AUSSCHLUSS        0.352f
 
-/** \brief Specifies until which height the z compensation must complete
-This value should be roughly the double amount of mm which is detected as error of the heat bed. */
-#define HEAT_BED_Z_COMPENSATION_MAX_MM          3                                                                       // [mm]
+/** \brief Specifies until which height the z compensation must complete */
+#define HEAT_BED_Z_COMPENSATION_MAX_MM          10                                                                      // [mm]
 
 /** \brief Specifies from which height on the z compensation shall be performed
 Below this value the z compensation will only change the z axis so that a constant distance to the heat bed is hold (this is good for the first layer).

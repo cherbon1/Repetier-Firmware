@@ -39,7 +39,6 @@
 #define UI_ACTION_DUMMY                    10000
 #define UI_ACTION_BACK                      1000
 #define UI_ACTION_OK                        1001
-#define UI_ACTION_MENU_UP                   1002
 #define UI_ACTION_EMERGENCY_STOP            1004
 #define UI_ACTION_XPOSITION                 1005
 #define UI_ACTION_YPOSITION                 1006
@@ -246,7 +245,6 @@
 
 // Load some parts of the printers configuration
 #if MOTHERBOARD == DEVICE_TYPE_RF1000
-#define UI_HAS_KEYS                       1        // 1 = Some keys attached
 #define UI_HAS_BACK_KEY                   1
 #define UI_DISPLAY_TYPE                   1        // 1 = LCD Display with 4 bit data bus
 #define UI_COLS                          16        //check MAX_COLS when changed
@@ -258,7 +256,6 @@
 #endif // MOTHERBOARD == DEVICE_TYPE_RF1000
 
 #if MOTHERBOARD == DEVICE_TYPE_RF2000 || MOTHERBOARD == DEVICE_TYPE_RF2000v2
-#define UI_HAS_KEYS                       1        // 1 = Some keys attached
 #define UI_HAS_BACK_KEY                   1
 #define UI_DISPLAY_TYPE                   1        // 1 = LCD Display with 4 bit data bus
 #define UI_COLS                          20        //check MAX_COLS when changed
@@ -473,9 +470,15 @@ public:
     void addStringP(FSTRINGPARAM(text));
 	void ui_init_keys();
 	void ui_check_keys(int &action);
+	void menuEsc();
     void okAction();
     void rightAction();
+	void backAction();
     void nextPreviousAction(int8_t next);
+	void senseOffsetUpAction();
+	void senseOffsetDownAction();
+	void zOffsetPlusAction();
+	void zOffsetMinusAction();
     void createChar(uint8_t location,const uint8_t charmap[]);
     void initialize(); // Initialize display and keys
 	void initializeLCD(bool normal = true);
@@ -484,8 +487,12 @@ public:
     void parse(char *txt, bool ram); /// Parse output and write to printCols;
     void refreshPage();
     void executeAction(int action);
+	void slowAction();
+
     void finishAction(int action);
-    void slowAction();
+	void changeSwitchCase(int action, int8_t increment);
+	void mainSwitchCase(int action);
+
     void fastAction();
     void showMessage(bool refresh);
     void pushMenu(void *men,bool refresh);

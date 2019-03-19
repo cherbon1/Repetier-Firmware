@@ -2631,7 +2631,7 @@ void UIDisplay::refreshPage()
     if(menuLevel==0)
     {
         UIMenu *men = (UIMenu*)pgm_read_word(&(ui_pages[menuPos[0]]));
-        uint16_t nr = pgm_read_word_near(&(men->numEntries));
+        uint16_t nr = pgm_read_word(&(men->numEntries));
         UIMenuEntry **entries = (UIMenuEntry**)pgm_read_word(&(men->entries));
         for(r=0; r < nr && r < UI_ROWS; r++)
         {
@@ -2644,7 +2644,7 @@ void UIDisplay::refreshPage()
     else
     {
         UIMenu *men = (UIMenu*)menu[menuLevel];
-        uint16_t nr = pgm_read_word_near(&(men->numEntries));
+        uint16_t nr = pgm_read_word(&(men->numEntries));
 #if SDSUPPORT
         mtype = pgm_read_byte((void*)&(men->menuType));
 #endif //SDSUPPORT
@@ -2807,6 +2807,13 @@ void UIDisplay::pushMenu(void *men,bool refresh)
 
 } // pushMenu
 
+void UIDisplay::menuEsc() {
+	if (menuLevel == 1 && menuPos[0] == 1) {
+		//der würde in das modmenü zurückgehen, da sind aber die rechtst links tasten anders belegt, daher nicht da rein! sonst evtl. verstellen von DigitLimit.
+		menuPos[0] = 0;
+	}
+	if (menuLevel>0) menuLevel--;
+}
 
 void UIDisplay::okAction()
 {
@@ -2816,7 +2823,6 @@ void UIDisplay::okAction()
         return;
     }
 
-#if UI_HAS_KEYS==1
     if(menuLevel==0)   // Enter menu
     {
         menuLevel = 1;
@@ -2837,7 +2843,7 @@ void UIDisplay::okAction()
     {
         action = pgm_read_word(&(men->id));
         finishAction(action);
-        executeAction(UI_ACTION_BACK);
+		menuEsc();
         return;
     }
     if(mtype == UI_MENU_TYPE_SUBMENU && entType==4)   // Modify action
@@ -2858,7 +2864,7 @@ void UIDisplay::okAction()
         if((menuPos[menuLevel] == 0 && folderLevel == 0) /* Selected back instead of file */
             || !sd.sdactive )                            /* No SD -> drop menuposition */
         {
-            executeAction(UI_ACTION_BACK);
+			menuEsc();
             return;
         }
         if(menuPos[menuLevel] == 0 && folderLevel > 0){
@@ -2911,43 +2917,131 @@ void UIDisplay::okAction()
         executeAction(action);
         return;
     }
-    executeAction(UI_ACTION_BACK);
-#endif // UI_HAS_KEYS==1
-
+	menuEsc();
 } // okAction
 
+
+void UIDisplay::senseOffsetUpAction() {
+	//we are in the Mod menu
+	if (g_nSensiblePressureDigits == EMERGENCY_PAUSE_DIGITS_MAX * 0.8 || g_nSensiblePressureDigits == 32767) {
+		//ist max, dann auf 0.
+		g_nSensiblePressureDigits = 0;
+	}
+	else if (g_nSensiblePressureDigits > EMERGENCY_PAUSE_DIGITS_MAX * 0.8 - 250 || g_nSensiblePressureDigits > 32767 - 250) {
+		//stößt oben an, hier noch check auf overflow:
+		if (EMERGENCY_PAUSE_DIGITS_MAX * 0.8 < 32767) {
+			g_nSensiblePressureDigits = EMERGENCY_PAUSE_DIGITS_MAX * 0.8; //maximalstellung, das ist aber schon irre hoch. abhängig von messdose und maximaltragkraft vs. genauigkeit der zelle.
+		}
+		else {
+			g_nSensiblePressureDigits = 32767; //die variable ist short, nie mehr rein als nötig ^^.
+		}
+	}
+	else {
+		//TPE braucht mini werte, wenn es sinnvoll sein soll. Darum der Ternary, sodass man per Knopf auch kleinste Zahlen justieren kann.
+		g_nSensiblePressureDigits += (g_nSensiblePressureDigits >= 2000) ? 250 : (g_nSensiblePressureDigits >= 500) ? 100 : 50; //decrement pro Knopfklick. Man kann ja auf der Taste bleiben.
+																																//g_nSensiblePressureDigits += 250; //decrement pro Knopfklick. Man kann ja auf der Taste bleiben.
+
+																																//Wir speichern nur Werte automatisch per Knopf, die im Alltag sinn machen können. Ab 500:
+		short oldval = HAL::eprGetInt16(EPR_RF_MOD_SENSEOFFSET_DIGITS);
+		if (g_nSensiblePressureDigits >= 500 && oldval != g_nSensiblePressureDigits) {
+			HAL::eprSetInt16(EPR_RF_MOD_SENSEOFFSET_DIGITS, g_nSensiblePressureDigits);
+			EEPROM::updateChecksum(); //deshalb die prüfung
+		}
+	}
+}
+
+void UIDisplay::senseOffsetDownAction() {
+	if (g_nSensiblePressureDigits == 0) {
+		if (EMERGENCY_PAUSE_DIGITS_MAX * 0.8 < 32767) {
+			g_nSensiblePressureDigits = EMERGENCY_PAUSE_DIGITS_MAX * 0.8; //maximalstellung, das ist aber schon irre hoch. abhängig von messdose und maximaltragkraft vs. genauigkeit der zelle.
+		}
+		else {
+			g_nSensiblePressureDigits = 32767; //die variable ist short, nie mehr rein als nötig ^^.
+		}
+	}
+	else if (g_nSensiblePressureDigits < 50) { // ex 250
+		g_nSensiblePressureDigits = 0;
+	}
+	else {
+		//TPE braucht mini werte, wenn es sinnvoll sein soll. Darum der Ternary, sodass man per Knopf auch kleinste Zahlen justieren kann.
+		//g_nSensiblePressureDigits -= 250; //decrement pro Knopfklick. Man kann ja auf der Taste bleiben.
+		g_nSensiblePressureDigits -= (g_nSensiblePressureDigits >= 2000) ? 250 : (g_nSensiblePressureDigits >= 500) ? 100 : 50; //decrement pro Knopfklick. Man kann ja auf der Taste bleiben.
+
+																																//Wir speichern nur Werte automatisch per Knopf, die im Alltag sinn machen können. Ab 500:
+		short oldval = HAL::eprGetInt16(EPR_RF_MOD_SENSEOFFSET_DIGITS);
+		if (g_nSensiblePressureDigits >= 500 && oldval != g_nSensiblePressureDigits) {
+			HAL::eprSetInt16(EPR_RF_MOD_SENSEOFFSET_DIGITS, g_nSensiblePressureDigits);
+			EEPROM::updateChecksum(); //deshalb die prüfung
+		}
+	}
+}
+
+void UIDisplay::zOffsetPlusAction() {
+	long nTemp = Printer::ZOffset; //um --> mm*1000
+	nTemp += Z_OFFSET_BUTTON_STEPS;
+	//beim Überschreiten von 0, soll 0 erreicht werden, sodass man nicht mit krummen Zahlen rumhantieren muss.
+	if (nTemp < Z_OFFSET_BUTTON_STEPS && nTemp > 0) nTemp = 0;
+	if (nTemp < -(HEAT_BED_Z_COMPENSATION_MAX_MM * 1000)) nTemp = -(HEAT_BED_Z_COMPENSATION_MAX_MM * 1000);
+	if (nTemp >(HEAT_BED_Z_COMPENSATION_MAX_MM * 1000)) nTemp = (HEAT_BED_Z_COMPENSATION_MAX_MM * 1000);
+	Printer::ZOffset = nTemp;
+#if FEATURE_SENSIBLE_PRESSURE
+	g_staticZSteps = long(((Printer::ZOffset + g_nSensiblePressureOffset) * Printer::axisStepsPerMM[Z_AXIS]) / 1000);
+#else
+	g_staticZSteps = long((Printer::ZOffset * Printer::axisStepsPerMM[Z_AXIS]) / 1000);
+#endif //FEATURE_SENSIBLE_PRESSURE
+	if (HAL::eprGetInt32(EPR_RF_Z_OFFSET) != Printer::ZOffset)
+	{
+		HAL::eprSetInt32(EPR_RF_Z_OFFSET, Printer::ZOffset);
+		EEPROM::updateChecksum();
+	}
+}
+
+void UIDisplay::zOffsetMinusAction() {
+	long nTemp = Printer::ZOffset; //um --> mm*1000
+	nTemp -= Z_OFFSET_BUTTON_STEPS;
+	//beim Unterschreiten von 0, soll 0 erreicht werden, sodass man nicht mit krummen Zahlen rumhantieren muss.
+	if (nTemp < 0 && nTemp > -Z_OFFSET_BUTTON_STEPS) nTemp = 0;
+#if FEATURE_SENSIBLE_PRESSURE
+	/* IDEE: Wenn automatisches Offset und wir korrigieren dagegen, soll erst dieses abgebaut werden */
+	if (g_nSensiblePressureOffset > 0) { //aus: dann 0, an: dann > 0
+										 //automatik hat das bett runtergefahren, wir fahren es mit negativem offset hoch.
+										 //blöd: damit ist die automatik evtl. weiter am limit und kann nachfolgend nichts mehr tun.
+										 //also erst ausgleichen! dann verändern.
+		if (g_nSensiblePressureOffset > Z_OFFSET_BUTTON_STEPS) {
+			nTemp += Z_OFFSET_BUTTON_STEPS;
+			g_nSensiblePressureOffset -= Z_OFFSET_BUTTON_STEPS;
+		}
+		else {
+			nTemp += g_nSensiblePressureOffset;
+			g_nSensiblePressureOffset = 0;
+		}
+	}
+#endif //FEATURE_SENSIBLE_PRESSURE
+	if (nTemp < -(HEAT_BED_Z_COMPENSATION_MAX_MM * 1000)) nTemp = -(HEAT_BED_Z_COMPENSATION_MAX_MM * 1000);
+	if (nTemp >(HEAT_BED_Z_COMPENSATION_MAX_MM * 1000)) nTemp = (HEAT_BED_Z_COMPENSATION_MAX_MM * 1000);
+	Printer::ZOffset = nTemp;
+#if FEATURE_SENSIBLE_PRESSURE
+	g_staticZSteps = long(((Printer::ZOffset + g_nSensiblePressureOffset) * Printer::axisStepsPerMM[Z_AXIS]) / 1000);
+#else
+	g_staticZSteps = long((Printer::ZOffset * Printer::axisStepsPerMM[Z_AXIS]) / 1000);
+#endif //FEATURE_SENSIBLE_PRESSURE
+	if (HAL::eprGetInt32(EPR_RF_Z_OFFSET) != Printer::ZOffset)
+	{
+		HAL::eprSetInt32(EPR_RF_Z_OFFSET, Printer::ZOffset);
+		EEPROM::updateChecksum();
+	}
+}
 
 void UIDisplay::rightAction()
 {
 #if FEATURE_SENSIBLE_PRESSURE
     if ( menuLevel == 0 && menuPos[0] == 1 ) { //wenn im Mod-Menü für Z-Offset/Matrix Sense-Offset/Limiter, dann anders!
-        //we are in the Mod menu
-        if(g_nSensiblePressureDigits == EMERGENCY_PAUSE_DIGITS_MAX * 0.8 || g_nSensiblePressureDigits == 32767){
-            //ist max, dann auf 0.
-            g_nSensiblePressureDigits = 0;
-        }else if(g_nSensiblePressureDigits > EMERGENCY_PAUSE_DIGITS_MAX * 0.8 - 250 || g_nSensiblePressureDigits > 32767 - 250){
-            //stößt oben an, hier noch check auf overflow:
-            if(EMERGENCY_PAUSE_DIGITS_MAX * 0.8 < 32767){
-                g_nSensiblePressureDigits = EMERGENCY_PAUSE_DIGITS_MAX * 0.8; //maximalstellung, das ist aber schon irre hoch. abhängig von messdose und maximaltragkraft vs. genauigkeit der zelle.
-            }else{
-                g_nSensiblePressureDigits = 32767; //die variable ist short, nie mehr rein als nötig ^^.
-            }
-        }else{
-            //TPE braucht mini werte, wenn es sinnvoll sein soll. Darum der Ternary, sodass man per Knopf auch kleinste Zahlen justieren kann.
-            g_nSensiblePressureDigits += (g_nSensiblePressureDigits >= 2000) ? 250 : (g_nSensiblePressureDigits >= 500) ? 100 : 50 ; //decrement pro Knopfklick. Man kann ja auf der Taste bleiben.
-            //g_nSensiblePressureDigits += 250; //decrement pro Knopfklick. Man kann ja auf der Taste bleiben.
-
-            //Wir speichern nur Werte automatisch per Knopf, die im Alltag sinn machen können. Ab 500:
-            short oldval = HAL::eprGetInt16(EPR_RF_MOD_SENSEOFFSET_DIGITS);
-            if(g_nSensiblePressureDigits >= 500 && oldval != g_nSensiblePressureDigits){
-                HAL::eprSetInt16( EPR_RF_MOD_SENSEOFFSET_DIGITS, g_nSensiblePressureDigits );
-                EEPROM::updateChecksum(); //deshalb die prüfung
-            }
-        }
-        beep(1,4);
-    } else {
+		senseOffsetUpAction();
+        beep(1, 4);
+    } 
+	else
 #endif
-	#if UI_HAS_KEYS==1
+	{
 		if (menu[menuLevel] == &ui_menu_xpos)
 		{
 			Printer::moveMode[X_AXIS] ++;
@@ -2984,11 +3078,33 @@ void UIDisplay::rightAction()
 			HAL::eprSetByte(EPR_RF_MOVE_MODE_Z, Printer::moveMode[Z_AXIS]);
 			EEPROM::updateChecksum();
 		}
-#endif // UI_HAS_KEYS==1
-#if FEATURE_SENSIBLE_PRESSURE
     }
-#endif
 } // rightAction
+
+void UIDisplay::backAction() {
+#if FEATURE_SENSIBLE_PRESSURE
+	if (menuLevel == 0 && menuPos[0] == 1) { 
+		//wenn im Mod-Menü für Z-Offset/Matrix Sense-Offset/Limiter, dann anders!
+		//we are in the Mod menu
+		//verkleinern des Digit-Limits
+		senseOffsetDownAction();
+		beep(1, 4);
+	}
+	else 
+#endif
+	{
+#if FEATURE_RGB_LIGHT_EFFECTS
+		if (menuLevel == 0)
+		{
+			Printer::RGBButtonBackPressed = 1;
+		}
+#endif // FEATURE_RGB_LIGHT_EFFECTS
+		menuEsc();
+		Printer::setAutomount(false);
+		activeAction = 0;
+		g_nYesNo = 0;
+	}
+} // backAction
 
 //increment ist ne variable, global -> Knopfrichtung.
 //#define INCREMENT_MIN_MAX(a,steps,_min,_max) if ( (increment<0) && (_min>=0) && (a<_min-increment*steps) ) {a=_min;} else { a+=increment*steps; if(a<_min) a=_min; else if(a>_max) a=_max;};
@@ -3040,10 +3156,2028 @@ void UIDisplay::adjustMenuPos()
             modified = true;
         }
 
-    }while(modified);
-
+    } while(modified);
 } // adjustMenuPos
 
+void UIDisplay::finishAction(int action)
+{
+	switch (action)
+	{
+	case UI_ACTION_RF_RESET_ACK:
+	{
+		if (g_nYesNo != 1)
+		{
+			// continue only in case the user has chosen "Yes"
+			break;
+		}
+		Com::printFLN(PSTR("Reset via Menu"));
+		HAL::delayMilliseconds(100);
+		Commands::emergencyStop();
+		break;
+	}
+
+	case UI_ACTION_STOP_ACK:
+	{
+		if (g_nYesNo != 1)
+		{
+			// continue only in case the user has chosen "Yes"
+			break;
+		}
+		exitmenu();
+		Printer::stopPrint();
+		break;
+	}
+
+	case UI_ACTION_RESTORE_DEFAULTS:
+	{
+		if (g_nYesNo != 1)
+		{
+			// continue only in case the user has chosen "Yes"
+			break;
+		}
+		EEPROM::restoreEEPROMSettingsFromConfiguration();
+		EEPROM::storeDataIntoEEPROM(false);
+		EEPROM::initializeAllOperatingModes();
+
+		exitmenu();
+		UI_STATUS(UI_TEXT_RESTORE_DEFAULTS);
+		break;
+	}
+
+	case UI_ACTION_CHOOSE_LESSERINTEGRAL:
+	case UI_ACTION_CHOOSE_CLASSICPID:
+	case UI_ACTION_CHOOSE_NO:
+	case UI_ACTION_CHOOSE_TYREUS_LYBEN:
+	{
+		if (g_nYesNo != 1)
+		{
+			// continue only in case the user has chosen "Yes"
+			break;
+		}
+		unsigned char heater = menuPos[menuLevel - 2]; //0..1..2 mit zwei extrudern und bett. passt zum autotunesystem, weil UI_MENU_PID_EXT0_COUNT + UI_MENU_PID_EXT1_COUNT + UI_MENU_PID_BED_COUNT
+		int method = menuPos[menuLevel - 1]; //0..1..2..3 passt nicht mehr zum J-Listing des M303
+
+											 //Esthetics: Switch method for better order in menu. I want the menu to start with pessen integral, because it is the most responsive one. We dont need some overshoot within menu because it has no known use for us.
+											 /*
+											 responsiveness of tunings: J1pessen++ J0classic+ J2someovershoot J3noovershoot- J4tyreuslyben--
+											 -- is for slow beds
+											 ++ is for fast hotends
+											 */
+		if (method == 0) {
+			method = 1; //J1
+		}
+		else if (method == 1) {
+			method = 0; //J0
+		}
+		else if (method == 2) {
+			method = 3; //J3
+		}
+		else if (method == 3) {
+			method = 4; //J4
+		}
+
+		/*
+		Line 1059: #define PRECISE_HEAT_BED_SCAN_BED_TEMP_PLA          60                                                                  // [°C]
+		Line 1062: #define PRECISE_HEAT_BED_SCAN_EXTRUDER_TEMP_PLA     230                                                                 // [°C]
+		*/
+#if NUM_TEMPERATURE_LOOPS > 0
+		int temperature = PRECISE_HEAT_BED_SCAN_EXTRUDER_TEMP_PLA;
+		int cycles = 10;
+		if (UI_MENU_PID_EXT0_COUNT + UI_MENU_PID_EXT1_COUNT + UI_MENU_PID_BED_COUNT - 1 == heater && UI_MENU_PID_BED_COUNT > 0) {
+			//Das ist das Heizbett und kein Extruder
+			temperature = PRECISE_HEAT_BED_SCAN_BED_TEMP_PLA; //Bett nicht so hoch testen, wie Extruder.
+			cycles = 16; //Bett ist erfahrungsgemäß viel träger. Mehr Zyklen erhöhen die Genauigkeit des Ergebnis.
+		}
+		bool writeeeprom = true;
+		if (heater >= NUM_TEMPERATURE_LOOPS) heater = NUM_TEMPERATURE_LOOPS - 1;
+		//show menu and message to user: He cant do anything until autotune is over.
+		exitmenu(); menuPos[0] = 3; //show temps
+		tempController[heater]->autotunePID(temperature, heater, cycles, writeeeprom, method);
+#else
+		Com::printFLN(PSTR("PID Autotune Error: Noo Temperature-Loops defined!??"));
+#endif // NUM_TEMPERATURE_LOOPS > 0
+		break;
+	}
+	}
+} // finishAction
+
+void UIDisplay::changeSwitchCase(int action, int8_t increment) {
+	switch (action)
+	{
+#if FAN_PIN>-1 && FEATURE_FAN_CONTROL
+	case UI_ACTION_FANSPEED:
+	{
+		int speed = (int)Printer::getFanSpeed() + (int)increment;
+		if (speed > 255) speed = 0;
+		if (speed < 0)   speed = 255;
+		Commands::setFanSpeed((uint8_t)speed);
+		break;
+	}
+	case UI_ACTION_FAN_HZ:
+	{
+		if (increment > 0) {
+			Commands::adjustFanFrequency((part_fan_pwm_speed == PART_FAN_MODE_MAX ? 1 : part_fan_pwm_speed + 1));
+		}
+		else {
+			Commands::adjustFanFrequency((part_fan_pwm_speed == 1 ? PART_FAN_MODE_MAX : part_fan_pwm_speed - 1));
+		}
+		HAL::eprSetByte(EPR_RF_PART_FAN_SPEED, part_fan_pwm_speed);
+		EEPROM::updateChecksum();
+		break;
+	}
+	case UI_ACTION_FAN_PART_FAN_PWM_MIN:
+	{
+		int temp = part_fan_pwm_min;
+		INCREMENT_MIN_MAX(temp, 1, 1, 239);
+		if (temp <= (int)part_fan_pwm_max - 16) {
+			part_fan_pwm_min = temp;
+		}
+		//recalculate active pwm value out of fanSpeed for easy tune-in.
+		//(Tune-In: set fan to 1% and rise minimum until it starts.)
+		Commands::setFanSpeed(fanSpeed, true);
+		HAL::eprSetByte(EPR_RF_PART_FAN_PWM_MIN, part_fan_pwm_min);
+		EEPROM::updateChecksum();
+		break;
+	}
+	case UI_ACTION_FAN_PART_FAN_PWM_MAX:
+	{
+		int temp = part_fan_pwm_max;
+		INCREMENT_MIN_MAX(temp, 1, 16, 255);
+		if (temp >= part_fan_pwm_min + 16) {
+			part_fan_pwm_max = temp;
+		}
+		//recalculate active pwm value out of fanSpeed for easy tune-in.
+		//(Tune-In: set fan to 100% and decrease maximum until fan slows down slightly.)
+		Commands::setFanSpeed(fanSpeed, true);
+		HAL::eprSetByte(EPR_RF_PART_FAN_PWM_MAX, part_fan_pwm_max);
+		EEPROM::updateChecksum();
+		break;
+	}
+#endif // FAN_PIN>-1 && FEATURE_FAN_CONTROL
+	case UI_ACTION_XPOSITION:
+	{
+		/*
+		XYZ_POSITION_BUTTON_DIRECTION = -1 : This fits to you if you want more intuitivity when choosing the Up-Down-Buttons.
+		XYZ_POSITION_BUTTON_DIRECTION = 1 : This fits more if you stick to coordinates direction.
+		see configuration.h
+		*/
+		moveXAction(XYZ_POSITION_BUTTON_DIRECTION*increment);
+		break;
+	}
+	case UI_ACTION_YPOSITION:
+	{
+		/*
+		XYZ_POSITION_BUTTON_DIRECTION = -1 : This fits to you if you want more intuitivity when choosing the Up-Down-Buttons.
+		XYZ_POSITION_BUTTON_DIRECTION = 1 : This fits more if you stick to coordinates direction.
+		see configuration.h
+		*/
+		moveYAction(XYZ_POSITION_BUTTON_DIRECTION*increment);
+		break;
+	}
+	case UI_ACTION_ZPOSITION:
+	{
+		/*
+		XYZ_POSITION_BUTTON_DIRECTION = -1 : This fits to you if you want more intuitivity when choosing the Up-Down-Buttons.
+		XYZ_POSITION_BUTTON_DIRECTION = 1 : This fits more if you stick to coordinates direction.
+		see configuration.h
+		*/
+		moveZAction(XYZ_POSITION_BUTTON_DIRECTION*increment);
+		break;
+	}
+	case UI_ACTION_ZOFFSET:
+	{
+		INCREMENT_MIN_MAX(Printer::ZOffset, Z_OFFSET_MENU_STEPS, -(HEAT_BED_Z_COMPENSATION_MAX_MM * 1000), (HEAT_BED_Z_COMPENSATION_MAX_MM * 1000));
+#if FEATURE_SENSIBLE_PRESSURE
+		g_staticZSteps = ((Printer::ZOffset + g_nSensiblePressureOffset) * Printer::axisStepsPerMM[Z_AXIS]) / 1000;
+#else
+		g_staticZSteps = (Printer::ZOffset * Printer::axisStepsPerMM[Z_AXIS]) / 1000;
+#endif
+		HAL::eprSetInt32(EPR_RF_Z_OFFSET, Printer::ZOffset);
+		EEPROM::updateChecksum();
+		break;
+	}
+	case UI_ACTION_EPOSITION:
+	{
+		Printer::queueRelativeMMCoordinates(0, 0, 0, (float)increment / Printer::menuExtrusionFactor, UI_SET_EXTRUDER_FEEDRATE, true); //klappt nicht in Pause!!
+		Commands::printCurrentPosition();
+		break;
+	}
+	case UI_ACTION_HEATED_BED_TEMP:
+	{
+#if HAVE_HEATED_BED==true
+		int tmp = (int)heatedBedController.targetTemperatureC;
+		if (tmp<UI_SET_MIN_HEATED_BED_TEMP) tmp = 0;
+		tmp += increment;
+		if (tmp == 1) tmp = UI_SET_MIN_HEATED_BED_TEMP;
+		if (tmp<UI_SET_MIN_HEATED_BED_TEMP) tmp = 0;
+		else if (tmp>UI_SET_MAX_HEATED_BED_TEMP) tmp = UI_SET_MAX_HEATED_BED_TEMP;
+		Extruder::setHeatedBedTemperature(tmp);
+#endif // HAVE_HEATED_BED
+		break;
+	}
+	case UI_ACTION_EXTRUDER0_TEMP:
+	{
+		int tmp = (int)extruder[0].tempControl.targetTemperatureC;
+		if (tmp<UI_SET_MIN_EXTRUDER_TEMP) tmp = 0;
+		tmp += increment;
+		if (tmp == 1) tmp = UI_SET_MIN_EXTRUDER_TEMP;
+		if (tmp<UI_SET_MIN_EXTRUDER_TEMP) tmp = 0;
+		else if (tmp>UI_SET_MAX_EXTRUDER_TEMP) tmp = UI_SET_MAX_EXTRUDER_TEMP;
+		Extruder::setTemperatureForExtruder(tmp, 0);
+		break;
+	}
+	case UI_ACTION_EXTRUDER1_TEMP:
+	{
+#if NUM_EXTRUDER>1
+		int tmp = (int)extruder[1].tempControl.targetTemperatureC;
+		tmp += increment;
+		if (tmp == 1) tmp = UI_SET_MIN_EXTRUDER_TEMP;
+		if (tmp<UI_SET_MIN_EXTRUDER_TEMP) tmp = 0;
+		else if (tmp>UI_SET_MAX_EXTRUDER_TEMP) tmp = UI_SET_MAX_EXTRUDER_TEMP;
+		Extruder::setTemperatureForExtruder(tmp, 1);
+#endif // NUM_EXTRUDER>1
+		break;
+	}
+
+#if NUM_EXTRUDER>1
+	case UI_ACTION_EXTRUDER_OFFSET_X:
+	{
+		float oldXOffset = extruder[1].offsetMM[X_AXIS];
+		INCREMENT_MIN_MAX(extruder[1].offsetMM[X_AXIS], 0.25, 32, 36);
+
+		if (Printer::isAxisHomed(X_AXIS) && Extruder::current->id == extruder[1].id) {
+			// Shift the extruder-offset negatively to stay at the same point after switch
+			int32_t dx = (extruder[1].offsetMM[X_AXIS] - oldXOffset) * Printer::axisStepsPerMM[X_AXIS];
+			Printer::offsetRelativeStepsCoordinates(-dx, 0, 0, 0);
+		}
+
+		HAL::eprSetFloat(EEPROM::getExtruderOffset(1) + EPR_EXTRUDER_X_OFFSET, extruder[1].offsetMM[X_AXIS]);
+		EEPROM::updateChecksum();
+		break;
+	}
+	case UI_ACTION_EXTRUDER_OFFSET_Y:
+	{
+		float oldYOffset = extruder[1].offsetMM[Y_AXIS];
+		INCREMENT_MIN_MAX(extruder[1].offsetMM[Y_AXIS], 0.25, -2, 2);
+
+		if (Printer::isAxisHomed(Y_AXIS) && Extruder::current->id == extruder[1].id) {
+			int32_t dy = (extruder[1].offsetMM[Y_AXIS] - oldYOffset) * Printer::axisStepsPerMM[Y_AXIS];
+			// Shift the extruder-offset negatively to stay at the same point after switch
+			Printer::offsetRelativeStepsCoordinates(0, -dy, 0, 0);
+		}
+
+		HAL::eprSetFloat(EEPROM::getExtruderOffset(1) + EPR_EXTRUDER_Y_OFFSET, extruder[1].offsetMM[Y_AXIS]);
+		EEPROM::updateChecksum();
+		break;
+	}
+	case UI_ACTION_EXTRUDER_OFFSET_Z:
+	{
+		float oldZOffset = extruder[1].offsetMM[Z_AXIS];
+		//Das hier ist nur dazu gedacht, um eine Tip-Down-Nozzle auf per ToolChange auf die Korrekte Höhe zu justieren.
+		INCREMENT_MIN_MAX(extruder[1].offsetMM[Z_AXIS], 0.025, -2, 0);
+
+		if (Printer::isAxisHomed(Z_AXIS) && Extruder::current->id == extruder[1].id) {
+			int32_t dz = (extruder[1].offsetMM[Z_AXIS] - oldZOffset) * Printer::axisStepsPerMM[Z_AXIS];
+			// Shift the extruder-offset negatively to stay at the same point after switch
+			Printer::offsetRelativeStepsCoordinates(0, 0, -dz, 0);
+		}
+
+		HAL::eprSetFloat(EEPROM::getExtruderOffset(1) + EPR_EXTRUDER_Z_OFFSET, extruder[1].offsetMM[Z_AXIS]); //mm negativ
+		EEPROM::updateChecksum();
+		break;
+	}
+#endif // NUM_EXTRUDER>1
+
+	case UI_ACTION_FEEDRATE_MULTIPLY:
+	{
+		int fr = Printer::feedrateMultiply;
+		INCREMENT_MIN_MAX(fr, 1, 25, 500);
+		Commands::changeFeedrateMultiply(fr);
+		break;
+	}
+	case UI_ACTION_FLOWRATE_MULTIPLY:
+	{
+		float eF = Printer::menuExtrusionFactor;
+		INCREMENT_MIN_MAX(eF, 0.01f, 0.25f, 2.0f);
+		Commands::changeFlowrateMultiply(eF);
+		break;
+	}
+	case UI_ACTION_STEPPER_INACTIVE:
+	{
+		stepperInactiveTime -= stepperInactiveTime % 1000;
+		INCREMENT_MAX(stepperInactiveTime, 60000UL, 10080000UL);
+
+		HAL::eprSetInt32(EPR_STEPPER_INACTIVE_TIME, stepperInactiveTime);
+		EEPROM::updateChecksum();
+		break;
+	}
+	case UI_ACTION_MAX_INACTIVE:
+	{
+		maxInactiveTime -= maxInactiveTime % 1000;
+		INCREMENT_MAX(maxInactiveTime, 60000UL, 10080000UL);
+
+		HAL::eprSetInt32(EPR_MAX_INACTIVE_TIME, maxInactiveTime);
+		EEPROM::updateChecksum();
+		break;
+	}
+	case UI_ACTION_PRINT_ACCEL_X:
+	{
+		INCREMENT_MIN_MAX(Printer::maxAccelerationMMPerSquareSecond[X_AXIS], ACCELERATION_MENU_CHANGE_XY, ACCELERATION_MIN_XY, ACCELERATION_MAX_XY);
+		Printer::updateDerivedParameter();
+
+		HAL::eprSetFloat(EPR_X_MAX_ACCEL, Printer::maxAccelerationMMPerSquareSecond[X_AXIS]);
+		EEPROM::updateChecksum();
+		break;
+	}
+	case UI_ACTION_PRINT_ACCEL_Y:
+	{
+		INCREMENT_MIN_MAX(Printer::maxAccelerationMMPerSquareSecond[Y_AXIS], ACCELERATION_MENU_CHANGE_XY, ACCELERATION_MIN_XY, ACCELERATION_MAX_XY);
+		Printer::updateDerivedParameter();
+
+		HAL::eprSetFloat(EPR_Y_MAX_ACCEL, Printer::maxAccelerationMMPerSquareSecond[Y_AXIS]);
+		EEPROM::updateChecksum();
+		break;
+	}
+	case UI_ACTION_PRINT_ACCEL_Z:
+	{
+		INCREMENT_MIN_MAX(Printer::maxAccelerationMMPerSquareSecond[Z_AXIS], ACCELERATION_MENU_CHANGE_Z, ACCELERATION_MIN_Z, ACCELERATION_MAX_Z);
+		Printer::updateDerivedParameter();
+
+		HAL::eprSetFloat(EPR_Z_MAX_ACCEL, Printer::maxAccelerationMMPerSquareSecond[Z_AXIS]);
+		EEPROM::updateChecksum();
+		break;
+	}
+	case UI_ACTION_MOVE_ACCEL_X:
+	{
+		INCREMENT_MIN_MAX(Printer::maxTravelAccelerationMMPerSquareSecond[X_AXIS], ACCELERATION_MENU_CHANGE_XY, ACCELERATION_MIN_XY, ACCELERATION_MAX_XY);
+		Printer::updateDerivedParameter();
+
+		HAL::eprSetFloat(EPR_X_MAX_TRAVEL_ACCEL, Printer::maxTravelAccelerationMMPerSquareSecond[X_AXIS]);
+		EEPROM::updateChecksum();
+		break;
+	}
+	case UI_ACTION_MOVE_ACCEL_Y:
+	{
+		INCREMENT_MIN_MAX(Printer::maxTravelAccelerationMMPerSquareSecond[Y_AXIS], ACCELERATION_MENU_CHANGE_XY, ACCELERATION_MIN_XY, ACCELERATION_MAX_XY);
+		Printer::updateDerivedParameter();
+
+		HAL::eprSetFloat(EPR_Y_MAX_TRAVEL_ACCEL, Printer::maxTravelAccelerationMMPerSquareSecond[Y_AXIS]);
+		EEPROM::updateChecksum();
+		break;
+	}
+	case UI_ACTION_MOVE_ACCEL_Z:
+	{
+		INCREMENT_MIN_MAX(Printer::maxTravelAccelerationMMPerSquareSecond[Z_AXIS], ACCELERATION_MENU_CHANGE_Z, ACCELERATION_MIN_Z, ACCELERATION_MAX_Z);
+		Printer::updateDerivedParameter();
+
+		HAL::eprSetFloat(EPR_Z_MAX_TRAVEL_ACCEL, Printer::maxTravelAccelerationMMPerSquareSecond[Z_AXIS]);
+		EEPROM::updateChecksum();
+		break;
+	}
+	case UI_ACTION_MAX_JERK:
+	{
+		INCREMENT_MIN_MAX(Printer::maxXYJerk, 0.1f, 1.0f, 33.3f); //RFx000: Limit 33.3 sind willkürlich grob faktor 3 von normalwert.
+
+		HAL::eprSetFloat(EPR_MAX_XYJERK, Printer::maxXYJerk);
+		EEPROM::updateChecksum();
+		break;
+	}
+	case UI_ACTION_MAX_ZJERK:
+	{
+		INCREMENT_MIN_MAX(Printer::maxZJerk, 0.05f, 0.05f, 2.0f); //RFx000: Limit 2 sind Max XY-Jerk / Stepratenverhältnis XY->Z von ~16.8 gibt etwas unter 2.
+
+		HAL::eprSetFloat(EPR_MAX_ZJERK, Printer::maxZJerk);
+		EEPROM::updateChecksum();
+		break;
+	}
+#if FEATURE_READ_CALIPER
+	case UI_ACTION_CAL_STANDARD:
+	{
+		if (caliper_filament_standard >= 2600) {
+			INCREMENT_MIN_MAX(caliper_filament_standard, 10, 2590, 3000);
+			if (caliper_filament_standard == 2590) {
+				caliper_filament_standard = 1750;
+			}
+		}
+		else {
+			INCREMENT_MIN_MAX(caliper_filament_standard, 10, 1600, 1910);
+			if (caliper_filament_standard == 1910) {
+				caliper_filament_standard = 2850;
+			}
+		}
+
+		HAL::eprSetInt16(EPR_RF_CAL_STANDARD, caliper_filament_standard);
+		EEPROM::updateChecksum();
+		break;
+	}
+	case UI_ACTION_CAL_CORRECT:
+	{
+		INCREMENT_MIN_MAX(caliper_collect_adjust, 1, -127, 127);
+		HAL::eprSetByte(EPR_RF_CAL_ADJUST, caliper_collect_adjust);
+		EEPROM::updateChecksum();
+		break;
+	}
+#endif //FEATURE_READ_CALIPER
+	case UI_ACTION_MILL_ACCELERATION:
+	{
+#if FEATURE_MILLING_MODE
+		if (!Printer::isPrinting()) {
+			INCREMENT_MIN_MAX(Printer::max_milling_all_axis_acceleration, 2, 1, 200);
+			Printer::updateDerivedParameter();
+			HAL::eprSetInt16(EPR_RF_MILL_ACCELERATION, Printer::max_milling_all_axis_acceleration);
+			EEPROM::updateChecksum();
+		}
+#endif // FEATURE_MILLING_MODE
+		break;
+	}
+	case UI_ACTION_HOMING_FEEDRATE_X:
+	{
+		INCREMENT_MIN_MAX(Printer::homingFeedrate[X_AXIS], 5, 5, MAX_FEEDRATE_X);
+
+#if FEATURE_MILLING_MODE
+		if (Printer::operatingMode == OPERATING_MODE_PRINT)
+		{
+#endif // FEATURE_MILLING_MODE
+			HAL::eprSetFloat(EPR_X_HOMING_FEEDRATE_PRINT, Printer::homingFeedrate[X_AXIS]);
+#if FEATURE_MILLING_MODE
+		}
+		else
+		{
+			HAL::eprSetFloat(EPR_X_HOMING_FEEDRATE_MILL, Printer::homingFeedrate[X_AXIS]);
+		}
+#endif // FEATURE_MILLING_MODE
+		EEPROM::updateChecksum();
+		break;
+	}
+	case UI_ACTION_HOMING_FEEDRATE_Y:
+	{
+		INCREMENT_MIN_MAX(Printer::homingFeedrate[Y_AXIS], 5, 5, MAX_FEEDRATE_Y);
+
+#if FEATURE_MILLING_MODE
+		if (Printer::operatingMode == OPERATING_MODE_PRINT)
+		{
+#endif // FEATURE_MILLING_MODE
+			HAL::eprSetFloat(EPR_Y_HOMING_FEEDRATE_PRINT, Printer::homingFeedrate[Y_AXIS]);
+#if FEATURE_MILLING_MODE
+		}
+		else
+		{
+			HAL::eprSetFloat(EPR_Y_HOMING_FEEDRATE_MILL, Printer::homingFeedrate[Y_AXIS]);
+		}
+#endif // FEATURE_MILLING_MODE
+		EEPROM::updateChecksum();
+		break;
+	}
+	case UI_ACTION_HOMING_FEEDRATE_Z:
+	{
+		INCREMENT_MIN_MAX(Printer::homingFeedrate[Z_AXIS], 1, 1, MAX_FEEDRATE_Z);
+
+#if FEATURE_MILLING_MODE
+		if (Printer::operatingMode == OPERATING_MODE_PRINT)
+		{
+#endif // FEATURE_MILLING_MODE
+			HAL::eprSetFloat(EPR_Z_HOMING_FEEDRATE_PRINT, Printer::homingFeedrate[Z_AXIS]);
+#if FEATURE_MILLING_MODE
+		}
+		else
+		{
+			HAL::eprSetFloat(EPR_Z_HOMING_FEEDRATE_MILL, Printer::homingFeedrate[Z_AXIS]);
+		}
+#endif // FEATURE_MILLING_MODE
+		EEPROM::updateChecksum();
+		break;
+	}
+	case UI_ACTION_MAX_FEEDRATE_X:
+	{
+		INCREMENT_MIN_MAX(Printer::maxFeedrate[X_AXIS], 5, 1, MAX_FEEDRATE_X);
+
+		HAL::eprSetFloat(EPR_X_MAX_FEEDRATE, Printer::maxFeedrate[X_AXIS]);
+		EEPROM::updateChecksum();
+		break;
+	}
+	case UI_ACTION_MAX_FEEDRATE_Y:
+	{
+		INCREMENT_MIN_MAX(Printer::maxFeedrate[Y_AXIS], 5, 1, MAX_FEEDRATE_Y);
+
+		HAL::eprSetFloat(EPR_Y_MAX_FEEDRATE, Printer::maxFeedrate[Y_AXIS]);
+		EEPROM::updateChecksum();
+		break;
+	}
+	case UI_ACTION_MAX_FEEDRATE_Z:
+	{
+		INCREMENT_MIN_MAX(Printer::maxFeedrate[Z_AXIS], 1, 1, MAX_FEEDRATE_Z);
+
+		HAL::eprSetFloat(EPR_Z_MAX_FEEDRATE, Printer::maxFeedrate[Z_AXIS]);
+		EEPROM::updateChecksum();
+		break;
+	}
+	case UI_ACTION_BAUDRATE:
+	{
+#if EEPROM_MODE!=0
+		unsigned char p = 0;
+		int32_t rate;
+		do
+		{
+			rate = pgm_read_dword(&(baudrates[p]));
+			if (rate == baudrate) break;
+			p++;
+
+		} while (rate != 0);
+
+		if (rate == 0 && p >= 2) p -= 2;
+		else if (rate == 0 && p == 1) p = 0;
+
+		if (p + increment >= 0) p += increment;
+		else if (p + increment <= 0) p = 0;
+
+		//if(p<0) p = 0;
+		rate = pgm_read_dword(&(baudrates[p]));
+		if (rate == 0 && p >= 1) p--;
+		baudrate = pgm_read_dword(&(baudrates[p]));
+
+		HAL::eprSetInt32(EPR_BAUDRATE, baudrate);
+		EEPROM::updateChecksum();
+#endif // EEPROM_MODE!=0
+		break;
+	}
+
+#if FEATURE_RGB_LIGHT_EFFECTS
+	case UI_ACTION_RGB_LIGHT_MODE:
+	{
+		INCREMENT_MIN_MAX(Printer::RGBLightMode, 1, 0, 3);
+
+		HAL::eprSetByte(EPR_RF_RGB_LIGHT_MODE, Printer::RGBLightMode);
+		EEPROM::updateChecksum();
+
+		switch (Printer::RGBLightMode)
+		{
+		case RGB_MODE_OFF:
+		{
+			Printer::RGBLightStatus = RGB_STATUS_NOT_AUTOMATIC;
+			Printer::RGBLightModeForceWhite = 0;
+			setRGBTargetColors(0, 0, 0);
+			break;
+		}
+		case RGB_MODE_WHITE:
+		{
+			Printer::RGBLightStatus = RGB_STATUS_NOT_AUTOMATIC;
+			Printer::RGBLightModeForceWhite = 0;
+			setRGBTargetColors(255, 255, 255);
+			break;
+		}
+		case RGB_MODE_AUTOMATIC:
+		{
+			// the firmware will determine the current RGB colors automatically
+			Printer::RGBLightStatus = RGB_STATUS_AUTOMATIC;
+			Printer::RGBLightModeForceWhite = 0;
+			break;
+		}
+		case RGB_MODE_MANUAL:
+		{
+			Printer::RGBLightStatus = RGB_STATUS_NOT_AUTOMATIC;
+			Printer::RGBLightModeForceWhite = 0;
+			setRGBTargetColors(g_uRGBManualR, g_uRGBManualG, g_uRGBManualB);
+			break;
+		}
+		}
+		break;
+	}
+#endif // FEATURE_RGB_LIGHT_EFFECTS
+
+	case UI_ACTION_EXTR_STEPS_E0:
+	case UI_ACTION_EXTR_STEPS_E1:
+	{
+		if (!Printer::isMenuMode(MENU_MODE_PAUSED) && !Printer::isPrinting()) {
+#if NUM_EXTRUDER > 1
+			uint8_t eNr = (UI_ACTION_EXTR_STEPS_E1 == action) ? 1 : 0;
+#else
+			uint8_t eNr = 0;
+#endif //NUM_EXTRUDER > 1
+			INCREMENT_MIN_MAX(extruder[eNr].stepsPerMM, 1, 1, 9999);
+			if (eNr == Extruder::current->id) Extruder::selectExtruderById(eNr); //übernehmen der werte
+
+			HAL::eprSetFloat(EEPROM::getExtruderOffset(eNr) + EPR_EXTRUDER_STEPS_PER_MM, extruder[eNr].stepsPerMM);
+			EEPROM::updateChecksum();
+		}
+		break;
+	}
+
+#if USE_ADVANCE
+	case UI_ACTION_ADVANCE_L_E0:
+	case UI_ACTION_ADVANCE_L_E1:
+	{
+#if NUM_EXTRUDER > 1
+		uint8_t eNr = (UI_ACTION_ADVANCE_L_E1 == action) ? 1 : 0;
+#else
+		uint8_t eNr = 0;
+#endif //NUM_EXTRUDER > 1
+		float step = (extruder[eNr].advanceL < 30.0f) ? 1.0f : ((extruder[eNr].advanceL < 50.0f) ? 5.0f : 10.0f);
+		INCREMENT_MIN_MAX(extruder[eNr].advanceL, step, 0.0f, 250.0f);
+		// advance < 20 might be problematic
+		// https://github.com/repetier/Repetier-Firmware/issues/837#issuecomment-455852008
+		if (extruder[eNr].advanceL < 20.0f) {
+			if (increment > 0) {
+				extruder[eNr].advanceL = 20;
+			}
+			else {
+				extruder[eNr].advanceL = 0;
+			}
+		}
+		Printer::updateAdvanceActivated();
+
+		HAL::eprSetFloat(EEPROM::getExtruderOffset(eNr) + EPR_EXTRUDER_ADVANCE_L, extruder[eNr].advanceL);
+		EEPROM::updateChecksum();
+		break;
+	}
+#endif //USE_ADVANCE
+
+	case UI_ACTION_EXTR_ACCELERATION_E0:
+	case UI_ACTION_EXTR_ACCELERATION_E1:
+	{
+#if NUM_EXTRUDER > 1
+		uint8_t eNr = (UI_ACTION_EXTR_ACCELERATION_E1 == action) ? 1 : 0;
+#else
+		uint8_t eNr = 0;
+#endif //NUM_EXTRUDER > 1
+		INCREMENT_MIN_MAX(extruder[eNr].maxAcceleration, 200, 200, 10000);
+		if (eNr == Extruder::current->id) Extruder::selectExtruderById(eNr);
+
+		HAL::eprSetFloat(EEPROM::getExtruderOffset(eNr) + EPR_EXTRUDER_MAX_ACCELERATION, extruder[eNr].maxAcceleration);
+		EEPROM::updateChecksum();
+		break;
+	}
+
+	case UI_ACTION_EXTR_MAX_FEEDRATE_E0:
+	case UI_ACTION_EXTR_MAX_FEEDRATE_E1:
+	{
+#if NUM_EXTRUDER > 1
+		uint8_t eNr = (UI_ACTION_EXTR_MAX_FEEDRATE_E1 == action) ? 1 : 0;
+#else
+		uint8_t eNr = 0;
+#endif //NUM_EXTRUDER > 1
+		INCREMENT_MIN_MAX(extruder[eNr].maxFeedrate, 1, extruder[eNr].maxEJerk, 60);
+		if (eNr == Extruder::current->id) Extruder::selectExtruderById(eNr);
+
+		HAL::eprSetFloat(EEPROM::getExtruderOffset(eNr) + EPR_EXTRUDER_MAX_FEEDRATE, extruder[eNr].maxFeedrate);
+		EEPROM::updateChecksum();
+		break;
+	}
+
+	case UI_ACTION_EXTR_START_FEEDRATE_E0:
+	case UI_ACTION_EXTR_START_FEEDRATE_E1:
+	{
+#if NUM_EXTRUDER > 1
+		uint8_t eNr = (UI_ACTION_EXTR_START_FEEDRATE_E1 == action) ? 1 : 0;
+#else
+		uint8_t eNr = 0;
+#endif //NUM_EXTRUDER > 1
+		INCREMENT_MIN_MAX(extruder[eNr].maxEJerk, 1, 1, extruder[eNr].maxFeedrate);
+		if (eNr == Extruder::current->id) Extruder::selectExtruderById(eNr);
+
+		HAL::eprSetFloat(EEPROM::getExtruderOffset(eNr) + EPR_EXTRUDER_MAX_START_FEEDRATE, extruder[eNr].maxEJerk);
+		EEPROM::updateChecksum();
+		break;
+	}
+
+#if FEATURE_WORK_PART_Z_COMPENSATION
+	case UI_ACTION_RF_SET_Z_MATRIX_WORK_PART:
+	{
+		if (Printer::doWorkPartZCompensation)
+		{
+			// do not allow to change the current work part z-compensation matrix while the z-compensation is active
+			showError((void*)ui_text_z_compensation, (void*)ui_text_operation_denied);
+			break;
+		}
+
+		INCREMENT_MIN_MAX(g_nActiveWorkPart, 1, 1, EEPROM_MAX_WORK_PART_SECTORS);
+		switchActiveWorkPart(g_nActiveWorkPart);
+		break;
+	}
+	case UI_ACTION_RF_SET_SCAN_DELTA_X:
+	{
+		INCREMENT_MIN_MAX(g_nScanXStepSizeMM, 1, WORK_PART_SCAN_X_STEP_SIZE_MIN_MM, 100);
+		g_nScanXStepSizeSteps = (long)((float)g_nScanXStepSizeMM * Printer::axisStepsPerMM[X_AXIS]);
+		break;
+	}
+	case UI_ACTION_RF_SET_SCAN_DELTA_Y:
+	{
+		INCREMENT_MIN_MAX(g_nScanYStepSizeMM, 1, WORK_PART_SCAN_Y_STEP_SIZE_MIN_MM, 100);
+		g_nScanYStepSizeSteps = (long)((float)g_nScanYStepSizeMM * Printer::axisStepsPerMM[Y_AXIS]);
+		break;
+	}
+#endif // FEATURE_WORK_PART_Z_COMPENSATION
+
+#if FEATURE_HEAT_BED_Z_COMPENSATION
+	case UI_ACTION_RF_SET_Z_MATRIX_HEAT_BED:
+	{
+		if (Printer::doHeatBedZCompensation)
+		{
+			// do not allow to change the current heat bed z-compensation matrix while the z-compensation is active
+			showError((void*)ui_text_z_compensation, (void*)ui_text_operation_denied);
+			break;
+		}
+
+		INCREMENT_MIN_MAX(g_nActiveHeatBed, 1, 1, EEPROM_MAX_HEAT_BED_SECTORS);
+		switchActiveHeatBed(g_nActiveHeatBed);
+		break;
+	}
+#endif // FEATURE_HEAT_BED_Z_COMPENSATION
+
+#if FEATURE_WORK_PART_Z_COMPENSATION || FEATURE_HEAT_BED_Z_COMPENSATION
+	case UI_ACTION_RF_SCAN_START_HEIGHT:
+	{
+		INCREMENT_MIN_MAX(g_scanStartZLiftMM, 0.1f, 0.3f, 6.0f);
+		HAL::eprSetFloat(EPR_ZSCAN_START_MM, g_scanStartZLiftMM); //mm zlift vor den scans.
+		EEPROM::updateChecksum();
+		break;
+	}
+#endif // FEATURE_WORK_PART_Z_COMPENSATION || FEATURE_HEAT_BED_Z_COMPENSATION
+
+	case UI_ACTION_RF_RESET_ACK:
+	case UI_ACTION_STOP_ACK:
+	case UI_ACTION_RESTORE_DEFAULTS:
+	case UI_ACTION_CHOOSE_LESSERINTEGRAL:
+	case UI_ACTION_CHOOSE_CLASSICPID:
+	case UI_ACTION_CHOOSE_NO:
+	case UI_ACTION_CHOOSE_TYREUS_LYBEN:
+	{
+		INCREMENT_MIN_MAX(g_nYesNo, 1, 0, 1);
+		break;
+	}
+
+#if FEATURE_EMERGENCY_PAUSE
+	case UI_ACTION_EMERGENCY_PAUSE_MIN:
+	{
+		INCREMENT_MIN_MAX(g_nEmergencyPauseDigitsMin, 200, EMERGENCY_PAUSE_DIGITS_MIN, g_nEmergencyPauseDigitsMax);
+		HAL::eprSetInt32(EPR_RF_EMERGENCYPAUSEDIGITSMIN, g_nEmergencyPauseDigitsMin);
+		EEPROM::updateChecksum();
+		break;
+	}
+	case UI_ACTION_EMERGENCY_PAUSE_MAX:
+	{
+		INCREMENT_MIN_MAX(g_nEmergencyPauseDigitsMax, 200, g_nEmergencyPauseDigitsMin, EMERGENCY_PAUSE_DIGITS_MAX);
+		HAL::eprSetInt32(EPR_RF_EMERGENCYPAUSEDIGITSMAX, g_nEmergencyPauseDigitsMax);
+		EEPROM::updateChecksum();
+		break;
+	}
+#endif //FEATURE_EMERGENCY_PAUSE
+
+#if FEATURE_EMERGENCY_STOP_Z_AND_E
+	case UI_ACTION_EMERGENCY_ZSTOP_MIN:
+	{
+		INCREMENT_MIN_MAX(g_nEmergencyStopZAndEMin, 200, EMERGENCY_STOP_DIGITS_MIN, g_nEmergencyStopZAndEMax);
+		HAL::eprSetInt16(EPR_RF_EMERGENCYZSTOPDIGITSMIN, g_nEmergencyStopZAndEMin);
+		EEPROM::updateChecksum();
+		break;
+	}
+	case UI_ACTION_EMERGENCY_ZSTOP_MAX:
+	{
+		INCREMENT_MIN_MAX(g_nEmergencyStopZAndEMax, 200, g_nEmergencyStopZAndEMin, EMERGENCY_STOP_DIGITS_MAX);
+		HAL::eprSetInt16(EPR_RF_EMERGENCYZSTOPDIGITSMAX, g_nEmergencyStopZAndEMax);
+		EEPROM::updateChecksum();
+		break;
+	}
+#endif //FEATURE_EMERGENCY_STOP_Z_AND_E
+
+#if FEATURE_SENSIBLE_PRESSURE
+	case UI_ACTION_SENSEOFFSET_DIGITS:
+	{
+		short oldval = HAL::eprGetInt16(EPR_RF_MOD_SENSEOFFSET_DIGITS);
+		INCREMENT_MIN_MAX(oldval, 100, 500, EMERGENCY_PAUSE_DIGITS_MAX);
+		HAL::eprSetInt16(EPR_RF_MOD_SENSEOFFSET_DIGITS, oldval);
+		EEPROM::updateChecksum();
+		break;
+	}
+	case UI_ACTION_SENSEOFFSET_MAX:
+	{
+		short oldval = HAL::eprGetInt16(EPR_RF_MOD_SENSEOFFSET_OFFSET_MAX);
+		INCREMENT_MIN_MAX(oldval, 10, 10, 300);
+		HAL::eprSetInt16(EPR_RF_MOD_SENSEOFFSET_OFFSET_MAX, oldval);
+		EEPROM::updateChecksum();
+		break;
+	}
+#endif //FEATURE_SENSIBLE_PRESSURE
+
+#if FEATURE_Kurt67_WOBBLE_FIX
+	//Antibauchtanz:
+	case UI_ACTION_WOBBLE_FIX_PHASEXY:
+	{
+		INCREMENT_MIN_MAX(Printer::wobblePhaseXY, 1, -100, 101);
+		if (Printer::wobblePhaseXY == 101) {
+			Printer::wobblePhaseXY = -99;
+		}
+		if (Printer::wobblePhaseXY == -100) {
+			Printer::wobblePhaseXY = 100;
+		}
+		HAL::eprSetByte(EPR_RF_MOD_WOBBLE_FIX_PHASEXY, Printer::wobblePhaseXY);
+		EEPROM::updateChecksum();
+		break;
+	}
+	case UI_ACTION_WOBBLE_FIX_AMPX:
+	{
+		INCREMENT_MIN_MAX(Printer::wobbleAmplitudes[0], 5, -995, 995);
+		HAL::eprSetInt16(EPR_RF_MOD_WOBBLE_FIX_AMPX, Printer::wobbleAmplitudes[0]);
+		EEPROM::updateChecksum();
+		break;
+	}
+	case UI_ACTION_WOBBLE_FIX_AMPY1:
+	{
+		INCREMENT_MIN_MAX(Printer::wobbleAmplitudes[1], 5, -995, 995);
+		HAL::eprSetInt16(EPR_RF_MOD_WOBBLE_FIX_AMPY1, Printer::wobbleAmplitudes[1]);
+		EEPROM::updateChecksum();
+		break;
+	}
+	case UI_ACTION_WOBBLE_FIX_AMPY2:
+	{
+		INCREMENT_MIN_MAX(Printer::wobbleAmplitudes[2], 5, -995, 995);
+		HAL::eprSetInt16(EPR_RF_MOD_WOBBLE_FIX_AMPY2, Printer::wobbleAmplitudes[2]);
+		EEPROM::updateChecksum();
+		break;
+	}
+	//Antikippeln:
+	/*
+	case UI_ACTION_WOBBLE_FIX_PHASEZ:
+	{
+	INCREMENT_MIN_MAX(Printer::wobblePhaseZ,1,-100,100);
+	break;
+	}
+	case UI_ACTION_WOBBLE_FIX_AMPZ:
+	{
+	INCREMENT_MIN_MAX(Printer::wobbleAmplitudes[3],5,-995,995);
+	break;
+	}*/
+#endif //FEATURE_Kurt67_WOBBLE_FIX
+
+	case UI_ACTION_CHOOSE_DMIN:
+	{
+		if (menuLevel == 4) { //identifikation des temperaturzyklus anhand der position im menü. Das ist nicht 100% sauber, aber funktioniert.
+			uint8_t heater = menuPos[menuLevel - 1]; //0..1..2 mit zwei extrudern und bett. passt zum autotunesystem, weil UI_MENU_PID_EXT0_COUNT + UI_MENU_PID_EXT1_COUNT + UI_MENU_PID_BED_COUNT
+			if (heater < NUM_TEMPERATURE_LOOPS) {
+				int drive = tempController[heater]->pidDriveMin;
+				INCREMENT_MIN_MAX(drive, 1, 1, 255);
+				tempController[heater]->pidDriveMin = drive;
+				if (UI_MENU_PID_BED_COUNT > 0 && UI_MENU_PID_EXT0_COUNT + UI_MENU_PID_EXT1_COUNT + UI_MENU_PID_BED_COUNT - 1 == heater) {
+					//Das ist das Heizbett
+					HAL::eprSetByte(EPR_BED_DRIVE_MIN, (uint8_t)drive);
+					EEPROM::updateChecksum();
+				}
+				else {
+					//Extruder
+					if (heater <= NUM_EXTRUDER - 1) { //paranoid doublecheck
+						HAL::eprSetByte(EEPROM::getExtruderOffset(heater) + EPR_EXTRUDER_DRIVE_MIN, (uint8_t)drive);
+						EEPROM::updateChecksum();
+					}
+				}
+			}
+		}
+		break;
+	}
+	case UI_ACTION_CHOOSE_DMAX:
+	{
+		if (menuLevel == 4) { //identifikation des temperaturzyklus anhand der position im menü. Das ist nicht 100% sauber, aber funktioniert.
+			uint8_t heater = menuPos[menuLevel - 1]; //0..1..2 mit zwei extrudern und bett. passt zum autotunesystem, weil UI_MENU_PID_EXT0_COUNT + UI_MENU_PID_EXT1_COUNT + UI_MENU_PID_BED_COUNT
+			if (heater < NUM_TEMPERATURE_LOOPS) {
+				int drive = tempController[heater]->pidDriveMax;
+				INCREMENT_MIN_MAX(drive, 1, 1, 255);
+				tempController[heater]->pidDriveMax = drive;
+				if (UI_MENU_PID_BED_COUNT > 0 && UI_MENU_PID_EXT0_COUNT + UI_MENU_PID_EXT1_COUNT + UI_MENU_PID_BED_COUNT - 1 == heater) {
+					//Das ist das Heizbett
+					HAL::eprSetByte(EPR_BED_DRIVE_MAX, (uint8_t)drive);
+					EEPROM::updateChecksum();
+				}
+				else {
+					//Extruder
+					if (heater <= NUM_EXTRUDER - 1) { //paranoid doublecheck
+						HAL::eprSetByte(EEPROM::getExtruderOffset(heater) + EPR_EXTRUDER_DRIVE_MAX, (uint8_t)drive);
+						EEPROM::updateChecksum();
+					}
+				}
+			}
+		}
+		break;
+	}
+	case UI_ACTION_CHOOSE_PIDMAX:
+	{
+		if (menuLevel == 4) { //identifikation des temperaturzyklus anhand der position im menü. Das ist nicht 100% sauber, aber funktioniert.
+			uint8_t heater = menuPos[menuLevel - 1]; //0..1..2 mit zwei extrudern und bett. passt zum autotunesystem, weil UI_MENU_PID_EXT0_COUNT + UI_MENU_PID_EXT1_COUNT + UI_MENU_PID_BED_COUNT
+			if (heater < NUM_TEMPERATURE_LOOPS) {
+				int drive = tempController[heater]->pidMax;
+				INCREMENT_MIN_MAX(drive, 1, 1, 255);
+				tempController[heater]->pidMax = drive;
+				if (UI_MENU_PID_BED_COUNT > 0 && UI_MENU_PID_EXT0_COUNT + UI_MENU_PID_EXT1_COUNT + UI_MENU_PID_BED_COUNT - 1 == heater) {
+					//Das ist das Heizbett
+					HAL::eprSetByte(EPR_BED_PID_MAX, (uint8_t)drive);
+					EEPROM::updateChecksum();
+				}
+				else {
+					//Extruder
+					if (heater <= NUM_EXTRUDER - 1) { //paranoid doublecheck
+						HAL::eprSetByte(EEPROM::getExtruderOffset(heater) + EPR_EXTRUDER_PID_MAX, (uint8_t)drive);
+						EEPROM::updateChecksum();
+					}
+				}
+			}
+		}
+		break;
+	}
+	case UI_ACTION_CHOOSE_SENSOR:
+	{
+		if (menuLevel == 4) { //identifikation des temperaturzyklus anhand der position im menü. Das ist nicht 100% sauber, aber funktioniert.
+			uint8_t heater = menuPos[menuLevel - 1]; //0..1..2 mit zwei extrudern und bett. passt zum autotunesystem, weil UI_MENU_PID_EXT0_COUNT + UI_MENU_PID_EXT1_COUNT + UI_MENU_PID_BED_COUNT
+			if (heater < NUM_TEMPERATURE_LOOPS) {
+				int drive = tempController[heater]->sensorType;
+				if (UI_MENU_PID_BED_COUNT > 0 && UI_MENU_PID_EXT0_COUNT + UI_MENU_PID_EXT1_COUNT + UI_MENU_PID_BED_COUNT - 1 == heater) {
+					//Das ist das Heizbett
+					switch (drive) {
+					case 3: { drive = 4; break; } //4 ist der 10K Thermistor vom hersteller der matten (? rf1k_mhj11)
+					default: { drive = 3; break; }
+					}
+					tempController[heater]->sensorType = drive;
+					HAL::eprSetByte(EPR_RF_HEATED_BED_SENSOR_TYPE, (uint8_t)drive);
+					EEPROM::updateChecksum();
+				}
+				else {
+					//Extruder
+					if (increment > 0) {
+						switch (drive) {
+						case 3: { drive = 8; break; }
+						case 8: { drive = 13; break; } //add more sensors for menu-tweaking here, those are the most common for RFx000
+						case 13: { drive = 1; break; }
+						default: { drive = 3; break; }
+						}
+					}
+					else { //== 0 gibts nicht, soweit ich weiß
+						switch (drive) {
+						case 3: { drive = 1; break; }
+						case 1: { drive = 13; break; }
+						case 13: { drive = 8; break; } //add more sensors for menu-tweaking here, those are the most common for RFx000
+						default: { drive = 3; break; }
+						}
+					}
+					tempController[heater]->sensorType = drive;
+					if (heater <= NUM_EXTRUDER - 1) { //paranoid doublecheck
+						HAL::eprSetByte(EEPROM::getExtruderOffset(heater) + EPR_EXTRUDER_SENSOR_TYPE, (uint8_t)drive);
+						EEPROM::updateChecksum();
+					}
+				}
+			}
+		}
+		break;
+	}
+	case UI_ACTION_CHOOSE_MOTOR_X:
+	case UI_ACTION_CHOOSE_MOTOR_Y:
+	case UI_ACTION_CHOOSE_MOTOR_Z:
+	case UI_ACTION_CHOOSE_MOTOR_E0:
+	case UI_ACTION_CHOOSE_MOTOR_E1:
+	{
+		uint8_t steppernr = menuPos[menuLevel];
+		if (steppernr == 6) steppernr = 4; //das ist etwas stümperhaft, aber ich brauche die Zeilennummer um auszuwählen und die Einstellungen für die Extruderstepper gehören drüber, also muss Extruder 2 zwei Zeilen runter...
+		if (steppernr < 5) { // aktuell gibts nur 5
+			int drive = Printer::motorCurrent[steppernr];
+			const short uMotorCurrentMax[] = MOTOR_CURRENT_MAX;
+			INCREMENT_MIN_MAX(drive, 1, MOTOR_CURRENT_MIN + 1, uMotorCurrentMax[steppernr]); //von 40 bis maximal das was in der config steht.
+			Printer::motorCurrent[steppernr] = drive;
+			HAL::eprSetByte(EPR_RF_MOTOR_CURRENT + steppernr, (uint8_t)drive);
+			EEPROM::updateChecksum();
+			setMotorCurrent(steppernr + 1, drive);
+			Com::printF(PSTR("Stepper"), steppernr + 1);
+			Com::printFLN(PSTR(" = "), drive);
+		}
+		break;
+	}
+#if FEATURE_DIGIT_FLOW_COMPENSATION
+	case UI_ACTION_FLOW_MIN:
+	{
+		INCREMENT_MIN_MAX(g_nDigitFlowCompensation_Fmin, 200, 0, g_nDigitFlowCompensation_Fmax);
+		break;
+	}
+	case UI_ACTION_FLOW_MAX:
+	{
+		short max = (g_nEmergencyPauseDigitsMax ? abs(g_nEmergencyPauseDigitsMax) : abs(EMERGENCY_PAUSE_DIGITS_MAX));
+		INCREMENT_MIN_MAX(g_nDigitFlowCompensation_Fmax, 200, g_nDigitFlowCompensation_Fmin, max);
+		break;
+	}
+	case UI_ACTION_FLOW_DF:
+	{
+		INCREMENT_MIN_MAX(g_nDigitFlowCompensation_intense, 1, -99, 99);
+		//flowmulti wird zur laufzeit geändert, anhand von steigung intense -> aber je nach cache erst sehr spät.
+		break;
+	}
+	case UI_ACTION_FLOW_DV:
+	{
+		INCREMENT_MIN_MAX(g_nDigitFlowCompensation_speed_intense, 1, -90, 99);
+		//feedmulti wird zur laufzeit geändert, anhand von steigung intense
+		break;
+	}
+#endif //FEATURE_DIGIT_FLOW_COMPENSATION
+	case UI_ACTION_SHIFT_INTERVAL:
+	{
+		INCREMENT_MIN_MAX(Printer::stepsPackingMinInterval, -100, MIN_STEP_PACKING_MIN_INTERVAL, MAX_STEP_PACKING_MIN_INTERVAL);
+		HAL::eprSetInt16(EPR_RF_STEP_PACKING_MIN_INTERVAL, Printer::stepsPackingMinInterval);
+		EEPROM::updateChecksum();
+		break;
+	}
+#if FEATURE_ADJUSTABLE_MICROSTEPS
+	case UI_ACTION_MICROSTEPS_XY:
+	case UI_ACTION_MICROSTEPS_Z:
+	case UI_ACTION_MICROSTEPS_E:
+	{
+		if (!Printer::isPrinting() && !PrintLine::linesCount && g_pauseStatus == PAUSE_STATUS_NONE) {
+			Printer::disableAllSteppersNow();  //Stepper und Homing ausmachen.
+											   //We cannot use the old coordinates anymore.
+
+			InterruptProtectedBlock noInts;
+			bool changed[5] = { false, false, false, false, false };
+			switch (action) {
+			case UI_ACTION_MICROSTEPS_XY: {
+				INCREMENT_MIN_MAX(Printer::motorMicroStepsModeValue[0], 1, 4, 6);
+				if (Printer::motorMicroStepsModeValue[1] != Printer::motorMicroStepsModeValue[0]) { //only adjust, when changed.
+					Printer::motorMicroStepsModeValue[1] = Printer::motorMicroStepsModeValue[0]; //sync x and y
+					drv8711adjustMicroSteps(1); //adjust driver chip X=1
+					drv8711adjustMicroSteps(2); //adjust driver chip Y=2
+					changed[0] = changed[1] = true;
+				}
+				break;
+			}
+			case UI_ACTION_MICROSTEPS_Z: {
+				uint8_t temp = Printer::motorMicroStepsModeValue[2];
+				INCREMENT_MIN_MAX(Printer::motorMicroStepsModeValue[2], 1, 4, 5);
+				if (temp != Printer::motorMicroStepsModeValue[2]) { //only adjust, when changed.
+					drv8711adjustMicroSteps(3); //adjust driver chip Z=3
+					changed[2] = true;
+				}
+				break;
+			}
+			case UI_ACTION_MICROSTEPS_E: {
+				INCREMENT_MIN_MAX(Printer::motorMicroStepsModeValue[3], 1, 4, 7);
+				if (Printer::motorMicroStepsModeValue[4] != Printer::motorMicroStepsModeValue[3]) { //only adjust, when changed.
+					Printer::motorMicroStepsModeValue[4] = Printer::motorMicroStepsModeValue[3]; //sync E0 and E1
+					drv8711adjustMicroSteps(4); //adjust driver chip E0=4
+					drv8711adjustMicroSteps(5); //adjust driver chip E1=5
+					changed[3] = changed[4] = true;
+				}
+				break;
+			}
+			}
+
+			bool updateall = false;
+			if (HAL::eprGetByte(EPR_RF_MICRO_STEPS_USED) != 0xAB) updateall = true;
+			float stepsmm_korrekturfactor = (increment > 0 ? 2.0f : 0.5f);
+			bool updatederived = false;
+			bool updateextruder = false;
+
+			//anpassen der eeprom-werte und anpassen der steps/mm sodass die geschwindigkeit weiterhin passt.
+			for (int i = 0; i < DRV8711_NUM_CHANNELS; i++) {
+				if ((!changed[i] && updateall) || changed[i]) { //erstes oder veränderndes schreiben
+					HAL::eprSetByte(EPR_RF_MICRO_STEPS_X + i, Printer::motorMicroStepsModeValue[i]);
+				}
+				if (changed[i]) { //nur dann die axis-steps anpassen, wenn wirklich was geändert wurde.
+					switch (i) {
+					case X_AXIS:
+					case Y_AXIS:
+					case Z_AXIS:
+					{
+						Printer::axisStepsPerMM[i] *= stepsmm_korrekturfactor;
+						g_nPauseSteps[i] *= stepsmm_korrekturfactor;
+						if (i == Z_AXIS) {
+							g_staticZSteps *= stepsmm_korrekturfactor; //adjust static offset from Z-Offset to fit new Microstepping
+							Printer::currentZSteps *= stepsmm_korrekturfactor; //adjust critical z-counter for drive over switch limits
+							g_maxZCompensationSteps *= stepsmm_korrekturfactor; //preadjust max compensation steps for z-CMP (gets autoadjusted but the user might override autoadjustement)
+							g_minZCompensationSteps *= stepsmm_korrekturfactor; //preadjust max compensation steps for z-CMP (gets autoadjusted but the user might override autoadjustement)
+							g_nManualSteps[Z_AXIS] *= stepsmm_korrekturfactor;
+							HAL::eprSetInt16(EPR_RF_MOD_Z_STEP_SIZE, g_nManualSteps[Z_AXIS]);
+							g_ZCompensationMatrix[0][0] = EEPROM_FORMAT - 1; //force the zmatrix in ram to be invalid and to reload it later.
+																			 //korrektur der aktiven kompensation/zoffset ist durch fehlendes homing unterbunden.
+						}
+						updatederived = true; //übernehmen der werte in offsets und infaxissteps, accel usw..
+						HAL::eprSetFloat(EPR_XAXIS_STEPS_PER_MM + 4 * i, Printer::axisStepsPerMM[i]);
+						break;
+					}
+					case E_AXIS:
+					case E_AXIS + 1:
+					{
+						//i-3 ist hier 0 oder 1
+						uint8_t etr = i - 3; //3-3 =0 oder 4-1 =1
+						extruder[etr].stepsPerMM *= stepsmm_korrekturfactor;
+						HAL::eprSetFloat(EEPROM::getExtruderOffset(etr) + EPR_EXTRUDER_STEPS_PER_MM, extruder[etr].stepsPerMM);
+						if (etr == Extruder::current->id) updateextruder = true; //übernehmen der werte in offsets und infaxissteps, accel usw..
+						break;
+					}
+					}
+				}
+			}
+			//übernehmen der werte in offsets und infaxissteps, accel usw..
+			if (updatederived) Printer::updateDerivedParameter();
+			if (updateextruder) Extruder::selectExtruderById(Extruder::current->id);
+			if (updateall) HAL::eprSetByte(EPR_RF_MICRO_STEPS_USED, 0xAB); //erstes schreiben markiert eepromwerte als gültig
+			EEPROM::updateChecksum();
+			noInts.unprotect();
+		}
+		break;
+	}
+#endif //FEATURE_ADJUSTABLE_MICROSTEPS
+	}
+} //changeSwitchCase
+
+void UIDisplay::mainSwitchCase(int action)
+{
+	bool skipBeep = false;
+	switch (action)
+	{
+	/*
+	* HARDWARE BUTTONS
+	*/
+	case UI_ACTION_OK:
+	{
+		okAction();
+		skipBeep = true; // Prevent double beep
+		g_nYesNo = 0;
+		break;
+	}
+	case UI_ACTION_BACK:
+	{
+		backAction();
+		break;
+	}
+	case UI_ACTION_NEXT:
+	{
+		nextPreviousAction(1);
+		break;
+	}
+	case UI_ACTION_RIGHT:
+	{
+		rightAction();
+		break;
+	}
+	case UI_ACTION_PREVIOUS:
+	{
+		nextPreviousAction(-1);
+		break;
+	}
+	case UI_ACTION_RF_HEAT_BED_UP:
+	{
+		// show that we are active
+		previousMillisCmd = HAL::timeInMilliseconds(); //prevent inactive shutdown of steppers/temps
+
+		//DO NOT MOVE Z: ALTER Z-OFFSET
+		if (uid.menuLevel == 0 && uid.menuPos[0] == 1) { 
+			//wenn im Mod-Menü für Z-Offset/Matrix Sense-Offset/Limiter, dann anders!
+			zOffsetMinusAction();
+			beep(1, 4);
+		} //ELSE DO MOVE Z:
+		else
+		{
+			moveZAction(-1);
+		}
+		break;
+	}
+	case UI_ACTION_RF_HEAT_BED_DOWN:
+	{
+		// show that we are active
+		previousMillisCmd = HAL::timeInMilliseconds(); //prevent inactive shutdown of steppers/temps
+															   //DO NOT MOVE Z: ALTER Z-OFFSET
+		if (uid.menuLevel == 0 && uid.menuPos[0] == 1) { //wenn im Mod-Menü für Z-Offset/Matrix Z-Offset/Matrix Sense-Offset/Limiter, dann anders!
+			zOffsetPlusAction();
+			beep(1, 4);
+		} //ELSE DO MOVE Z:
+		else
+		{
+			moveZAction(1);
+		}
+		break;
+	}
+	case UI_ACTION_RF_EXTRUDER_OUTPUT:
+	{
+		// show that we are active
+		previousMillisCmd = HAL::timeInMilliseconds(); //prevent inactive shutdown of steppers/temps
+
+#if FEATURE_MILLING_MODE
+		if (Printer::operatingMode == OPERATING_MODE_MILL)
+		{
+			if (Printer::feedrate < RMath::min(Printer::maxFeedrate[X_AXIS], Printer::maxFeedrate[Y_AXIS]) - 1) Printer::feedrate++;
+		}
+		else
+#endif // FEATURE_MILLING_MODE
+		{
+			if (uid.menuLevel == 0 && uid.menuPos[0] == 1) { //wenn im Mod-Menü für Z-Offset/Matrix Sense-Offset/Limiter, dann anders!
+															 //we are in the Mod menu
+															 //so dont retract, change the speed of the print to a lower speed instead of retracting:
+															 //limits handled by change-function!
+				Commands::changeFeedrateMultiply(Printer::feedrateMultiply + 1);
+				beep(1, 4);
+			}
+			else {
+				Printer::offsetRelativeStepsCoordinates(0, 0, 0, int32_t(g_nManualSteps[E_AXIS]));
+
+				//In case of double pause and in case we tempered with the retract, we dont want to drive the E-Axis back to some old location - that much likely causes emergency block.
+				g_nContinueSteps[E_AXIS] = 0;
+			}
+		}
+		break;
+	}
+	case UI_ACTION_RF_EXTRUDER_RETRACT:
+	{
+		// show that we are active
+		previousMillisCmd = HAL::timeInMilliseconds(); //prevent inactive shutdown of steppers/temps
+
+#if FEATURE_MILLING_MODE
+		if (Printer::operatingMode == OPERATING_MODE_MILL)
+		{
+			if (Printer::feedrate > 1) Printer::feedrate--;
+		}
+		else
+#endif // FEATURE_MILLING_MODE
+		{
+			if (uid.menuLevel == 0 && uid.menuPos[0] == 1) { //wenn im Mod-Menü für Z-Offset/Matrix Sense-Offset/Limiter, dann anders!
+															 //we are in the Mod menu
+															 //so dont retract, change the speed of the print to a lower speed instead of retracting:
+															 //limits handled by change-function!
+				Commands::changeFeedrateMultiply(Printer::feedrateMultiply - 1);
+				beep(1, 4);
+			}
+			else {
+				Printer::offsetRelativeStepsCoordinates(0, 0, 0, -1 * int32_t(g_nManualSteps[E_AXIS]));
+
+				//In case of double pause and in case we tempered with the retract, we dont want to drive the E-Axis back to some old location - that much likely causes emergency block.
+				g_nContinueSteps[E_AXIS] = 0;
+			}
+		}
+		break;
+	}
+	case UI_ACTION_RF_PAUSE:
+	{
+		pausePrint();
+		break;
+	}
+	case UI_ACTION_RF_CONTINUE:
+	{
+		continuePrint();
+		break;
+	}
+
+	/*
+	* FUNCTIONS
+	*/
+	case UI_ACTION_EMERGENCY_STOP:
+	{
+		Commands::emergencyStop();
+		break;
+	}
+	case UI_ACTION_HOME_ALL:
+	{
+		if (PrintLine::linesCount)
+		{
+			// do not allow homing via the menu while we are printing
+			Com::printFLN(Com::tPrintingIsInProcessError);
+			showError((void*)ui_text_home, (void*)ui_text_operation_denied);
+			break;
+		}
+		if (!isHomingAllowed(NULL, 1))
+		{
+			break;
+		}
+		exitmenu();
+		Printer::homeAxis(true, true, true);
+		break;
+	}
+	case UI_ACTION_HOME_X:
+	{
+		if (PrintLine::linesCount)
+		{
+			// do not allow homing via the menu while we are printing
+			if (Printer::debugErrors())
+			{
+				Com::printFLN(Com::tPrintingIsInProcessError);
+			}
+
+			showError((void*)ui_text_home, (void*)ui_text_operation_denied);
+			break;
+		}
+		if (!isHomingAllowed(NULL, 1))
+		{
+			break;
+		}
+		exitmenu();
+		Printer::homeAxis(true, false, false);
+		break;
+	}
+	case UI_ACTION_HOME_Y:
+	{
+		if (PrintLine::linesCount)
+		{
+			// do not allow homing via the menu while we are printing
+			if (Printer::debugErrors())
+			{
+				Com::printFLN(Com::tPrintingIsInProcessError);
+			}
+
+			showError((void*)ui_text_home, (void*)ui_text_operation_denied);
+			break;
+		}
+		if (!isHomingAllowed(NULL, 1))
+		{
+			break;
+		}
+		exitmenu();
+		Printer::homeAxis(false, true, false);
+		break;
+	}
+	case UI_ACTION_HOME_Z:
+	{
+		if (PrintLine::linesCount)
+		{
+			// do not allow homing via the menu while we are printing
+			if (Printer::debugErrors())
+			{
+				Com::printFLN(Com::tPrintingIsInProcessError);
+			}
+			showError((void*)ui_text_home, (void*)ui_text_operation_denied);
+			break;
+		}
+		if (!isHomingAllowed(NULL, 1))
+		{
+			break;
+		}
+		exitmenu();
+		Printer::homeAxis(false, false, true);
+		break;
+	}
+	case UI_ACTION_SET_XY_ORIGIN:
+	{
+		Printer::setOrigin(-Printer::destinationMM[X_AXIS], -Printer::destinationMM[Y_AXIS], Printer::originOffsetMM[Z_AXIS]);
+		BEEP_ACCEPT_SET_POSITION
+		skipBeep = true; // Prevent double beep
+		break;
+	}
+	case UI_ACTION_DEBUG_ECHO:
+	{
+		if (Printer::debugEcho()) Printer::debugLevel -= 1;
+		else Printer::debugLevel += 1;
+		break;
+	}
+	case UI_ACTION_DEBUG_INFO:
+	{
+		if (Printer::debugInfo()) Printer::debugLevel -= 2;
+		else Printer::debugLevel += 2;
+		break;
+	}
+	case UI_ACTION_DEBUG_ERROR:
+	{
+		if (Printer::debugErrors()) Printer::debugLevel -= 4;
+		else Printer::debugLevel += 4;
+		break;
+	}
+	case UI_ACTION_DEBUG_DRYRUN:
+	{
+		if (Printer::debugDryrun()) Printer::debugLevel -= 8;
+		else Printer::debugLevel += 8;
+		if (Printer::debugDryrun())   // simulate movements without printing
+		{
+			Extruder::setTemperatureForAllExtruders(0, false);
+#if HAVE_HEATED_BED==true
+			Extruder::setHeatedBedTemperature(0);
+#endif // HAVE_HEATED_BED==true
+		}
+		break;
+	}
+
+#if FEATURE_CASE_LIGHT
+	case UI_ACTION_LIGHTS_ONOFF:
+	{
+		if (Printer::enableCaseLight)  Printer::enableCaseLight = 0;
+		else                            Printer::enableCaseLight = 1;
+		WRITE(CASE_LIGHT_PIN, Printer::enableCaseLight);
+
+		HAL::eprSetByte(EPR_RF_CASE_LIGHT_MODE, Printer::enableCaseLight);
+		EEPROM::updateChecksum();
+
+		break;
+	}
+#endif // FEATURE_CASE_LIGHT
+
+#if FEATURE_230V_OUTPUT
+	case UI_ACTION_230V_OUTPUT:
+	{
+		if (Printer::enable230VOutput) Printer::enable230VOutput = 0;
+		else                            Printer::enable230VOutput = 1;
+		WRITE(OUTPUT_230V_PIN, Printer::enable230VOutput);
+
+		// after a power-on, the 230 V plug always shall be turned off - thus, we do not store this setting to the EEPROM
+		// HAL::eprSetByte( EPR_RF_230V_OUTPUT_MODE, Printer::enable230VOutput );
+		// EEPROM::updateChecksum();
+
+		break;
+	}
+#endif // FEATURE_230V_OUTPUT
+
+#if FEATURE_24V_FET_OUTPUTS
+	case UI_ACTION_FET1_OUTPUT:
+	{
+		if (Printer::enableFET1)   Printer::enableFET1 = 0;
+		else                        Printer::enableFET1 = 1;
+		WRITE(FET1, Printer::enableFET1);
+
+		HAL::eprSetByte(EPR_RF_FET1_MODE, Printer::enableFET1);
+		EEPROM::updateChecksum();
+		break;
+	}
+
+	case UI_ACTION_FET2_OUTPUT:
+	{
+		if (Printer::enableFET2)   Printer::enableFET2 = 0;
+		else                        Printer::enableFET2 = 1;
+		WRITE(FET2, Printer::enableFET2);
+
+		HAL::eprSetByte(EPR_RF_FET2_MODE, Printer::enableFET2);
+		EEPROM::updateChecksum();
+		break;
+	}
+#endif // FEATURE_24V_FET_OUTPUTS
+
+	case UI_ACTION_CONFIG_SINGLE_STEPS:
+	{
+		configureMANUAL_STEPS_Z(1);
+		break;
+	}
+
+	case UI_ACTION_CONFIG_SINGLE_STEPS_KOSYS:
+	{
+		if (Printer::moveKosys)   Printer::moveKosys = false;
+		else                      Printer::moveKosys = true;
+
+		HAL::eprSetByte(EPR_RF_MOVE_MODE_XY_KOSYS, Printer::moveKosys);
+		EEPROM::updateChecksum();
+		break;
+	}
+
+	case UI_ACTION_CONFIG_POSITION_FEEDRATE:
+	{
+		if (Printer::movePositionFeedrateChoice)   Printer::movePositionFeedrateChoice = false;
+		else                                     Printer::movePositionFeedrateChoice = true;
+
+		HAL::eprSetByte(EPR_RF_MOVE_POSITION_FEEDRATE, Printer::movePositionFeedrateChoice);
+		EEPROM::updateChecksum();
+		break;
+	}
+
+#if FEATURE_MILLING_MODE
+	case UI_ACTION_OPERATING_MODE:
+	{
+		char    deny = 0;
+
+		if (PrintLine::linesCount)     deny = 1;   // the operating mode can not be switched while the printing is in progress
+
+#if FEATURE_HEAT_BED_Z_COMPENSATION
+		if (g_nHeatBedScanStatus || g_nZOSScanStatus) deny = 1;   // the operating mode can not be switched while a heat bed scan / ZOS is in progress
+#endif // FEATURE_HEAT_BED_Z_COMPENSATION
+
+#if FEATURE_ALIGN_EXTRUDERS
+		if (g_nAlignExtrudersStatus)   deny = 1;
+#endif //FEATURE_ALIGN_EXTRUDERS
+
+#if FEATURE_WORK_PART_Z_COMPENSATION
+		if (g_nWorkPartScanStatus)     deny = 1;   // the operating mode can not be switched while a work part scan is in progress
+#endif // FEATURE_WORK_PART_Z_COMPENSATION
+
+#if FEATURE_FIND_Z_ORIGIN
+		if (g_nFindZOriginStatus)      deny = 1;   // the operating mode can not be switched while the z-origin is searched
+#endif // FEATURE_FIND_Z_ORIGIN
+
+		if (deny)
+		{
+			showError((void*)ui_text_change_mode, (void*)ui_text_operation_denied);
+			break;
+		}
+
+		// disable and turn off everything before we switch the operating mode
+		Printer::switchEverythingOff();
+
+		if (Printer::operatingMode == OPERATING_MODE_PRINT)
+		{
+			switchOperatingMode(OPERATING_MODE_MILL);
+		}
+		else
+		{
+			switchOperatingMode(OPERATING_MODE_PRINT);
+		}
+
+		HAL::eprSetByte(EPR_RF_OPERATING_MODE, Printer::operatingMode);
+		EEPROM::updateChecksum();
+
+		break;
+	}
+#endif // FEATURE_MILLING_MODE
+
+#if FEATURE_CONFIGURABLE_Z_ENDSTOPS
+	case UI_ACTION_Z_ENDSTOP_TYPE:
+	{
+		if (PrintLine::linesCount)
+		{
+			// the z-endstop type can not be switched while the printing is in progress
+			if (Printer::debugErrors())
+			{
+				Com::printFLN(Com::tPrintingIsInProcessError);
+			}
+
+			showError((void*)ui_text_change_z_type, (void*)ui_text_operation_denied);
+			break;
+		}
+
+		Printer::lastZDirection = 0;
+		Printer::endstopZMinHit = ENDSTOP_NOT_HIT;
+		Printer::endstopZMaxHit = ENDSTOP_NOT_HIT;
+
+		if (Printer::ZEndstopType == ENDSTOP_TYPE_SINGLE)
+		{
+			Printer::ZEndstopType = ENDSTOP_TYPE_CIRCUIT;
+
+			if (Printer::isZMinEndstopHit() || Printer::isZMaxEndstopHit())
+			{
+				// a z-endstop is active at the moment, but both z-endstops are within one circuit so we do not know which one is the pressed one
+				// in this situation we do not allow any moving into z-direction before a z-homing has been performed
+				Printer::ZEndstopUnknown = 1;
+			}
+		}
+		else
+		{
+			Printer::ZEndstopType = ENDSTOP_TYPE_SINGLE;
+			Printer::ZEndstopUnknown = 0;
+		}
+
+		// update our information about the currently active Z-endstop
+		Printer::isZMinEndstopHit();
+		Printer::isZMaxEndstopHit();
+
+		HAL::eprSetByte(EPR_RF_Z_ENDSTOP_TYPE, Printer::ZEndstopType);
+		EEPROM::updateChecksum();
+		break;
+	}
+#endif // FEATURE_CONFIGURABLE_Z_ENDSTOPS
+
+	case UI_ACTION_ZMODE:
+	{
+		if (Printer::ZMode == 1)        Printer::ZMode = 2;
+		else                             Printer::ZMode = 1;
+
+		HAL::eprSetByte(EPR_RF_Z_MODE, Printer::ZMode);
+		EEPROM::updateChecksum();
+		break;
+	}
+
+#if FEATURE_CONFIGURABLE_MILLER_TYPE
+	case UI_ACTION_MILLER_TYPE:
+	{
+		if (PrintLine::linesCount)
+		{
+			// the hotend type can not be switched while the printing is in progress
+			if (Printer::debugErrors())
+			{
+				Com::printFLN(Com::tPrintingIsInProcessError);
+			}
+
+			showError((void*)ui_text_change_miller_type, (void*)ui_text_operation_denied);
+			break;
+		}
+
+		if (Printer::MillerType == MILLER_TYPE_ONE_TRACK)
+		{
+			Printer::MillerType = MILLER_TYPE_TWO_TRACKS;
+			g_nScanContactPressureDelta = MT2_WORK_PART_SCAN_CONTACT_PRESSURE_DELTA;
+			g_nScanRetryPressureDelta = MT2_WORK_PART_SCAN_RETRY_PRESSURE_DELTA;
+		}
+		else
+		{
+			Printer::MillerType = MILLER_TYPE_ONE_TRACK;
+			g_nScanContactPressureDelta = MT1_WORK_PART_SCAN_CONTACT_PRESSURE_DELTA;
+			g_nScanRetryPressureDelta = MT1_WORK_PART_SCAN_RETRY_PRESSURE_DELTA;
+		}
+
+		HAL::eprSetByte(EPR_RF_MILLER_TYPE, Printer::MillerType);
+		EEPROM::updateChecksum();
+		break;
+	}
+#endif // FEATURE_CONFIGURABLE_MILLER_TYPE
+
+	case UI_ACTION_PREHEAT_PLA:
+	{
+		g_uStartOfIdle = HAL::timeInMilliseconds() + 10000; //preheat PLA just got selected
+		UI_STATUS_UPD(UI_TEXT_PREHEAT_PLA);
+		Extruder::setTemperatureForAllExtruders(UI_SET_PRESET_EXTRUDER_TEMP_PLA, false);
+#if HAVE_HEATED_BED==true
+		Extruder::setHeatedBedTemperature(UI_SET_PRESET_HEATED_BED_TEMP_PLA);
+#endif // HAVE_HEATED_BED==true
+		break;
+	}
+	case UI_ACTION_PREHEAT_ABS:
+	{
+		g_uStartOfIdle = HAL::timeInMilliseconds() + 10000; //preheat ABS just got selected
+		UI_STATUS_UPD(UI_TEXT_PREHEAT_ABS);
+		Extruder::setTemperatureForAllExtruders(UI_SET_PRESET_EXTRUDER_TEMP_ABS, false);
+#if HAVE_HEATED_BED==true
+		Extruder::setHeatedBedTemperature(UI_SET_PRESET_HEATED_BED_TEMP_ABS);
+#endif // HAVE_HEATED_BED==true
+		break;
+	}
+	case UI_ACTION_COOLDOWN:
+	{
+		UI_STATUS_UPD(UI_TEXT_COOLDOWN);
+		Extruder::setTemperatureForAllExtruders(0, false);
+#if HAVE_HEATED_BED==true
+		Extruder::setHeatedBedTemperature(0);
+#endif // HAVE_HEATED_BED==true
+		break;
+	}
+	case UI_ACTION_HEATED_BED_OFF:
+	{
+#if HAVE_HEATED_BED==true
+		Extruder::setHeatedBedTemperature(0);
+#endif // HAVE_HEATED_BED==true
+		break;
+	}
+	case UI_ACTION_EXTRUDER0_OFF:
+	{
+		Extruder::setTemperatureForExtruder(0, 0);
+		break;
+	}
+	case UI_ACTION_EXTRUDER1_OFF:
+	{
+#if NUM_EXTRUDER>1
+		Extruder::setTemperatureForExtruder(0, 1);
+#endif // NUM_EXTRUDER>1
+		break;
+	}
+	case UI_ACTION_DISABLE_STEPPER:
+	{
+		Printer::disableAllSteppersNow();
+		break;
+	}
+	case UI_ACTION_MOUNT_FILAMENT_SOFT:
+	case UI_ACTION_MOUNT_FILAMENT_HARD:
+	case UI_ACTION_UNMOUNT_FILAMENT_SOFT:
+	case UI_ACTION_UNMOUNT_FILAMENT_HARD:
+	{
+		g_uStartOfIdle = 0;
+		while (Printer::checkAbortKeys()) Commands::checkForPeriodicalActions(); //dont quit script by holding the ok longer than 1ms if no temp is involved. -> min einmal OK loslassen.
+		bool unmount = (action == UI_ACTION_UNMOUNT_FILAMENT_SOFT || action == UI_ACTION_UNMOUNT_FILAMENT_HARD);
+		exitmenu();
+
+		if (unmount) {
+			UI_STATUS_UPD(UI_TEXT_UNMOUNT_FILAMENT);
+			if (action == UI_ACTION_UNMOUNT_FILAMENT_SOFT) {
+				GCode::executeFString(Com::tUnmountFilamentSoft);
+			}
+			else {
+				GCode::executeFString(Com::tUnmountFilamentHard);
+			}
+		}
+		else {
+			UI_STATUS_UPD(UI_TEXT_MOUNT_FILAMENT);
+			if (action == UI_ACTION_MOUNT_FILAMENT_SOFT) {
+				/* Diese PLA Temp ist bei ~180 °C, die meisten Filamente werden gerade so weich. Wenn man keine mindesetens "weiche" Temperatur eingestellt hat, soll geheizt werden.*/
+				if (Extruder::current->tempControl.targetTemperatureC < UI_SET_PRESET_EXTRUDER_TEMP_PLA)
+				{
+					Extruder::setTemperatureForExtruder(UI_SET_PRESET_EXTRUDER_TEMP_PLA, Extruder::current->id, true);
+					Extruder::current->tempControl.waitForTargetTemperature();
+					GCode::executeFString(Com::tMountFilamentSoft);
+					Extruder::setTemperatureForExtruder(0, Extruder::current->id, false);
+				}
+				else {
+					GCode::executeFString(Com::tMountFilamentSoft);
+				}
+			}
+			else {
+				GCode::executeFString(Com::tMountFilamentHard);
+			}
+		}
+		g_uStartOfIdle = HAL::timeInMilliseconds(); // UI_ACTION_UNMOUNT_FILAMENT UI_ACTION_MOUNT_FILAMENT
+		break;
+	}
+	case UI_ACTION_SET_E_ORIGIN:
+	{
+		Printer::setEAxisSteps(0); //G92 E0
+		break;
+	}
+	case UI_ACTION_EXTRUDER_RELATIVE:
+	{
+		Printer::relativeExtruderCoordinateMode = !Printer::relativeExtruderCoordinateMode;
+		break;
+	}
+	case UI_ACTION_SELECT_EXTRUDER0:
+	{
+		Extruder::selectExtruderById(0);
+		break;
+	}
+	case UI_ACTION_SELECT_EXTRUDER1:
+	{
+#if NUM_EXTRUDER>1
+		Extruder::selectExtruderById(1);
+#endif // NUM_EXTRUDER>1
+		break;
+	}
+#if NUM_EXTRUDER >= 1
+	case UI_ACTION_ACTIVE_EXTRUDER:
+	{
+		if (Extruder::current->id == 0)    Extruder::selectExtruderById(1);
+		else                               Extruder::selectExtruderById(0);
+		break;
+	}
+#endif // NUM_EXTRUDER == 2
+
+#if FEATURE_BEEPER
+	case UI_ACTION_BEEPER:
+	{
+		if (Printer::enableBeeper) Printer::enableBeeper = 0;
+		else                       Printer::enableBeeper = 1;
+
+		HAL::eprSetByte(EPR_RF_BEEPER_MODE, Printer::enableBeeper);
+		EEPROM::updateChecksum();
+		break;
+	}
+#endif // FEATURE_BEEPER
+
+#if SDSUPPORT
+	case UI_ACTION_SD_PRINT:
+	{
+		if (sd.sdactive)
+		{
+			pushMenu((void*)&ui_menu_sd_fileselector, false);
+		}
+		break;
+	}
+	case UI_ACTION_SD_PAUSE:
+	{
+		exitmenu();
+		pausePrint();
+		break;
+	}
+	case UI_ACTION_SD_CONTINUE:
+	{
+		exitmenu();
+		continuePrint();
+		break;
+	}
+	case UI_ACTION_SD_UNMOUNT:
+	{
+		sd.unmount();
+		break;
+	}
+	case UI_ACTION_SD_MOUNT:
+	{
+		sd.mount(/*not silent mount*/);
+		break;
+	}
+#endif // SDSUPPORT
+
+#if FEATURE_READ_CALIPER
+	case UI_ACTION_CAL_RESET:
+	{
+		InterruptProtectedBlock noInts;
+		caliper_collect_um = 0;
+		caliper_collect_count = 0;
+		noInts.unprotect();
+		BEEP_ACCEPT_SET_POSITION
+		skipBeep = true; // Prevent double beep
+		break;
+	}
+	case UI_ACTION_CAL_SET:
+	{
+		if (caliper_collect_um && caliper_collect_count) {
+			float dim = (float)caliper_filament_standard / (caliper_collect_um / caliper_collect_count);
+			float newExtrusionFactor = dim*dim;
+			Commands::changeFlowrateMultiply(newExtrusionFactor);
+			Com::printFLN(PSTR("Set Flowrate Multiplier: "), uint8_t(newExtrusionFactor * 100));
+			BEEP_ACCEPT_SET_POSITION
+			skipBeep = true; // Prevent double beep
+		}
+		break;
+	}
+#endif //FEATURE_READ_CALIPER
+
+#if FAN_PIN>-1 && FEATURE_FAN_CONTROL
+	case UI_ACTION_FAN_OFF:
+	{
+		Commands::setFanSpeed((uint8_t)0);
+		break;
+	}
+	case UI_ACTION_FAN_25:
+	{
+		Commands::setFanSpeed((uint8_t)64);
+		break;
+	}
+	case UI_ACTION_FAN_50:
+	{
+		Commands::setFanSpeed((uint8_t)128);
+		break;
+	}
+	case UI_ACTION_FAN_75:
+	{
+		Commands::setFanSpeed((uint8_t)192);
+		break;
+	}
+	case UI_ACTION_FAN_FULL:
+	{
+		Commands::setFanSpeed((uint8_t)255);
+		break;
+	}
+	case UI_ACTION_FAN_MODE:
+	{
+		Commands::adjustFanMode((part_fan_frequency_modulation ? PART_FAN_MODE_PWM : PART_FAN_MODE_PDM)); //0 = pwm, 1 = pdm
+		HAL::eprSetByte(EPR_RF_FAN_MODE, part_fan_frequency_modulation);
+		EEPROM::updateChecksum();
+		break;
+	}
+#endif // FAN_PIN>-1 && FEATURE_FAN_CONTROL
+
+	case UI_ACTION_MENU_XPOS:
+	{
+		pushMenu((void*)&ui_menu_xpos, false);
+		break;
+	}
+	case UI_ACTION_MENU_YPOS:
+	{
+		pushMenu((void*)&ui_menu_ypos, false);
+		break;
+	}
+	case UI_ACTION_MENU_ZPOS:
+	{
+		pushMenu((void*)&ui_menu_zpos, false);
+		break;
+	}
+	case UI_ACTION_MENU_QUICKSETTINGS:
+	{
+		pushMenu((void*)&ui_menu_quick, false);
+		break;
+	}
+	case UI_ACTION_MENU_EXTRUDER:
+	{
+		pushMenu((void*)&ui_menu_extruder, false);
+		break;
+	}
+	case UI_ACTION_MENU_POSITIONS:
+	{
+		pushMenu((void*)&ui_menu_positions, false);
+		break;
+	}
+
+#if MAX_HARDWARE_ENDSTOP_Z
+	case UI_ACTION_SET_Z_ORIGIN:
+	{
+		setZOrigin();
+		break;
+	}
+#endif // MAX_HARDWARE_ENDSTOP_Z
+
+#if FEATURE_ZERO_DIGITS
+	case UI_ACTION_FEATURE_ZERO_DIGITS:
+	{
+		Printer::g_pressure_offset_active = (Printer::g_pressure_offset_active ? false : true);
+		HAL::eprSetByte(EPR_RF_ZERO_DIGIT_STATE, (Printer::g_pressure_offset_active ? 1 : 2)); //2 ist false, < 1 ist true
+		EEPROM::updateChecksum();
+		break;
+	}
+#endif // FEATURE_ZERO_DIGITS
+#if FEATURE_DIGIT_Z_COMPENSATION
+	case UI_ACTION_DIGIT_COMPENSATION:
+	{
+		g_nDigitZCompensationDigits_active = (g_nDigitZCompensationDigits_active ? false : true);
+		HAL::eprSetByte(EPR_RF_DIGIT_CMP_STATE, (g_nDigitZCompensationDigits_active ? 1 : 2)); //2 ist false, < 1 ist true
+		EEPROM::updateChecksum();
+		break;
+	}
+#endif // FEATURE_DIGIT_Z_COMPENSATION
+#if FEATURE_SENSIBLE_PRESSURE
+	case UI_ACTION_SENSEOFFSET_AUTOSTART:
+	{
+		Printer::g_senseoffset_autostart = (Printer::g_senseoffset_autostart ? false : true);
+		HAL::eprSetByte(EPR_RF_MOD_SENSEOFFSET_AUTOSTART, (int8_t)Printer::g_senseoffset_autostart);
+		EEPROM::updateChecksum();
+		break;
+	}
+#endif //FEATURE_SENSIBLE_PRESSURE
+#if FEATURE_HEAT_BED_Z_COMPENSATION
+	case UI_ACTION_RF_DO_MHIER_BED_SCAN:
+	{
+		//macht an, wenn an, macht aus:
+		startZOScan();
+		//gehe zurück und zeige dem User was passiert.
+		exitmenu();
+		break;
+	}
+	case UI_ACTION_RF_DO_MHIER_AUTO_MATRIX_LEVELING:
+	{
+		//macht an, wenn an, macht aus:
+		startZOScan(true); //Scan aber an vielen Punkten und Gewichtet.
+						   //gehe zurück und zeige dem User was passiert.
+		exitmenu();
+		break;
+	}
+	case UI_ACTION_RF_DO_SAVE_ACTIVE_ZMATRIX:
+	{
+		// save the determined values to the EEPROM
+		if (g_ZMatrixChangedInRam) {
+			exitmenu();
+			saveCompensationMatrix((unsigned int)(EEPROM_SECTOR_SIZE * g_nActiveHeatBed));
+			if (Printer::debugInfo())
+			{
+				Com::printFLN(PSTR("Manual Input: the heat bed compensation matrix has been saved"));
+			}
+			showInformation((void*)ui_text_manual, (void*)ui_text_saving_success);
+		}
+		else {
+			showInformation((void*)ui_text_manual, (void*)ui_text_saving_needless);
+		}
+		break;
+	}
+#endif // FEATURE_HEAT_BED_Z_COMPENSATION
+#if FEATURE_ALIGN_EXTRUDERS
+	case UI_ACTION_ALIGN_EXTRUDERS:
+	{
+		exitmenu();
+		startAlignExtruders();
+		break;
+	}
+#endif // FEATURE_ALIGN_EXTRUDERS
+
+
+#if FEATURE_HEAT_BED_Z_COMPENSATION
+	case UI_ACTION_RF_SCAN_HEAT_BED:
+	{
+		g_nHeatBedScanMode = 0;
+		startHeatBedScan();
+		//gehe zurück und zeige dem User was passiert.
+		uid.exitmenu();
+		break;
+	}
+	case UI_ACTION_RF_SCAN_HEAT_BED_PLA:
+	{
+		g_nHeatBedScanMode = HEAT_BED_SCAN_MODE_PLA;
+		startHeatBedScan();
+		//gehe zurück und zeige dem User was passiert.
+		uid.exitmenu();
+		break;
+	}
+	case UI_ACTION_RF_SCAN_HEAT_BED_ABS:
+	{
+		g_nHeatBedScanMode = HEAT_BED_SCAN_MODE_ABS;
+		startHeatBedScan();
+		//gehe zurück und zeige dem User was passiert.
+		uid.exitmenu();
+		break;
+	}
+
+#if FEATURE_WORK_PART_Z_COMPENSATION
+	case UI_ACTION_RF_SCAN_WORK_PART:
+	{
+		startWorkPartScan(0);
+		break;
+	}
+	case UI_ACTION_RF_SET_SCAN_XY_START:
+	{
+		setScanXYStart();
+		break;
+	}
+	case UI_ACTION_RF_SET_SCAN_XY_END:
+	{
+		setScanXYEnd();
+		break;
+	}
+#endif // FEATURE_WORK_PART_Z_COMPENSATION
+#endif // FEATURE_HEAT_BED_Z_COMPENSATION
+
+#if FEATURE_ALIGN_EXTRUDERS
+	case UI_ACTION_RF_ALIGN_EXTRUDERS:
+	{
+		startAlignExtruders();
+		break;
+	}
+#endif // FEATURE_ALIGN_EXTRUDERS
+
+	case UI_ACTION_RF_OUTPUT_OBJECT:
+	{
+		outputObject(); //als UI_ACTION_RF_OUTPUT_OBJECT
+		break;
+	}
+
+#if FEATURE_FIND_Z_ORIGIN
+	case UI_ACTION_RF_FIND_Z_ORIGIN:
+	{
+		startFindZOrigin();
+		break;
+	}
+#endif // FEATURE_FIND_Z_ORIGIN
+
+#if FEATURE_PARK
+	case UI_ACTION_RF_PARK:
+	{
+		parkPrinter();
+		break;
+	}
+#endif // FEATURE_PARK
+
+	}
+	
+	if (!skipBeep) BEEP_SHORT
+} //mainSwitchCase
 
 void UIDisplay::nextPreviousAction(int8_t next)
 {
@@ -3066,7 +5200,6 @@ void UIDisplay::nextPreviousAction(int8_t next)
     float f = (float)(SPEED_MIN_MILLIS-dt)/(float)(SPEED_MIN_MILLIS-SPEED_MAX_MILLIS);
     lastNextAccumul = 1.0f+(float)SPEED_MAGNIFICATION*f*f*f;
 
-#if UI_HAS_KEYS==1
     if(menuLevel==0)
     {
         lastSwitch = HAL::timeInMilliseconds();
@@ -3118,7 +5251,7 @@ void UIDisplay::nextPreviousAction(int8_t next)
     }
 
     UIMenu *men = (UIMenu*)menu[menuLevel];
-    uint8_t nr = (uint8_t)pgm_read_word_near(&(men->numEntries));
+    uint8_t nr = (uint8_t)pgm_read_word(&(men->numEntries));
     uint8_t mtype = HAL::readFlashByte((const prog_char*)&(men->menuType));
     UIMenuEntry **entries = (UIMenuEntry**)pgm_read_word(&(men->entries));
     UIMenuEntry *ent =(UIMenuEntry *)pgm_read_word(&(entries[menuPos[menuLevel]]));
@@ -3207,1023 +5340,14 @@ void UIDisplay::nextPreviousAction(int8_t next)
 #endif // SDSUPPORT
 
     if(mtype == UI_MENU_TYPE_MODIFICATION_MENU) action = pgm_read_word(&(men->id));
-    else action=activeAction;
+    else action = activeAction;
 
 #if UI_INVERT_INCREMENT_DIRECTION
-    int8_t increment = -next;
+	changeSwitchCase(action, -next);
 #else
-    int8_t increment = next;
+	changeSwitchCase(action, next);
 #endif // UI_INVERT_INCREMENT_DIRECTION
 
-    switch(action)
-    {
-#if FAN_PIN>-1 && FEATURE_FAN_CONTROL
-        case UI_ACTION_FANSPEED:
-        {
-            int speed = (int)Printer::getFanSpeed() + (int)increment;
-            if(speed > 255) speed = 0;
-            if(speed < 0)   speed = 255;
-            Commands::setFanSpeed((uint8_t)speed);
-            break;
-        }
-        case UI_ACTION_FAN_HZ:
-        {
-            if(increment > 0){
-                Commands::adjustFanFrequency( (part_fan_pwm_speed == PART_FAN_MODE_MAX ? 1 : part_fan_pwm_speed + 1 ) );
-            }else{
-                Commands::adjustFanFrequency( (part_fan_pwm_speed == 1 ? PART_FAN_MODE_MAX : part_fan_pwm_speed - 1 ) );
-            }
-            HAL::eprSetByte( EPR_RF_PART_FAN_SPEED, part_fan_pwm_speed );
-            EEPROM::updateChecksum();
-            break;
-        }
-        case UI_ACTION_FAN_PART_FAN_PWM_MIN:
-        {
-            int temp = part_fan_pwm_min;
-            INCREMENT_MIN_MAX(temp, 1, 1, 239);
-            if(temp <= (int)part_fan_pwm_max - 16){
-                part_fan_pwm_min = temp;
-            }
-            //recalculate active pwm value out of fanSpeed for easy tune-in.
-            //(Tune-In: set fan to 1% and rise minimum until it starts.)
-            Commands::setFanSpeed(fanSpeed, true);
-            HAL::eprSetByte( EPR_RF_PART_FAN_PWM_MIN, part_fan_pwm_min );
-            EEPROM::updateChecksum();
-            break;
-        }
-        case UI_ACTION_FAN_PART_FAN_PWM_MAX:
-        {
-            int temp = part_fan_pwm_max;
-            INCREMENT_MIN_MAX(temp, 1, 16, 255);
-            if(temp >= part_fan_pwm_min + 16){
-                part_fan_pwm_max = temp;
-            }
-            //recalculate active pwm value out of fanSpeed for easy tune-in.
-            //(Tune-In: set fan to 100% and decrease maximum until fan slows down slightly.)
-            Commands::setFanSpeed(fanSpeed, true);
-            HAL::eprSetByte( EPR_RF_PART_FAN_PWM_MAX, part_fan_pwm_max );
-            EEPROM::updateChecksum();
-            break;
-        }
-#endif // FAN_PIN>-1 && FEATURE_FAN_CONTROL
-        case UI_ACTION_XPOSITION:
-        {
-            /*
-            XYZ_POSITION_BUTTON_DIRECTION = -1 : This fits to you if you want more intuitivity when choosing the Up-Down-Buttons.
-            XYZ_POSITION_BUTTON_DIRECTION = 1 : This fits more if you stick to coordinates direction.
-            see configuration.h
-            */
-            nextPreviousXAction( XYZ_POSITION_BUTTON_DIRECTION*increment );
-            break;
-        }
-        case UI_ACTION_YPOSITION:
-        {
-            /*
-            XYZ_POSITION_BUTTON_DIRECTION = -1 : This fits to you if you want more intuitivity when choosing the Up-Down-Buttons.
-            XYZ_POSITION_BUTTON_DIRECTION = 1 : This fits more if you stick to coordinates direction.
-            see configuration.h
-            */
-            nextPreviousYAction( XYZ_POSITION_BUTTON_DIRECTION*increment );
-            break;
-        }
-        case UI_ACTION_ZPOSITION:
-        {
-            /*
-            XYZ_POSITION_BUTTON_DIRECTION = -1 : This fits to you if you want more intuitivity when choosing the Up-Down-Buttons.
-            XYZ_POSITION_BUTTON_DIRECTION = 1 : This fits more if you stick to coordinates direction.
-            see configuration.h
-            */
-            nextPreviousZAction( XYZ_POSITION_BUTTON_DIRECTION*increment );
-            break;
-        }
-        case UI_ACTION_ZOFFSET:
-        {
-            INCREMENT_MIN_MAX(Printer::ZOffset,Z_OFFSET_MENU_STEPS,-(HEAT_BED_Z_COMPENSATION_MAX_MM * 1000),(HEAT_BED_Z_COMPENSATION_MAX_MM * 1000));
-        #if FEATURE_SENSIBLE_PRESSURE
-            g_staticZSteps = ((Printer::ZOffset + g_nSensiblePressureOffset) * Printer::axisStepsPerMM[Z_AXIS]) / 1000;
-        #else
-            g_staticZSteps =  (Printer::ZOffset * Printer::axisStepsPerMM[Z_AXIS]) / 1000;
-        #endif
-            HAL::eprSetInt32( EPR_RF_Z_OFFSET, Printer::ZOffset );
-            EEPROM::updateChecksum();
-            break;
-        }
-        case UI_ACTION_EPOSITION:
-        {
-			Printer::queueRelativeMMCoordinates(0, 0, 0, (float)increment/Printer::menuExtrusionFactor, UI_SET_EXTRUDER_FEEDRATE, true); //klappt nicht in Pause!!
-            Commands::printCurrentPosition();
-            break;
-        }
-        case UI_ACTION_HEATED_BED_TEMP:
-        {
-#if HAVE_HEATED_BED==true
-            int tmp = (int)heatedBedController.targetTemperatureC;
-            if(tmp<UI_SET_MIN_HEATED_BED_TEMP) tmp = 0;
-            tmp+=increment;
-            if(tmp==1) tmp = UI_SET_MIN_HEATED_BED_TEMP;
-            if(tmp<UI_SET_MIN_HEATED_BED_TEMP) tmp = 0;
-            else if(tmp>UI_SET_MAX_HEATED_BED_TEMP) tmp = UI_SET_MAX_HEATED_BED_TEMP;
-            Extruder::setHeatedBedTemperature(tmp);
-#endif // HAVE_HEATED_BED
-            break;
-        }
-        case UI_ACTION_EXTRUDER0_TEMP:
-        {
-            int tmp = (int)extruder[0].tempControl.targetTemperatureC;
-            if(tmp<UI_SET_MIN_EXTRUDER_TEMP) tmp = 0;
-            tmp+=increment;
-            if(tmp==1) tmp = UI_SET_MIN_EXTRUDER_TEMP;
-            if(tmp<UI_SET_MIN_EXTRUDER_TEMP) tmp = 0;
-            else if(tmp>UI_SET_MAX_EXTRUDER_TEMP) tmp = UI_SET_MAX_EXTRUDER_TEMP;
-            Extruder::setTemperatureForExtruder(tmp,0);
-            break;
-        }
-        case UI_ACTION_EXTRUDER1_TEMP:
-        {
-#if NUM_EXTRUDER>1
-            int tmp = (int)extruder[1].tempControl.targetTemperatureC;
-            tmp+=increment;
-            if(tmp==1) tmp = UI_SET_MIN_EXTRUDER_TEMP;
-            if(tmp<UI_SET_MIN_EXTRUDER_TEMP) tmp = 0;
-            else if(tmp>UI_SET_MAX_EXTRUDER_TEMP) tmp = UI_SET_MAX_EXTRUDER_TEMP;
-            Extruder::setTemperatureForExtruder(tmp,1);
-#endif // NUM_EXTRUDER>1
-            break;
-        }
-
-#if NUM_EXTRUDER>1
-        case UI_ACTION_EXTRUDER_OFFSET_X:
-        {
-			float oldXOffset = extruder[1].offsetMM[X_AXIS];
-            INCREMENT_MIN_MAX(extruder[1].offsetMM[X_AXIS], 0.25, 32, 36);
-
-			if (Printer::isAxisHomed(X_AXIS) && Extruder::current->id == extruder[1].id) {
-				// Shift the extruder-offset negatively to stay at the same point after switch
-				int32_t dx = (extruder[1].offsetMM[X_AXIS] - oldXOffset) * Printer::axisStepsPerMM[X_AXIS];
-				Printer::offsetRelativeStepsCoordinates(-dx, 0, 0, 0);
-			}
-
-            HAL::eprSetFloat(EEPROM::getExtruderOffset(1)+EPR_EXTRUDER_X_OFFSET, extruder[1].offsetMM[X_AXIS]);
-            EEPROM::updateChecksum();
-            break;
-        }
-        case UI_ACTION_EXTRUDER_OFFSET_Y:
-        {
-			float oldYOffset = extruder[1].offsetMM[Y_AXIS];
-            INCREMENT_MIN_MAX(extruder[1].offsetMM[Y_AXIS], 0.25, -2 ,2);
-
-			if (Printer::isAxisHomed(Y_AXIS) && Extruder::current->id == extruder[1].id) {
-				int32_t dy = (extruder[1].offsetMM[Y_AXIS] - oldYOffset) * Printer::axisStepsPerMM[Y_AXIS];
-				// Shift the extruder-offset negatively to stay at the same point after switch
-				Printer::offsetRelativeStepsCoordinates(0, -dy, 0, 0);
-			}
-
-            HAL::eprSetFloat(EEPROM::getExtruderOffset(1)+EPR_EXTRUDER_Y_OFFSET, extruder[1].offsetMM[Y_AXIS]);
-            EEPROM::updateChecksum();
-            break;
-        }
-        case UI_ACTION_EXTRUDER_OFFSET_Z:
-        {
-			float oldZOffset = extruder[1].offsetMM[Z_AXIS];
-            //Das hier ist nur dazu gedacht, um eine Tip-Down-Nozzle auf per ToolChange auf die Korrekte Höhe zu justieren.
-            INCREMENT_MIN_MAX(extruder[1].offsetMM[Z_AXIS], 0.025, -2, 0);
-
-			if (Printer::isAxisHomed(Z_AXIS) && Extruder::current->id == extruder[1].id) {
-				int32_t dz = (extruder[1].offsetMM[Z_AXIS] - oldZOffset) * Printer::axisStepsPerMM[Z_AXIS];
-				// Shift the extruder-offset negatively to stay at the same point after switch
-				Printer::offsetRelativeStepsCoordinates(0, 0, -dz, 0);
-			}
-
-            HAL::eprSetFloat(EEPROM::getExtruderOffset(1)+EPR_EXTRUDER_Z_OFFSET, extruder[1].offsetMM[Z_AXIS]); //mm negativ
-            EEPROM::updateChecksum();
-            break;
-        }
-#endif // NUM_EXTRUDER>1
-
-        case UI_ACTION_FEEDRATE_MULTIPLY:
-        {
-            int fr = Printer::feedrateMultiply;
-            INCREMENT_MIN_MAX(fr,1,25,500);
-            Commands::changeFeedrateMultiply(fr);
-            break;
-        }
-        case UI_ACTION_FLOWRATE_MULTIPLY:
-        {
-            float eF = Printer::menuExtrusionFactor;
-            INCREMENT_MIN_MAX(eF, 0.01f, 0.25f, 2.0f);
-            Commands::changeFlowrateMultiply(eF);
-            break;
-        }
-        case UI_ACTION_STEPPER_INACTIVE:
-        {
-            stepperInactiveTime -= stepperInactiveTime % 1000;
-            INCREMENT_MAX(stepperInactiveTime,60000UL,10080000UL);
-
-            HAL::eprSetInt32(EPR_STEPPER_INACTIVE_TIME,stepperInactiveTime);
-            EEPROM::updateChecksum();
-            break;
-        }
-        case UI_ACTION_MAX_INACTIVE:
-        {
-            maxInactiveTime -= maxInactiveTime % 1000;
-            INCREMENT_MAX(maxInactiveTime,60000UL,10080000UL);
-
-            HAL::eprSetInt32(EPR_MAX_INACTIVE_TIME,maxInactiveTime);
-            EEPROM::updateChecksum();
-            break;
-        }
-        case UI_ACTION_PRINT_ACCEL_X:
-        {
-            INCREMENT_MIN_MAX(Printer::maxAccelerationMMPerSquareSecond[X_AXIS], ACCELERATION_MENU_CHANGE_XY, ACCELERATION_MIN_XY, ACCELERATION_MAX_XY);
-            Printer::updateDerivedParameter();
-
-            HAL::eprSetFloat(EPR_X_MAX_ACCEL, Printer::maxAccelerationMMPerSquareSecond[X_AXIS]);
-            EEPROM::updateChecksum();
-            break;
-        }
-        case UI_ACTION_PRINT_ACCEL_Y:
-        {
-            INCREMENT_MIN_MAX(Printer::maxAccelerationMMPerSquareSecond[Y_AXIS], ACCELERATION_MENU_CHANGE_XY, ACCELERATION_MIN_XY, ACCELERATION_MAX_XY);
-            Printer::updateDerivedParameter();
-
-            HAL::eprSetFloat(EPR_Y_MAX_ACCEL, Printer::maxAccelerationMMPerSquareSecond[Y_AXIS]);
-            EEPROM::updateChecksum();
-            break;
-        }
-        case UI_ACTION_PRINT_ACCEL_Z:
-        {
-            INCREMENT_MIN_MAX(Printer::maxAccelerationMMPerSquareSecond[Z_AXIS], ACCELERATION_MENU_CHANGE_Z, ACCELERATION_MIN_Z, ACCELERATION_MAX_Z);
-            Printer::updateDerivedParameter();
-
-            HAL::eprSetFloat(EPR_Z_MAX_ACCEL, Printer::maxAccelerationMMPerSquareSecond[Z_AXIS]);
-            EEPROM::updateChecksum();
-            break;
-        }
-        case UI_ACTION_MOVE_ACCEL_X:
-        {
-            INCREMENT_MIN_MAX(Printer::maxTravelAccelerationMMPerSquareSecond[X_AXIS], ACCELERATION_MENU_CHANGE_XY, ACCELERATION_MIN_XY, ACCELERATION_MAX_XY);
-            Printer::updateDerivedParameter();
-
-            HAL::eprSetFloat(EPR_X_MAX_TRAVEL_ACCEL, Printer::maxTravelAccelerationMMPerSquareSecond[X_AXIS]);
-            EEPROM::updateChecksum();
-            break;
-        }
-        case UI_ACTION_MOVE_ACCEL_Y:
-        {
-            INCREMENT_MIN_MAX(Printer::maxTravelAccelerationMMPerSquareSecond[Y_AXIS], ACCELERATION_MENU_CHANGE_XY, ACCELERATION_MIN_XY, ACCELERATION_MAX_XY);
-            Printer::updateDerivedParameter();
-
-            HAL::eprSetFloat(EPR_Y_MAX_TRAVEL_ACCEL, Printer::maxTravelAccelerationMMPerSquareSecond[Y_AXIS]);
-            EEPROM::updateChecksum();
-            break;
-        }
-        case UI_ACTION_MOVE_ACCEL_Z:
-        {
-            INCREMENT_MIN_MAX(Printer::maxTravelAccelerationMMPerSquareSecond[Z_AXIS], ACCELERATION_MENU_CHANGE_Z, ACCELERATION_MIN_Z, ACCELERATION_MAX_Z);
-            Printer::updateDerivedParameter();
-
-            HAL::eprSetFloat(EPR_Z_MAX_TRAVEL_ACCEL, Printer::maxTravelAccelerationMMPerSquareSecond[Z_AXIS]);
-            EEPROM::updateChecksum();
-            break;
-        }
-        case UI_ACTION_MAX_JERK:
-        {
-            INCREMENT_MIN_MAX(Printer::maxXYJerk, 0.1f, 1.0f, 33.3f); //RFx000: Limit 33.3 sind willkürlich grob faktor 3 von normalwert.
-
-            HAL::eprSetFloat(EPR_MAX_XYJERK, Printer::maxXYJerk);
-            EEPROM::updateChecksum();
-            break;
-        }
-        case UI_ACTION_MAX_ZJERK:
-        {
-            INCREMENT_MIN_MAX(Printer::maxZJerk, 0.05f, 0.05f, 2.0f); //RFx000: Limit 2 sind Max XY-Jerk / Stepratenverhältnis XY->Z von ~16.8 gibt etwas unter 2.
-
-            HAL::eprSetFloat(EPR_MAX_ZJERK, Printer::maxZJerk);
-            EEPROM::updateChecksum();
-            break;
-        }
-#if FEATURE_READ_CALIPER
-        case UI_ACTION_CAL_STANDARD:
-        {
-            if(caliper_filament_standard >= 2600){
-                INCREMENT_MIN_MAX(caliper_filament_standard,10,2590,3000);
-                if(caliper_filament_standard == 2590){
-                    caliper_filament_standard = 1750;
-                }
-            }else{
-                INCREMENT_MIN_MAX(caliper_filament_standard,10,1600,1910);
-                if(caliper_filament_standard == 1910){
-                    caliper_filament_standard = 2850;
-                }
-            }
-
-            HAL::eprSetInt16( EPR_RF_CAL_STANDARD, caliper_filament_standard );
-            EEPROM::updateChecksum();
-            break;
-        }
-        case UI_ACTION_CAL_CORRECT:
-        {
-            INCREMENT_MIN_MAX(caliper_collect_adjust,1,-127,127);
-            HAL::eprSetByte( EPR_RF_CAL_ADJUST, caliper_collect_adjust );
-            EEPROM::updateChecksum();
-            break;
-        }
-#endif //FEATURE_READ_CALIPER
-        case UI_ACTION_MILL_ACCELERATION:
-        {
-#if FEATURE_MILLING_MODE
-            if(!Printer::isPrinting()){
-             INCREMENT_MIN_MAX(Printer::max_milling_all_axis_acceleration,2,1,200);
-             Printer::updateDerivedParameter();
-             HAL::eprSetInt16(EPR_RF_MILL_ACCELERATION,Printer::max_milling_all_axis_acceleration);
-             EEPROM::updateChecksum();
-            }
-#endif // FEATURE_MILLING_MODE
-            break;
-        }
-        case UI_ACTION_HOMING_FEEDRATE_X:
-        {
-            INCREMENT_MIN_MAX(Printer::homingFeedrate[X_AXIS],5,5,MAX_FEEDRATE_X);
-
-#if FEATURE_MILLING_MODE
-            if( Printer::operatingMode == OPERATING_MODE_PRINT )
-            {
-#endif // FEATURE_MILLING_MODE
-                HAL::eprSetFloat(EPR_X_HOMING_FEEDRATE_PRINT,Printer::homingFeedrate[X_AXIS]);
-#if FEATURE_MILLING_MODE
-            }
-            else
-            {
-                HAL::eprSetFloat(EPR_X_HOMING_FEEDRATE_MILL,Printer::homingFeedrate[X_AXIS]);
-            }
-#endif // FEATURE_MILLING_MODE
-            EEPROM::updateChecksum();
-            break;
-        }
-        case UI_ACTION_HOMING_FEEDRATE_Y:
-        {
-            INCREMENT_MIN_MAX(Printer::homingFeedrate[Y_AXIS],5,5,MAX_FEEDRATE_Y);
-
-#if FEATURE_MILLING_MODE
-            if( Printer::operatingMode == OPERATING_MODE_PRINT )
-            {
-#endif // FEATURE_MILLING_MODE
-                HAL::eprSetFloat(EPR_Y_HOMING_FEEDRATE_PRINT,Printer::homingFeedrate[Y_AXIS]);
-#if FEATURE_MILLING_MODE
-            }
-            else
-            {
-                HAL::eprSetFloat(EPR_Y_HOMING_FEEDRATE_MILL,Printer::homingFeedrate[Y_AXIS]);
-            }
-#endif // FEATURE_MILLING_MODE
-            EEPROM::updateChecksum();
-            break;
-        }
-        case UI_ACTION_HOMING_FEEDRATE_Z:
-        {
-            INCREMENT_MIN_MAX(Printer::homingFeedrate[Z_AXIS],1,1,MAX_FEEDRATE_Z);
-
-#if FEATURE_MILLING_MODE
-            if( Printer::operatingMode == OPERATING_MODE_PRINT )
-            {
-#endif // FEATURE_MILLING_MODE
-                HAL::eprSetFloat(EPR_Z_HOMING_FEEDRATE_PRINT,Printer::homingFeedrate[Z_AXIS]);
-#if FEATURE_MILLING_MODE
-            }
-            else
-            {
-                HAL::eprSetFloat(EPR_Z_HOMING_FEEDRATE_MILL,Printer::homingFeedrate[Z_AXIS]);
-            }
-#endif // FEATURE_MILLING_MODE
-            EEPROM::updateChecksum();
-            break;
-        }
-        case UI_ACTION_MAX_FEEDRATE_X:
-        {
-            INCREMENT_MIN_MAX(Printer::maxFeedrate[X_AXIS],5,1,MAX_FEEDRATE_X);
-
-            HAL::eprSetFloat(EPR_X_MAX_FEEDRATE,Printer::maxFeedrate[X_AXIS]);
-            EEPROM::updateChecksum();
-            break;
-        }
-        case UI_ACTION_MAX_FEEDRATE_Y:
-        {
-            INCREMENT_MIN_MAX(Printer::maxFeedrate[Y_AXIS],5,1,MAX_FEEDRATE_Y);
-
-			HAL::eprSetFloat(EPR_Y_MAX_FEEDRATE,Printer::maxFeedrate[Y_AXIS]);
-			EEPROM::updateChecksum();
-            break;
-        }
-        case UI_ACTION_MAX_FEEDRATE_Z:
-        {
-            INCREMENT_MIN_MAX(Printer::maxFeedrate[Z_AXIS],1,1,MAX_FEEDRATE_Z);
-
-            HAL::eprSetFloat(EPR_Z_MAX_FEEDRATE,Printer::maxFeedrate[Z_AXIS]);
-            EEPROM::updateChecksum();
-            break;
-        }
-        case UI_ACTION_BAUDRATE:
-        {
-#if EEPROM_MODE!=0
-            unsigned char p=0;
-            int32_t rate;
-            do
-            {
-                rate = pgm_read_dword(&(baudrates[p]));
-                if(rate==baudrate) break;
-                p++;
-
-            }while(rate!=0);
-
-            if(rate==0 && p>=2) p-=2;
-            else if(rate==0 && p==1) p=0;
-
-            if(p+increment >= 0) p+=increment;
-            else if(p+increment <= 0) p=0;
-
-            //if(p<0) p = 0;
-            rate = pgm_read_dword(&(baudrates[p]));
-            if(rate==0 && p>=1) p--;
-            baudrate = pgm_read_dword(&(baudrates[p]));
-
-            HAL::eprSetInt32(EPR_BAUDRATE,baudrate);
-            EEPROM::updateChecksum();
-#endif // EEPROM_MODE!=0
-            break;
-        }
-
-#if FEATURE_RGB_LIGHT_EFFECTS
-        case UI_ACTION_RGB_LIGHT_MODE:
-        {
-            INCREMENT_MIN_MAX(Printer::RGBLightMode,1,0,3);
-
-            HAL::eprSetByte( EPR_RF_RGB_LIGHT_MODE, Printer::RGBLightMode );
-            EEPROM::updateChecksum();
-
-            switch( Printer::RGBLightMode )
-            {
-                case RGB_MODE_OFF:
-                {
-                    Printer::RGBLightStatus         = RGB_STATUS_NOT_AUTOMATIC;
-                    Printer::RGBLightModeForceWhite = 0;
-                    setRGBTargetColors( 0, 0, 0 );
-                    break;
-                }
-                case RGB_MODE_WHITE:
-                {
-                    Printer::RGBLightStatus         = RGB_STATUS_NOT_AUTOMATIC;
-                    Printer::RGBLightModeForceWhite = 0;
-                    setRGBTargetColors( 255, 255, 255 );
-                    break;
-                }
-                case RGB_MODE_AUTOMATIC:
-                {
-                    // the firmware will determine the current RGB colors automatically
-                    Printer::RGBLightStatus         = RGB_STATUS_AUTOMATIC;
-                    Printer::RGBLightModeForceWhite = 0;
-                    break;
-                }
-                case RGB_MODE_MANUAL:
-                {
-                    Printer::RGBLightStatus         = RGB_STATUS_NOT_AUTOMATIC;
-                    Printer::RGBLightModeForceWhite = 0;
-                    setRGBTargetColors( g_uRGBManualR, g_uRGBManualG, g_uRGBManualB );
-                    break;
-                }
-            }
-            break;
-        }
-#endif // FEATURE_RGB_LIGHT_EFFECTS
-
-        case UI_ACTION_EXTR_STEPS_E0:
-		case UI_ACTION_EXTR_STEPS_E1:
-        {
-           if( !Printer::isMenuMode(MENU_MODE_PAUSED) && !Printer::isPrinting() ){
-#if NUM_EXTRUDER > 1
-			uint8_t eNr = (UI_ACTION_EXTR_STEPS_E1 == action) ? 1 : 0;
-#else
-			uint8_t eNr = 0;
-#endif //NUM_EXTRUDER > 1
-            INCREMENT_MIN_MAX(extruder[eNr].stepsPerMM, 1, 1, 9999);
-            if(eNr == Extruder::current->id) Extruder::selectExtruderById(eNr); //übernehmen der werte
-
-            HAL::eprSetFloat(EEPROM::getExtruderOffset(eNr)+EPR_EXTRUDER_STEPS_PER_MM, extruder[eNr].stepsPerMM);
-            EEPROM::updateChecksum();
-           }
-           break;
-        }
-
-#if USE_ADVANCE
-        case UI_ACTION_ADVANCE_L_E0:
-		case UI_ACTION_ADVANCE_L_E1:
-        {
-#if NUM_EXTRUDER > 1
-			uint8_t eNr = (UI_ACTION_ADVANCE_L_E1 == action) ? 1 : 0;
-#else
-			uint8_t eNr = 0;
-#endif //NUM_EXTRUDER > 1
-            float step = (extruder[eNr].advanceL < 30.0f) ? 1.0f : ((extruder[eNr].advanceL < 50.0f) ? 5.0f : 10.0f);
-            INCREMENT_MIN_MAX(extruder[eNr].advanceL, step, 0.0f, 250.0f);
-			// advance < 20 might be problematic
-			// https://github.com/repetier/Repetier-Firmware/issues/837#issuecomment-455852008
-			if (extruder[eNr].advanceL < 20.0f) {
-				if (increment > 0) {
-					extruder[eNr].advanceL = 20;
-				}
-				else {
-					extruder[eNr].advanceL = 0;
-				}
-			}
-            Printer::updateAdvanceActivated();
-
-            HAL::eprSetFloat(EEPROM::getExtruderOffset(eNr)+EPR_EXTRUDER_ADVANCE_L, extruder[eNr].advanceL);
-            EEPROM::updateChecksum();
-            break;
-        }
-#endif //USE_ADVANCE
-		
-		case UI_ACTION_EXTR_ACCELERATION_E0:
-		case UI_ACTION_EXTR_ACCELERATION_E1:
-        {
-#if NUM_EXTRUDER > 1
-			uint8_t eNr = (UI_ACTION_EXTR_ACCELERATION_E1 == action) ? 1 : 0;
-#else
-			uint8_t eNr = 0;
-#endif //NUM_EXTRUDER > 1
-            INCREMENT_MIN_MAX(extruder[eNr].maxAcceleration, 200, 200, 10000);
-			if (eNr == Extruder::current->id) Extruder::selectExtruderById(eNr);
-
-            HAL::eprSetFloat(EEPROM::getExtruderOffset(eNr)+EPR_EXTRUDER_MAX_ACCELERATION, extruder[eNr].maxAcceleration);
-            EEPROM::updateChecksum();
-            break;
-        }
-
-		case UI_ACTION_EXTR_MAX_FEEDRATE_E0:
-		case UI_ACTION_EXTR_MAX_FEEDRATE_E1:
-        {
-#if NUM_EXTRUDER > 1
-			uint8_t eNr = (UI_ACTION_EXTR_MAX_FEEDRATE_E1 == action) ? 1 : 0;
-#else
-			uint8_t eNr = 0;
-#endif //NUM_EXTRUDER > 1
-            INCREMENT_MIN_MAX(extruder[eNr].maxFeedrate, 1, extruder[eNr].maxEJerk, 60);
-			if (eNr == Extruder::current->id) Extruder::selectExtruderById(eNr);
-
-            HAL::eprSetFloat(EEPROM::getExtruderOffset(eNr)+EPR_EXTRUDER_MAX_FEEDRATE, extruder[eNr].maxFeedrate);
-            EEPROM::updateChecksum();
-            break;
-        }
-
-		case UI_ACTION_EXTR_START_FEEDRATE_E0:
-		case UI_ACTION_EXTR_START_FEEDRATE_E1:
-        {
-#if NUM_EXTRUDER > 1
-			uint8_t eNr = (UI_ACTION_EXTR_START_FEEDRATE_E1 == action) ? 1 : 0;
-#else
-			uint8_t eNr = 0;
-#endif //NUM_EXTRUDER > 1
-            INCREMENT_MIN_MAX(extruder[eNr].maxEJerk, 1, 1, extruder[eNr].maxFeedrate);
-			if (eNr == Extruder::current->id) Extruder::selectExtruderById(eNr);
-
-            HAL::eprSetFloat(EEPROM::getExtruderOffset(eNr)+EPR_EXTRUDER_MAX_START_FEEDRATE, extruder[eNr].maxEJerk);
-            EEPROM::updateChecksum();
-            break;
-        }
-		
-#if FEATURE_WORK_PART_Z_COMPENSATION
-        case UI_ACTION_RF_SET_Z_MATRIX_WORK_PART:
-        {
-            if( Printer::doWorkPartZCompensation )
-            {
-                // do not allow to change the current work part z-compensation matrix while the z-compensation is active
-                showError( (void*)ui_text_z_compensation, (void*)ui_text_operation_denied );
-                break;
-            }
-
-            INCREMENT_MIN_MAX(g_nActiveWorkPart,1,1,EEPROM_MAX_WORK_PART_SECTORS);
-            switchActiveWorkPart(g_nActiveWorkPart);
-            break;
-        }
-        case UI_ACTION_RF_SET_SCAN_DELTA_X:
-        {
-            INCREMENT_MIN_MAX(g_nScanXStepSizeMM,1,WORK_PART_SCAN_X_STEP_SIZE_MIN_MM,100);
-            g_nScanXStepSizeSteps = (long)((float)g_nScanXStepSizeMM * Printer::axisStepsPerMM[X_AXIS]);
-            break;
-        }
-        case UI_ACTION_RF_SET_SCAN_DELTA_Y:
-        {
-            INCREMENT_MIN_MAX(g_nScanYStepSizeMM,1,WORK_PART_SCAN_Y_STEP_SIZE_MIN_MM,100);
-            g_nScanYStepSizeSteps = (long)((float)g_nScanYStepSizeMM * Printer::axisStepsPerMM[Y_AXIS]);
-            break;
-        }
-#endif // FEATURE_WORK_PART_Z_COMPENSATION
-
-#if FEATURE_HEAT_BED_Z_COMPENSATION
-        case UI_ACTION_RF_SET_Z_MATRIX_HEAT_BED:
-        {
-            if( Printer::doHeatBedZCompensation )
-            {
-                // do not allow to change the current heat bed z-compensation matrix while the z-compensation is active
-                showError( (void*)ui_text_z_compensation, (void*)ui_text_operation_denied );
-                break;
-            }
-
-            INCREMENT_MIN_MAX(g_nActiveHeatBed,1,1,EEPROM_MAX_HEAT_BED_SECTORS);
-            switchActiveHeatBed(g_nActiveHeatBed);
-            break;
-        }
-#endif // FEATURE_HEAT_BED_Z_COMPENSATION
-
-#if FEATURE_WORK_PART_Z_COMPENSATION || FEATURE_HEAT_BED_Z_COMPENSATION
-        case UI_ACTION_RF_SCAN_START_HEIGHT:
-        {
-            INCREMENT_MIN_MAX(g_scanStartZLiftMM,0.1f,0.3f,6.0f);
-            HAL::eprSetFloat(EPR_ZSCAN_START_MM,g_scanStartZLiftMM); //mm zlift vor den scans.
-            EEPROM::updateChecksum();
-            break;
-        }
-#endif // FEATURE_WORK_PART_Z_COMPENSATION || FEATURE_HEAT_BED_Z_COMPENSATION
-
-        case UI_ACTION_RF_RESET_ACK:
-        case UI_ACTION_STOP_ACK:
-        case UI_ACTION_RESTORE_DEFAULTS:
-        case UI_ACTION_CHOOSE_LESSERINTEGRAL:
-        case UI_ACTION_CHOOSE_CLASSICPID:
-        case UI_ACTION_CHOOSE_NO:
-        case UI_ACTION_CHOOSE_TYREUS_LYBEN:
-        {
-            INCREMENT_MIN_MAX(g_nYesNo,1,0,1);
-            break;
-        }
-
-#if FEATURE_EMERGENCY_PAUSE
-        case UI_ACTION_EMERGENCY_PAUSE_MIN:
-        {
-            INCREMENT_MIN_MAX(g_nEmergencyPauseDigitsMin,200,EMERGENCY_PAUSE_DIGITS_MIN,g_nEmergencyPauseDigitsMax);
-            HAL::eprSetInt32( EPR_RF_EMERGENCYPAUSEDIGITSMIN, g_nEmergencyPauseDigitsMin );
-            EEPROM::updateChecksum();
-            break;
-        }
-        case UI_ACTION_EMERGENCY_PAUSE_MAX:
-        {
-            INCREMENT_MIN_MAX(g_nEmergencyPauseDigitsMax,200,g_nEmergencyPauseDigitsMin,EMERGENCY_PAUSE_DIGITS_MAX);
-            HAL::eprSetInt32( EPR_RF_EMERGENCYPAUSEDIGITSMAX, g_nEmergencyPauseDigitsMax );
-            EEPROM::updateChecksum();
-            break;
-        }
-#endif //FEATURE_EMERGENCY_PAUSE
-
-#if FEATURE_EMERGENCY_STOP_Z_AND_E
-        case UI_ACTION_EMERGENCY_ZSTOP_MIN:
-        {
-            INCREMENT_MIN_MAX(g_nEmergencyStopZAndEMin,200,EMERGENCY_STOP_DIGITS_MIN,g_nEmergencyStopZAndEMax);
-            HAL::eprSetInt16( EPR_RF_EMERGENCYZSTOPDIGITSMIN, g_nEmergencyStopZAndEMin );
-            EEPROM::updateChecksum();
-            break;
-        }
-        case UI_ACTION_EMERGENCY_ZSTOP_MAX:
-        {
-            INCREMENT_MIN_MAX(g_nEmergencyStopZAndEMax,200,g_nEmergencyStopZAndEMin,EMERGENCY_STOP_DIGITS_MAX);
-            HAL::eprSetInt16( EPR_RF_EMERGENCYZSTOPDIGITSMAX, g_nEmergencyStopZAndEMax );
-            EEPROM::updateChecksum();
-            break;
-        }
-#endif //FEATURE_EMERGENCY_STOP_Z_AND_E
-
-#if FEATURE_SENSIBLE_PRESSURE
-        case UI_ACTION_SENSEOFFSET_DIGITS:
-        {
-            short oldval = HAL::eprGetInt16(EPR_RF_MOD_SENSEOFFSET_DIGITS);
-            INCREMENT_MIN_MAX(oldval,100,500,EMERGENCY_PAUSE_DIGITS_MAX);
-            HAL::eprSetInt16( EPR_RF_MOD_SENSEOFFSET_DIGITS, oldval );
-            EEPROM::updateChecksum();
-            break;
-        }
-        case UI_ACTION_SENSEOFFSET_MAX:
-        {
-            short oldval = HAL::eprGetInt16(EPR_RF_MOD_SENSEOFFSET_OFFSET_MAX);
-            INCREMENT_MIN_MAX(oldval,10,10,300);
-            HAL::eprSetInt16( EPR_RF_MOD_SENSEOFFSET_OFFSET_MAX, oldval );
-            EEPROM::updateChecksum();
-            break;
-        }
-#endif //FEATURE_SENSIBLE_PRESSURE
-
-#if FEATURE_Kurt67_WOBBLE_FIX
-        //Antibauchtanz:
-        case UI_ACTION_WOBBLE_FIX_PHASEXY:
-        {
-            INCREMENT_MIN_MAX(Printer::wobblePhaseXY,1,-100,101);
-			if(Printer::wobblePhaseXY == 101){
-				Printer::wobblePhaseXY = -99;
-			}
-			if(Printer::wobblePhaseXY == -100){
-				Printer::wobblePhaseXY = 100;
-			}
-            HAL::eprSetByte( EPR_RF_MOD_WOBBLE_FIX_PHASEXY, Printer::wobblePhaseXY );
-            EEPROM::updateChecksum();
-            break;
-        }
-        case UI_ACTION_WOBBLE_FIX_AMPX:
-        {
-            INCREMENT_MIN_MAX(Printer::wobbleAmplitudes[0],5,-995,995);
-            HAL::eprSetInt16( EPR_RF_MOD_WOBBLE_FIX_AMPX, Printer::wobbleAmplitudes[0] );
-            EEPROM::updateChecksum();
-            break;
-        }
-        case UI_ACTION_WOBBLE_FIX_AMPY1:
-        {
-            INCREMENT_MIN_MAX(Printer::wobbleAmplitudes[1],5,-995,995);
-            HAL::eprSetInt16( EPR_RF_MOD_WOBBLE_FIX_AMPY1, Printer::wobbleAmplitudes[1] );
-            EEPROM::updateChecksum();
-            break;
-        }
-        case UI_ACTION_WOBBLE_FIX_AMPY2:
-        {
-            INCREMENT_MIN_MAX(Printer::wobbleAmplitudes[2],5,-995,995);
-            HAL::eprSetInt16( EPR_RF_MOD_WOBBLE_FIX_AMPY2, Printer::wobbleAmplitudes[2] );
-            EEPROM::updateChecksum();
-            break;
-        }
-        //Antikippeln:
-        /*
-        case UI_ACTION_WOBBLE_FIX_PHASEZ:
-        {
-            INCREMENT_MIN_MAX(Printer::wobblePhaseZ,1,-100,100);
-            break;
-        }
-        case UI_ACTION_WOBBLE_FIX_AMPZ:
-        {
-            INCREMENT_MIN_MAX(Printer::wobbleAmplitudes[3],5,-995,995);
-            break;
-        }*/
-#endif //FEATURE_Kurt67_WOBBLE_FIX
-
-        case UI_ACTION_CHOOSE_DMIN:
-        {
-            if(menuLevel == 4){ //identifikation des temperaturzyklus anhand der position im menü. Das ist nicht 100% sauber, aber funktioniert.
-                uint8_t heater = menuPos[menuLevel-1]; //0..1..2 mit zwei extrudern und bett. passt zum autotunesystem, weil UI_MENU_PID_EXT0_COUNT + UI_MENU_PID_EXT1_COUNT + UI_MENU_PID_BED_COUNT
-                if(heater < NUM_TEMPERATURE_LOOPS) {
-                    int drive = tempController[heater]->pidDriveMin;
-                    INCREMENT_MIN_MAX(drive,1,1,255);
-                    tempController[heater]->pidDriveMin = drive;
-                    if(UI_MENU_PID_BED_COUNT > 0 && UI_MENU_PID_EXT0_COUNT + UI_MENU_PID_EXT1_COUNT + UI_MENU_PID_BED_COUNT - 1 == heater){
-                        //Das ist das Heizbett
-                        HAL::eprSetByte( EPR_BED_DRIVE_MIN, (uint8_t)drive  );
-                        EEPROM::updateChecksum();
-                    }else{
-                        //Extruder
-                        if(heater <= NUM_EXTRUDER-1){ //paranoid doublecheck
-                          HAL::eprSetByte( EEPROM::getExtruderOffset(heater)+EPR_EXTRUDER_DRIVE_MIN, (uint8_t)drive  );
-                          EEPROM::updateChecksum();
-                        }
-                    }
-                }
-            }
-            break;
-        }
-        case UI_ACTION_CHOOSE_DMAX:
-        {
-            if(menuLevel == 4){ //identifikation des temperaturzyklus anhand der position im menü. Das ist nicht 100% sauber, aber funktioniert.
-                uint8_t heater = menuPos[menuLevel-1]; //0..1..2 mit zwei extrudern und bett. passt zum autotunesystem, weil UI_MENU_PID_EXT0_COUNT + UI_MENU_PID_EXT1_COUNT + UI_MENU_PID_BED_COUNT
-                if(heater < NUM_TEMPERATURE_LOOPS) {
-                    int drive = tempController[heater]->pidDriveMax;
-                    INCREMENT_MIN_MAX(drive,1,1,255);
-                    tempController[heater]->pidDriveMax = drive;
-                    if(UI_MENU_PID_BED_COUNT > 0 && UI_MENU_PID_EXT0_COUNT + UI_MENU_PID_EXT1_COUNT + UI_MENU_PID_BED_COUNT - 1 == heater){
-                        //Das ist das Heizbett
-                        HAL::eprSetByte( EPR_BED_DRIVE_MAX, (uint8_t)drive  );
-                        EEPROM::updateChecksum();
-                    }else{
-                        //Extruder
-                        if(heater <= NUM_EXTRUDER-1){ //paranoid doublecheck
-                          HAL::eprSetByte( EEPROM::getExtruderOffset(heater)+EPR_EXTRUDER_DRIVE_MAX, (uint8_t)drive  );
-                          EEPROM::updateChecksum();
-                        }
-                    }
-                }
-            }
-            break;
-        }
-        case UI_ACTION_CHOOSE_PIDMAX:
-        {
-            if(menuLevel == 4){ //identifikation des temperaturzyklus anhand der position im menü. Das ist nicht 100% sauber, aber funktioniert.
-                uint8_t heater = menuPos[menuLevel-1]; //0..1..2 mit zwei extrudern und bett. passt zum autotunesystem, weil UI_MENU_PID_EXT0_COUNT + UI_MENU_PID_EXT1_COUNT + UI_MENU_PID_BED_COUNT
-                if(heater < NUM_TEMPERATURE_LOOPS) {
-                    int drive = tempController[heater]->pidMax;
-                    INCREMENT_MIN_MAX(drive,1,1,255);
-                    tempController[heater]->pidMax = drive;
-                    if(UI_MENU_PID_BED_COUNT > 0 && UI_MENU_PID_EXT0_COUNT + UI_MENU_PID_EXT1_COUNT + UI_MENU_PID_BED_COUNT - 1 == heater){
-                        //Das ist das Heizbett
-                        HAL::eprSetByte( EPR_BED_PID_MAX, (uint8_t)drive  );
-                        EEPROM::updateChecksum();
-                    }else{
-                        //Extruder
-                        if(heater <= NUM_EXTRUDER-1){ //paranoid doublecheck
-                          HAL::eprSetByte( EEPROM::getExtruderOffset(heater)+EPR_EXTRUDER_PID_MAX, (uint8_t)drive  );
-                          EEPROM::updateChecksum();
-                        }
-                    }
-                }
-            }
-            break;
-        }
-        case UI_ACTION_CHOOSE_SENSOR:
-        {
-            if(menuLevel == 4){ //identifikation des temperaturzyklus anhand der position im menü. Das ist nicht 100% sauber, aber funktioniert.
-                uint8_t heater = menuPos[menuLevel-1]; //0..1..2 mit zwei extrudern und bett. passt zum autotunesystem, weil UI_MENU_PID_EXT0_COUNT + UI_MENU_PID_EXT1_COUNT + UI_MENU_PID_BED_COUNT
-                if(heater < NUM_TEMPERATURE_LOOPS) {
-                    int drive = tempController[heater]->sensorType;
-                    if(UI_MENU_PID_BED_COUNT > 0 && UI_MENU_PID_EXT0_COUNT + UI_MENU_PID_EXT1_COUNT + UI_MENU_PID_BED_COUNT - 1 == heater){
-                        //Das ist das Heizbett
-                        switch(drive){
-                          case 3: { drive = 4; break; } //4 ist der 10K Thermistor vom hersteller der matten (? rf1k_mhj11)
-                          default: { drive = 3; break; }
-                        }
-                        tempController[heater]->sensorType = drive;
-                        HAL::eprSetByte( EPR_RF_HEATED_BED_SENSOR_TYPE, (uint8_t)drive  );
-                        EEPROM::updateChecksum();
-                    }else{
-                        //Extruder
-                        if(increment > 0){
-                            switch(drive){
-                              case 3: { drive = 8; break; }
-                              case 8: { drive = 13; break; } //add more sensors for menu-tweaking here, those are the most common for RFx000
-                              case 13: { drive = 1; break; }
-                              default: { drive = 3; break; }
-                            }
-                        }else{ //== 0 gibts nicht, soweit ich weiß
-                            switch(drive){
-                              case 3: { drive = 1; break; }
-                              case 1: { drive = 13; break; }
-                              case 13: { drive = 8; break; } //add more sensors for menu-tweaking here, those are the most common for RFx000
-                              default: { drive = 3; break; }
-                            }
-                        }
-                        tempController[heater]->sensorType = drive;
-                        if(heater <= NUM_EXTRUDER-1){ //paranoid doublecheck
-                          HAL::eprSetByte( EEPROM::getExtruderOffset(heater)+EPR_EXTRUDER_SENSOR_TYPE, (uint8_t)drive  );
-                          EEPROM::updateChecksum();
-                        }
-                    }
-                }
-            }
-            break;
-        }
-        case UI_ACTION_CHOOSE_MOTOR_X:
-        case UI_ACTION_CHOOSE_MOTOR_Y:
-        case UI_ACTION_CHOOSE_MOTOR_Z:
-        case UI_ACTION_CHOOSE_MOTOR_E0:
-        case UI_ACTION_CHOOSE_MOTOR_E1:
-        {
-            uint8_t steppernr = menuPos[menuLevel];
-            if(steppernr == 6) steppernr = 4; //das ist etwas stümperhaft, aber ich brauche die Zeilennummer um auszuwählen und die Einstellungen für die Extruderstepper gehören drüber, also muss Extruder 2 zwei Zeilen runter...
-            if(steppernr < 5) { // aktuell gibts nur 5
-                int drive = Printer::motorCurrent[steppernr];
-                const short uMotorCurrentMax[] = MOTOR_CURRENT_MAX;
-                INCREMENT_MIN_MAX(drive,1,MOTOR_CURRENT_MIN+1,uMotorCurrentMax[steppernr]); //von 40 bis maximal das was in der config steht.
-                Printer::motorCurrent[steppernr] = drive;
-                HAL::eprSetByte( EPR_RF_MOTOR_CURRENT+steppernr, (uint8_t)drive  );
-                EEPROM::updateChecksum();
-                setMotorCurrent( steppernr+1, drive );
-                Com::printF( PSTR( "Stepper" ), steppernr+1 );
-                Com::printFLN( PSTR( " = " ), drive );
-            }
-            break;
-        }
-#if FEATURE_DIGIT_FLOW_COMPENSATION
-        case UI_ACTION_FLOW_MIN:
-        {
-            INCREMENT_MIN_MAX(g_nDigitFlowCompensation_Fmin,200,0,g_nDigitFlowCompensation_Fmax);
-            break;
-        }
-        case UI_ACTION_FLOW_MAX:
-        {
-            short max = (g_nEmergencyPauseDigitsMax ? abs(g_nEmergencyPauseDigitsMax) : abs(EMERGENCY_PAUSE_DIGITS_MAX));
-            INCREMENT_MIN_MAX(g_nDigitFlowCompensation_Fmax,200,g_nDigitFlowCompensation_Fmin,max);
-            break;
-        }
-        case UI_ACTION_FLOW_DF:
-        {
-            INCREMENT_MIN_MAX(g_nDigitFlowCompensation_intense,1,-99,99);
-            //flowmulti wird zur laufzeit geändert, anhand von steigung intense -> aber je nach cache erst sehr spät.
-            break;
-        }
-        case UI_ACTION_FLOW_DV:
-        {
-            INCREMENT_MIN_MAX(g_nDigitFlowCompensation_speed_intense,1,-90,99);
-            //feedmulti wird zur laufzeit geändert, anhand von steigung intense
-            break;
-        }
-#endif //FEATURE_DIGIT_FLOW_COMPENSATION
-        case UI_ACTION_SHIFT_INTERVAL:
-        {
-            INCREMENT_MIN_MAX(Printer::stepsPackingMinInterval, -100, MIN_STEP_PACKING_MIN_INTERVAL, MAX_STEP_PACKING_MIN_INTERVAL);
-            HAL::eprSetInt16(EPR_RF_STEP_PACKING_MIN_INTERVAL, Printer::stepsPackingMinInterval);
-            EEPROM::updateChecksum();
-            break;
-        }
-#if FEATURE_ADJUSTABLE_MICROSTEPS
-        case UI_ACTION_MICROSTEPS_XY:
-        case UI_ACTION_MICROSTEPS_Z:
-        case UI_ACTION_MICROSTEPS_E:
-        {
-            if( !Printer::isPrinting() && !PrintLine::linesCount && g_pauseStatus == PAUSE_STATUS_NONE ){
-                Printer::disableAllSteppersNow();  //Stepper und Homing ausmachen.
-                                                   //We cannot use the old coordinates anymore.
-
-                InterruptProtectedBlock noInts;
-                bool changed[5] = {false, false, false, false, false};
-                switch(action){
-                    case UI_ACTION_MICROSTEPS_XY:{
-                        INCREMENT_MIN_MAX(Printer::motorMicroStepsModeValue[0],1,4,6);
-                        if(Printer::motorMicroStepsModeValue[1] != Printer::motorMicroStepsModeValue[0]){ //only adjust, when changed.
-                            Printer::motorMicroStepsModeValue[1] = Printer::motorMicroStepsModeValue[0]; //sync x and y
-                            drv8711adjustMicroSteps(1); //adjust driver chip X=1
-                            drv8711adjustMicroSteps(2); //adjust driver chip Y=2
-                            changed[0] = changed[1] = true;
-                        }
-                        break;
-                    }
-                    case UI_ACTION_MICROSTEPS_Z:{
-                        uint8_t temp = Printer::motorMicroStepsModeValue[2];
-                        INCREMENT_MIN_MAX(Printer::motorMicroStepsModeValue[2],1,4,5);
-                        if(temp != Printer::motorMicroStepsModeValue[2]){ //only adjust, when changed.
-                            drv8711adjustMicroSteps(3); //adjust driver chip Z=3
-                            changed[2] = true;
-                        }
-                        break;
-                    }
-                    case UI_ACTION_MICROSTEPS_E:{
-                        INCREMENT_MIN_MAX(Printer::motorMicroStepsModeValue[3],1,4,7);
-                        if(Printer::motorMicroStepsModeValue[4] != Printer::motorMicroStepsModeValue[3]){ //only adjust, when changed.
-                            Printer::motorMicroStepsModeValue[4] = Printer::motorMicroStepsModeValue[3]; //sync E0 and E1
-                            drv8711adjustMicroSteps(4); //adjust driver chip E0=4
-                            drv8711adjustMicroSteps(5); //adjust driver chip E1=5
-                            changed[3] = changed[4] = true;
-                        }
-                        break;
-                    }
-                }
-
-                bool updateall = false;
-                if (HAL::eprGetByte( EPR_RF_MICRO_STEPS_USED ) != 0xAB ) updateall = true;
-                float stepsmm_korrekturfactor = (increment > 0 ? 2.0f : 0.5f);
-                bool updatederived = false;
-                bool updateextruder = false;
-
-                //anpassen der eeprom-werte und anpassen der steps/mm sodass die geschwindigkeit weiterhin passt.
-                for(int i = 0; i < DRV8711_NUM_CHANNELS; i++){
-                    if((!changed[i] && updateall) || changed[i]){ //erstes oder veränderndes schreiben
-                        HAL::eprSetByte( EPR_RF_MICRO_STEPS_X+i, Printer::motorMicroStepsModeValue[i] );
-                    }
-                    if(changed[i]){ //nur dann die axis-steps anpassen, wenn wirklich was geändert wurde.
-                        switch(i){
-                            case X_AXIS:
-                            case Y_AXIS:
-                            case Z_AXIS:
-                            {
-                                Printer::axisStepsPerMM[i] *= stepsmm_korrekturfactor;
-                                g_nPauseSteps[i] *= stepsmm_korrekturfactor;
-                                if(i==Z_AXIS){
-                                    g_staticZSteps *= stepsmm_korrekturfactor; //adjust static offset from Z-Offset to fit new Microstepping
-                                    Printer::currentZSteps *= stepsmm_korrekturfactor; //adjust critical z-counter for drive over switch limits
-                                    g_maxZCompensationSteps *= stepsmm_korrekturfactor; //preadjust max compensation steps for z-CMP (gets autoadjusted but the user might override autoadjustement)
-                                    g_minZCompensationSteps *= stepsmm_korrekturfactor; //preadjust max compensation steps for z-CMP (gets autoadjusted but the user might override autoadjustement)
-                                    g_nManualSteps[Z_AXIS] *= stepsmm_korrekturfactor;
-                                    HAL::eprSetInt16( EPR_RF_MOD_Z_STEP_SIZE, g_nManualSteps[Z_AXIS] );
-                                    g_ZCompensationMatrix[0][0] = EEPROM_FORMAT-1; //force the zmatrix in ram to be invalid and to reload it later.
-                                    //korrektur der aktiven kompensation/zoffset ist durch fehlendes homing unterbunden.
-                                }
-                                updatederived = true; //übernehmen der werte in offsets und infaxissteps, accel usw..
-                                HAL::eprSetFloat( EPR_XAXIS_STEPS_PER_MM + 4*i, Printer::axisStepsPerMM[i] );
-                                break;
-                            }
-                            case E_AXIS:
-                            case E_AXIS+1:
-                            {
-                                //i-3 ist hier 0 oder 1
-                                uint8_t etr = i-3; //3-3 =0 oder 4-1 =1
-                                extruder[etr].stepsPerMM *= stepsmm_korrekturfactor;
-                                HAL::eprSetFloat(EEPROM::getExtruderOffset(etr)+EPR_EXTRUDER_STEPS_PER_MM,extruder[etr].stepsPerMM);
-                                if(etr == Extruder::current->id) updateextruder = true; //übernehmen der werte in offsets und infaxissteps, accel usw..
-                                break;
-                            }
-                        }
-                    }
-                }
-                 //übernehmen der werte in offsets und infaxissteps, accel usw..
-                if(updatederived) Printer::updateDerivedParameter();
-                if(updateextruder) Extruder::selectExtruderById(Extruder::current->id);
-                if(updateall) HAL::eprSetByte( EPR_RF_MICRO_STEPS_USED , 0xAB ); //erstes schreiben markiert eepromwerte als gültig
-                EEPROM::updateChecksum();
-                noInts.unprotect();
-            }
-            break;
-        }
-#endif //FEATURE_ADJUSTABLE_MICROSTEPS
-
-    }
 
 #if FEATURE_MILLING_MODE
     if( Printer::operatingMode == OPERATING_MODE_PRINT )
@@ -4241,111 +5365,9 @@ void UIDisplay::nextPreviousAction(int8_t next)
 #endif // UI_MILL_AUTORETURN_TO_MENU_AFTER!=0
     }
 #endif // FEATURE_MILLING_MODE
-#endif // UI_HAS_KEYS==1
-
 } // nextPreviousAction
 
 
-void UIDisplay::finishAction(int action)
-{
-    switch( action )
-    {
-        case UI_ACTION_RF_RESET_ACK:
-        {
-            if( g_nYesNo != 1 )
-            {
-                // continue only in case the user has chosen "Yes"
-                break;
-            }
-            Com::printFLN( PSTR( "Reset via Menu" ) );
-            HAL::delayMilliseconds( 100 );
-            Commands::emergencyStop();
-            break;
-        }
-
-        case UI_ACTION_STOP_ACK:
-        {
-            if( g_nYesNo != 1 )
-            {
-                // continue only in case the user has chosen "Yes"
-                break;
-            }
-            exitmenu();
-            Printer::stopPrint();
-            break;
-        }
-
-        case UI_ACTION_RESTORE_DEFAULTS:
-            {
-            if( g_nYesNo != 1 )
-            {
-                   // continue only in case the user has chosen "Yes"
-                   break;
-            }
-            EEPROM::restoreEEPROMSettingsFromConfiguration();
-            EEPROM::storeDataIntoEEPROM(false);
-            EEPROM::initializeAllOperatingModes();
-
-            exitmenu();
-            UI_STATUS( UI_TEXT_RESTORE_DEFAULTS );
-            break;
-        }
-
-        case UI_ACTION_CHOOSE_LESSERINTEGRAL:
-        case UI_ACTION_CHOOSE_CLASSICPID:
-        case UI_ACTION_CHOOSE_NO:
-        case UI_ACTION_CHOOSE_TYREUS_LYBEN:
-        {
-            if( g_nYesNo != 1 )
-            {
-                // continue only in case the user has chosen "Yes"
-                break;
-            }
-            unsigned char heater = menuPos[menuLevel-2]; //0..1..2 mit zwei extrudern und bett. passt zum autotunesystem, weil UI_MENU_PID_EXT0_COUNT + UI_MENU_PID_EXT1_COUNT + UI_MENU_PID_BED_COUNT
-            int method = menuPos[menuLevel-1]; //0..1..2..3 passt nicht mehr zum J-Listing des M303
-
-            //Esthetics: Switch method for better order in menu. I want the menu to start with pessen integral, because it is the most responsive one. We dont need some overshoot within menu because it has no known use for us.
-            /*
-            responsiveness of tunings: J1pessen++ J0classic+ J2someovershoot J3noovershoot- J4tyreuslyben--
-            -- is for slow beds
-            ++ is for fast hotends
-            */
-            if(method == 0){
-                method = 1; //J1
-            }else if(method == 1){
-                method = 0; //J0
-            }else if(method == 2){
-                method = 3; //J3
-            }else if(method == 3){
-                method = 4; //J4
-            }
-
-            /*
-             Line 1059: #define PRECISE_HEAT_BED_SCAN_BED_TEMP_PLA          60                                                                  // [°C]
-             Line 1062: #define PRECISE_HEAT_BED_SCAN_EXTRUDER_TEMP_PLA     230                                                                 // [°C]
-            */
-#if NUM_TEMPERATURE_LOOPS > 0
-            int temperature = PRECISE_HEAT_BED_SCAN_EXTRUDER_TEMP_PLA;
-            int cycles = 10;
-            if(UI_MENU_PID_EXT0_COUNT + UI_MENU_PID_EXT1_COUNT + UI_MENU_PID_BED_COUNT - 1 == heater && UI_MENU_PID_BED_COUNT > 0){
-                //Das ist das Heizbett und kein Extruder
-                temperature = PRECISE_HEAT_BED_SCAN_BED_TEMP_PLA; //Bett nicht so hoch testen, wie Extruder.
-                cycles = 16; //Bett ist erfahrungsgemäß viel träger. Mehr Zyklen erhöhen die Genauigkeit des Ergebnis.
-            }
-            bool writeeeprom = true;
-            if(heater >= NUM_TEMPERATURE_LOOPS) heater = NUM_TEMPERATURE_LOOPS -1;
-            //show menu and message to user: He cant do anything until autotune is over.
-            exitmenu(); menuPos[0] = 3; //show temps
-            tempController[heater]->autotunePID(temperature,heater,cycles,writeeeprom, method);
-#else
-            Com::printFLN( PSTR( "PID Autotune Error: Noo Temperature-Loops defined!??" ) );
-#endif // NUM_TEMPERATURE_LOOPS > 0
-            break;
-        }
-
-    }
-
-} // finishAction
 
 
 // Actions are events from user input. Depending on the current state, each
@@ -4363,878 +5385,34 @@ void UIDisplay::executeAction(int action)
         return;
     }
 
-#if UI_HAS_KEYS==1
-    bool skipBeep = false;
     if(action & UI_ACTION_TOPMENU)   // Go to start menu
     {
         action -= UI_ACTION_TOPMENU;
         exitmenu();
     }
-    else if((action>=UI_ACTION_RF_MIN_REPEATABLE && action<=UI_ACTION_RF_MAX_REPEATABLE) ||
-            (action>=UI_ACTION_RF_MIN_SINGLE && action<=UI_ACTION_RF_MAX_SINGLE))
-    {
-        processButton( action );
-    }
     else
     {
-        switch(action)
-        {
-            case UI_ACTION_OK:
-            {
-                okAction();
-                skipBeep=true; // Prevent double beep
-                g_nYesNo = 0;
-                break;
-            }
-            case UI_ACTION_BACK:
-            {
-#if FEATURE_SENSIBLE_PRESSURE
-                if( menuLevel == 0 && menuPos[0] == 1 ){ //wenn im Mod-Menü für Z-Offset/Matrix Sense-Offset/Limiter, dann anders!
-                    //we are in the Mod menu
-                    //verkleinern des Digit-Limits
-                    if(g_nSensiblePressureDigits == 0){
-                        if(EMERGENCY_PAUSE_DIGITS_MAX * 0.8 < 32767){
-                            g_nSensiblePressureDigits = EMERGENCY_PAUSE_DIGITS_MAX * 0.8; //maximalstellung, das ist aber schon irre hoch. abhängig von messdose und maximaltragkraft vs. genauigkeit der zelle.
-                        }else{
-                            g_nSensiblePressureDigits = 32767; //die variable ist short, nie mehr rein als nötig ^^.
-                        }
-                    }else if(g_nSensiblePressureDigits < 50){ // ex 250
-                        g_nSensiblePressureDigits = 0;
-                    }else{
-                        //TPE braucht mini werte, wenn es sinnvoll sein soll. Darum der Ternary, sodass man per Knopf auch kleinste Zahlen justieren kann.
-                        //g_nSensiblePressureDigits -= 250; //decrement pro Knopfklick. Man kann ja auf der Taste bleiben.
-                        g_nSensiblePressureDigits -= (g_nSensiblePressureDigits >= 2000) ? 250 : (g_nSensiblePressureDigits >= 500) ? 100 : 50 ; //decrement pro Knopfklick. Man kann ja auf der Taste bleiben.
-
-                        //Wir speichern nur Werte automatisch per Knopf, die im Alltag sinn machen können. Ab 500:
-                        short oldval = HAL::eprGetInt16(EPR_RF_MOD_SENSEOFFSET_DIGITS);
-                        if(g_nSensiblePressureDigits >= 500 && oldval != g_nSensiblePressureDigits){
-                            HAL::eprSetInt16( EPR_RF_MOD_SENSEOFFSET_DIGITS, g_nSensiblePressureDigits );
-                            EEPROM::updateChecksum(); //deshalb die prüfung
-                        }
-                    }
-                    beep(1,4);
-                    //skipBeep=true;
-                }else{
-#endif
-
-#if FEATURE_RGB_LIGHT_EFFECTS
-                    if ( menuLevel == 0 )
-                    {
-                        Printer::RGBButtonBackPressed = 1;
-                    }
-#endif // FEATURE_RGB_LIGHT_EFFECTS
-                    if ( menuLevel == 1 && menuPos[0] == 1 ){
-                        //der würde in das modmenü zurückgehen, da sind aber die rechtst links tasten anders belegt, daher nicht da rein! sonst evtl. verstellen von DigitLimit.
-                        menuPos[0] = 0;
-                    }
-                    if(menuLevel>0) menuLevel--;
-                    Printer::setAutomount(false);
-                    activeAction = 0;
-                    g_nYesNo = 0;
-
-#if FEATURE_SENSIBLE_PRESSURE
-                }
-#endif
-                break;
-            }
-            case UI_ACTION_NEXT:
-            {
-                nextPreviousAction(1);
-                break;
-            }
-            case UI_ACTION_RIGHT:
-            {
-                rightAction();
-                break;
-            }
-            case UI_ACTION_PREVIOUS:
-            {
-                nextPreviousAction(-1);
-                break;
-            }
-            case UI_ACTION_MENU_UP:
-            {
-                if(menuLevel>0) menuLevel--;
-                break;
-            }
-            case UI_ACTION_EMERGENCY_STOP:
-            {
-                Commands::emergencyStop();
-                break;
-            }
-            case UI_ACTION_HOME_ALL:
-            {
-                if( PrintLine::linesCount )
-                {
-                    // do not allow homing via the menu while we are printing
-                    Com::printFLN( Com::tPrintingIsInProcessError );
-                    showError( (void*)ui_text_home, (void*)ui_text_operation_denied );
-                    break;
-                }
-                if( !isHomingAllowed( NULL, 1 ) )
-                {
-                    break;
-                }
-                exitmenu();
-                Printer::homeAxis(true,true,true);
-                break;
-            }
-            case UI_ACTION_HOME_X:
-            {
-                if( PrintLine::linesCount )
-                {
-                    // do not allow homing via the menu while we are printing
-                    if( Printer::debugErrors() )
-                    {
-                        Com::printFLN( Com::tPrintingIsInProcessError );
-                    }
-
-                    showError( (void*)ui_text_home, (void*)ui_text_operation_denied );
-                    break;
-                }
-                if( !isHomingAllowed( NULL, 1 ) )
-                {
-                    break;
-                }
-                exitmenu();
-                Printer::homeAxis(true,false,false);
-                break;
-            }
-            case UI_ACTION_HOME_Y:
-            {
-                if( PrintLine::linesCount )
-                {
-                    // do not allow homing via the menu while we are printing
-                    if( Printer::debugErrors() )
-                    {
-                        Com::printFLN( Com::tPrintingIsInProcessError );
-                    }
-
-                    showError( (void*)ui_text_home, (void*)ui_text_operation_denied );
-                    break;
-                }
-                if( !isHomingAllowed( NULL, 1 ) )
-                {
-                    break;
-                }
-                exitmenu();
-                Printer::homeAxis(false,true,false);
-                break;
-            }
-            case UI_ACTION_HOME_Z:
-            {
-                if( PrintLine::linesCount )
-                {
-                    // do not allow homing via the menu while we are printing
-                    if( Printer::debugErrors() )
-                    {
-                        Com::printFLN( Com::tPrintingIsInProcessError );
-                    }
-                    showError( (void*)ui_text_home, (void*)ui_text_operation_denied );
-                    break;
-                }
-                if( !isHomingAllowed( NULL, 1 ) )
-                {
-                    break;
-                }
-                exitmenu();
-                Printer::homeAxis(false,false,true);
-                break;
-            }
-            case UI_ACTION_SET_XY_ORIGIN:
-            {
-                Printer::setOrigin(-Printer::destinationMM[X_AXIS], -Printer::destinationMM[Y_AXIS], Printer::originOffsetMM[Z_AXIS]);
-                BEEP_ACCEPT_SET_POSITION
-                break;
-            }
-            case UI_ACTION_DEBUG_ECHO:
-            {
-                if(Printer::debugEcho()) Printer::debugLevel-=1;
-                else Printer::debugLevel+=1;
-                break;
-            }
-            case UI_ACTION_DEBUG_INFO:
-            {
-                if(Printer::debugInfo()) Printer::debugLevel-=2;
-                else Printer::debugLevel+=2;
-                break;
-            }
-            case UI_ACTION_DEBUG_ERROR:
-            {
-                if(Printer::debugErrors()) Printer::debugLevel-=4;
-                else Printer::debugLevel+=4;
-                break;
-            }
-            case UI_ACTION_DEBUG_DRYRUN:
-            {
-                if(Printer::debugDryrun()) Printer::debugLevel-=8;
-                else Printer::debugLevel+=8;
-                if(Printer::debugDryrun())   // simulate movements without printing
-                {
-                    Extruder::setTemperatureForAllExtruders(0, false);
-#if HAVE_HEATED_BED==true
-                    Extruder::setHeatedBedTemperature(0);
-#endif // HAVE_HEATED_BED==true
-                }
-                break;
-            }
-
-#if FEATURE_CASE_LIGHT
-            case UI_ACTION_LIGHTS_ONOFF:
-            {
-                if( Printer::enableCaseLight )  Printer::enableCaseLight = 0;
-                else                            Printer::enableCaseLight = 1;
-                WRITE(CASE_LIGHT_PIN, Printer::enableCaseLight);
-
-                HAL::eprSetByte( EPR_RF_CASE_LIGHT_MODE, Printer::enableCaseLight );
-                EEPROM::updateChecksum();
-
-                break;
-            }
-#endif // FEATURE_CASE_LIGHT
-
-#if FEATURE_230V_OUTPUT
-            case UI_ACTION_230V_OUTPUT:
-            {
-                if( Printer::enable230VOutput ) Printer::enable230VOutput = 0;
-                else                            Printer::enable230VOutput = 1;
-                WRITE(OUTPUT_230V_PIN, Printer::enable230VOutput);
-
-                // after a power-on, the 230 V plug always shall be turned off - thus, we do not store this setting to the EEPROM
-                // HAL::eprSetByte( EPR_RF_230V_OUTPUT_MODE, Printer::enable230VOutput );
-                // EEPROM::updateChecksum();
-
-                break;
-            }
-#endif // FEATURE_230V_OUTPUT
-
-#if FEATURE_24V_FET_OUTPUTS
-            case UI_ACTION_FET1_OUTPUT:
-            {
-                if( Printer::enableFET1 )   Printer::enableFET1 = 0;
-                else                        Printer::enableFET1 = 1;
-                WRITE(FET1, Printer::enableFET1);
-
-                HAL::eprSetByte( EPR_RF_FET1_MODE , Printer::enableFET1 );
-                EEPROM::updateChecksum();
-                break;
-            }
-
-            case UI_ACTION_FET2_OUTPUT:
-            {
-                if( Printer::enableFET2 )   Printer::enableFET2 = 0;
-                else                        Printer::enableFET2 = 1;
-                WRITE(FET2, Printer::enableFET2);
-
-                HAL::eprSetByte( EPR_RF_FET2_MODE , Printer::enableFET2 );
-                EEPROM::updateChecksum();
-                break;
-            }
-#endif // FEATURE_24V_FET_OUTPUTS
-
-			case UI_ACTION_CONFIG_SINGLE_STEPS:
-			{
-				configureMANUAL_STEPS_Z(1);
-				break;
-			}
-
-			case UI_ACTION_CONFIG_SINGLE_STEPS_KOSYS:
-			{
-				if (Printer::moveKosys)   Printer::moveKosys = false;
-				else                      Printer::moveKosys = true;
-
-				HAL::eprSetByte(EPR_RF_MOVE_MODE_XY_KOSYS, Printer::moveKosys);
-				EEPROM::updateChecksum();
-				break;
-			}
-
-			case UI_ACTION_CONFIG_POSITION_FEEDRATE:
-			{
-				if (Printer::movePositionFeedrateChoice)   Printer::movePositionFeedrateChoice = false;
-				else                                     Printer::movePositionFeedrateChoice = true;
-
-				HAL::eprSetByte(EPR_RF_MOVE_POSITION_FEEDRATE, Printer::movePositionFeedrateChoice);
-				EEPROM::updateChecksum();
-				break;
-			}
-
-#if FEATURE_MILLING_MODE
-            case UI_ACTION_OPERATING_MODE:
-            {
-                char    deny = 0;
-
-                if( PrintLine::linesCount )     deny = 1;   // the operating mode can not be switched while the printing is in progress
-
-#if FEATURE_HEAT_BED_Z_COMPENSATION
-                if( g_nHeatBedScanStatus || g_nZOSScanStatus ) deny = 1;   // the operating mode can not be switched while a heat bed scan / ZOS is in progress
-#endif // FEATURE_HEAT_BED_Z_COMPENSATION
-
-#if FEATURE_ALIGN_EXTRUDERS
-                if( g_nAlignExtrudersStatus )   deny = 1;
-#endif //FEATURE_ALIGN_EXTRUDERS
-
-#if FEATURE_WORK_PART_Z_COMPENSATION
-                if( g_nWorkPartScanStatus )     deny = 1;   // the operating mode can not be switched while a work part scan is in progress
-#endif // FEATURE_WORK_PART_Z_COMPENSATION
-
-#if FEATURE_FIND_Z_ORIGIN
-                if( g_nFindZOriginStatus )      deny = 1;   // the operating mode can not be switched while the z-origin is searched
-#endif // FEATURE_FIND_Z_ORIGIN
-
-                if( deny )
-                {
-                    showError( (void*)ui_text_change_mode, (void*)ui_text_operation_denied );
-                    break;
-                }
-
-                // disable and turn off everything before we switch the operating mode
-                Printer::switchEverythingOff();
-
-                if( Printer::operatingMode == OPERATING_MODE_PRINT )
-                {
-                    switchOperatingMode( OPERATING_MODE_MILL );
-                }
-                else
-                {
-                    switchOperatingMode( OPERATING_MODE_PRINT );
-                }
-
-                HAL::eprSetByte( EPR_RF_OPERATING_MODE, Printer::operatingMode );
-                EEPROM::updateChecksum();
-
-                break;
-            }
-#endif // FEATURE_MILLING_MODE
-
-#if FEATURE_CONFIGURABLE_Z_ENDSTOPS
-            case UI_ACTION_Z_ENDSTOP_TYPE:
-            {
-                if( PrintLine::linesCount )
-                {
-                    // the z-endstop type can not be switched while the printing is in progress
-                    if( Printer::debugErrors() )
-                    {
-                        Com::printFLN( Com::tPrintingIsInProcessError );
-                    }
-
-                    showError( (void*)ui_text_change_z_type, (void*)ui_text_operation_denied );
-                    break;
-                }
-
-                Printer::lastZDirection = 0;
-                Printer::endstopZMinHit = ENDSTOP_NOT_HIT;
-                Printer::endstopZMaxHit = ENDSTOP_NOT_HIT;
-
-                if( Printer::ZEndstopType == ENDSTOP_TYPE_SINGLE )
-                {
-                    Printer::ZEndstopType = ENDSTOP_TYPE_CIRCUIT;
-
-                    if( Printer::isZMinEndstopHit() || Printer::isZMaxEndstopHit() )
-                    {
-                        // a z-endstop is active at the moment, but both z-endstops are within one circuit so we do not know which one is the pressed one
-                        // in this situation we do not allow any moving into z-direction before a z-homing has been performed
-                        Printer::ZEndstopUnknown = 1;
-                    }
-                }
-                else
-                {
-                    Printer::ZEndstopType    = ENDSTOP_TYPE_SINGLE;
-                    Printer::ZEndstopUnknown = 0;
-                }
-
-                // update our information about the currently active Z-endstop
-                Printer::isZMinEndstopHit();
-                Printer::isZMaxEndstopHit();
-
-                HAL::eprSetByte( EPR_RF_Z_ENDSTOP_TYPE, Printer::ZEndstopType );
-                EEPROM::updateChecksum();
-                 break;
-            }
-#endif // FEATURE_CONFIGURABLE_Z_ENDSTOPS
-
-            case UI_ACTION_ZMODE:
-            {
-                if( Printer::ZMode == 1 )        Printer::ZMode = 2;
-                else                             Printer::ZMode = 1;
-
-                HAL::eprSetByte( EPR_RF_Z_MODE, Printer::ZMode );
-                EEPROM::updateChecksum();
-                break;
-            }
-
-#if FEATURE_CONFIGURABLE_MILLER_TYPE
-            case UI_ACTION_MILLER_TYPE:
-            {
-                if( PrintLine::linesCount )
-                {
-                    // the hotend type can not be switched while the printing is in progress
-                    if( Printer::debugErrors() )
-                    {
-                        Com::printFLN( Com::tPrintingIsInProcessError );
-                    }
-
-                    showError( (void*)ui_text_change_miller_type, (void*)ui_text_operation_denied );
-                    break;
-                }
-
-                if( Printer::MillerType == MILLER_TYPE_ONE_TRACK )
-                {
-                    Printer::MillerType          = MILLER_TYPE_TWO_TRACKS;
-                    g_nScanContactPressureDelta  = MT2_WORK_PART_SCAN_CONTACT_PRESSURE_DELTA;
-                    g_nScanRetryPressureDelta    = MT2_WORK_PART_SCAN_RETRY_PRESSURE_DELTA;
-                }
-                else
-                {
-                    Printer::MillerType          = MILLER_TYPE_ONE_TRACK;
-                    g_nScanContactPressureDelta  = MT1_WORK_PART_SCAN_CONTACT_PRESSURE_DELTA;
-                    g_nScanRetryPressureDelta    = MT1_WORK_PART_SCAN_RETRY_PRESSURE_DELTA;
-                }
-
-                HAL::eprSetByte( EPR_RF_MILLER_TYPE, Printer::MillerType );
-                EEPROM::updateChecksum();
-                break;
-            }
-#endif // FEATURE_CONFIGURABLE_MILLER_TYPE
-
-            case UI_ACTION_PREHEAT_PLA:
-            {
-                g_uStartOfIdle = HAL::timeInMilliseconds() + 10000; //preheat PLA just got selected
-                UI_STATUS_UPD( UI_TEXT_PREHEAT_PLA );
-                Extruder::setTemperatureForAllExtruders(UI_SET_PRESET_EXTRUDER_TEMP_PLA, false);
-#if HAVE_HEATED_BED==true
-                Extruder::setHeatedBedTemperature(UI_SET_PRESET_HEATED_BED_TEMP_PLA);
-#endif // HAVE_HEATED_BED==true
-                break;
-            }
-            case UI_ACTION_PREHEAT_ABS:
-            {
-                g_uStartOfIdle = HAL::timeInMilliseconds() + 10000; //preheat ABS just got selected
-                UI_STATUS_UPD( UI_TEXT_PREHEAT_ABS );
-                Extruder::setTemperatureForAllExtruders(UI_SET_PRESET_EXTRUDER_TEMP_ABS, false);
-#if HAVE_HEATED_BED==true
-                Extruder::setHeatedBedTemperature(UI_SET_PRESET_HEATED_BED_TEMP_ABS);
-#endif // HAVE_HEATED_BED==true
-                break;
-            }
-            case UI_ACTION_COOLDOWN:
-            {
-                UI_STATUS_UPD( UI_TEXT_COOLDOWN );
-                Extruder::setTemperatureForAllExtruders(0, false);
-#if HAVE_HEATED_BED==true
-                Extruder::setHeatedBedTemperature(0);
-#endif // HAVE_HEATED_BED==true
-                break;
-            }
-            case UI_ACTION_HEATED_BED_OFF:
-            {
-#if HAVE_HEATED_BED==true
-                Extruder::setHeatedBedTemperature(0);
-#endif // HAVE_HEATED_BED==true
-                break;
-            }
-            case UI_ACTION_EXTRUDER0_OFF:
-            {
-                Extruder::setTemperatureForExtruder(0,0);
-                break;
-            }
-            case UI_ACTION_EXTRUDER1_OFF:
-            {
-#if NUM_EXTRUDER>1
-                Extruder::setTemperatureForExtruder(0,1);
-#endif // NUM_EXTRUDER>1
-                break;
-            }
-            case UI_ACTION_DISABLE_STEPPER:
-            {
-				Printer::disableAllSteppersNow();
-                break;
-            }
-            case UI_ACTION_MOUNT_FILAMENT_SOFT:
-            case UI_ACTION_MOUNT_FILAMENT_HARD:
-            case UI_ACTION_UNMOUNT_FILAMENT_SOFT:
-            case UI_ACTION_UNMOUNT_FILAMENT_HARD:
-            {
-                g_uStartOfIdle = 0;
-                while( Printer::checkAbortKeys() ) Commands::checkForPeriodicalActions(); //dont quit script by holding the ok longer than 1ms if no temp is involved. -> min einmal OK loslassen.
-                bool unmount = (action == UI_ACTION_UNMOUNT_FILAMENT_SOFT || action == UI_ACTION_UNMOUNT_FILAMENT_HARD);
-                exitmenu();
-
-                if( unmount ){
-					UI_STATUS_UPD( UI_TEXT_UNMOUNT_FILAMENT );
-                    if(action == UI_ACTION_UNMOUNT_FILAMENT_SOFT){
-                        GCode::executeFString(Com::tUnmountFilamentSoft);
-                    }else{
-                        GCode::executeFString(Com::tUnmountFilamentHard);
-                    }
-                }else{
-					UI_STATUS_UPD( UI_TEXT_MOUNT_FILAMENT );
-                    if(action == UI_ACTION_MOUNT_FILAMENT_SOFT){
-						/* Diese PLA Temp ist bei ~180 °C, die meisten Filamente werden gerade so weich. Wenn man keine mindesetens "weiche" Temperatur eingestellt hat, soll geheizt werden.*/
-						if( Extruder::current->tempControl.targetTemperatureC < UI_SET_PRESET_EXTRUDER_TEMP_PLA )
-						{
-							Extruder::setTemperatureForExtruder(UI_SET_PRESET_EXTRUDER_TEMP_PLA,Extruder::current->id, true);
-							Extruder::current->tempControl.waitForTargetTemperature();
-							GCode::executeFString(Com::tMountFilamentSoft);
-							Extruder::setTemperatureForExtruder(0, Extruder::current->id, false);
-						}else{
-							GCode::executeFString(Com::tMountFilamentSoft);
-						}
-					}else{
-						GCode::executeFString(Com::tMountFilamentHard);
-					}
-                }
-                g_uStartOfIdle = HAL::timeInMilliseconds(); // UI_ACTION_UNMOUNT_FILAMENT UI_ACTION_MOUNT_FILAMENT
-                break;
-            }
-            case UI_ACTION_SET_E_ORIGIN:
-            {
-				Printer::setEAxisSteps(0); //G92 E0
-                break;
-            }
-            case UI_ACTION_EXTRUDER_RELATIVE:
-            {
-                Printer::relativeExtruderCoordinateMode=!Printer::relativeExtruderCoordinateMode;
-                break;
-            }
-            case UI_ACTION_SELECT_EXTRUDER0:
-            {
-                Extruder::selectExtruderById(0);
-                break;
-            }
-            case UI_ACTION_SELECT_EXTRUDER1:
-            {
-#if NUM_EXTRUDER>1
-                Extruder::selectExtruderById(1);
-#endif // NUM_EXTRUDER>1
-
-                break;
-            }
-#if NUM_EXTRUDER >= 1
-            case UI_ACTION_ACTIVE_EXTRUDER:
-            {
-                if( Extruder::current->id == 0 )    Extruder::selectExtruderById( 1 );
-                else                                Extruder::selectExtruderById( 0 );
-                break;
-            }
-#endif // NUM_EXTRUDER == 2
-
-#if FEATURE_BEEPER
-            case UI_ACTION_BEEPER:
-            {
-                if( Printer::enableBeeper ) Printer::enableBeeper = 0;
-                else                        Printer::enableBeeper = 1;
-
-                HAL::eprSetByte( EPR_RF_BEEPER_MODE, Printer::enableBeeper );
-                EEPROM::updateChecksum();
-                break;
-            }
-#endif // FEATURE_BEEPER
-
-#if SDSUPPORT
-            case UI_ACTION_SD_PRINT:
-            {
-                if(sd.sdactive)
-                {
-                    pushMenu((void*)&ui_menu_sd_fileselector,false);
-                }
-                break;
-            }
-            case UI_ACTION_SD_PAUSE:
-            {
-                exitmenu();
-                pausePrint();
-                break;
-            }
-            case UI_ACTION_SD_CONTINUE:
-            {
-                exitmenu();
-                continuePrint();
-                break;
-            }
-            case UI_ACTION_SD_UNMOUNT:
-            {
-                sd.unmount();
-                break;
-            }
-            case UI_ACTION_SD_MOUNT:
-            {
-                sd.mount(/*not silent mount*/);
-                break;
-            }
-#endif // SDSUPPORT
-
-#if FEATURE_READ_CALIPER
-            case UI_ACTION_CAL_RESET:
-            {
-                InterruptProtectedBlock noInts;
-                caliper_collect_um = 0;
-                caliper_collect_count = 0;
-                noInts.unprotect();
-                BEEP_ACCEPT_SET_POSITION
-                break;
-            }
-            case UI_ACTION_CAL_SET:
-            {
-                if(caliper_collect_um && caliper_collect_count){
-                    float dim = (float)caliper_filament_standard / (caliper_collect_um / caliper_collect_count);
-                    float newExtrusionFactor = dim*dim;
-                    Commands::changeFlowrateMultiply(newExtrusionFactor);
-                    Com::printFLN( PSTR( "Set Flowrate Multiplier: " ), uint8_t(newExtrusionFactor * 100) );
-                    BEEP_ACCEPT_SET_POSITION
-                }
-                break;
-            }
-#endif //FEATURE_READ_CALIPER
-
-#if FAN_PIN>-1 && FEATURE_FAN_CONTROL
-            case UI_ACTION_FAN_OFF:
-            {
-                Commands::setFanSpeed((uint8_t)0);
-                break;
-            }
-            case UI_ACTION_FAN_25:
-            {
-                Commands::setFanSpeed((uint8_t)64);
-                break;
-            }
-            case UI_ACTION_FAN_50:
-            {
-                Commands::setFanSpeed((uint8_t)128);
-                break;
-            }
-            case UI_ACTION_FAN_75:
-            {
-                Commands::setFanSpeed((uint8_t)192);
-                break;
-            }
-            case UI_ACTION_FAN_FULL:
-            {
-                Commands::setFanSpeed((uint8_t)255);
-                break;
-            }
-            case UI_ACTION_FAN_MODE:
-            {
-                Commands::adjustFanMode( (part_fan_frequency_modulation ? PART_FAN_MODE_PWM : PART_FAN_MODE_PDM) ); //0 = pwm, 1 = pdm
-                HAL::eprSetByte( EPR_RF_FAN_MODE, part_fan_frequency_modulation );
-                EEPROM::updateChecksum();
-                break;
-            }
-#endif // FAN_PIN>-1 && FEATURE_FAN_CONTROL
-
-            case UI_ACTION_MENU_XPOS:
-            {
-                pushMenu((void*)&ui_menu_xpos,false);
-                break;
-            }
-            case UI_ACTION_MENU_YPOS:
-            {
-                pushMenu((void*)&ui_menu_ypos,false);
-                break;
-            }
-            case UI_ACTION_MENU_ZPOS:
-            {
-                pushMenu((void*)&ui_menu_zpos,false);
-                break;
-            }
-            case UI_ACTION_MENU_QUICKSETTINGS:
-            {
-                pushMenu((void*)&ui_menu_quick,false);
-                break;
-            }
-            case UI_ACTION_MENU_EXTRUDER:
-            {
-                pushMenu((void*)&ui_menu_extruder,false);
-                break;
-            }
-            case UI_ACTION_MENU_POSITIONS:
-            {
-                pushMenu((void*)&ui_menu_positions,false);
-                break;
-            }
-
-#ifdef UI_USERMENU1
-            case UI_ACTION_SHOW_USERMENU1:
-            {
-                pushMenu((void*)&UI_USERMENU1,false);
-                break;
-            }
-#endif // UI_USERMENU1
-
-#ifdef UI_USERMENU2
-            case UI_ACTION_SHOW_USERMENU2:
-            {
-                pushMenu((void*)&UI_USERMENU2,false);
-                break;
-            }
-#endif // UI_USERMENU2
-
-#ifdef UI_USERMENU3
-            case UI_ACTION_SHOW_USERMENU3:
-            {
-                pushMenu((void*)&UI_USERMENU3,false);
-                break;
-            }
-#endif // UI_USERMENU3
-
-#ifdef UI_USERMENU4
-            case UI_ACTION_SHOW_USERMENU4:
-            {
-                pushMenu((void*)&UI_USERMENU4,false);
-                break;
-            }
-#endif // UI_USERMENU4
-
-#ifdef UI_USERMENU5
-            case UI_ACTION_SHOW_USERMENU5:
-            {
-                pushMenu((void*)&UI_USERMENU5,false);
-                break;
-            }
-#endif // UI_USERMENU5
-
-#ifdef UI_USERMENU6
-            case UI_ACTION_SHOW_USERMENU6:
-            {
-                pushMenu((void*)&UI_USERMENU6,false);
-                break;
-            }
-#endif // UI_USERMENU6
-
-#ifdef UI_USERMENU7
-            case UI_ACTION_SHOW_USERMENU7:
-            {
-                pushMenu((void*)&UI_USERMENU7,false);
-                break;
-            }
-#endif // UI_USERMENU7
-
-#ifdef UI_USERMENU8
-            case UI_ACTION_SHOW_USERMENU8:
-            {
-                pushMenu((void*)&UI_USERMENU8,false);
-                break;
-            }
-#endif // UI_USERMENU8
-
-#ifdef UI_USERMENU9
-            case UI_ACTION_SHOW_USERMENU9:
-            {
-                pushMenu((void*)&UI_USERMENU9,false);
-                break;
-            }
-#endif // UI_USERMENU9
-
-#ifdef UI_USERMENU10
-            case UI_ACTION_SHOW_USERMENU10:
-            {
-                pushMenu((void*)&UI_USERMENU10,false);
-                break;
-            }
-#endif // UI_USERMENU10
-
-#if MAX_HARDWARE_ENDSTOP_Z
-            case UI_ACTION_SET_Z_ORIGIN:
-            {
-                setZOrigin();
-                break;
-            }
-#endif // MAX_HARDWARE_ENDSTOP_Z
-
-
-    #if FEATURE_ZERO_DIGITS
-            case UI_ACTION_FEATURE_ZERO_DIGITS:
-            {
-                Printer::g_pressure_offset_active = (Printer::g_pressure_offset_active ? false : true);
-                HAL::eprSetByte( EPR_RF_ZERO_DIGIT_STATE, (Printer::g_pressure_offset_active ? 1 : 2) ); //2 ist false, < 1 ist true
-                EEPROM::updateChecksum();
-                break;
-            }
-    #endif // FEATURE_ZERO_DIGITS
-    #if FEATURE_DIGIT_Z_COMPENSATION
-            case UI_ACTION_DIGIT_COMPENSATION:
-            {
-                g_nDigitZCompensationDigits_active = (g_nDigitZCompensationDigits_active ? false : true);
-                HAL::eprSetByte( EPR_RF_DIGIT_CMP_STATE, (g_nDigitZCompensationDigits_active ? 1 : 2) ); //2 ist false, < 1 ist true
-                EEPROM::updateChecksum();
-                break;
-            }
-    #endif // FEATURE_DIGIT_Z_COMPENSATION
-    #if FEATURE_SENSIBLE_PRESSURE
-            case UI_ACTION_SENSEOFFSET_AUTOSTART:
-            {
-                Printer::g_senseoffset_autostart = (Printer::g_senseoffset_autostart ? false : true);
-                HAL::eprSetByte(EPR_RF_MOD_SENSEOFFSET_AUTOSTART, (int8_t)Printer::g_senseoffset_autostart);
-                EEPROM::updateChecksum();
-                break;
-            }
-    #endif //FEATURE_SENSIBLE_PRESSURE
-#if FEATURE_HEAT_BED_Z_COMPENSATION
-            case UI_ACTION_RF_DO_MHIER_BED_SCAN:
-            {
-                //macht an, wenn an, macht aus:
-                startZOScan();
-                //gehe zurück und zeige dem User was passiert.
-                exitmenu();
-                break;
-            }
-            case UI_ACTION_RF_DO_MHIER_AUTO_MATRIX_LEVELING:
-            {
-                //macht an, wenn an, macht aus:
-                startZOScan(true); //Scan aber an vielen Punkten und Gewichtet.
-                //gehe zurück und zeige dem User was passiert.
-                exitmenu();
-                break;
-            }
-            case UI_ACTION_RF_DO_SAVE_ACTIVE_ZMATRIX:
-            {
-                // save the determined values to the EEPROM
-                if(g_ZMatrixChangedInRam){
-                    exitmenu();
-                    saveCompensationMatrix( (unsigned int)(EEPROM_SECTOR_SIZE * g_nActiveHeatBed) );
-                    if( Printer::debugInfo() )
-                    {
-                        Com::printFLN( PSTR( "Manual Input: the heat bed compensation matrix has been saved" ) );
-                    }
-                    showInformation( (void*)ui_text_manual, (void*)ui_text_saving_success );
-                }else{
-                    showInformation( (void*)ui_text_manual, (void*)ui_text_saving_needless );
-                }
-                break;
-            }
-#endif // FEATURE_HEAT_BED_Z_COMPENSATION
-#if FEATURE_ALIGN_EXTRUDERS
-            case UI_ACTION_ALIGN_EXTRUDERS:
-            {
-                exitmenu();
-                startAlignExtruders();
-                break;
-            }
-#endif // FEATURE_ALIGN_EXTRUDERS
-        }
+		mainSwitchCase(action);
     }
 
     refreshPage();
-    if(!skipBeep)
-        BEEP_SHORT
 
 #if FEATURE_MILLING_MODE
     if( Printer::operatingMode == OPERATING_MODE_PRINT )
     {
 #endif // FEATURE_MILLING_MODE
 #if UI_PRINT_AUTORETURN_TO_MENU_AFTER!=0
-        g_nAutoReturnTime=HAL::timeInMilliseconds()+UI_PRINT_AUTORETURN_TO_MENU_AFTER;
+        g_nAutoReturnTime = HAL::timeInMilliseconds() + UI_PRINT_AUTORETURN_TO_MENU_AFTER;
 #endif // UI_PRINT_AUTORETURN_TO_MENU_AFTER!=0
 #if FEATURE_MILLING_MODE
     }
     else
     {
 #if UI_MILL_AUTORETURN_TO_MENU_AFTER!=0
-        g_nAutoReturnTime=HAL::timeInMilliseconds()+UI_MILL_AUTORETURN_TO_MENU_AFTER;
+        g_nAutoReturnTime = HAL::timeInMilliseconds() + UI_MILL_AUTORETURN_TO_MENU_AFTER;
 #endif // UI_MILL_AUTORETURN_TO_MENU_AFTER!=0
     }
 #endif // FEATURE_MILLING_MODE
-#endif // UI_HAS_KEYS==1
-
 } // executeAction
 
 void UIDisplay::slowAction()
@@ -5242,7 +5420,6 @@ void UIDisplay::slowAction()
     millis_t  time    = HAL::timeInMilliseconds();
     uint8_t   refresh = 0;
 
-#if UI_HAS_KEYS==1
     // Update key buffer
     InterruptProtectedBlock noInts; //HAL::forbidInterrupts();
 
@@ -5257,6 +5434,7 @@ void UIDisplay::slowAction()
         noInts.unprotect(); //HAL::allowInterrupts();
         if(epos)
         {
+			Com::writeToAll = true;
             nextPreviousAction(epos); //Nibbels: Funktion, die rechts links auswertet oder Errors wegklicken lässt. abhängig von this->encoderPos .. sonst verwendet mit -1 oder 1
             BEEP_SHORT
             refresh=1;
@@ -5276,15 +5454,18 @@ void UIDisplay::slowAction()
             else if(time-lastButtonStart>UI_KEY_BOUNCETIME)     // New key pressed
             {
                 lastAction = lastButtonAction;
+				Com::writeToAll = true;
                 executeAction(lastAction);
                 nextRepeat = time+UI_KEY_FIRST_REPEAT;
                 repeatDuration = UI_KEY_FIRST_REPEAT;
+				//TODO hier ist ein anderer Code bei REpetier. "DelayedAction" -> Prüfen, warum.
             }
         }
         else if(lastAction<1000 && lastAction)     // Repeatable key
         {
             if(time-nextRepeat<10000)
             {
+				//TODO hier ist ein anderer Code bei REpetier. "DelayedAction" -> Prüfen, warum.
                 executeAction(lastAction);
                 repeatDuration -= UI_KEY_REDUCE_REPEAT;
                 if(repeatDuration<UI_KEY_MIN_REPEAT) repeatDuration = UI_KEY_MIN_REPEAT;
@@ -5295,7 +5476,6 @@ void UIDisplay::slowAction()
         flags &= ~UI_FLAG_SLOW_ACTION_RUNNING;
     }
     noInts.unprotect(); //HAL::allowInterrupts();
-#endif // UI_HAS_KEYS==1
 
 #if UI_PRINT_AUTORETURN_TO_MENU_AFTER || UI_MILL_AUTORETURN_TO_MENU_AFTER
     if(menuLevel > 0 && g_nAutoReturnTime && g_nAutoReturnTime<time)
@@ -5345,13 +5525,11 @@ void UIDisplay::slowAction()
         refreshPage();
         lastRefresh = time;
     }
-
 } // slowAction
 
 
 void UIDisplay::fastAction()
 {
-#if UI_HAS_KEYS==1
     // Check keys
     InterruptProtectedBlock noInts;
 
@@ -5385,7 +5563,6 @@ void UIDisplay::fastAction()
 
         flags &= ~UI_FLAG_KEY_TEST_RUNNING;
     }
-#endif //  UI_HAS_KEYS==1
 } // fastAction
 
 

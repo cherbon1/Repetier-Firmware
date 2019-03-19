@@ -12,6 +12,40 @@ TODO:
 # milling mode: test origin scan, workpart scan
 # milling mode: test or rework milling functions
 # pause @RF1000: test if z max-endstop is respected while moving in dual-endstop circular setting
+# maybe implement a activatable serial3 for direct connection of a raspberry inside of the printer
+
+V 01.43.88.Mod (2019-03-10)
+- complete reintegration of SdFat-lib 1.1.0 downloaded from https://github.com/greiman/SdFat in order to avoid possible transcription errors.
+- #define USE_MULTI_BLOCK_IO 0
+
+V 01.43.87.Mod (2019-03-10)
+- prepare fresh integration of SD-Fat-Lib by overwriting whole library.
+
+V 01.43.86.Mod (2019-03-10)
+- Refactoring to understand and cleanup action-"switch case" definitions 
+- Replaced some pgm_read_word_near (which had definition to pgm_read_word) by pgm_read_word to prevent error markers showing up
+
+V 01.43.85.Mod (2019-02-27)
+- Make any sethomed impossible if we are in g_uBlockCommands!=0 state. So Aborting a print while homing cannot shift axis.
+  Without that fix soft-endstops can be in an undefined state when we abort while homing. OutputObject() might crash then.
+- Removed NEW_COMMUNICATION define flag within the code because there is no old communication anywhere anymore.
+
+V 01.43.84.Mod (2019-02-27)
+- Added M360 Printer::showConfiguration()
+- Added OutputObject to SDCardGCodeSource::close()
+
+V 01.43.83.Mod (2019-02-26)
+- Pulled a huge lot of code from Repetier: NEW_COMMUNICATION, GCodeSource Classes. More sync with repetier 1.0.x
+- Disabled SD-Card CRC mode again, because it did not fix our problems.
+- Set fat.begin back to SPI_FULL_SPEED to maybe fix a possible slowdown reported from mattbenscho.
+
+V 01.43.82.Mod (2019-02-17)
+- fix possible workpart matrix shift when directpositioning was used after homing. + comments.
+
+V 01.43.81.Mod (2019-02-17)
+- fix displayed layer height and compensation limit choice when first layer height is higher than start line M3912.
+- adjusted standard zcompensation upper limit to a better fallback value
+   (fallback in case someone decides to use a low height manual startline in combination with a very high first layer.)
 
 V 01.43.80.Mod (2019-02-17)
 - fixed menu action for Beeper-on-off when SD-Support was disabled.

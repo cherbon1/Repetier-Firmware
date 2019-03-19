@@ -59,15 +59,15 @@ void FatStreamBase::open(const char* path, ios::openmode mode) {
 
   case app:
   case app | out:
-    oflag = O_WRITE | O_APPEND | O_CREAT;
+    oflag = O_WRONLY | O_APPEND | O_CREAT;
     break;
 
   case in:
-    oflag = O_READ;
+    oflag = O_RDONLY;
     break;
 
   case in | out:
-	oflag = O_RDWR;
+    oflag = O_RDWR;
     break;
 
   case in | out | trunc:
@@ -76,7 +76,7 @@ void FatStreamBase::open(const char* path, ios::openmode mode) {
 
   case out:
   case out | trunc:
-    oflag = O_WRITE | O_TRUNC | O_CREAT;
+    oflag = O_WRONLY | O_TRUNC | O_CREAT;
     break;
 
   default:

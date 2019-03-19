@@ -24,9 +24,7 @@ int  Commands::lowestRAMValueSend = MAX_RAM;
 void Commands::commandLoop()
 {
     GCode::readFromSerial();
-#if SDSUPPORT
-    GCode::readFromSD();
-#endif //SDSUPPORT
+
     GCode *code = GCode::peekCurrentCommand();
     if (code) {
 #if SDSUPPORT
@@ -550,1131 +548,18 @@ void Commands::processArc(GCode *com) {
 /** \brief Execute the command stored in com. */
 void Commands::executeGCode(GCode *com)
 {
-    uint32_t codenum; //throw away variable
+	// Set return channel for private commands. By default all commands send to all receivers.
+	GCodeSource *actSource = GCodeSource::activeSource;
+	GCodeSource::activeSource = com->source;
+	Com::writeToAll = true;
+
     if(com->hasG())
     {
-      switch(com->G)
-      {
-        case 0: // G0 -> G1
-        case 1: // G1
-        {
-            if(isMovingAllowed(PSTR("G0/1")))
-            {
-				Printer::queueGCodeCoordinates(com); // For X Y Z E F
-            }
-
-            break;
-        }
-
-#if FEATURE_ARC_SUPPORT
-		case 2: // CW Arc
-		case 3: // CCW Arc MOTION_MODE_CW_ARC: case MOTION_MODE_CCW_ARC:
-			processArc(com);            
-		break;
-#endif
-
-        case 4: // G4 dwell
-        {
-            Commands::waitUntilEndOfAllMoves(); //G4
-            codenum = 0;
-            if(com->hasP()) codenum = com->P; // milliseconds to wait
-            if(com->hasS()) codenum = com->S * 1000; // seconds to wait
-            codenum += HAL::timeInMilliseconds();  // keep track of when we started waiting
-
-            while((uint32_t)(codenum-HAL::timeInMilliseconds())  < 2000000000 )
-            {
-                Commands::checkForPeriodicalActions( Processing );
-            }
-            break;
-        }
-        case 20: // G20 - Units to inches
-        {
-            Printer::unitIsInches = 1;
-            break;
-        }
-        case 21: // G21 - Units to mm
-        {
-            Printer::unitIsInches = 0;
-            break;
-        }
-        case 28:  // G28 - Home all axes one at a time
-        {
-            if(!isHomingAllowed(com))
-            {
-                break;
-            }
-            uint8_t home_all_axis = (com->hasNoXYZ() && !com->hasE());
-            if(com->hasE())
-            {
-				Printer::setEAxisSteps(0); // Wie G92 E0
-            }
-            if(home_all_axis || !com->hasNoXYZ())
-                Printer::homeAxis(home_all_axis || com->hasX(),home_all_axis || com->hasY(),home_all_axis || com->hasZ());
-        }
-        break;
-
-#if FEATURE_MILLING_MODE
-        case 80: // G80
-        {
-            if( isSupportedGCommand( com->G, OPERATING_MODE_MILL ) )
-            {
-                // there is not a lot to do at the moment because drilling cycles are not supported
-                Printer::drillFeedrate = 0.0;
-                Printer::drillZDepth   = 0.0;
-            }
-            break;
-        }
-        case 81: // G81
-        {
-            if( isSupportedGCommand( com->G, OPERATING_MODE_MILL ) )
-            {
-                char    szTemp[40];
-                float   exitZ;
-
-
-/*              Com::printFLN( PSTR( "G81 detected" ) );
-                if( com->hasX() )   Com::printFLN( PSTR( "X = " ), com->X );
-                if( com->hasY() )   Com::printFLN( PSTR( "Y = " ), com->Y );
-                if( com->hasZ() )   Com::printFLN( PSTR( "Z = " ), com->Z );
-                if( com->hasR() )   Com::printFLN( PSTR( "R = " ), com->R );
-                if( com->hasF() )   Com::printFLN( PSTR( "F = " ), com->F );
-*/
-                if(!isMovingAllowed(PSTR("G81")))
-                {
-                    break;
-                }
-
-                // safety checks
-                if( !com->hasZ() && !Printer::drillZDepth )
-                {
-                    if( Printer::debugErrors() )
-                    {
-                        Com::printFLN( PSTR( "G81: aborted (the Z position is not defined)" ) );
-                    }
-                    break;
-                }
-                if( !com->hasF() && !Printer::drillFeedrate )
-                {
-                    if( Printer::debugErrors() )
-                    {
-                        Com::printFLN( PSTR( "G81: aborted (the drilling feedrate is not defined)" ) );
-                    }
-                    break;
-                }
-
-                if( Printer::relativeCoordinateMode )
-                {
-                    // move to the position of the (to be drilled) hole
-                    strcpy( szTemp, "G1 X" );
-                    addFloat( szTemp, com->hasX() ? com->X : 0, 3 );
-                    strcat( szTemp, " Y" );
-                    addFloat( szTemp, com->hasY() ? com->Y : 0, 3 );
-                    strcat( szTemp, " Z" );
-                    addFloat( szTemp, com->hasR() ? com->R : 0, 3 );
-                    strcat( szTemp, " F" );
-                    addFloat( szTemp, Printer::maxFeedrate[X_AXIS], 3 );
-                    GCode::executeString( szTemp );
-
-                    // in order to leave the hole, we must travel the drilling path in reverse direction
-                    exitZ = -(com->hasZ() ? com->Z : Printer::drillZDepth);
-                }
-                else
-                {
-                    // move to the position of the (to be drilled) hole
-                    strcpy( szTemp, "G1" );
-                    if( com->hasX() )
-                    {
-                        strcat( szTemp, " X" );
-                        addFloat( szTemp, com->X, 3 );
-                    }
-                    if( com->hasY() )
-                    {
-                        strcat( szTemp, " Y" );
-                        addFloat( szTemp, com->Y, 3 );
-                    }
-                    if( com->hasR() )
-                    {
-                        strcat( szTemp, " Z" );
-                        addFloat( szTemp, com->R, 3 );
-                    }
-                    strcat( szTemp, " F" );
-                    addFloat( szTemp, Printer::maxFeedrate[X_AXIS], 3 );
-                    GCode::executeString( szTemp );
-
-                    // in order to leave the hole, we must return to our start position
-                    exitZ = Printer::destinationMM[Z_AXIS];
-                }
-
-                // drill the hole
-                strcpy( szTemp, "G1 Z" );
-                addFloat( szTemp, com->hasZ() ? com->Z : Printer::drillZDepth, 3 );
-                strcat( szTemp, " F" );
-                addFloat( szTemp, com->hasF() ? com->F : Printer::drillFeedrate, 3 );
-
-                GCode::executeString( szTemp );
-
-                // get out of the hole
-                strcpy( szTemp, "G1 Z" );
-                addFloat( szTemp, exitZ, 3 );
-                strcat( szTemp, " F" );
-                addFloat( szTemp, Printer::maxFeedrate[Z_AXIS], 3 );
-
-                GCode::executeString( szTemp );
-
-                if( com->hasZ() )   Printer::drillZDepth   = com->Z;
-                if( com->hasF() )   Printer::drillFeedrate = com->F;
-            }
-            break;
-        }
-#endif // FEATURE_MILLING_MODE
-
-        case 90: // G90
-        {
-            Printer::relativeCoordinateMode = false;
-            if(com->internalCommand)
-                Com::printInfoFLN(PSTR("Absolute positioning"));
-            break;
-        }
-        case 91: // G91
-        {
-            Printer::relativeCoordinateMode = true;
-            if(com->internalCommand)
-                Com::printInfoFLN(PSTR("Relative positioning"));
-            break;
-        }
-        case 92: // G92
-        {
-            if(!com->hasNoXYZ())
-            {
-                // set the origin only in case we got any x, y and/or z offset
-                float xOff = Printer::originOffsetMM[X_AXIS];
-                float yOff = Printer::originOffsetMM[Y_AXIS];
-                float zOff = Printer::originOffsetMM[Z_AXIS];
-
-                if(com->hasX()) xOff = Printer::convertToMM(com->X) - Printer::destinationMM[X_AXIS];
-                if(com->hasY()) yOff = Printer::convertToMM(com->Y) - Printer::destinationMM[Y_AXIS];
-                if(com->hasZ()) zOff = Printer::convertToMM(com->Z) - Printer::destinationMM[Z_AXIS];
-
-                Printer::setOrigin(xOff, yOff, zOff);
-            }
-            if(com->hasE())
-            {
-				Printer::setEAxisSteps(Printer::convertToMM(com->E) * Printer::axisStepsPerMM[E_AXIS]);
-            }
-            break;
-        }
-      }
-      previousMillisCmd = HAL::timeInMilliseconds(); //prevent inactive shutdown of steppers/temps
+	    Commands::processGCode(com);
     }
     else if(com->hasM())    // Process M Code
     {
-        switch( com->M )
-        {
-#if SDSUPPORT
-            case 20: // M20 - list SD card
-            {
-                sd.ls();
-                break;
-            }
-            case 21: // M21 - init SD card
-            {
-                sd.mount(/*not silent mount*/);
-                break;
-            }
-            case 22: // M22 - release SD card
-            {
-                sd.unmount();
-                break;
-            }
-            case 23: // M23 - Select file
-            {
-                if(com->hasString())
-                {
-                    sd.fat.chdir();
-                    sd.selectFileByName(com->text);
-                }
-                break;
-            }
-            case 24: // M24 - Start SD print
-            {
-                if( g_pauseMode )
-                {
-                    continuePrint();
-                }
-                else
-                {
-                    sd.startPrint();
-                }
-                break;
-            }
-            case 25: // M25 - Pause SD print
-            {
-                pausePrint();
-                break;
-            }
-            case 26: // M26 - Set SD index
-            {
-                if( Printer::debugErrors() )
-                {
-                    Com::printFLN( PSTR( "M26: not supported" ) );
-                }
-
-/*              if(com->hasS())
-                    sd.setIndex(com->S);
-*/            break;
-            }
-            case 27: // M27 - Get SD status
-                sd.printStatus();
-                break;
-            case 28: // M28 - Start SD write
-                if(com->hasString())
-                    sd.startWrite(com->text);
-                break;
-            case 29: // M29 - Stop SD write
-                //processed in write to file routine above
-                //savetosd = false;
-                break;
-            case 30: // M30 - filename - Delete file
-                if(com->hasString())
-                {
-                    sd.fat.chdir();
-                    sd.deleteFile(com->text);
-                }
-                break;
-            case 32: // M32 - directoryname
-                if(com->hasString())
-                {
-                    sd.fat.chdir();
-                    sd.makeDirectory(com->text);
-                }
-                break;
-#endif // SDSUPPORT
-
-            case 104: // M104 - set extruder temp
-            {
-                if( isSupportedMCommand( com->M, OPERATING_MODE_PRINT ) )
-                {
-#if NUM_EXTRUDER>0
-                    if(Printer::isAnyTempsensorDefect()){
-                        reportTempsensorAndHeaterErrors();
-                        break;
-                    }
-                    previousMillisCmd = HAL::timeInMilliseconds(); //prevent inactive shutdown of steppers/temps
-                    if(Printer::debugDryrun()) break;
-
-                    //TODO man müsste das in den Movecache legen!
-                    if(com->hasP() || (com->hasS() && com->S == 0))
-                    Commands::waitUntilEndOfAllMoves(); //M104
-
-                    if (com->hasS())
-                    {
-                        if(com->hasT())
-                            Extruder::setTemperatureForExtruder(com->S,com->T,com->hasF() && com->F>0);
-                        else
-                            Extruder::setTemperatureForExtruder(com->S,Extruder::current->id,com->hasF() && com->F>0);
-                    }
-#endif // NUM_EXTRUDER>0
-                }
-                break;
-            }
-            case 105: // M105 - get temperature. Always returns the current temperature, doesn't wait until move stopped
-            {
-                printTemperatures(com->hasX());
-                break;
-            }
-            case 140: // M140 - set bed temp
-            {
-                if( isSupportedMCommand( com->M, OPERATING_MODE_PRINT ) )
-                {
-                    if(Printer::isAnyTempsensorDefect()){
-                        reportTempsensorAndHeaterErrors();
-                        break;
-                    }
-                    previousMillisCmd = HAL::timeInMilliseconds(); //prevent inactive shutdown of steppers/temps
-                    if(Printer::debugDryrun()) break;
-                    if (com->hasS()) Extruder::setHeatedBedTemperature(com->S,com->hasF() && com->F>0);
-                }
-                break;
-            }
-            case 109: // M109 - Wait for extruder heater to reach target.
-            {
-                if( isSupportedMCommand( com->M, OPERATING_MODE_PRINT ) )
-                {
-					previousMillisCmd = HAL::timeInMilliseconds(); //prevent inactive shutdown of steppers/temps
-#if NUM_EXTRUDER>0
-                    if (Printer::isAnyTempsensorDefect()) {
-                        reportTempsensorAndHeaterErrors();
-                        break;
-                    }
-					if (Printer::debugDryrun()) { 
-						break; 
-					}
-
-                    g_uStartOfIdle = 0; //M109
-                    Commands::waitUntilEndOfAllMoves(); //M109
-
-                    Extruder *actExtruder = Extruder::current;
-                    if (com->hasT() && com->T<NUM_EXTRUDER) actExtruder = &extruder[com->T];
-                    if (com->hasS()) Extruder::setTemperatureForExtruder(com->S,actExtruder->id,com->hasF() && com->F>0);
-
-                    if (fabs(actExtruder->tempControl.targetTemperatureC - actExtruder->tempControl.currentTemperatureC) < TEMP_TOLERANCE)
-                    {
-                        break;
-                    }
-
-#if RETRACT_DURING_HEATUP
-                    uint8_t     retracted = 0;
-#endif // RETRACT_DURING_HEATUP
-                    millis_t    currentTime = HAL::timeInMilliseconds();
-                    bool        isTempReached;
-                    bool        longTempTime = false; // random init
-                    bool        dirRising = true;     // random init
-                    float       settarget = -1;       // random init in °C
-
-                    do {
-                        Commands::checkForPeriodicalActions( WaitHeater );
-
-                        //Anpassung an die neue Situation falls der Bediener am Display-Menü des Druckers während Aufheizzeit was umstellt.
-                        if(settarget != actExtruder->tempControl.targetTemperatureC){
-                            settarget = actExtruder->tempControl.targetTemperatureC; //in °C
-                            dirRising = (actExtruder->tempControl.targetTemperatureC > actExtruder->tempControl.currentTemperatureC);
-                            longTempTime = (fabs(actExtruder->tempControl.targetTemperatureC - actExtruder->tempControl.currentTemperatureC) > 40.0f ? true : false);
-                            if( dirRising ){
-                                UI_STATUS_UPD(UI_TEXT_HEATING_EXTRUDER);
-                            }else{
-                                UI_STATUS_UPD(UI_TEXT_COOLING_DOWN);
-                            }
-                        }
-
-						isTempReached = fabs(actExtruder->tempControl.targetTemperatureC - actExtruder->tempControl.currentTemperatureC) < TEMP_TOLERANCE;
-
-#if RETRACT_DURING_HEATUP
-                        if (!retracted && dirRising) {
-                            if ( longTempTime
-                                && actExtruder == Extruder::current
-                                && actExtruder->waitRetractUnits > 0
-                                && actExtruder->tempControl.currentTemperatureC >= actExtruder->waitRetractTemperature)
-                            {
-                                Printer::queueRelativeMMCoordinates(0, 0, 0, -actExtruder->waitRetractUnits, actExtruder->maxFeedrate, false, false);
-                                retracted = 1;
-                            }
-                        }
-#endif // RETRACT_DURING_HEATUP
-                        if (!dirRising) {
-                            if (actExtruder->tempControl.currentTemperatureC <= MAX_ROOM_TEMPERATURE){
-								break;
-                                //never wait longer than reaching lowest allowed temperature.
-                                //This might still be a long-run-bug if you have heated chamber/hot summer and wrong settings in MAX_ROOM_TEMPERATURE!
-                            }
-                        }
-						if (abs(HAL::timeInMilliseconds() - currentTime) > 300000) {
-							/* Aufheizen dauert nie länger als 5 Minuten */
-							break;
-						}
-						if (Printer::isAnyTempsensorDefect()) {
-							/* Temp sensor decoupled oder defekt? abort. */
-							break;
-						}
-                    } while(!isTempReached);
-
-#if RETRACT_DURING_HEATUP
-                    if (retracted && actExtruder==Extruder::current)
-                    {
-						Printer::queueRelativeMMCoordinates(0, 0, 0, actExtruder->waitRetractUnits, actExtruder->maxFeedrate, false, false);
-                    }
-#endif // RETRACT_DURING_HEATUP
-#endif // NUM_EXTRUDER>0
-
-                    g_uStartOfIdle    = HAL::timeInMilliseconds(); //end of M109
-                }
-                break;
-            }
-            case 190: // M190 - Wait bed for heater to reach target.
-            {
-                if( isSupportedMCommand( com->M, OPERATING_MODE_PRINT ) )
-                {
-#if HAVE_HEATED_BED
-                    previousMillisCmd = HAL::timeInMilliseconds(); //prevent inactive shutdown of steppers/temps
-                    if (Printer::isAnyTempsensorDefect()) {
-                        reportTempsensorAndHeaterErrors();
-                        break;
-                    }
-					if (Printer::debugDryrun()) {
-						break;
-					}
-                    g_uStartOfIdle = 0; //M190
-                    Commands::waitUntilEndOfAllMoves(); //M190
-                    if (com->hasS()) Extruder::setHeatedBedTemperature(com->S,com->hasF() && com->F>0);
-
-                    bool    dirRising = true; // random init
-                    float   settarget = -1;   // random init in °C
-
-                    while (fabs(heatedBedController.currentTemperatureC - heatedBedController.targetTemperatureC) > TEMP_TOLERANCE)
-                    {
-                        //Init und Anpassung an die neue Situation falls der Bediener am Display-Menü des Druckers während Aufheizzeit was umstellt.
-                        if(settarget != heatedBedController.targetTemperatureC){
-                            settarget = heatedBedController.targetTemperatureC; //in °C
-                            dirRising = (heatedBedController.targetTemperatureC > heatedBedController.currentTemperatureC);
-                            if( dirRising ){
-                                UI_STATUS_UPD(UI_TEXT_HEATING_BED);
-                            }else{
-                                UI_STATUS_UPD(UI_TEXT_COOLING_DOWN);
-                            }
-                        }
-
-                        Commands::checkForPeriodicalActions( WaitHeater );
-						if (!dirRising && heatedBedController.currentTemperatureC <= MAX_ROOM_TEMPERATURE) break;
-						if (Printer::isAnyTempsensorDefect()) break;
-                    }
-
-                    g_uStartOfIdle    = HAL::timeInMilliseconds()+5000; //end of M190
-#endif // HAVE_HEATED_BED
-                }
-                break;
-            }
-            case 116: // M116 - Wait for temperatures to reach target temperature
-            {
-                if( isSupportedMCommand( com->M, OPERATING_MODE_PRINT ) )
-                {
-                    if(Printer::debugDryrun()) break;
-                    {
-                        bool allReached = false;
-                        while(!allReached)
-                        {
-                            allReached = true;
-                            Commands::checkForPeriodicalActions( WaitHeater );
-
-                            for( uint8_t h=0; h<NUM_TEMPERATURE_LOOPS; h++ )
-                            {
-                                TemperatureController *act = tempController[h];
-                                if( act->targetTemperatureC > MAX_ROOM_TEMPERATURE && fabs( act->targetTemperatureC-act->currentTemperatureC ) > TEMP_TOLERANCE )
-                                {
-                                    allReached = false;
-                                }
-                            }
-                        }
-                    }
-                }
-                break;
-            }
-
-#if FEATURE_DITTO_PRINTING
-            case 280:   // M280
-            {
-                if(com->hasS())   // Set ditto mode S: 0 = off, 1 = on
-                {
-                    Extruder::dittoMode = com->S;
-                }
-                break;
-            }
-#endif // FEATURE_DITTO_PRINTING
-
-#if BEEPER_PIN >= 0
-            case 300:   // M300
-            {
-                int beepS = 1;
-                int beepP = 1000;
-                if(com->hasS()) beepS = com->S;
-                if(com->hasP()) beepP = com->P;
-                HAL::tone(BEEPER_PIN, beepS);
-                HAL::delayMilliseconds(beepP);
-                HAL::noTone(BEEPER_PIN);
-            }
-            break;
-#endif // BEEPER_PIN >= 0
-
-            case 303:   // M303
-            {
-                if( isSupportedMCommand( com->M, OPERATING_MODE_PRINT ) )
-                {
-#if NUM_TEMPERATURE_LOOPS > 0
-                int temp = 150;
-                int cont = 0;
-                int cycles = 10;
-                int method = 0; //0 = Classic PID
-                if(com->hasS()) temp = com->S; //Verwechsle ich immer, weil T wie Temperatur, aber T ist 0..255
-                if(com->hasP()) cont = com->P;
-                if(com->hasR()) cycles = static_cast<int>(com->R);
-                if(com->hasJ()) method = static_cast<int>(com->J); //original Repetier used hasC, we dont have that in this version of repetier.
-                if(cont >= NUM_TEMPERATURE_LOOPS) cont = NUM_TEMPERATURE_LOOPS -1;
-                if(cont < 0) cont = 0;
-                tempController[cont]->autotunePID(temp,cont,cycles,com->hasX(), method);
-#endif // NUM_TEMPERATURE_LOOPS > 0
-                }
-                break;
-            }
-
-#if FAN_PIN>-1 && FEATURE_FAN_CONTROL
-            case 106:   // M106 - Fan On
-            {
-                if( isSupportedMCommand( com->M, OPERATING_MODE_PRINT ) )
-                {
-                    setFanSpeed(com->hasS() ? (uint8_t)constrain(com->S,0,255) : (uint8_t)255);
-                }
-                break;
-            }
-            case 107:   // M107 - Fan Off
-            {
-                if( isSupportedMCommand( com->M, OPERATING_MODE_PRINT ) )
-                {
-                    setFanSpeed(0);
-                }
-                break;
-            }
-#endif // FAN_PIN>-1 && FEATURE_FAN_CONTROL
-
-            case 82:    // M82
-            {
-                Printer::relativeExtruderCoordinateMode = false;
-                break;
-            }
-            case 83:    // M83
-            {
-                Printer::relativeExtruderCoordinateMode = true;
-                break;
-            }
-            case 84:    // M84
-            {
-                if(com->hasS())
-                {
-                    stepperInactiveTime = com->S * 1000;
-                }
-                else
-                {
-                    Commands::waitUntilEndOfAllMoves(); //M84
-                    Printer::disableAllSteppersNow();
-                }
-                break;
-            }
-            case 85:    // M85
-            {
-                if(com->hasS())
-                    maxInactiveTime = (long)com->S * 1000;
-                else
-                    maxInactiveTime = 0;
-                break;
-            }
-            case 99:    // M99 S<time>
-            //Nibbels: 050118 Ich halte den Befehl für tendentiell gefährlich. Man sollte nicht abschalten, sondern Strom senken, oder hat das einen sinn? Vermutlich muss danach Homing und CMP deaktiviert werden!
-            {
-                millis_t wait = 10000L;
-                if(com->hasS())
-                    wait = 1000*com->S;
-                if(com->hasX())
-                    Printer::disableXStepper();
-                if(com->hasY())
-                    Printer::disableYStepper();
-                if(com->hasZ())
-                    Printer::disableZStepper();
-                wait += HAL::timeInMilliseconds();
-
-                while(wait-HAL::timeInMilliseconds() < 100000L)
-                {
-                    Commands::checkForPeriodicalActions( Paused );  //check heater and other stuff every n milliseconds
-                }
-                if(com->hasX())
-                    Printer::enableXStepper();
-                if(com->hasY())
-                    Printer::enableYStepper();
-                if(com->hasZ())
-                    Printer::enableZStepper();
-                break;
-            }
-            case 111:   // M111
-            {
-                if(com->hasS())
-                {
-                    Printer::debugLevel = com->S;
-                }
-                if(Printer::debugDryrun())   // simulate movements without printing
-                {
-                    Extruder::setTemperatureForAllExtruders(0, false);
-                }
-                break;
-            }
-            case 114:   // M114
-            {
-                printCurrentPosition();
-                break;
-            }
-            case 115:   // M115
-            {
-                if( Printer::debugInfo() )
-                {
-                    Com::printFLN(Com::tFirmware);
-                }
-                reportPrinterUsage();
-                break;
-            }
-            case 117:   // M117 - message to lcd
-            {
-                if(com->hasString())
-                {
-                    UI_STATUS_UPD_RAM(com->text);
-                }
-                break;
-            }
-            case 119:   // M119
-            {
-                Commands::waitUntilEndOfAllMoves(); //M119
-
-                if( !Printer::debugInfo() )
-                {
-                    break;
-                }
-								
-#if (X_MIN_PIN > -1) && MIN_HARDWARE_ENDSTOP_X
-                Com::printF(Com::tXMinColon);
-                Com::printF(Printer::isXMinEndstopHit()?Com::tHSpace:Com::tLSpace);
-#endif // (X_MIN_PIN > -1) && MIN_HARDWARE_ENDSTOP_X
-
-#if (X_MAX_PIN > -1) && MAX_HARDWARE_ENDSTOP_X
-                Com::printF(Com::tXMaxColon);
-                Com::printF(Printer::isXMaxEndstopHit()?Com::tHSpace:Com::tLSpace);
-#else
-				Com::printF(Com::tSoftDash);
-				Com::printF(Com::tXMaxColon);
-				Com::printF(Printer::isXMaxEndstopHit() ? Com::tHSpace : Com::tLSpace);
-#endif // (X_MAX_PIN > -1) && MAX_HARDWARE_ENDSTOP_X
-
-#if (Y_MIN_PIN > -1) && MIN_HARDWARE_ENDSTOP_Y
-                Com::printF(Com::tYMinColon);
-                Com::printF(Printer::isYMinEndstopHit()?Com::tHSpace:Com::tLSpace);
-#endif // (Y_MIN_PIN > -1) && MIN_HARDWARE_ENDSTOP_Y
-
-#if (Y_MAX_PIN > -1) && MAX_HARDWARE_ENDSTOP_Y
-                Com::printF(Com::tYMaxColon);
-                Com::printF(Printer::isYMaxEndstopHit()?Com::tHSpace:Com::tLSpace);
-#else
-				Com::printF(Com::tSoftDash);
-				Com::printF(Com::tYMaxColon);
-				Com::printF(Printer::isYMaxEndstopHit() ? Com::tHSpace : Com::tLSpace);
-#endif // (Y_MAX_PIN > -1) && MAX_HARDWARE_ENDSTOP_Y
-
-                // RF1000: in operating mode "print", the min endstop is used
-				// RF1000: in operating mode "mill", the min endstop is not used
-				// Nibbels: If we have any Z-Min-Endstop we show its status, we dont care about usage for milling or print!
-#if (Z_MIN_PIN > -1) && MIN_HARDWARE_ENDSTOP_Z
-                Com::printF(Com::tZMinColon);
-                Com::printF(Printer::isZMinEndstopHit()?Com::tHSpace:Com::tLSpace);
-#endif // (Z_MIN_PIN > -1) && MIN_HARDWARE_ENDSTOP_Z
-
-				// RF1000: in operating mode "mill", the max endstop is used
-                // RF1000: in operating mode "print", the max endstop is used only in case both z-endstops are in a circle
-				// Nibbels: If we have any Z-Max-Endstop we show its status, we dont care about usage for milling or print!
-#if (Z_MAX_PIN > -1) && MAX_HARDWARE_ENDSTOP_Z
-				Com::printF(Com::tZMaxColon);
-				Com::printF(Printer::isZMaxEndstopHit() ? Com::tHSpace : Com::tLSpace);
-#else
-				Com::printF(Com::tSoftDash);
-				Com::printF(Com::tZMaxColon);
-				Com::printF(Printer::isZMaxEndstopHit() ? Com::tHSpace : Com::tLSpace);
-#endif // (Z_MAX_PIN > -1) && MAX_HARDWARE_ENDSTOP_Z
-
-                Com::println();
-                break;
-            }
-
-#if FEATURE_BEEPER
-            case 120:   // M120 - Test beeper function
-            {
-                if(com->hasS() && com->hasP())
-                    beep(com->S,com->P); // Beep test
-                break;
-            }
-#endif // FEATURE_BEEPER
-
-            case 201:   // M201
-            {
-#if FEATURE_MILLING_MODE
-                if( Printer::operatingMode == OPERATING_MODE_PRINT )
-                {
-#endif // FEATURE_MILLING_MODE
-                    if(com->hasX()) Printer::maxAccelerationMMPerSquareSecond[X_AXIS] = constrain(com->X, ACCELERATION_MIN_XY, ACCELERATION_MAX_XY);
-                    if(com->hasY()) Printer::maxAccelerationMMPerSquareSecond[Y_AXIS] = constrain(com->Y, ACCELERATION_MIN_XY, ACCELERATION_MAX_XY);
-                    if(com->hasZ()) Printer::maxAccelerationMMPerSquareSecond[Z_AXIS] = constrain(com->Z, ACCELERATION_MIN_Z, ACCELERATION_MAX_Z);
-                    if(com->hasE()) Printer::maxAccelerationMMPerSquareSecond[E_AXIS] = com->E;
-                    Printer::updateDerivedParameter();
-#if FEATURE_MILLING_MODE
-                }
-#endif  // FEATURE_MILLING_MODE
-                break;
-            }
-            case 202:   // M202
-            {
-#if FEATURE_MILLING_MODE
-                if( Printer::operatingMode == OPERATING_MODE_PRINT )
-                {
-#endif // FEATURE_MILLING_MODE
-                    if(com->hasX()) Printer::maxTravelAccelerationMMPerSquareSecond[X_AXIS] = constrain(com->X, ACCELERATION_MIN_XY, ACCELERATION_MAX_XY);
-                    if(com->hasY()) Printer::maxTravelAccelerationMMPerSquareSecond[Y_AXIS] = constrain(com->Y, ACCELERATION_MIN_XY, ACCELERATION_MAX_XY);
-                    if(com->hasZ()) Printer::maxTravelAccelerationMMPerSquareSecond[Z_AXIS] = constrain(com->Z, ACCELERATION_MIN_Z, ACCELERATION_MAX_Z);
-                    if(com->hasE()) Printer::maxTravelAccelerationMMPerSquareSecond[E_AXIS] = com->E;
-                    Printer::updateDerivedParameter();
-#if FEATURE_MILLING_MODE
-                }
-#endif  // FEATURE_MILLING_MODE
-                break;
-            }
-
-            case 203:   // M203 - Temperature monitor
-            {
-                if( isSupportedMCommand( com->M, OPERATING_MODE_PRINT ) )
-                {
-                    if(com->hasS())
-                    {
-                        if(com->S<NUM_EXTRUDER) manageMonitor = com->S;
-#if HAVE_HEATED_BED
-                        else manageMonitor=NUM_EXTRUDER; // Set 100 to heated bed
-#endif // HAVE_HEATED_BED
-                    }
-                }
-                break;
-            }
-            case 204:   // M204
-            {
-                if( isSupportedMCommand( com->M, OPERATING_MODE_PRINT ) )
-                {
-                    TemperatureController *temp = &Extruder::current->tempControl;
-                    if(com->hasS())
-                    {
-                        if(com->S<0) break;
-                        if(com->S<NUM_EXTRUDER) temp = &extruder[com->S].tempControl;
-#if HAVE_HEATED_BED
-                        else temp = &heatedBedController;
-#else
-                        else break;
-#endif // HAVE_HEATED_BED
-
-                    }
-                    if(com->hasX()) temp->pidPGain = com->X;
-                    if(com->hasY()) temp->pidIGain = com->Y;
-                    if(com->hasZ()) temp->pidDGain = com->Z;
-                    temp->updateTempControlVars();
-                }
-                break;
-            }
-            case 503:   // M503 (fall through)
-            case 205:   // M205 - Show EEPROM settings
-            {
-                EEPROM::writeSettings();
-                break;
-            }
-            case 206:   // M206 - T[type] P[pos] [Sint(long] [Xfloat]  Set eeprom value
-            {
-                EEPROM::update(com);
-                break;
-            }
-            case 207:   // M207 - X<XY jerk> Z<Z Jerk>
-            {
-                if(com->hasX())
-                    Printer::maxXYJerk = constrain(com->X, 1.0f, 33.3f);
-                if(com->hasE())
-                {
-                    Extruder::current->maxEJerk = constrain(com->E, 1.0f, Extruder::current->maxFeedrate);
-                    Extruder::selectExtruderById(Extruder::current->id);
-                }
-                if(com->hasZ())
-                    Printer::maxZJerk = constrain(com->Z, 0.05f, 2.0f);
-
-                if( Printer::debugInfo() )
-                {
-                    Com::printF(Com::tXYJerkColon,Printer::maxXYJerk);
-                    Com::printFLN(Com::tZJerkColon,Printer::maxZJerk);
-                }
-                break;
-            }
-            case 218:
-            {
-                // New MCode with https://github.com/repetier/Repetier-Firmware/commit/e5db16080d0c98776ae82f543e2bc6ef643a63c7
-                // I added this MCode for compatibility-Reasons with Repetier and Marlin.
-                
-                int extId = 0;
-                if (com->hasT()) {
-                    extId = com->T;
-                }
-                if (extId >= 0 && extId < NUM_EXTRUDER) {
-					Commands::waitUntilEndOfAllMoves(); //M218
-					int32_t dx = 0;
-					int32_t dy = 0;
-                    if (com->hasX()) {
-						if (Printer::isAxisHomed(X_AXIS)) dx = (com->X - extruder[extId].offsetMM[X_AXIS]) * Printer::axisStepsPerMM[X_AXIS];
-                        extruder[extId].offsetMM[X_AXIS] = com->X;
-                    }
-                    if (com->hasY()) {
-						if (Printer::isAxisHomed(Y_AXIS)) dy = (com->Y - extruder[extId].offsetMM[Y_AXIS]) * Printer::axisStepsPerMM[Y_AXIS];
-                        extruder[extId].offsetMM[Y_AXIS] = com->Y;
-                    }
-
-					Printer::offsetRelativeStepsCoordinates(-dx, -dy, 0, 0);
-
-                    if(com->hasS() && com->S > 0) {
-                        if (com->hasX()) HAL::eprSetFloat(EEPROM::getExtruderOffset(extId)+EPR_EXTRUDER_X_OFFSET, com->X);
-                        if (com->hasY()) HAL::eprSetFloat(EEPROM::getExtruderOffset(extId)+EPR_EXTRUDER_Y_OFFSET, com->Y);
-                        //if (com->hasZ() && com->Z < 0 && com->Z > -2) HAL::eprSetFloat(EEPROM::getExtruderOffset(extId)+EPR_EXTRUDER_Z_OFFSET, com->Z);
-                        EEPROM::updateChecksum();
-                    }
-                }
-                break;
-            }
-            case 220:   // M220 - S<Feedrate multiplier in percent>
-            {
-                changeFeedrateMultiply(com->getS(100));
-                break;
-            }
-            case 221:   // M221 - S<Extrusion flow multiplier in percent>
-            {
-				if (com->hasS() && com->S > 0) {
-					changeFlowrateMultiply(static_cast<float>(com->S) * 0.01f);
-				}
-				else {
-					changeFlowrateMultiply(1.0f);
-				}
-                break;
-            }
-
-#if USE_ADVANCE
-            case 223:   // M223 - Extruder interrupt test
-            {
-                if(com->hasS())
-                {
-                    InterruptProtectedBlock noInts; //BEGIN_INTERRUPT_PROTECTED
-                    Printer::extruderStepsNeeded += com->S;
-                }
-                break;
-            }
-            case 232:   // M232
-            {
-                if( Printer::debugInfo() )
-                {
-                    Com::printF(Com::tLinearStepsColon,maxadv2);
-                    Com::printFLN(Com::tCommaSpeedEqual,maxadvspeed);
-                }
-                maxadv2=0;
-                maxadvspeed=0;
-                break;
-            }
-            case 233:   // M233
-            {
-                if(com->hasY())
-                    Extruder::current->advanceL = com->Y;
-                Com::printF(Com::tLinearLColon,Extruder::current->advanceL);
-                Com::println();
-                Printer::updateAdvanceActivated();
-                break;
-            }
-#endif // USE_ADVANCE
-#if FEATURE_CASE_LIGHT
-            case 355: // M355  - Turn case light on/off / Turn X19 on and off.
-            {
-                // Idee und Teilcode und Vorarbeit von WESSIX
-                // Code schaltet X19, das ist nicht zwingend das Licht!
-                if (com->hasS()) {
-                    if(com->S == 1 || com->S == 0){
-                        Printer::enableCaseLight = com->S;
-                    }else{
-                        Com::printFLN(PSTR("M355 Error S=0||1"));
-                    }
-                } else {
-                    if(Printer::enableCaseLight) Printer::enableCaseLight = 0;
-                    else Printer::enableCaseLight = 1;
-                }
-                WRITE(CASE_LIGHT_PIN, Printer::enableCaseLight);
-                Com::printFLN(PSTR("M355: X19 set to "), Printer::enableCaseLight);
-                break;
-            }
-// Ende Idee und Teilcode von WESSIX
-#endif // FEATURE_CASE_LIGHT
-            case 400:   // M400 - Finish all moves
-            {
-                Commands::waitUntilEndOfAllMoves(); //M400 (normal gcode wait)
-                break;
-            }
-
-#if FEATURE_MEMORY_POSITION
-            case 401:   // M401 - Memory position
-            {
-                Printer::MemoryPosition();
-                break;
-            }
-            case 402:   // M402 - Go to stored position
-            {
-                Printer::GoToMemoryPosition(com->hasX(),com->hasY(),com->hasZ(),com->hasE(),(com->hasF() ? com->F : Printer::feedrate));
-                break;
-            }
-#endif // FEATURE_MEMORY_POSITION
-
-            case 908:   // M908 - Control digital trimpot directly.
-            {
-                if (com->hasS())
-				{
-                    uint8_t current = com->S;
-					if (current > 150) {
-						break;
-					}
-					if (current < MOTOR_CURRENT_MIN) {
-						break;
-					}
-
-					uint8_t steppernr = 255; //fails
-					if (com->hasP()) {
-						steppernr = (uint8_t)com->P;
-					}
-					if (com->hasX()) {
-						steppernr = 0;
-					}
-					if (com->hasY()) {
-						steppernr = 1;
-					}
-					if (com->hasZ()) {
-						steppernr = 2;
-					}
-					if (com->hasE() && com->E == 0) { //E0
-						steppernr = 4;
-					}
-					if (com->hasE() && com->E == 1) { //E1
-						steppernr = 5;
-					}
-
-					if (steppernr > 3 + NUM_EXTRUDER) {
-						break; // Axis number too high for setup
-					}
-
-                    setMotorCurrent(steppernr, current);
-                }
-                break;
-            }
-            case 500:   // M500
-            {
-#if EEPROM_MODE!=0
-                EEPROM::storeDataIntoEEPROM(false);
-                Com::printInfoF(Com::tConfigStoredEEPROM);
-#else
-                if( Printer::debugErrors() )
-                {
-                    Com::printErrorF(Com::tNoEEPROMSupport);
-                }
-#endif // EEPROM_MODE!=0
-                break;
-            }
-            case 501:   // M501
-            {
-#if EEPROM_MODE!=0
-                EEPROM::readDataFromEEPROM();
-                Extruder::selectExtruderById(Extruder::current->id);
-
-                if( Printer::debugInfo() )
-                {
-                    Com::printInfoF(Com::tConfigLoadedEEPROM);
-                }
-#else
-                if( Printer::debugErrors() )
-                {
-                    Com::printErrorF(Com::tNoEEPROMSupport);
-                }
-#endif // EEPROM_MODE!=0
-                break;
-            }
-            case 502:   // M502
-            {
-                EEPROM::restoreEEPROMSettingsFromConfiguration();
-                EEPROM::storeDataIntoEEPROM(false);
-                EEPROM::initializeAllOperatingModes();
-
-                UI_STATUS( UI_TEXT_RESTORE_DEFAULTS );
-                showInformation( PSTR(UI_TEXT_CONFIGURATION), PSTR(UI_TEXT_RESTORE_DEFAULTS), PSTR(UI_TEXT_OK) );
-                break;
-            }
-
-#if FEATURE_SERVO && MOTHERBOARD == DEVICE_TYPE_RF1000
-            case 340:   // M340
-            {
-                if(com->hasP() && com->P<4 && com->P>=0)
-                {
-                    int s = 0;
-                    if(com->hasS())
-                        s = com->S;
-                    HAL::servoMicroseconds(com->P,s);
-                }
-                break;
-            }
-#endif // FEATURE_SERVO && MOTHERBOARD == DEVICE_TYPE_RF1000
-
-#if FEATURE_SERVO && (MOTHERBOARD == DEVICE_TYPE_RF2000 || MOTHERBOARD == DEVICE_TYPE_RF2000v2)
-            case 340:   // M340
-            {
-                if( com->hasP() )
-                {
-                    switch( com->P )
-                    {
-                        case 1:
-                        {
-                            if( com->hasS() )
-                            {
-                                int S = com->S;
-                                if ( S >= 800 && S <= 2200 )
-                                {
-                                    Com::printFLN( PSTR( " 1. servo value [uS] =  "), S );
-                                    OCR5A = 2*S;
-                                }
-                                else
-                                {
-                                    Com::printFLN( PSTR( " 1. servo value out of range ") );
-                                }
-                            }
-                            break;
-                        }
-                        case 2:
-                        {
-                            if( com->hasS() )
-                            {
-                                int S = com->S;
-                                if ( S >= 800 && S <= 2200 )
-                                {
-                                    Com::printFLN( PSTR( " 2. servo value [uS] =  "), S );
-                                    OCR5B = 2*S;
-                                }
-                                else
-                                {
-                                    Com::printFLN( PSTR( " 2. servo value out of range ") );
-                                }
-                            }
-                            break;
-                        }
-                        case 3:
-                        {
-                            if( com->hasS() )
-                            {
-                                int S = com->S;
-                                if ( S >= 800 && S <= 2200 )
-                                {
-                                    Com::printFLN( PSTR( " 3. servo value [uS] =  "), S );
-                                    OCR5C = 2*S;
-                                }
-                                else
-                                {
-                                    Com::printFLN( PSTR( " 3. servo value out of range ") );
-                                }
-                            }
-                            break;
-                        }
-                    }
-                }
-                else
-                {
-                    showInvalidSyntax( com->M );
-                }
-                break;
-            }
-#endif // FEATURE_SERVO && (MOTHERBOARD == DEVICE_TYPE_RF2000 || MOTHERBOARD == DEVICE_TYPE_RF2000v2)
-
-            default:
-            {
-                // we may have to process RF specific commands
-                processCommand( com );
-                break;
-            }
-        }
+		Commands::processMCode(com);
     }
     else if(com->hasT())      // Process T code
     {
@@ -1685,13 +570,1167 @@ void Commands::executeGCode(GCode *com)
     {
         if(Printer::debugErrors())
         {
+			Com::writeToAll = false;
             Com::printF(Com::tUnknownCommand);
             com->printCommand();
         }
     }
 
+	GCodeSource::activeSource = actSource;
 } // executeGCode
 
+/**
+\brief Execute the G command stored in com.
+*/
+void Commands::processGCode(GCode *com) {
+	switch (com->G)
+	{
+	case 0: // G0 -> G1
+	case 1: // G1
+	{
+		if (isMovingAllowed(PSTR("G0/1")))
+		{
+			Printer::queueGCodeCoordinates(com); // For X Y Z E F
+		}
+
+		break;
+	}
+
+#if FEATURE_ARC_SUPPORT
+	case 2: // CW Arc
+	case 3: // CCW Arc MOTION_MODE_CW_ARC: case MOTION_MODE_CCW_ARC:
+		processArc(com);
+		break;
+#endif
+
+	case 4: // G4 dwell
+	{
+		Commands::waitUntilEndOfAllMoves(); //G4
+		uint32_t codenum = 0;
+		if (com->hasP()) codenum = com->P; // milliseconds to wait
+		if (com->hasS()) codenum = com->S * 1000; // seconds to wait
+		codenum += HAL::timeInMilliseconds();  // keep track of when we started waiting
+
+		while ((uint32_t)(codenum - HAL::timeInMilliseconds()) < 2000000000)
+		{
+			Commands::checkForPeriodicalActions(Processing);
+		}
+		break;
+	}
+	case 20: // G20 - Units to inches
+	{
+		Printer::unitIsInches = 1;
+		break;
+	}
+	case 21: // G21 - Units to mm
+	{
+		Printer::unitIsInches = 0;
+		break;
+	}
+	case 28:  // G28 - Home all axes one at a time
+	{
+		if (!isHomingAllowed(com))
+		{
+			break;
+		}
+		uint8_t home_all_axis = (com->hasNoXYZ() && !com->hasE());
+		if (com->hasE())
+		{
+			Printer::setEAxisSteps(0); // Wie G92 E0
+		}
+		if (home_all_axis || !com->hasNoXYZ())
+			Printer::homeAxis(home_all_axis || com->hasX(), home_all_axis || com->hasY(), home_all_axis || com->hasZ());
+	}
+	break;
+
+#if FEATURE_MILLING_MODE
+	case 80: // G80
+	{
+		if (isSupportedGCommand(com->G, OPERATING_MODE_MILL))
+		{
+			// there is not a lot to do at the moment because drilling cycles are not supported
+			Printer::drillFeedrate = 0.0;
+			Printer::drillZDepth = 0.0;
+		}
+		break;
+	}
+	case 81: // G81
+	{
+		if (isSupportedGCommand(com->G, OPERATING_MODE_MILL))
+		{
+			char    szTemp[40];
+			float   exitZ;
+
+
+			/*              Com::printFLN( PSTR( "G81 detected" ) );
+			if( com->hasX() )   Com::printFLN( PSTR( "X = " ), com->X );
+			if( com->hasY() )   Com::printFLN( PSTR( "Y = " ), com->Y );
+			if( com->hasZ() )   Com::printFLN( PSTR( "Z = " ), com->Z );
+			if( com->hasR() )   Com::printFLN( PSTR( "R = " ), com->R );
+			if( com->hasF() )   Com::printFLN( PSTR( "F = " ), com->F );
+			*/
+			if (!isMovingAllowed(PSTR("G81")))
+			{
+				break;
+			}
+
+			// safety checks
+			if (!com->hasZ() && !Printer::drillZDepth)
+			{
+				if (Printer::debugErrors())
+				{
+					Com::printFLN(PSTR("G81: aborted (the Z position is not defined)"));
+				}
+				break;
+			}
+			if (!com->hasF() && !Printer::drillFeedrate)
+			{
+				if (Printer::debugErrors())
+				{
+					Com::printFLN(PSTR("G81: aborted (the drilling feedrate is not defined)"));
+				}
+				break;
+			}
+
+			if (Printer::relativeCoordinateMode)
+			{
+				// move to the position of the (to be drilled) hole
+				strcpy(szTemp, "G1 X");
+				addFloat(szTemp, com->hasX() ? com->X : 0, 3);
+				strcat(szTemp, " Y");
+				addFloat(szTemp, com->hasY() ? com->Y : 0, 3);
+				strcat(szTemp, " Z");
+				addFloat(szTemp, com->hasR() ? com->R : 0, 3);
+				strcat(szTemp, " F");
+				addFloat(szTemp, Printer::maxFeedrate[X_AXIS], 3);
+				GCode::executeString(szTemp);
+
+				// in order to leave the hole, we must travel the drilling path in reverse direction
+				exitZ = -(com->hasZ() ? com->Z : Printer::drillZDepth);
+			}
+			else
+			{
+				// move to the position of the (to be drilled) hole
+				strcpy(szTemp, "G1");
+				if (com->hasX())
+				{
+					strcat(szTemp, " X");
+					addFloat(szTemp, com->X, 3);
+				}
+				if (com->hasY())
+				{
+					strcat(szTemp, " Y");
+					addFloat(szTemp, com->Y, 3);
+				}
+				if (com->hasR())
+				{
+					strcat(szTemp, " Z");
+					addFloat(szTemp, com->R, 3);
+				}
+				strcat(szTemp, " F");
+				addFloat(szTemp, Printer::maxFeedrate[X_AXIS], 3);
+				GCode::executeString(szTemp);
+
+				// in order to leave the hole, we must return to our start position
+				exitZ = Printer::destinationMM[Z_AXIS];
+			}
+
+			// drill the hole
+			strcpy(szTemp, "G1 Z");
+			addFloat(szTemp, com->hasZ() ? com->Z : Printer::drillZDepth, 3);
+			strcat(szTemp, " F");
+			addFloat(szTemp, com->hasF() ? com->F : Printer::drillFeedrate, 3);
+
+			GCode::executeString(szTemp);
+
+			// get out of the hole
+			strcpy(szTemp, "G1 Z");
+			addFloat(szTemp, exitZ, 3);
+			strcat(szTemp, " F");
+			addFloat(szTemp, Printer::maxFeedrate[Z_AXIS], 3);
+
+			GCode::executeString(szTemp);
+
+			if (com->hasZ())   Printer::drillZDepth = com->Z;
+			if (com->hasF())   Printer::drillFeedrate = com->F;
+		}
+		break;
+	}
+#endif // FEATURE_MILLING_MODE
+
+	case 90: // G90
+	{
+		Printer::relativeCoordinateMode = false;
+		if (com->internalCommand)
+			Com::printInfoFLN(PSTR("Absolute positioning"));
+		break;
+	}
+	case 91: // G91
+	{
+		Printer::relativeCoordinateMode = true;
+		if (com->internalCommand)
+			Com::printInfoFLN(PSTR("Relative positioning"));
+		break;
+	}
+	case 92: // G92
+	{
+		if (!com->hasNoXYZ())
+		{
+			// set the origin only in case we got any x, y and/or z offset
+			float xOff = Printer::originOffsetMM[X_AXIS];
+			float yOff = Printer::originOffsetMM[Y_AXIS];
+			float zOff = Printer::originOffsetMM[Z_AXIS];
+
+			if (com->hasX()) xOff = Printer::convertToMM(com->X) - Printer::destinationMM[X_AXIS];
+			if (com->hasY()) yOff = Printer::convertToMM(com->Y) - Printer::destinationMM[Y_AXIS];
+			if (com->hasZ()) zOff = Printer::convertToMM(com->Z) - Printer::destinationMM[Z_AXIS];
+
+			Printer::setOrigin(xOff, yOff, zOff);
+		}
+		if (com->hasE())
+		{
+			Printer::setEAxisSteps(Printer::convertToMM(com->E) * Printer::axisStepsPerMM[E_AXIS]);
+		}
+		break;
+	}
+	}
+	previousMillisCmd = HAL::timeInMilliseconds(); //prevent inactive shutdown of steppers/temps
+}
+
+/**
+\brief Execute the M command stored in com.
+*/
+void Commands::processMCode(GCode *com) {
+	switch (com->M)
+	{
+#if SDSUPPORT
+	case 20: // M20 - list SD card
+	{
+		sd.ls();
+		break;
+	}
+	case 21: // M21 - init SD card
+	{
+		sd.mount(/*not silent mount*/);
+		break;
+	}
+	case 22: // M22 - release SD card
+	{
+		sd.unmount();
+		break;
+	}
+	case 23: // M23 - Select file
+	{
+		if (com->hasString())
+		{
+			sd.fat.chdir();
+			sd.selectFileByName(com->text);
+		}
+		break;
+	}
+	case 24: // M24 - Start SD print
+	{
+		if (g_pauseMode)
+		{
+			continuePrint();
+		}
+		else
+		{
+			sd.startPrint();
+		}
+		break;
+	}
+	case 25: // M25 - Pause SD print
+	{
+		pausePrint();
+		break;
+	}
+	case 26: // M26 - Set SD index
+	{
+		if (Printer::debugErrors())
+		{
+			Com::printFLN(PSTR("M26: not supported"));
+		}
+
+		/*              if(com->hasS())
+		sd.setIndex(com->S);
+		*/            break;
+	}
+	case 27: // M27 - Get SD status
+		sd.printStatus();
+		break;
+	case 28: // M28 - Start SD write
+		if (com->hasString())
+			sd.startWrite(com->text);
+		break;
+	case 29: // M29 - Stop SD write
+			 //processed in write to file routine above
+			 //savetosd = false;
+		break;
+	case 30: // M30 - filename - Delete file
+		if (com->hasString())
+		{
+			sd.fat.chdir();
+			sd.deleteFile(com->text);
+		}
+		break;
+	case 32: // M32 - directoryname
+		if (com->hasString())
+		{
+			sd.fat.chdir();
+			sd.makeDirectory(com->text);
+		}
+		break;
+#endif // SDSUPPORT
+
+	case 104: // M104 - set extruder temp
+	{
+		if (isSupportedMCommand(com->M, OPERATING_MODE_PRINT))
+		{
+#if NUM_EXTRUDER>0
+			if (Printer::isAnyTempsensorDefect()) {
+				reportTempsensorAndHeaterErrors();
+				break;
+			}
+			previousMillisCmd = HAL::timeInMilliseconds(); //prevent inactive shutdown of steppers/temps
+			if (Printer::debugDryrun()) break;
+
+			//TODO man müsste das in den Movecache legen!
+			if (com->hasP() || (com->hasS() && com->S == 0))
+				Commands::waitUntilEndOfAllMoves(); //M104
+
+			if (com->hasS())
+			{
+				if (com->hasT())
+					Extruder::setTemperatureForExtruder(com->S, com->T, com->hasF() && com->F > 0);
+				else
+					Extruder::setTemperatureForExtruder(com->S, Extruder::current->id, com->hasF() && com->F > 0);
+			}
+#endif // NUM_EXTRUDER>0
+		}
+		break;
+	}
+	case 105: // M105 - get temperature. Always returns the current temperature, doesn't wait until move stopped
+	{
+		Com::writeToAll = false;
+		printTemperatures(com->hasX());
+		break;
+	}
+	case 140: // M140 - set bed temp
+	{
+		if (isSupportedMCommand(com->M, OPERATING_MODE_PRINT))
+		{
+			if (Printer::isAnyTempsensorDefect()) {
+				reportTempsensorAndHeaterErrors();
+				break;
+			}
+			previousMillisCmd = HAL::timeInMilliseconds(); //prevent inactive shutdown of steppers/temps
+			if (Printer::debugDryrun()) break;
+			if (com->hasS()) Extruder::setHeatedBedTemperature(com->S, com->hasF() && com->F > 0);
+		}
+		break;
+	}
+	case 109: // M109 - Wait for extruder heater to reach target.
+	{
+		if (isSupportedMCommand(com->M, OPERATING_MODE_PRINT))
+		{
+			previousMillisCmd = HAL::timeInMilliseconds(); //prevent inactive shutdown of steppers/temps
+#if NUM_EXTRUDER>0
+			if (Printer::isAnyTempsensorDefect()) {
+				reportTempsensorAndHeaterErrors();
+				break;
+			}
+			if (Printer::debugDryrun()) {
+				break;
+			}
+
+			g_uStartOfIdle = 0; //M109
+			Commands::waitUntilEndOfAllMoves(); //M109
+
+			Extruder *actExtruder = Extruder::current;
+			if (com->hasT() && com->T < NUM_EXTRUDER) actExtruder = &extruder[com->T];
+			if (com->hasS()) Extruder::setTemperatureForExtruder(com->S, actExtruder->id, com->hasF() && com->F > 0);
+
+			if (fabs(actExtruder->tempControl.targetTemperatureC - actExtruder->tempControl.currentTemperatureC) < TEMP_TOLERANCE)
+			{
+				break;
+			}
+
+#if RETRACT_DURING_HEATUP
+			uint8_t     retracted = 0;
+#endif // RETRACT_DURING_HEATUP
+			millis_t    currentTime = HAL::timeInMilliseconds();
+			bool        isTempReached;
+			bool        longTempTime = false; // random init
+			bool        dirRising = true;     // random init
+			float       settarget = -1;       // random init in °C
+
+			do {
+				Commands::checkForPeriodicalActions(WaitHeater);
+
+				//Anpassung an die neue Situation falls der Bediener am Display-Menü des Druckers während Aufheizzeit was umstellt.
+				if (settarget != actExtruder->tempControl.targetTemperatureC) {
+					settarget = actExtruder->tempControl.targetTemperatureC; //in °C
+					dirRising = (actExtruder->tempControl.targetTemperatureC > actExtruder->tempControl.currentTemperatureC);
+					longTempTime = (fabs(actExtruder->tempControl.targetTemperatureC - actExtruder->tempControl.currentTemperatureC) > 40.0f ? true : false);
+					if (dirRising) {
+						UI_STATUS_UPD(UI_TEXT_HEATING_EXTRUDER);
+					}
+					else {
+						UI_STATUS_UPD(UI_TEXT_COOLING_DOWN);
+					}
+				}
+
+				isTempReached = fabs(actExtruder->tempControl.targetTemperatureC - actExtruder->tempControl.currentTemperatureC) < TEMP_TOLERANCE;
+
+#if RETRACT_DURING_HEATUP
+				if (!retracted && dirRising) {
+					if (longTempTime
+						&& actExtruder == Extruder::current
+						&& actExtruder->waitRetractUnits > 0
+						&& actExtruder->tempControl.currentTemperatureC >= actExtruder->waitRetractTemperature)
+					{
+						Printer::queueRelativeMMCoordinates(0, 0, 0, -actExtruder->waitRetractUnits, actExtruder->maxFeedrate, false, false);
+						retracted = 1;
+					}
+				}
+#endif // RETRACT_DURING_HEATUP
+				if (!dirRising) {
+					if (actExtruder->tempControl.currentTemperatureC <= MAX_ROOM_TEMPERATURE) {
+						break;
+						//never wait longer than reaching lowest allowed temperature.
+						//This might still be a long-run-bug if you have heated chamber/hot summer and wrong settings in MAX_ROOM_TEMPERATURE!
+					}
+				}
+				if (abs(HAL::timeInMilliseconds() - currentTime) > 300000) {
+					/* Aufheizen dauert nie länger als 5 Minuten */
+					break;
+				}
+				if (Printer::isAnyTempsensorDefect()) {
+					/* Temp sensor decoupled oder defekt? abort. */
+					break;
+				}
+			} while (!isTempReached);
+
+#if RETRACT_DURING_HEATUP
+			if (retracted && actExtruder == Extruder::current)
+			{
+				Printer::queueRelativeMMCoordinates(0, 0, 0, actExtruder->waitRetractUnits, actExtruder->maxFeedrate, false, false);
+			}
+#endif // RETRACT_DURING_HEATUP
+#endif // NUM_EXTRUDER>0
+
+			g_uStartOfIdle = HAL::timeInMilliseconds(); //end of M109
+		}
+		break;
+	}
+	case 190: // M190 - Wait bed for heater to reach target.
+	{
+		if (isSupportedMCommand(com->M, OPERATING_MODE_PRINT))
+		{
+#if HAVE_HEATED_BED
+			previousMillisCmd = HAL::timeInMilliseconds(); //prevent inactive shutdown of steppers/temps
+			if (Printer::isAnyTempsensorDefect()) {
+				reportTempsensorAndHeaterErrors();
+				break;
+			}
+			if (Printer::debugDryrun()) {
+				break;
+			}
+			g_uStartOfIdle = 0; //M190
+			Commands::waitUntilEndOfAllMoves(); //M190
+			if (com->hasS()) Extruder::setHeatedBedTemperature(com->S, com->hasF() && com->F > 0);
+
+			bool    dirRising = true; // random init
+			float   settarget = -1;   // random init in °C
+
+			while (fabs(heatedBedController.currentTemperatureC - heatedBedController.targetTemperatureC) > TEMP_TOLERANCE)
+			{
+				//Init und Anpassung an die neue Situation falls der Bediener am Display-Menü des Druckers während Aufheizzeit was umstellt.
+				if (settarget != heatedBedController.targetTemperatureC) {
+					settarget = heatedBedController.targetTemperatureC; //in °C
+					dirRising = (heatedBedController.targetTemperatureC > heatedBedController.currentTemperatureC);
+					if (dirRising) {
+						UI_STATUS_UPD(UI_TEXT_HEATING_BED);
+					}
+					else {
+						UI_STATUS_UPD(UI_TEXT_COOLING_DOWN);
+					}
+				}
+
+				Commands::checkForPeriodicalActions(WaitHeater);
+				if (!dirRising && heatedBedController.currentTemperatureC <= MAX_ROOM_TEMPERATURE) break;
+				if (Printer::isAnyTempsensorDefect()) break;
+			}
+
+			g_uStartOfIdle = HAL::timeInMilliseconds() + 5000; //end of M190
+#endif // HAVE_HEATED_BED
+		}
+		break;
+	}
+	case 116: // M116 - Wait for temperatures to reach target temperature
+	{
+		if (isSupportedMCommand(com->M, OPERATING_MODE_PRINT))
+		{
+			if (Printer::debugDryrun()) break;
+			{
+				bool allReached = false;
+				while (!allReached)
+				{
+					allReached = true;
+					Commands::checkForPeriodicalActions(WaitHeater);
+
+					for (uint8_t h = 0; h < NUM_TEMPERATURE_LOOPS; h++)
+					{
+						TemperatureController *act = tempController[h];
+						if (act->targetTemperatureC > MAX_ROOM_TEMPERATURE && fabs(act->targetTemperatureC - act->currentTemperatureC) > TEMP_TOLERANCE)
+						{
+							allReached = false;
+						}
+					}
+				}
+			}
+		}
+		break;
+	}
+
+#if FEATURE_DITTO_PRINTING
+	case 280:   // M280
+	{
+		if (com->hasS())   // Set ditto mode S: 0 = off, 1 = on
+		{
+			Extruder::dittoMode = com->S;
+		}
+		break;
+	}
+#endif // FEATURE_DITTO_PRINTING
+
+#if BEEPER_PIN >= 0
+	case 300:   // M300
+	{
+		int beepS = 1;
+		int beepP = 1000;
+		if (com->hasS()) beepS = com->S;
+		if (com->hasP()) beepP = com->P;
+		HAL::tone(BEEPER_PIN, beepS);
+		HAL::delayMilliseconds(beepP);
+		HAL::noTone(BEEPER_PIN);
+	}
+	break;
+#endif // BEEPER_PIN >= 0
+
+	case 303:   // M303
+	{
+		if (isSupportedMCommand(com->M, OPERATING_MODE_PRINT))
+		{
+#if NUM_TEMPERATURE_LOOPS > 0
+			int temp = 150;
+			int cont = 0;
+			int cycles = 10;
+			int method = 0; //0 = Classic PID
+			if (com->hasS()) temp = com->S; //Verwechsle ich immer, weil T wie Temperatur, aber T ist 0..255
+			if (com->hasP()) cont = com->P;
+			if (com->hasR()) cycles = static_cast<int>(com->R);
+			if (com->hasJ()) method = static_cast<int>(com->J); //original Repetier used hasC, we dont have that in this version of repetier.
+			if (cont >= NUM_TEMPERATURE_LOOPS) cont = NUM_TEMPERATURE_LOOPS - 1;
+			if (cont < 0) cont = 0;
+			tempController[cont]->autotunePID(temp, cont, cycles, com->hasX(), method);
+#endif // NUM_TEMPERATURE_LOOPS > 0
+		}
+		break;
+	}
+
+#if FAN_PIN>-1 && FEATURE_FAN_CONTROL
+	case 106:   // M106 - Fan On
+	{
+		if (isSupportedMCommand(com->M, OPERATING_MODE_PRINT))
+		{
+			setFanSpeed(com->hasS() ? (uint8_t)constrain(com->S, 0, 255) : (uint8_t)255);
+		}
+		break;
+	}
+	case 107:   // M107 - Fan Off
+	{
+		if (isSupportedMCommand(com->M, OPERATING_MODE_PRINT))
+		{
+			setFanSpeed(0);
+		}
+		break;
+	}
+#endif // FAN_PIN>-1 && FEATURE_FAN_CONTROL
+
+	case 82:    // M82
+	{
+		Printer::relativeExtruderCoordinateMode = false;
+		break;
+	}
+	case 83:    // M83
+	{
+		Printer::relativeExtruderCoordinateMode = true;
+		break;
+	}
+	case 84:    // M84
+	{
+		if (com->hasS())
+		{
+			stepperInactiveTime = com->S * 1000;
+		}
+		else
+		{
+			Commands::waitUntilEndOfAllMoves(); //M84
+			Printer::disableAllSteppersNow();
+		}
+		break;
+	}
+	case 85:    // M85
+	{
+		if (com->hasS())
+			maxInactiveTime = (long)com->S * 1000;
+		else
+			maxInactiveTime = 0;
+		break;
+	}
+	case 99:    // M99 S<time>
+				//Nibbels: 050118 Ich halte den Befehl für tendentiell gefährlich. Man sollte nicht abschalten, sondern Strom senken, oder hat das einen sinn? Vermutlich muss danach Homing und CMP deaktiviert werden!
+	{
+		millis_t wait = 10000L;
+		if (com->hasS())
+			wait = 1000 * com->S;
+		if (com->hasX())
+			Printer::disableXStepper();
+		if (com->hasY())
+			Printer::disableYStepper();
+		if (com->hasZ())
+			Printer::disableZStepper();
+		wait += HAL::timeInMilliseconds();
+
+		while (wait - HAL::timeInMilliseconds() < 100000L)
+		{
+			Commands::checkForPeriodicalActions(Paused);  //check heater and other stuff every n milliseconds
+		}
+		if (com->hasX())
+			Printer::enableXStepper();
+		if (com->hasY())
+			Printer::enableYStepper();
+		if (com->hasZ())
+			Printer::enableZStepper();
+		break;
+	}
+	case 111:   // M111
+	{
+		if (com->hasS())
+		{
+			Printer::debugLevel = com->S;
+		}
+		if (Printer::debugDryrun())   // simulate movements without printing
+		{
+			Extruder::setTemperatureForAllExtruders(0, false);
+		}
+		break;
+	}
+	case 114:   // M114
+	{
+		printCurrentPosition();
+		break;
+	}
+	case 115:   // M115
+	{
+		Com::writeToAll = false;
+		if (Printer::debugInfo())
+		{
+			Com::printFLN(Com::tFirmware);
+		}
+//#if EEPROM_MODE != 0
+//		Com::cap(PSTR("EEPROM:1"));
+//#else
+//		Com::cap(PSTR("EEPROM:0"));
+//#endif
+
+//		Com::cap(PSTR("EMERGENCY_PARSER:0"));
+		reportPrinterUsage();
+		break;
+	}
+	case 117:   // M117 - message to lcd
+	{
+		if (com->hasString())
+		{
+			UI_STATUS_UPD_RAM(com->text);
+		}
+		break;
+	}
+	case 119:   // M119
+	{
+		if (!Printer::debugInfo())
+		{
+			break;
+		}
+
+		Com::writeToAll = false;
+		Commands::waitUntilEndOfAllMoves(); //M119
+
+#if (X_MIN_PIN > -1) && MIN_HARDWARE_ENDSTOP_X
+		Com::printF(Com::tXMinColon);
+		Com::printF(Printer::isXMinEndstopHit() ? Com::tHSpace : Com::tLSpace);
+#endif // (X_MIN_PIN > -1) && MIN_HARDWARE_ENDSTOP_X
+
+#if (X_MAX_PIN > -1) && MAX_HARDWARE_ENDSTOP_X
+		Com::printF(Com::tXMaxColon);
+		Com::printF(Printer::isXMaxEndstopHit() ? Com::tHSpace : Com::tLSpace);
+#else
+		Com::printF(Com::tSoftDash);
+		Com::printF(Com::tXMaxColon);
+		Com::printF(Printer::isXMaxEndstopHit() ? Com::tHSpace : Com::tLSpace);
+#endif // (X_MAX_PIN > -1) && MAX_HARDWARE_ENDSTOP_X
+
+#if (Y_MIN_PIN > -1) && MIN_HARDWARE_ENDSTOP_Y
+		Com::printF(Com::tYMinColon);
+		Com::printF(Printer::isYMinEndstopHit() ? Com::tHSpace : Com::tLSpace);
+#endif // (Y_MIN_PIN > -1) && MIN_HARDWARE_ENDSTOP_Y
+
+#if (Y_MAX_PIN > -1) && MAX_HARDWARE_ENDSTOP_Y
+		Com::printF(Com::tYMaxColon);
+		Com::printF(Printer::isYMaxEndstopHit() ? Com::tHSpace : Com::tLSpace);
+#else
+		Com::printF(Com::tSoftDash);
+		Com::printF(Com::tYMaxColon);
+		Com::printF(Printer::isYMaxEndstopHit() ? Com::tHSpace : Com::tLSpace);
+#endif // (Y_MAX_PIN > -1) && MAX_HARDWARE_ENDSTOP_Y
+
+		// RF1000: in operating mode "print", the min endstop is used
+		// RF1000: in operating mode "mill", the min endstop is not used
+		// Nibbels: If we have any Z-Min-Endstop we show its status, we dont care about usage for milling or print!
+#if (Z_MIN_PIN > -1) && MIN_HARDWARE_ENDSTOP_Z
+		Com::printF(Com::tZMinColon);
+		Com::printF(Printer::isZMinEndstopHit() ? Com::tHSpace : Com::tLSpace);
+#endif // (Z_MIN_PIN > -1) && MIN_HARDWARE_ENDSTOP_Z
+
+		// RF1000: in operating mode "mill", the max endstop is used
+		// RF1000: in operating mode "print", the max endstop is used only in case both z-endstops are in a circle
+		// Nibbels: If we have any Z-Max-Endstop we show its status, we dont care about usage for milling or print!
+#if (Z_MAX_PIN > -1) && MAX_HARDWARE_ENDSTOP_Z
+		Com::printF(Com::tZMaxColon);
+		Com::printF(Printer::isZMaxEndstopHit() ? Com::tHSpace : Com::tLSpace);
+#else
+		Com::printF(Com::tSoftDash);
+		Com::printF(Com::tZMaxColon);
+		Com::printF(Printer::isZMaxEndstopHit() ? Com::tHSpace : Com::tLSpace);
+#endif // (Z_MAX_PIN > -1) && MAX_HARDWARE_ENDSTOP_Z
+
+		Com::println();
+		break;
+	}
+
+#if FEATURE_BEEPER
+	case 120:   // M120 - Test beeper function
+	{
+		if (com->hasS() && com->hasP())
+			beep(com->S, com->P); // Beep test
+		break;
+	}
+#endif // FEATURE_BEEPER
+
+	case 201:   // M201
+	{
+#if FEATURE_MILLING_MODE
+		if (Printer::operatingMode == OPERATING_MODE_PRINT)
+		{
+#endif // FEATURE_MILLING_MODE
+			if (com->hasX()) Printer::maxAccelerationMMPerSquareSecond[X_AXIS] = constrain(com->X, ACCELERATION_MIN_XY, ACCELERATION_MAX_XY);
+			if (com->hasY()) Printer::maxAccelerationMMPerSquareSecond[Y_AXIS] = constrain(com->Y, ACCELERATION_MIN_XY, ACCELERATION_MAX_XY);
+			if (com->hasZ()) Printer::maxAccelerationMMPerSquareSecond[Z_AXIS] = constrain(com->Z, ACCELERATION_MIN_Z, ACCELERATION_MAX_Z);
+			if (com->hasE()) Printer::maxAccelerationMMPerSquareSecond[E_AXIS] = com->E;
+			Printer::updateDerivedParameter();
+#if FEATURE_MILLING_MODE
+		}
+#endif  // FEATURE_MILLING_MODE
+		break;
+	}
+	case 202:   // M202
+	{
+#if FEATURE_MILLING_MODE
+		if (Printer::operatingMode == OPERATING_MODE_PRINT)
+		{
+#endif // FEATURE_MILLING_MODE
+			if (com->hasX()) Printer::maxTravelAccelerationMMPerSquareSecond[X_AXIS] = constrain(com->X, ACCELERATION_MIN_XY, ACCELERATION_MAX_XY);
+			if (com->hasY()) Printer::maxTravelAccelerationMMPerSquareSecond[Y_AXIS] = constrain(com->Y, ACCELERATION_MIN_XY, ACCELERATION_MAX_XY);
+			if (com->hasZ()) Printer::maxTravelAccelerationMMPerSquareSecond[Z_AXIS] = constrain(com->Z, ACCELERATION_MIN_Z, ACCELERATION_MAX_Z);
+			if (com->hasE()) Printer::maxTravelAccelerationMMPerSquareSecond[E_AXIS] = com->E;
+			Printer::updateDerivedParameter();
+#if FEATURE_MILLING_MODE
+		}
+#endif  // FEATURE_MILLING_MODE
+		break;
+	}
+
+	case 203:   // M203 - Temperature monitor
+	{
+		if (isSupportedMCommand(com->M, OPERATING_MODE_PRINT))
+		{
+			if (com->hasS())
+			{
+				if (com->S < NUM_EXTRUDER) manageMonitor = com->S;
+#if HAVE_HEATED_BED
+				else manageMonitor = NUM_EXTRUDER; // Set 100 to heated bed
+#endif // HAVE_HEATED_BED
+			}
+		}
+		break;
+	}
+	case 204:   // M204
+	{
+		if (isSupportedMCommand(com->M, OPERATING_MODE_PRINT))
+		{
+			TemperatureController *temp = &Extruder::current->tempControl;
+			if (com->hasS())
+			{
+				if (com->S < 0) break;
+				if (com->S < NUM_EXTRUDER) temp = &extruder[com->S].tempControl;
+#if HAVE_HEATED_BED
+				else temp = &heatedBedController;
+#else
+				else break;
+#endif // HAVE_HEATED_BED
+
+			}
+			if (com->hasX()) temp->pidPGain = com->X;
+			if (com->hasY()) temp->pidIGain = com->Y;
+			if (com->hasZ()) temp->pidDGain = com->Z;
+			temp->updateTempControlVars();
+		}
+		break;
+	}
+	case 503:   // M503 (fall through)
+	case 205:   // M205 - Show EEPROM settings
+	{
+		Com::writeToAll = false;
+		EEPROM::writeSettings();
+		break;
+	}
+	case 206:   // M206 - T[type] P[pos] [Sint(long] [Xfloat]  Set eeprom value
+	{
+		Com::writeToAll = false;
+		EEPROM::update(com);
+		break;
+	}
+	case 207:   // M207 - X<XY jerk> Z<Z Jerk>
+	{
+		if (com->hasX())
+			Printer::maxXYJerk = constrain(com->X, 1.0f, 33.3f);
+		if (com->hasE())
+		{
+			Extruder::current->maxEJerk = constrain(com->E, 1.0f, Extruder::current->maxFeedrate);
+			Extruder::selectExtruderById(Extruder::current->id);
+		}
+		if (com->hasZ())
+			Printer::maxZJerk = constrain(com->Z, 0.05f, 2.0f);
+
+		if (Printer::debugInfo())
+		{
+			Com::printF(Com::tXYJerkColon, Printer::maxXYJerk);
+			Com::printFLN(Com::tZJerkColon, Printer::maxZJerk);
+		}
+		break;
+	}
+	case 218:
+	{
+		// New MCode with https://github.com/repetier/Repetier-Firmware/commit/e5db16080d0c98776ae82f543e2bc6ef643a63c7
+		// I added this MCode for compatibility-Reasons with Repetier and Marlin.
+
+		int extId = 0;
+		if (com->hasT()) {
+			extId = com->T;
+		}
+		if (extId >= 0 && extId < NUM_EXTRUDER) {
+			Commands::waitUntilEndOfAllMoves(); //M218
+			int32_t dx = 0;
+			int32_t dy = 0;
+			if (com->hasX()) {
+				if (Printer::isAxisHomed(X_AXIS)) dx = (com->X - extruder[extId].offsetMM[X_AXIS]) * Printer::axisStepsPerMM[X_AXIS];
+				extruder[extId].offsetMM[X_AXIS] = com->X;
+			}
+			if (com->hasY()) {
+				if (Printer::isAxisHomed(Y_AXIS)) dy = (com->Y - extruder[extId].offsetMM[Y_AXIS]) * Printer::axisStepsPerMM[Y_AXIS];
+				extruder[extId].offsetMM[Y_AXIS] = com->Y;
+			}
+
+			Printer::offsetRelativeStepsCoordinates(-dx, -dy, 0, 0);
+
+			if (com->hasS() && com->S > 0) {
+				if (com->hasX()) HAL::eprSetFloat(EEPROM::getExtruderOffset(extId) + EPR_EXTRUDER_X_OFFSET, com->X);
+				if (com->hasY()) HAL::eprSetFloat(EEPROM::getExtruderOffset(extId) + EPR_EXTRUDER_Y_OFFSET, com->Y);
+				//if (com->hasZ() && com->Z < 0 && com->Z > -2) HAL::eprSetFloat(EEPROM::getExtruderOffset(extId)+EPR_EXTRUDER_Z_OFFSET, com->Z);
+				EEPROM::updateChecksum();
+			}
+		}
+		break;
+	}
+	case 220:   // M220 - S<Feedrate multiplier in percent>
+	{
+		changeFeedrateMultiply(com->getS(100));
+		break;
+	}
+	case 221:   // M221 - S<Extrusion flow multiplier in percent>
+	{
+		if (com->hasS() && com->S > 0) {
+			changeFlowrateMultiply(static_cast<float>(com->S) * 0.01f);
+		}
+		else {
+			changeFlowrateMultiply(1.0f);
+		}
+		break;
+	}
+
+#if USE_ADVANCE
+	case 223:   // M223 - Extruder interrupt test
+	{
+		if (com->hasS())
+		{
+			InterruptProtectedBlock noInts; //BEGIN_INTERRUPT_PROTECTED
+			Printer::extruderStepsNeeded += com->S;
+		}
+		break;
+	}
+	case 232:   // M232
+	{
+		if (Printer::debugInfo())
+		{
+			Com::printF(Com::tLinearStepsColon, maxadv2);
+			Com::printFLN(Com::tCommaSpeedEqual, maxadvspeed);
+		}
+		maxadv2 = 0;
+		maxadvspeed = 0;
+		break;
+	}
+	case 233:   // M233
+	{
+		if (com->hasY())
+			Extruder::current->advanceL = com->Y;
+		Com::printF(Com::tLinearLColon, Extruder::current->advanceL);
+		Com::println();
+		Printer::updateAdvanceActivated();
+		break;
+	}
+#endif // USE_ADVANCE
+
+	case 360: // M360 - show configuration
+		Com::writeToAll = false;
+		Printer::showConfiguration();
+		break;
+
+#if FEATURE_CASE_LIGHT
+	case 355: // M355  - Turn case light on/off / Turn X19 on and off.
+	{
+		// Idee und Teilcode und Vorarbeit von WESSIX
+		// Code schaltet X19, das ist nicht zwingend das Licht!
+		if (com->hasS()) {
+			if (com->S == 1 || com->S == 0) {
+				Printer::enableCaseLight = com->S;
+			}
+			else {
+				Com::printFLN(PSTR("M355 Error S=0||1"));
+			}
+		}
+		else {
+			if (Printer::enableCaseLight) Printer::enableCaseLight = 0;
+			else Printer::enableCaseLight = 1;
+		}
+		WRITE(CASE_LIGHT_PIN, Printer::enableCaseLight);
+		Com::printFLN(PSTR("M355: X19 set to "), Printer::enableCaseLight);
+		break;
+	}
+	// Ende Idee und Teilcode von WESSIX
+#endif // FEATURE_CASE_LIGHT
+	case 400:   // M400 - Finish all moves
+	{
+		Commands::waitUntilEndOfAllMoves(); //M400 (normal gcode wait)
+		break;
+	}
+
+#if FEATURE_MEMORY_POSITION
+	case 401:   // M401 - Memory position
+	{
+		Printer::MemoryPosition();
+		break;
+	}
+	case 402:   // M402 - Go to stored position
+	{
+		Printer::GoToMemoryPosition(com->hasX(), com->hasY(), com->hasZ(), com->hasE(), (com->hasF() ? com->F : Printer::feedrate));
+		break;
+	}
+#endif // FEATURE_MEMORY_POSITION
+
+	case 908:   // M908 - Control digital trimpot directly.
+	{
+		if (com->hasS())
+		{
+			uint8_t current = com->S;
+			if (current > 150) {
+				break;
+			}
+			if (current < MOTOR_CURRENT_MIN) {
+				break;
+			}
+
+			uint8_t steppernr = 255; //fails
+			if (com->hasP()) {
+				steppernr = (uint8_t)com->P;
+			}
+			if (com->hasX()) {
+				steppernr = 0;
+			}
+			if (com->hasY()) {
+				steppernr = 1;
+			}
+			if (com->hasZ()) {
+				steppernr = 2;
+			}
+			if (com->hasE() && com->E == 0) { //E0
+				steppernr = 4;
+			}
+			if (com->hasE() && com->E == 1) { //E1
+				steppernr = 5;
+			}
+
+			if (steppernr > 3 + NUM_EXTRUDER) {
+				break; // Axis number too high for setup
+			}
+
+			setMotorCurrent(steppernr, current);
+		}
+		break;
+	}
+	case 500:   // M500
+	{
+#if EEPROM_MODE!=0
+		EEPROM::storeDataIntoEEPROM(false);
+		Com::printInfoF(Com::tConfigStoredEEPROM);
+#else
+		if (Printer::debugErrors())
+		{
+			Com::printErrorF(Com::tNoEEPROMSupport);
+		}
+#endif // EEPROM_MODE!=0
+		break;
+	}
+	case 501:   // M501
+	{
+#if EEPROM_MODE!=0
+		EEPROM::readDataFromEEPROM();
+		Extruder::selectExtruderById(Extruder::current->id);
+
+		if (Printer::debugInfo())
+		{
+			Com::printInfoF(Com::tConfigLoadedEEPROM);
+		}
+#else
+		if (Printer::debugErrors())
+		{
+			Com::printErrorF(Com::tNoEEPROMSupport);
+		}
+#endif // EEPROM_MODE!=0
+		break;
+	}
+	case 502:   // M502
+	{
+		EEPROM::restoreEEPROMSettingsFromConfiguration();
+		EEPROM::storeDataIntoEEPROM(false);
+		EEPROM::initializeAllOperatingModes();
+
+		UI_STATUS(UI_TEXT_RESTORE_DEFAULTS);
+		showInformation(PSTR(UI_TEXT_CONFIGURATION), PSTR(UI_TEXT_RESTORE_DEFAULTS), PSTR(UI_TEXT_OK));
+		break;
+	}
+
+#if FEATURE_SERVO && MOTHERBOARD == DEVICE_TYPE_RF1000
+	case 340:   // M340
+	{
+		if (com->hasP() && com->P < 4 && com->P >= 0)
+		{
+			int s = 0;
+			if (com->hasS())
+				s = com->S;
+			HAL::servoMicroseconds(com->P, s);
+		}
+		break;
+	}
+#endif // FEATURE_SERVO && MOTHERBOARD == DEVICE_TYPE_RF1000
+
+#if FEATURE_SERVO && (MOTHERBOARD == DEVICE_TYPE_RF2000 || MOTHERBOARD == DEVICE_TYPE_RF2000v2)
+	case 340:   // M340
+	{
+		if (com->hasP())
+		{
+			switch (com->P)
+			{
+			case 1:
+			{
+				if (com->hasS())
+				{
+					int S = com->S;
+					if (S >= 800 && S <= 2200)
+					{
+						Com::printFLN(PSTR(" 1. servo value [uS] =  "), S);
+						OCR5A = 2 * S;
+					}
+					else
+					{
+						Com::printFLN(PSTR(" 1. servo value out of range "));
+					}
+				}
+				break;
+			}
+			case 2:
+			{
+				if (com->hasS())
+				{
+					int S = com->S;
+					if (S >= 800 && S <= 2200)
+					{
+						Com::printFLN(PSTR(" 2. servo value [uS] =  "), S);
+						OCR5B = 2 * S;
+					}
+					else
+					{
+						Com::printFLN(PSTR(" 2. servo value out of range "));
+					}
+				}
+				break;
+			}
+			case 3:
+			{
+				if (com->hasS())
+				{
+					int S = com->S;
+					if (S >= 800 && S <= 2200)
+					{
+						Com::printFLN(PSTR(" 3. servo value [uS] =  "), S);
+						OCR5C = 2 * S;
+					}
+					else
+					{
+						Com::printFLN(PSTR(" 3. servo value out of range "));
+					}
+				}
+				break;
+			}
+			}
+		}
+		else
+		{
+			showInvalidSyntax(com->M);
+		}
+		break;
+	}
+#endif // FEATURE_SERVO && (MOTHERBOARD == DEVICE_TYPE_RF2000 || MOTHERBOARD == DEVICE_TYPE_RF2000v2)
+
+	default:
+	{
+		// we may have to process RF specific commands
+		processSpecialGCode(com);
+		break;
+	}
+	}
+}
 
 void Commands::emergencyStop()
 {

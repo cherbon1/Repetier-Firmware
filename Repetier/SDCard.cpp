@@ -22,7 +22,7 @@
 
 char tempLongFilename[LONG_FILENAME_LENGTH+1];
 char fullName[LONG_FILENAME_LENGTH * SD_MAX_FOLDER_DEPTH + SD_MAX_FOLDER_DEPTH + 1];
-
+SDCardGCodeSource sdSource;
 SDCard sd;
 
 SDCard::SDCard() {
@@ -30,13 +30,7 @@ SDCard::SDCard() {
     sdactive = false;
     savetosd = false;
     Printer::setAutomount(false);
-
-    //power to SD reader
-#if SDPOWER > -1
-    SET_OUTPUT(SDPOWER);
-    WRITE(SDPOWER,HIGH);
-#endif // SDPOWER > -1
-
+	
 #if defined(SDCARDDETECT) && SDCARDDETECT>-1
     SET_INPUT(SDCARDDETECT);
     WRITE(SDCARDDETECT,HIGH);
@@ -84,10 +78,10 @@ void SDCard::initsd(bool silent)
 
     //fix in https://github.com/repetier/Repetier-Firmware/commit/d4e396d0f4d1b81cc4d388360be461f11ceb9edd ??
     HAL::delayMilliseconds(50);       // wait for stabilization of contacts, bootup ...
-    fat.begin(SDSS, SD_SCK_MHZ(4));  // dummy init of SD_CARD
+    fat.begin(SDSS, SPI_FULL_SPEED);  // dummy init of SD_CARD
     HAL::delayMilliseconds(50);       // wait for init end
 
-    if(!fat.begin(SDSS, SD_SCK_MHZ(4))) {
+    if(!fat.begin(SDSS, SPI_FULL_SPEED)) {
 		if (!silent) {
 			Com::printFLN(Com::tSDInitFail);
 			sdmode = 100; // prevent automount loop!
@@ -144,7 +138,7 @@ void SDCard::initsd(bool silent)
     fat.chdir();
     if(selectFileByName("init.g", true))
     {
-        startPrint();
+		SDCard::startPrint();
     }
 #endif // SDSS >- 1
 } // initsd
@@ -177,6 +171,7 @@ void SDCard::startPrint()
     Printer::setMenuMode(MENU_MODE_SD_PRINTING, true);
     Printer::setMenuMode(MENU_MODE_PAUSED, false);
     Printer::setPrinting(true);
+	GCodeSource::registerSource(&sdSource);
 } // startPrint
 
 void SDCard::writeCommand(GCode *code)
@@ -469,7 +464,6 @@ void SDCard::finishWrite() {
     file.sync();
     file.close();
     savetosd = false;
-
     Com::printFLN(Com::tDoneSavingFile);
 
     g_uStartOfIdle = HAL::timeInMilliseconds(); //SDCard::finishWrite() tDoneSavingFile

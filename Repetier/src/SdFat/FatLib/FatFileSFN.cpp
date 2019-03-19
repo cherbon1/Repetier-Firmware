@@ -22,10 +22,8 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
  */
-#include "../../../Repetier.h"
 #include "FatFile.h"
 #include "FatFileSystem.h"
-#if SDSUPPORT
 //------------------------------------------------------------------------------
 bool FatFile::getSFN(char* name) {
   dir_t* dir;
@@ -52,14 +50,16 @@ fail:
   return false;
 }
 //------------------------------------------------------------------------------
-void FatFile::printSFN() {
+size_t FatFile::printSFN(print_t* pr) {
   char name[13];
   if (!getSFN(name)) {
     DBG_FAIL_MACRO;
-    return;
+    goto fail;
   }
-  Com::print(name);
+  return pr->write(name);
 
+fail:
+  return 0;
 }
 #if !USE_LONG_FILE_NAMES
 //------------------------------------------------------------------------------
@@ -241,8 +241,8 @@ fail:
   return false;
 }
 //------------------------------------------------------------------------------
-void FatFile::printName() {
-  printSFN();
+size_t FatFile::printName(print_t* pr) {
+  return printSFN(pr);
 }
 //------------------------------------------------------------------------------
 bool FatFile::remove() {
@@ -276,4 +276,3 @@ fail:
   return false;
 }
 #endif  // !USE_LONG_FILE_NAMES
-#endif

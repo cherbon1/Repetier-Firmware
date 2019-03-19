@@ -155,10 +155,12 @@
     <ClInclude Include="src\SdFat\FreeStack.h" />
     <ClInclude Include="src\SdFat\MinimumSerial.h" />
     <ClInclude Include="src\SdFat\SdCard\SdInfo.h" />
+    <ClInclude Include="src\SdFat\SdCard\SdioCard.h" />
     <ClInclude Include="src\SdFat\SdCard\SdSpiCard.h" />
     <ClInclude Include="src\SdFat\SdFat.h" />
     <ClInclude Include="src\SdFat\SdFatConfig.h" />
     <ClInclude Include="src\SdFat\sdios.h" />
+    <ClInclude Include="src\SdFat\SpiDriver\SdSpiDriver.h" />
     <ClInclude Include="src\SdFat\SysCall.h" />
     <ClInclude Include="u8glib_ex.h" />
     <ClInclude Include="ui.h" />

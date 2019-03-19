@@ -789,12 +789,12 @@ extern void pausePrint( void );
 extern void killPausePrint( void );
 extern void continuePrint( void );
 extern void setExtruderCurrent( uint8_t nr, uint8_t current );
-extern void processCommand( GCode* pCommand );
+extern void processSpecialGCode( GCode* pCommand );
 extern void queueTask( char task );
 extern void processButton( int nAction );
-extern void nextPreviousXAction( int8_t increment );
-extern void nextPreviousYAction( int8_t increment );
-extern void nextPreviousZAction( int8_t increment );
+extern void moveXAction( int8_t increment );
+extern void moveYAction( int8_t increment );
+extern void moveZAction( int8_t increment );
 
 #if STEPPER_CURRENT_CONTROL==CURRENT_CONTROL_DRV8711
 extern void setMotorCurrent( unsigned char driver, uint8_t level );

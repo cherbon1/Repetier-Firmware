@@ -395,10 +395,15 @@ public:
         timeInTicks = wait;
     } // setWaitTicks
 
-    static INLINE bool hasLines()
-    {
-        return linesCount;
-    } // hasLines
+	static INLINE bool hasLines()
+	{
+		return linesCount;
+	} // hasLines
+
+	static uint8_t getLinesCount() {
+		InterruptProtectedBlock noInts;
+		return linesCount;
+	}
 
     static INLINE void setCurrentLine()
     {
@@ -436,7 +441,6 @@ public:
 
     static long performMove(PrintLine* move, uint8_t forQueue);
     static void waitForXFreeLines(uint8_t b=1);
-    static bool checkForXFreeLines(uint8_t freeLines=1);
     static inline void forwardPlanner(uint8_t p);
     static inline void backwardPlanner(uint8_t p,uint8_t last);
     static void updateTrapezoids();

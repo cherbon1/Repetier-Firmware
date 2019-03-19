@@ -34,12 +34,14 @@ FSTRINGVALUE(Com::tNewline,"\r\n")
 FSTRINGVALUE(Com::tNAN,"NAN")
 FSTRINGVALUE(Com::tINF,"INF")
 FSTRINGVALUE(Com::tError,"Error:")
+FSTRINGVALUE(Com::tFatal, "fatal:")
 FSTRINGVALUE(Com::tInfo,"Info:")
 FSTRINGVALUE(Com::tWarning,"Warning:")
 FSTRINGVALUE(Com::tResend,"Resend:")
 FSTRINGVALUE(Com::tEcho,"Echo:")
 FSTRINGVALUE(Com::tOkSpace,"ok ")
 FSTRINGVALUE(Com::tWrongChecksum,"Wrong checksum")
+FSTRINGVALUE(Com::tFormatError, "Format error")
 FSTRINGVALUE(Com::tMissingChecksum,"Missing checksum")
 FSTRINGVALUE(Com::tDonePrinting,"Done printing file")
 FSTRINGVALUE(Com::tX, " X")
@@ -346,9 +348,43 @@ FSTRINGVALUE(Com::tMountFilamentHard, MOUNT_FILAMENT_SCRIPT_HARD)
 #if FEATURE_FIND_Z_ORIGIN
 FSTRINGVALUE(Com::tFindZOrigin, FIND_Z_ORIGIN_SCRIPT)
 #endif // FEATURE_FIND_Z_ORIGIN
+FSTRINGVALUE(Com::tCap, "Cap:")
+FSTRINGVALUE(Com::tConfig, "Config:")
 
 ; // needed because the development tool does not recognize the ; within FSTRINGVALUE definition right.
 
+bool Com::writeToAll = true; // transmit start messages to all devices!
+
+void Com::cap(FSTRINGPARAM(text)) {
+	printF(tCap);
+	printFLN(text);
+}
+void Com::config(FSTRINGPARAM(text)) {
+	printF(tConfig);
+	printFLN(text);
+}
+void Com::config(FSTRINGPARAM(text), int value) {
+	printF(tConfig);
+	printFLN(text, value);
+}
+void Com::config(FSTRINGPARAM(text), const char *msg) {
+	printF(tConfig);
+	printF(text);
+	print(msg);
+	println();
+}
+void Com::config(FSTRINGPARAM(text), int32_t value) {
+	printF(tConfig);
+	printFLN(text, value);
+}
+void Com::config(FSTRINGPARAM(text), uint32_t value) {
+	printF(tConfig);
+	printFLN(text, value);
+}
+void Com::config(FSTRINGPARAM(text), float value, uint8_t digits) {
+	printF(tConfig);
+	printFLN(text, value, digits);
+}
 void Com::printWarningF(FSTRINGPARAM(text))
 {
     printF(tWarning);
@@ -409,7 +445,7 @@ void Com::printF(FSTRINGPARAM(ptr))
 {
   char c;
   while ((c=HAL::readFlashByte(ptr++)) != 0)
-     HAL::serialWriteByte(c);
+	  GCodeSource::writeToAll(c);
 } // printF
 
 
@@ -488,7 +524,7 @@ void Com::print(const char *text)
 {
     while(*text)
     {
-        HAL::serialWriteByte(*text++);
+		GCodeSource::writeToAll(*text++);
     }
 } // print
 
@@ -497,7 +533,7 @@ void Com::print(int32_t value)
 {
     if(value<0)
     {
-        HAL::serialWriteByte('-');
+		GCodeSource::writeToAll('-');
         value = -value;
     }
     printNumber(value);
