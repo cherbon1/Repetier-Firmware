@@ -78,10 +78,10 @@ void SDCard::initsd(bool silent)
 
     //fix in https://github.com/repetier/Repetier-Firmware/commit/d4e396d0f4d1b81cc4d388360be461f11ceb9edd ??
     HAL::delayMilliseconds(50);       // wait for stabilization of contacts, bootup ...
-    fat.begin(SDSS, SPI_FULL_SPEED);  // dummy init of SD_CARD
+    fat.begin(SDSS, SD_SCK_MHZ(4));  // dummy init of SD_CARD
     HAL::delayMilliseconds(50);       // wait for init end
 
-    if(!fat.begin(SDSS, SPI_FULL_SPEED)) {
+    if(!fat.begin(SDSS, SD_SCK_MHZ(4))) {
 		if (!silent) {
 			Com::printFLN(Com::tSDInitFail);
 			sdmode = 100; // prevent automount loop!
@@ -136,10 +136,10 @@ void SDCard::initsd(bool silent)
     Printer::setMenuMode(MENU_MODE_SD_MOUNTED,true);
 
     fat.chdir();
-    if(selectFileByName("init.g", true))
-    {
-		SDCard::startPrint();
-    }
+  //  if(selectFileByName("init.g", true))
+  //  {
+		//SDCard::startPrint();
+  //  }
 #endif // SDSS >- 1
 } // initsd
 
@@ -166,7 +166,8 @@ void SDCard::unmount()
 
 void SDCard::startPrint()
 {
-    if(!sdactive) return;
+    if (!sdactive) return;
+	if (g_pauseMode) return;
     sdmode = 1;
     Printer::setMenuMode(MENU_MODE_SD_PRINTING, true);
     Printer::setMenuMode(MENU_MODE_PAUSED, false);
@@ -356,7 +357,7 @@ void SDCard::ls()
     fat.chdir();
 
     file.openRoot(fat.vol());
-    file.ls(0, 0);
+    file.ls();
     Com::printFLN(Com::tEndFileList);
 } // ls
 

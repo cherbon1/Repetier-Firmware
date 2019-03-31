@@ -389,6 +389,8 @@ class FatFile {
   bool isSystem() const {
     return m_attr & FILE_ATTR_SYSTEM;
   }
+  void lsRecursive(uint8_t level);
+
   /** Check for a legal 8.3 character.
    * \param[in] c Character to be checked.
    * \return true for a legal 8.3 character else false.
@@ -428,7 +430,7 @@ class FatFile {
    *
    * \return true for success or false if an error occurred.
    */
-  bool ls(print_t* pr, uint8_t flags = 0, uint8_t indent = 0);
+  void ls();
   /** Make a new directory.
    *
    * \param[in] dir An open FatFile instance for the directory that will

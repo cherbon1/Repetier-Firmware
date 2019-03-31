@@ -201,8 +201,8 @@ fail:
    *
    * \return true for success or false if an error occurred.
    */
-  bool ls(print_t* pr, uint8_t flags = 0) {
-    return vwd()->ls(pr, flags);
+  void ls() {
+    return vwd()->ls();
   }
   //----------------------------------------------------------------------------
   /** List the directory contents of a directory.
@@ -221,9 +221,10 @@ fail:
    *
    * \return true for success or false if an error occurred.
    */
-  bool ls(print_t* pr, const char* path, uint8_t flags) {
+  void ls(const char* path) {
     FatFile dir;
-    return dir.open(vwd(), path, O_RDONLY) && dir.ls(pr, flags);
+	dir.open(vwd(), path, O_RDONLY);
+	dir.ls();
   }
   //----------------------------------------------------------------------------
   /** Make a subdirectory in the volume working directory.

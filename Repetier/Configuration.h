@@ -678,9 +678,13 @@ Honeywell 100K Thermistor (135-104LAG-J01)  : R0 = 100000  T0 = 25  Beta = 3974
 /** \brief Show extended directory including file length. Don't use this with Pronterface! */
 #define SD_EXTENDED_DIR                     true
 
-#define MAX_VFAT_ENTRIES                    (2)
-
 /** \brief Total size of the buffer used to store the long filenames */
+// If you need more maximum file name length than 26 chars 
+// - For SD-Printing using a Gcode / using Octoprints sd file listing
+// - Or for seeing the full filenames within the SD-Card file menu
+// then increase MAX_VFAT_ENTRIES to 3. But that has to be payed with ~65bytes of Ram.
+// (Printing a file using the SD card menu will start the print using the file number, so you dont need to see the full file length.)
+#define MAX_VFAT_ENTRIES                    (2)
 #define LONG_FILENAME_LENGTH                (13*MAX_VFAT_ENTRIES+1)
 #define SD_MAX_FOLDER_DEPTH                 2
 
