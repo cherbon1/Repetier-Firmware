@@ -8064,6 +8064,7 @@ void processSpecialGCode( GCode* pCommand )
                     // we shall pause within print queue and stay where we are
                     queueTask( TASK_PAUSE_PRINT );
                 }
+				Commands::waitUntilEndOfAllMoves(); //M400 (normal gcode wait)
                 break;
             }
 
@@ -8374,9 +8375,10 @@ void processSpecialGCode( GCode* pCommand )
                 {
                     if( uid.locked )
                     {
-                        // allow to overwrite the current string again
-                        uid.unlock();
-                        Com::printFLN( PSTR( "M3117: unlock" ) );
+						// allow to overwrite the current string again
+						// Put the unlock into queue to avoid racetime conditions with prior commands
+						queueTask(TASK_UNLOCK_DISPLAY_MSG);
+                        Com::printFLN( PSTR( "M3117: queued unlock" ) );
                     }
                 }
                 break;

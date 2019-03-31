@@ -14,6 +14,13 @@ TODO:
 # pause @RF1000: test if z max-endstop is respected while moving in dual-endstop circular setting
 # maybe implement a activatable serial3 for direct connection of a raspberry inside of the printer
 
+V 01.43.89.Mod (2019-03-31)
+- Prettier heater error message which is <16 chars for RF1000 displays
+- M3117 is now put to move queue to avoid race time condition with prior commands
+- M3070 pause always blocks further commands until pause is reached
+- M20 SD File list checks on a mounted sdcard before trying to output a file listing.
+- Menu for extruder mount and unmount is now hidden if the printer is in pause mode
+
 V 01.43.88.Mod (2019-03-10)
 - complete reintegration of SdFat-lib 1.1.0 downloaded from https://github.com/greiman/SdFat in order to avoid possible transcription errors.
 - #define USE_MULTI_BLOCK_IO 0
