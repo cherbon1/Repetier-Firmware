@@ -3,18 +3,21 @@ With a Version > 1.43.20 the following machine modes still have to be tested:
 - Milling
 
 This should work awsome:
-- Single-Extruder printing
+- Single-Extruder printing from USB
 - Arc support G2/G3
 
 TODO:
 # milling mode: retest all pause functionality
 # milling mode: test move while pause in respect to z-first and z direction
-# milling mode: test origin scan, workpart scan
 # milling mode: test or rework milling functions
 # pause @RF1000: test if z max-endstop is respected while moving in dual-endstop circular setting
-# maybe implement a activatable serial3 for direct connection of a raspberry inside of the printer
 
-V 01.43.91.Mod (2019-03-31)
+V 01.43.92.Mod (2019-04-06)
+- Disabled SD-Support (default setting: 0) for now. The home drive bug is still present.
+  Dont know why or how I should find the bug in an acceptable time.
+- Disabled SD-Support now automatically increases move cache.
+
+V 01.43.91.Mod (2019-04-06)
 - Fix drive free offset has not been reset in milling mode z homing
 - After homing any axis the status message in 4. row is now set to empty string
 
