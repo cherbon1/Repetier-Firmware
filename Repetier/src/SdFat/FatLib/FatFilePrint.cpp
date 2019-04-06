@@ -22,6 +22,7 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
  */
+#include "../../../Repetier.h"
 #include <math.h>
 #include "FatFile.h"
 #include "FmtNumber.h"
@@ -96,51 +97,51 @@ void FatFile::dmpFile(print_t* pr, uint32_t pos, size_t n) {
   pr->write('\n');
 }
 //------------------------------------------------------------------------------
-bool FatFile::ls(print_t* pr, uint8_t flags, uint8_t indent) {
-  FatFile file;
-  if (!isDir() || getError()) {
-    DBG_FAIL_MACRO;
-    goto fail;
-  }
-  rewind();
-  while (file.openNext(this, O_RDONLY)) {
-    if (!file.isHidden() || (flags & LS_A)) {
-    // indent for dir level
-      for (uint8_t i = 0; i < indent; i++) {
-        pr->write(' ');
-      }
-      if (flags & LS_DATE) {
-        file.printModifyDateTime(pr);
-        pr->write(' ');
-      }
-      if (flags & LS_SIZE) {
-        file.printFileSize(pr);
-        pr->write(' ');
-      }
-      file.printName(pr);
-      if (file.isDir()) {
-        pr->write('/');
-      }
-      pr->write('\r');
-      pr->write('\n');
-      if ((flags & LS_R) && file.isDir()) {
-        if (!file.ls(pr, flags, indent + 2)) {
-          DBG_FAIL_MACRO;
-          goto fail;
-        }
-      }
-    }
-    file.close();
-  }
-  if (getError()) {
-    DBG_FAIL_MACRO;
-    goto fail;
-  }
-  return true;
-
- fail:
-  return false;
-}
+//bool FatFile::ls(print_t* pr, uint8_t flags, uint8_t indent) {
+//  FatFile file;
+//  if (!isDir() || getError()) {
+//    DBG_FAIL_MACRO;
+//    goto fail;
+//  }
+//  rewind();
+//  while (file.openNext(this, O_RDONLY)) {
+//    if (!file.isHidden() || (flags & LS_A)) {
+//    // indent for dir level
+//      for (uint8_t i = 0; i < indent; i++) {
+//        pr->write(' ');
+//      }
+//      if (flags & LS_DATE) {
+//        file.printModifyDateTime(pr);
+//        pr->write(' ');
+//      }
+//      if (flags & LS_SIZE) {
+//        file.printFileSize(pr);
+//        pr->write(' ');
+//      }
+//      file.printName(pr);
+//      if (file.isDir()) {
+//        pr->write('/');
+//      }
+//      pr->write('\r');
+//      pr->write('\n');
+//      if ((flags & LS_R) && file.isDir()) {
+//        if (!file.ls(pr, flags, indent + 2)) {
+//          DBG_FAIL_MACRO;
+//          goto fail;
+//        }
+//      }
+//    }
+//    file.close();
+//  }
+//  if (getError()) {
+//    DBG_FAIL_MACRO;
+//    goto fail;
+//  }
+//  return true;
+//
+// fail:
+//  return false;
+//}
 //------------------------------------------------------------------------------
 bool FatFile::printCreateDateTime(print_t* pr) {
   dir_t dir;
@@ -264,4 +265,91 @@ size_t FatFile::printFileSize(print_t* pr) {
     *--ptr = ' ';
   }
   return pr->write(buf);
+}
+
+//########################################################################################
+//#################### Repetier Erstatzfunktionen fuer ls mit pr->xxx ####################
+//########################################################################################
+
+void FatFile::lsRecursive(uint8_t level)
+{
+	FatFile file;
+
+	rewind();
+
+	while (file.openNext(this, O_READ)) {
+		file.getName(tempLongFilename, LONG_FILENAME_LENGTH);
+		HAL::pingWatchdog();
+		if (file.isHidden()) {
+			file.close();
+			continue;
+		}
+		// if (! (file.isFile() || file.isDir())) continue;
+		if (strcmp(tempLongFilename, "..") == 0) {
+			file.close();
+			continue;
+		}
+		if (tempLongFilename[0] == '.') {
+			file.close();
+			continue; // MAC CRAP
+		}
+		if (file.isDir()) {
+			if (level >= SD_MAX_FOLDER_DEPTH) {
+				file.close();
+				continue; // can't go deeper
+			}
+			if (level) {
+				Com::print(fullName);
+				Com::printF(Com::tSlash);
+			}
+
+			Com::print(tempLongFilename);
+			Com::printFLN(Com::tSlash); // End with / to mark it as directory entry, so we can see empty directories.
+
+			char *tmp;
+			// Add directory name
+			if (level) strcat(fullName, "/");
+			strcat(fullName, tempLongFilename);
+			file.lsRecursive(level + 1);
+			
+			// remove added directory name
+			if ((tmp = strrchr(fullName, '/')) != NULL)
+				*tmp = 0;
+			else
+				*fullName = 0;
+		}
+		else { // is filename
+			if (level) {
+				Com::print(fullName);
+				Com::printF(Com::tSlash);
+			}
+			
+			Com::print(tempLongFilename);
+#if SD_EXTENDED_DIR
+			Com::printF(Com::tSpace, (long)file.fileSize());
+#endif
+			Com::println();
+		}
+		file.close();
+	}
+}
+
+/** List directory contents.
+*
+* \param[in] pr Print stream for list.
+*
+* \param[in] flags The inclusive OR of
+*
+* LS_DATE - %Print file modification date
+*
+* LS_SIZE - %Print file size.
+*
+* LS_R - Recursive list of subdirectories.
+*
+* \param[in] indent Amount of space before file name. Used for recursive
+* list to indicate subdirectory level.
+*/
+void FatFile::ls() {
+	*fullName = 0;
+	lsRecursive(0);
 }

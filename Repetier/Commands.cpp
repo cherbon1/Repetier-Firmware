@@ -806,7 +806,7 @@ void Commands::processMCode(GCode *com) {
 #if SDSUPPORT
 	case 20: // M20 - list SD card
 	{
-		sd.ls();
+		if(sd.sdactive) sd.ls();
 		break;
 	}
 	case 21: // M21 - init SD card
@@ -821,6 +821,7 @@ void Commands::processMCode(GCode *com) {
 	}
 	case 23: // M23 - Select file
 	{
+		if (!sd.sdactive) break;
 		if (com->hasString())
 		{
 			sd.fat.chdir();
@@ -840,21 +841,16 @@ void Commands::processMCode(GCode *com) {
 		}
 		break;
 	}
-	case 25: // M25 - Pause SD print
+	case 25: // M25 - Pause (SD) print
 	{
-		pausePrint();
+		queueTask(TASK_PAUSE_PRINT);
+		Commands::waitUntilEndOfAllMoves(); //M400 (normal gcode wait)
 		break;
 	}
 	case 26: // M26 - Set SD index
 	{
-		if (Printer::debugErrors())
-		{
-			Com::printFLN(PSTR("M26: not supported"));
-		}
-
-		/*              if(com->hasS())
-		sd.setIndex(com->S);
-		*/            break;
+		Com::printFLN(PSTR("M26: not supported"));
+		break;
 	}
 	case 27: // M27 - Get SD status
 		sd.printStatus();

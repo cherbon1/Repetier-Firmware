@@ -1538,6 +1538,7 @@ void Printer::homeXAxis()
         // show that we are active
         previousMillisCmd = HAL::timeInMilliseconds(); //prevent inactive shutdown of steppers/temps
         setHomed( true , -1 , -1);
+		UI_STATUS_UPD("");
     }
 } // homeXAxis
 
@@ -1584,6 +1585,7 @@ void Printer::homeYAxis()
         // show that we are active
         previousMillisCmd = HAL::timeInMilliseconds(); //prevent inactive shutdown of steppers/temps
         setHomed( -1 , true , -1);
+		UI_STATUS_UPD("");
     }
 } // homeYAxis
 
@@ -1646,21 +1648,26 @@ void Printer::homeZAxis()
 
         //3. langsames Fahren bis zum Schalterkontakt:
 		Printer::queueRelativeMMCoordinates(0, 0, (0.1f + ENDSTOP_Z_BACK_MOVE) * nHomeDir, 0, float(homingFeedrate[Z_AXIS] / ENDSTOP_Z_RETEST_REDUCTION_FACTOR), true, true);
-
-		//currentZSteps ist die Schalter-Z-Koordinate, die die Z-Steps per Dir-Pin abzählt.
-		Printer::currentZSteps = (nHomeDir == -1) ? 0 : maxSoftEndstopSteps[Z_AXIS];
-
+		
 #if FEATURE_MILLING_MODE
-        //4. Wenn Millingmode dann nochmal freifahren und Koordinate nullen.
+        //4. Wenn Millingmode dann nochmal freifahren und erst anschließend Koordinate nullen.
         if( Printer::operatingMode == OPERATING_MODE_MILL )
         {
             // when the milling mode is active and we are in operating mode "mill", we use the z max endstop and we free the z-max endstop after it has been hit
 			Printer::queueRelativeMMCoordinates(0, 0, (LEAVE_Z_MAX_ENDSTOP_AFTER_HOME + Z_ENDSTOP_MAX_HYSTERESIS) * (-1 * nHomeDir), 0, float(homingFeedrate[Z_AXIS]), true);
         }
-		else
+#endif // FEATURE_MILLING_MODE
+
+		//currentZSteps ist die Schalter-Z-Koordinate, die die Z-Steps per Dir-Pin abzählt.
+		// Wenn wir im Milingmode sind, dann homen wir und setzen den NUllpunkt direkt in die Mitte des theoretischen Fahrwegs.
+		// Die absoluten Achsengrenzen werden gesetzt, vor der zweite Extruder sein offset bekommt.
+		Printer::currentZSteps = (nHomeDir == -1) ? 0 : maxSoftEndstopSteps[Z_AXIS];
+
+#if NUM_EXTRUDER==2
+#if FEATURE_MILLING_MODE
+		if (Printer::operatingMode == OPERATING_MODE_PRINT)
 #endif // FEATURE_MILLING_MODE
 		{
-#if NUM_EXTRUDER==2
 			// Standardverhalten: Kein Offset für Z vorsehen, es gibt kein Homing-Offset.
 			if (Extruder::current->id == extruder[1].id && Extruder::current->offsetMM[Z_AXIS] != 0.0f)
 			{
@@ -1668,11 +1675,12 @@ void Printer::homeZAxis()
 				// Wir verkleinern bei Z nicht künstlich unseren Bauraum um den Extruder-Abstand. Darum einfach per Offset hinfahren.
 				Printer::offsetRelativeStepsCoordinates(0, 0, -1 * nHomeDir * (0 - Extruder::current->offsetMM[Z_AXIS]) * Printer::axisStepsPerMM[Z_AXIS], 0);
 			}
-#endif // NUM_EXTRUDER>1
 		}
+#endif // NUM_EXTRUDER>1
 
         //5. Setzen der aktuellen End-Position auf die Koordinate, zu der das Homing gehört.
-		Printer::setZAxisSteps((nHomeDir == -1) ? 0 : maxSoftEndstopSteps[Z_AXIS]);
+		// Dann steht der Fräser auf Höhe Z-Length-Halbe. Danch wrid sowieso mit findZOrigin oder origin gearbeitet.
+		Printer::setZAxisSteps((nHomeDir == -1) ? 0 : maxSoftEndstopSteps[Z_AXIS]);		
 
         //6. Korrektur der Flags
 		setHomed(-1, -1, true);
@@ -1681,6 +1689,7 @@ void Printer::homeZAxis()
 #if FEATURE_CONFIGURABLE_Z_ENDSTOPS
         ZEndstopUnknown = false;
 #endif // FEATURE_CONFIGURABLE_Z_ENDSTOPS
+		UI_STATUS_UPD("");
     }
 } // homeZAxis
 

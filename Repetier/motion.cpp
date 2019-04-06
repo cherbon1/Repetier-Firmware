@@ -1189,14 +1189,14 @@ long PrintLine::performQueueMove()
             }
 
 #if FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
-            case TASK_ENABLE_Z_COMPENSATION: //M3001 M3141
+            case TASK_ENABLE_Z_COMPENSATION: // M3001 M3141
             {
                 Printer::enableCMPnow();
                 removeCurrentLineForbidInterrupt();
                 return 1000;
             }
 
-            case TASK_DISABLE_Z_COMPENSATION: //M3000 M3140
+            case TASK_DISABLE_Z_COMPENSATION: // M3000 M3140
             {
                 // disable the z compensation
                 Printer::disableCMPnow(); //hier nicht unbedingt warten, das soll im fluss der queue einfach abgeschaltet werden. zu große abstände regelt die needCmpWait
@@ -1205,7 +1205,7 @@ long PrintLine::performQueueMove()
             }
 
 #if FEATURE_SENSIBLE_PRESSURE
-            case TASK_ENABLE_SENSE_OFFSET: //M3909
+            case TASK_ENABLE_SENSE_OFFSET: // M3909
             {
                 Printer::enableSenseOffsetnow();
                 removeCurrentLineForbidInterrupt();
@@ -1213,6 +1213,14 @@ long PrintLine::performQueueMove()
             }
 #endif // FEATURE_SENSIBLE_PRESSURE
 #endif // FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
+
+			case TASK_UNLOCK_DISPLAY_MSG: // M3117 unlock
+			{
+				// allow to overwrite the current string again
+				uid.unlock();
+				removeCurrentLineForbidInterrupt();
+				return 1000;
+			}
 
             default:
             {

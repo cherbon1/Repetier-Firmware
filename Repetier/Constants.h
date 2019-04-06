@@ -20,7 +20,7 @@
 #define CONSTANTS_H
 
 
-#define REPETIER_VERSION                    "1.43.88"
+#define REPETIER_VERSION                    "1.43.92"
 #define UI_PRINTER_COMPANY                  "Conrad Community"
 #define UI_VERSION_STRING                   "V " REPETIER_VERSION
 
@@ -86,6 +86,7 @@
 #define TASK_MOVE_FROM_BUTTON               10
 #define TASK_MOVE_POSITION_MANUAL           11
 #define TASK_ENABLE_SENSE_OFFSET            100
+#define TASK_UNLOCK_DISPLAY_MSG             101
 
 //no pause
 #define PAUSE_STATUS_NONE                   0   // we are not paused at the moment
