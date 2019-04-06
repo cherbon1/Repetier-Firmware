@@ -14,6 +14,10 @@ TODO:
 # pause @RF1000: test if z max-endstop is respected while moving in dual-endstop circular setting
 # maybe implement a activatable serial3 for direct connection of a raspberry inside of the printer
 
+V 01.43.91.Mod (2019-03-31)
+- Fix drive free offset has not been reset in milling mode z homing
+- After homing any axis the status message in 4. row is now set to empty string
+
 V 01.43.90.Mod (2019-03-31)
 - Fixed SD file/directory list functions to avoid serial print pointer pr->xx. Octoprint uses that.
 - Removed auto-print of "init.g" file at sd mount time.
