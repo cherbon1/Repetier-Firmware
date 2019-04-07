@@ -26,6 +26,7 @@
 #include <math.h>
 #include "FatFile.h"
 #include "FmtNumber.h"
+#if SDSUPPORT
 //------------------------------------------------------------------------------
 // print uint8_t with width 2
 static void print2u(print_t* pr, uint8_t v) {
@@ -353,3 +354,4 @@ void FatFile::ls() {
 	*fullName = 0;
 	lsRecursive(0);
 }
+#endif
