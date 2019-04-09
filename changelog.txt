@@ -12,6 +12,9 @@ TODO:
 # milling mode: test or rework milling functions
 # pause @RF1000: test if z max-endstop is respected while moving in dual-endstop circular setting
 
+V 01.43.94.Mod (2019-04-09)
+- Fixed M3070
+
 V 01.43.93.Mod (2019-04-06)
 - Fix compiling issues caused by the forgotten "#if SDSUPPORT" in \src\SdFat\FatLib\FatFilePrint.cpp (Original Repetier has this too.)
 

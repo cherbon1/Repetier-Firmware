@@ -1164,7 +1164,7 @@ long PrintLine::performQueueMove()
 			{
 				removeCurrentLineForbidInterrupt();
 				// the printing shall be paused without moving of the printer/miller head
-				if (linesCount && !g_pauseMode)
+				if (!g_pauseMode)
 				{
 					g_uPauseTime = HAL::timeInMilliseconds();
 					g_pauseMode = PAUSE_MODE_PAUSED; // Blocks Queue
@@ -1178,7 +1178,7 @@ long PrintLine::performQueueMove()
             {
 				removeCurrentLineForbidInterrupt();
                 // the printing shall be paused with moving of the printer/miller head to the pause position
-                if(linesCount && !g_pauseMode)
+                if(!g_pauseMode)
                 {
 					g_uPauseTime = HAL::timeInMilliseconds();
 					g_pauseMode = PAUSE_MODE_PAUSED_AND_MOVED; // Blocks Queue
