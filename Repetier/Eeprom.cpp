@@ -967,7 +967,7 @@ void EEPROM::readDataFromEEPROM()
 
 #if FEATURE_DIGIT_FLOW_COMPENSATION && FEATURE_DIGIT_Z_COMPENSATION
     //Standardgrenzen hängen von Pause-Digits ab
-    g_nDigitFlowCompensation_Fmin = short(abs(g_nEmergencyPauseDigitsMax)*0.7);  //mögliche Standardwerte
+    g_nDigitFlowCompensation_Fmin = RMath::min(short(abs(g_nEmergencyPauseDigitsMax)*0.7), 4000);  //mögliche Standardwerte, 4000 oder eben das kleinere abh. von pause digits.
     g_nDigitFlowCompensation_Fmax = short(abs(g_nEmergencyPauseDigitsMax)); //mögliche Standardwerte -> z.b. gut wenn das die pause-digits sind.
 #endif // FEATURE_DIGIT_FLOW_COMPENSATION && FEATURE_DIGIT_Z_COMPENSATION
 

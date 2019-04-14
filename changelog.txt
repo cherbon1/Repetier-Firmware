@@ -12,6 +12,15 @@ TODO:
 # milling mode: test or rework milling functions
 # pause @RF1000: test if z max-endstop is respected while moving in dual-endstop circular setting
 
+V 01.43.95.Mod (2019-04-14)
+- Now scanfeatures like HeatbedScan, FindZOrigin, HeatBedScan, AlignExtruder cannot continue if the pause flag has been set.
+  They now have wait until pause is over. This should fix that findZOrigin might start after M3070.
+- M3070 S2 is degraded to S1 if the axis are not homed. Reaching pause without homing is still possible 
+  but automatic driving is not allowed then because this might ignore axis length. The user still can manually drive the head in pause mode.
+- M3911 Digit Flow Compensation now has set 4000 digits or 70% of emergendy pause digits as default minimum value.
+- Added the F-Code http://linuxcnc.org/docs/html/gcode/other-code.html#sec:set-feed-rate to set feedrate without using "G1" in front of Fxxx.
+  Now F100 in its own line is enough to set the printers Feedrate to 100unit/min. This is helpfull while milling and using some types of CAM software.
+
 V 01.43.94.Mod (2019-04-09)
 - Fixed M3070
 

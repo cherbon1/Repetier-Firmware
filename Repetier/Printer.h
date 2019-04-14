@@ -1145,6 +1145,7 @@ public:
 
 
     static void setup();
+	static void setFeedrate(float feedrate);
     static bool queueGCodeCoordinates(GCode *com, bool noDriving = false);
     static void queueFloatCoordinates(float x, float y, float z, float e, float feedrate);
 	static void queueRelativeStepsCoordinates(long x, long y, long z, long e, float feedrate, bool waitEnd, bool abortAtEndstops = false);

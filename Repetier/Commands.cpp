@@ -553,19 +553,23 @@ void Commands::executeGCode(GCode *com)
 	GCodeSource::activeSource = com->source;
 	Com::writeToAll = true;
 
-    if(com->hasG())
+    if (com->hasG())
     {
 	    Commands::processGCode(com);
     }
-    else if(com->hasM())    // Process M Code
+    else if (com->hasM())    // Process M Code
     {
 		Commands::processMCode(com);
     }
-    else if(com->hasT())      // Process T code
-    {
-        Commands::waitUntilEndOfAllMoves(); //Tn-Code (change Extruder)
-        Extruder::selectExtruderById(com->T);
-    }
+	else if (com->hasT())      // Process T code
+	{
+		Commands::waitUntilEndOfAllMoves(); //Tn-Code (change Extruder)
+		Extruder::selectExtruderById(com->T);
+	}
+	else if (com->hasF())      // Process F code http://linuxcnc.org/docs/html/gcode/other-code.html#sec:set-feed-rate
+	{
+		Printer::setFeedrate(com->F);
+	}
     else
     {
         if(Printer::debugErrors())

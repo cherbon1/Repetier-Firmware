@@ -6384,7 +6384,7 @@ void handleStrainGaugeFeatures(millis_t uTime){
 
 						// goto pause without blocking
 						g_uPauseTime = HAL::timeInMilliseconds();
-						g_pauseMode = PAUSE_MODE_PAUSED_AND_MOVED; // Blocks Queue
+						g_pauseMode = PAUSE_MODE_PAUSED_AND_MOVED; // Blocks Queue -> here axis homed and printing
 						g_pauseStatus = PAUSE_STATUS_GOTO_PAUSE_AND_MOVE;
                     }
                 }
@@ -6893,7 +6893,10 @@ void loopFeatures() //wird so aufgerufen, dass es ein ~100ms Takt sein sollte.
 #if FEATURE_RGB_LIGHT_EFFECTS
 		updateRGBLightStatus();
 #endif // FEATURE_RGB_LIGHT_EFFECTS
-		handleScanWorkTasks();
+		if (!g_pauseMode)
+		{
+			handleScanWorkTasks();
+		}
 
 		nEntered--;
 	}
@@ -8054,7 +8057,7 @@ void processSpecialGCode( GCode* pCommand )
             case 3070: // M3070 [S] - pause the print as if the "Pause" button would have been pressed
             {
                 //put pause task into MOVE_CACHE
-                if( pCommand->hasS() && pCommand->S >= 2)
+                if( pCommand->hasS() && pCommand->S >= 2 && Printer::areAxisHomed())
                 {
                     // we shall pause the printing and we shall move away
                     queueTask( TASK_PAUSE_PRINT_AND_MOVE );
@@ -8447,6 +8450,8 @@ void processSpecialGCode( GCode* pCommand )
             case 3130: // M3130 - start/stop the search of the z-origin
             {
                 startFindZOrigin();
+				// We have to wait until the findZOrigin is stopped because this is used in gcode flow.
+				// findZOrigin is not processing within pause and resuming after pause.
                 Commands::waitUntilEndOfAllMoves(); //find z origin, might prevent stop
                 break;
             }

@@ -437,6 +437,18 @@ inline bool isExtrusionAllowed(float e) {
 }
 
 /**
+* Set the printers feedrate according to active unit settings
+*/
+void Printer::setFeedrate(float feedrate) {
+	if (feedrate <= 0) return;
+
+	if (Printer::unitIsInches)
+		Printer::feedrate = feedrate * (float)Printer::feedrateMultiply * 0.0042333f;  // Factor is 25.4/60/100 = convertToMM(0.00016666666f)
+	else
+		Printer::feedrate = feedrate * (float)Printer::feedrateMultiply * 0.00016666666f;
+}
+
+/**
 \brief Sets the destination coordinates to values stored in com.
 
 For the computation of the destination, the following facts are considered:
@@ -482,10 +494,7 @@ bool Printer::queueGCodeCoordinates(GCode *com, bool noDriving)
 
 	if (com->hasF())
 	{
-		if (unitIsInches)
-			Printer::feedrate = com->F * (float)Printer::feedrateMultiply * 0.0042333f;  // Factor is 25.4/60/100 = convertToMM(0.00016666666f)
-		else
-			Printer::feedrate = com->F * (float)Printer::feedrateMultiply * 0.00016666666f;
+		Printer::setFeedrate(com->F);
 	}
 
 #if FEATURE_Kurt67_WOBBLE_FIX
