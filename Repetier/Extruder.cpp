@@ -374,8 +374,7 @@ void Extruder::selectExtruderById(uint8_t extruderId)
     }
 #endif // FEATURE_MILLING_MODE
 
-    if(extruderId>=NUM_EXTRUDER)
-        extruderId = 0;
+    if(extruderId >= NUM_EXTRUDER) extruderId = Extruder::current->id;
 
 #if NUM_EXTRUDER>1
     bool executeSelect = false;
@@ -406,6 +405,12 @@ void Extruder::selectExtruderById(uint8_t extruderId)
     Printer::maxFeedrate[E_AXIS] = Extruder::current->maxFeedrate;
     Printer::maxAccelerationMMPerSquareSecond[E_AXIS] = Printer::maxTravelAccelerationMMPerSquareSecond[E_AXIS] = Extruder::current->maxAcceleration;
     Printer::maxPrintAccelerationStepsPerSquareSecond[E_AXIS] = Printer::maxTravelAccelerationStepsPerSquareSecond[E_AXIS] = uint32_t(Printer::maxAccelerationMMPerSquareSecond[E_AXIS] * Printer::axisStepsPerMM[E_AXIS]);
+
+	float minimumESpeed = 1.41 * Extruder::current->maxAcceleration * sqrt(2.0f / (Extruder::current->stepsPerMM * Extruder::current->maxAcceleration));
+	if (minimumESpeed > Extruder::current->maxEJerk) {
+		Extruder::current->maxEJerk = minimumESpeed;
+		Com::printFLN(PSTR("E jerk was too low, setting to "), minimumESpeed);
+	}
 
     g_nManualSteps[E_AXIS] = (unsigned short)lroundf(Printer::axisStepsPerMM[E_AXIS] * DEFAULT_MANUAL_MM_E);
     g_nPauseSteps[E_AXIS]  = long   (Printer::axisStepsPerMM[E_AXIS] * DEFAULT_PAUSE_MM_E);

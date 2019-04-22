@@ -6,11 +6,23 @@ This should work awsome:
 - Single-Extruder printing from USB
 - Arc support G2/G3
 
+Warning:
+Somewhere inbetween 1.42.xx and 1.43.xx the SD-Printing started to produce randomly corrupted moves.
+Thatwhy SD-Support rightnow is disabled per default until the bug can be spotted and fixed.
+Using this version not reactivate the SD-Source and do not print from SD-Source. 
+(For printing from SDCard please use the original Conrad Firmware V1.44 or comparable)
+Please print from USB Source. 
+
+Danger: 
+Do not try to use Z-Hops / Z-Lift in combination with manually reactivated SD support.
+
 TODO:
-# milling mode: retest all pause functionality
 # milling mode: test move while pause in respect to z-first and z direction
 # milling mode: test or rework milling functions
 # pause @RF1000: test if z max-endstop is respected while moving in dual-endstop circular setting
+
+V 01.43.96.Mod (2019-04-22)
+- Apply the same min-Jerk constraint to E-Jerk and M207 XY-Z-E Jerks as applied to XYJerk and ZJerk eeprom values. Now noone can set too small values by accident.
 
 V 01.43.95.Mod (2019-04-14)
 - Now scanfeatures like HeatbedScan, FindZOrigin, HeatBedScan, AlignExtruder cannot continue if the pause flag has been set.
