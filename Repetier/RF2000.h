@@ -71,11 +71,16 @@
 /** \brief Allows to use the RGB light effects */
 #define FEATURE_RGB_LIGHT_EFFECTS           1                                                   // 1 = on, 0 = off
 
-/** \brief Allows to use the 24V FET outputs */
+/**
+ *\brief Allows to use the 24V FET outputs
+ * Also set the FET1 FET2 pins. They have menu support and their state is remembered using eeprom.
+ * Set FET3 pin if you want to be able to switch it by gcode M3300.
+ *
+ * @RF2000 FET3 per default is the case fan pin CASE_FAN_PIN as well. -> See M3120 / M3121.
+ * -> Set FET3 and/or FEATURE_CASE_FAN for working with X45.
+ * -> If FEATURE_CASE_FAN is 1 and its CASE_FAN_PIN is set then the FET3 state is not being loaded from eeprom at boot time.
+ */
 #define FEATURE_24V_FET_OUTPUTS             1                                                   // 1 = on, 0 = off
-
-/** \brief Allows to use the EEPROM which provides type information */
-#define FEATURE_TYPE_EEPROM                 1                                                   // 1 = on, 0 = off
 
 /** \brief Allows to use the case fan */
 #define FEATURE_CASE_FAN                    1                                                   // 0 = off, 1 = on
@@ -83,6 +88,9 @@
 /** \brief Define the type of the present extruders */
 #define EXT0_HOTEND_TYPE                    HOTEND_TYPE_V2
 #define EXT1_HOTEND_TYPE                    HOTEND_TYPE_V2
+
+/** \brief This feature enables a security check so that the Firmware for a RF2000 is only working on a RF2000 Board otherwise the firmware beeps. */
+#define FEATURE_TYPE_EEPROM                 1                                                   // 1 = on, 0 = off
 
 // ##########################################################################################
 // ##   Calibration

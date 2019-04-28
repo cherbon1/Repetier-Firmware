@@ -4571,6 +4571,7 @@ void UIDisplay::mainSwitchCase(int action)
 #endif // FEATURE_230V_OUTPUT
 
 #if FEATURE_24V_FET_OUTPUTS
+#if FET1 > -1
 	case UI_ACTION_FET1_OUTPUT:
 	{
 		if (Printer::enableFET1)   Printer::enableFET1 = 0;
@@ -4581,7 +4582,8 @@ void UIDisplay::mainSwitchCase(int action)
 		EEPROM::updateChecksum();
 		break;
 	}
-
+#endif // FET1
+#if FET2 > -1
 	case UI_ACTION_FET2_OUTPUT:
 	{
 		if (Printer::enableFET2)   Printer::enableFET2 = 0;
@@ -4592,6 +4594,7 @@ void UIDisplay::mainSwitchCase(int action)
 		EEPROM::updateChecksum();
 		break;
 	}
+#endif // FET2
 #endif // FEATURE_24V_FET_OUTPUTS
 
 	case UI_ACTION_CONFIG_SINGLE_STEPS:

@@ -469,18 +469,18 @@ void Extruder::setTemperatureForExtruder(float temperatureInCelsius,uint8_t extr
         Com::printFLN(Com::tColon,temperatureInCelsius,0);
     }
 
-#if FEATURE_CASE_FAN && !CASE_FAN_ALWAYS_ON
-    if(Printer::ignoreFanOn){
+#if FEATURE_CASE_FAN && !CASE_FAN_ALWAYS_ON && CASE_FAN_PIN > -1
+    if(Printer::ignoreFanOn) {
         //ignore the case fan whenever there is another cooling solution available // Nibbels
         //the fan should still be connected within the rf2000 but might be avoided to suppress noise.
         //the ignore-flag has to be set at runtime to prevent unlearned persons to risk overheat having the wrong startcode.
         //enable and disable the fan with M3120 or M3121 or M3300 P3 S{1,0}
         Printer::prepareFanOff = 0;
         Printer::fanOffDelay = 0;
-    }else{
+    } else {
         bool isheating = false;
         for(uint8_t i=0; i < NUM_EXTRUDER; i++) if(tempController[i]->targetTemperatureC > CASE_FAN_ON_TEMPERATURE) isheating = true;
-        if( isheating )
+        if (isheating)
         {
             // enable the case fan in case any extruder is turned on
             Printer::prepareFanOff = 0;
@@ -489,7 +489,7 @@ void Extruder::setTemperatureForExtruder(float temperatureInCelsius,uint8_t extr
         else
         {
             // disable the case fan in case the extruder is turned off
-            if( Printer::fanOffDelay )
+            if (Printer::fanOffDelay)
             {
                 // we are going to disable the case fan after the delay
                 Printer::prepareFanOff = HAL::timeInMilliseconds();
@@ -502,7 +502,7 @@ void Extruder::setTemperatureForExtruder(float temperatureInCelsius,uint8_t extr
             }
         }
     }
-#endif // FEATURE_CASE_FAN && !CASE_FAN_ALWAYS_ON
+#endif // FEATURE_CASE_FAN && !CASE_FAN_ALWAYS_ON && CASE_FAN_PIN > -1
 
 #if FEATURE_DITTO_PRINTING
     if(Extruder::dittoMode && extr == 0)

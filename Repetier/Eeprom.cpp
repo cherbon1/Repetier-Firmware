@@ -232,23 +232,15 @@ ich glaube gesehen zu haben, dass acceleration und feedrates nicht neu eingelese
     Printer::ZMode = DEFAULT_Z_SCALE_MODE; //wichtig, weils im Mod einen dritten Mode gibt. Für Zurückmigration
 
 #if FEATURE_230V_OUTPUT
+	//hier nur config laden nicht mosfets schalten!
     Printer::enable230VOutput = OUTPUT_230V_DEFAULT_ON;
-    //SET_OUTPUT(OUTPUT_230V_PIN); //hier nur config laden
-    //WRITE(OUTPUT_230V_PIN, enable230VOutput);
 #endif //FEATURE_230V_OUTPUT
+
 #if FEATURE_24V_FET_OUTPUTS
+	//hier nur config laden nicht mosfets schalten!
     Printer::enableFET1 = FET1_DEFAULT_ON;
     Printer::enableFET2 = FET2_DEFAULT_ON;
     Printer::enableFET3 = FET3_DEFAULT_ON;
-
-    //SET_OUTPUT(FET1); //hier nur config laden
-    //WRITE(FET1, enableFET1);
-
-    //SET_OUTPUT(FET2);
-    //WRITE(FET2, enableFET2);
-
-    //SET_OUTPUT(FET3);
-    //WRITE(FET3, enableFET3);
 #endif //FEATURE_24V_FET_OUTPUTS
 
     g_ZOSTestPoint[X_AXIS] = SEARCH_HEAT_BED_OFFSET_SCAN_POSITION_INDEX_X;
@@ -870,7 +862,10 @@ void EEPROM::readDataFromEEPROM()
 #if FEATURE_24V_FET_OUTPUTS
     Printer::enableFET1 = HAL::eprGetByte( EPR_RF_FET1_MODE );
     Printer::enableFET2 = HAL::eprGetByte( EPR_RF_FET2_MODE );
+ #if !(FEATURE_CASE_FAN && CASE_FAN_PIN > -1)
+	// Do not load the FET3 EEPROM state if it is being used as case fan
     Printer::enableFET3 = HAL::eprGetByte( EPR_RF_FET3_MODE );
+ #endif // !(FEATURE_CASE_FAN && CASE_FAN_PIN > -1)
 #endif // FEATURE_24V_FET_OUTPUTS
 
 #if FEATURE_230V_OUTPUT
@@ -1397,17 +1392,17 @@ void EEPROM::writeSettings()
 	writeByte(EPR_RF_PART_FAN_PWM_MIN, Com::tEPRPrinter_FAN_PART_FAN_PWM_MIN);
 	writeByte(EPR_RF_PART_FAN_PWM_MAX, Com::tEPRPrinter_FAN_PART_FAN_PWM_MAX);
 #endif // FAN_PIN>-1 && FEATURE_FAN_CONTROL
-
-
-
+	
 #if FEATURE_24V_FET_OUTPUTS
 	writeByte(EPR_RF_FET1_MODE, Com::tEPRFET1Mode);
 	writeByte(EPR_RF_FET2_MODE, Com::tEPRFET2Mode);
 	writeByte(EPR_RF_FET3_MODE, Com::tEPRFET3Mode);
 #endif // FEATURE_24V_FET_OUTPUTS
+
 #if FEATURE_CASE_LIGHT
 	writeByte(EPR_RF_CASE_LIGHT_MODE, Com::tEPRCaseLightsMode);
 #endif // FEATURE_CASE_LIGHT
+
 #if FEATURE_RGB_LIGHT_EFFECTS
 	writeByte(EPR_RF_RGB_LIGHT_MODE, Com::tEPRRGBLightMode);
 #endif // FEATURE_RGB_LIGHT_EFFECTS
