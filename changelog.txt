@@ -23,10 +23,11 @@ TODO:
 
 V 01.43.97.Mod (2019-04-28)
 - Fixed the loading of the eeprom saved state for FET1 and FET2 at boot time
-- The Menus for switching FET1 and FET2 or M3300 Gcode are now hidden, if FET1 and FET2 pins are defined as -1
+- The menus for switching FET1 and FET2 or M3300 Gcode are now hidden, if FET1 and FET2 pins are defined as -1
 - If FEATURE_CASE_FAN is 1 and its CASE_FAN_PIN is set then the FET3 state is not being loaded from eeprom at boot time.
 - More comments in RF2000.h and RF2000v2.h for usage of the case fan pin and fet3
 - If FEATURE_CASE_FAN is 1 and its CASE_FAN_PIN is NOT set (-1), then the feature is now considered to be off.
+- Moved EXT0_EXTRUDER_COOLER_PIN and EXT1_EXTRUDER_COOLER_PIN definition to pins.h
 
 V 01.43.96.Mod (2019-04-22)
 - Apply the same min-Jerk constraint to E-Jerk and M207 XY-Z-E Jerks as applied to XYJerk and ZJerk eeprom values. Now noone can set too small values by accident.

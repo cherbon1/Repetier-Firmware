@@ -138,6 +138,11 @@
 #define E0_PINS                 ORIG_E0_STEP_PIN, ORIG_E0_DIR_PIN, ORIG_E0_ENABLE_PIN,
 #define E1_PINS                 ORIG_E1_STEP_PIN, ORIG_E1_DIR_PIN, ORIG_E1_ENABLE_PIN,
 
+// The extruder cooler is a fan to cool the extruder when it is heating. If you turn the etxruder on, the fan goes on.
+// Used to cool the E3D-v6 hotend as example. This is not the part fan.
+#define EXT0_EXTRUDER_COOLER_PIN -1
+#define EXT1_EXTRUDER_COOLER_PIN -1
+
 // these pins are defined in the SD library if building with SD support
 #define SCK_PIN                 52
 // PINB.1, 20, SCK
@@ -378,6 +383,11 @@
 
 #define E0_PINS                 ORIG_E0_STEP_PIN, ORIG_E0_DIR_PIN, ORIG_E0_ENABLE_PIN,
 #define E1_PINS                 ORIG_E1_STEP_PIN, ORIG_E1_DIR_PIN, ORIG_E1_ENABLE_PIN,
+
+// The extruder cooler is a fan to cool the extruder when it is heating. If you turn the etxruder on, the fan goes on.
+// Used to cool the E3D-v6 hotend as example. This is not the part fan.
+#define EXT0_EXTRUDER_COOLER_PIN -1
+#define EXT1_EXTRUDER_COOLER_PIN -1
 
 // these pins are defined in the SD library if building with SD support
 #define SCK_PIN                 52
@@ -620,6 +630,11 @@
 
 #define E0_PINS					ORIG_E0_STEP_PIN, ORIG_E0_DIR_PIN, ORIG_E0_ENABLE_PIN,
 #define E1_PINS					ORIG_E1_STEP_PIN, ORIG_E1_DIR_PIN, ORIG_E1_ENABLE_PIN,
+
+// The extruder cooler is a fan to cool the extruder when it is heating. If you turn the etxruder on, the fan goes on.
+// Used to cool the E3D-v6 hotend as example. This is not the part fan.
+#define EXT0_EXTRUDER_COOLER_PIN -1
+#define EXT1_EXTRUDER_COOLER_PIN -1
 
 // these pins are defined in the SD library if building with SD support
 // PINB.1, 20, SCK

@@ -277,9 +277,6 @@ The codes are only executed for multiple extruder when changing the extruder. */
 #define EXT0_SELECT_COMMANDS                "M117 Extruder 0"
 #define EXT0_DESELECT_COMMANDS              ""
 
-/** \brief The extruder cooler is a fan to cool the extruder when it is heating. If you turn the etxruder on, the fan goes on. */
-#define EXT0_EXTRUDER_COOLER_PIN            -1
-
 /** \brief PWM speed for the cooler fan. 0=off 255=full speed */
 #define EXT0_EXTRUDER_COOLER_SPEED          255
 
@@ -446,9 +443,6 @@ That way you can execute some mechanical components needed for extruder selectio
 The codes are only executed for multiple extruder when changing the extruder. */
 #define EXT1_SELECT_COMMANDS                "M117 Extruder 1"
 #define EXT1_DESELECT_COMMANDS              ""
-
-/** \brief The extruder cooler is a fan to cool the extruder when it is heating. If you turn the etxruder on, the fan goes on. */
-#define EXT1_EXTRUDER_COOLER_PIN            -1
 
 /** \brief PWM speed for the cooler fan. 0=off 255=full speed */
 #define EXT1_EXTRUDER_COOLER_SPEED          255
