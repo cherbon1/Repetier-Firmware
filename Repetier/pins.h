@@ -474,11 +474,11 @@
 
 // 3x 24V FET output pin mapping
 #define FET1                    33
-// PINC.4, 57, OUT3
+// PINC.4, 57, OUT3 X42
 #define FET2                    32
-// PINC.5, 58, OUT4
+// PINC.5, 58, OUT4 X44
 #define FET3                    58
-// PINF.4, 93, OUT5
+// PINF.4, 93, OUT5 X45
 
 // RGB lights pin mapping
 #define RGB_LIGHT_R_PIN         6
@@ -494,7 +494,7 @@
 
 // case fan pin mapping
 #define CASE_FAN_PIN            58
-// PINF.4, 93, OUT5
+// PINF.4, 93, OUT5 X45
 
 // display pin mapping
 #define UI_DISPLAY_RS_PIN       63
@@ -720,11 +720,11 @@
 #define OUTPUT_230V_PIN			3
 
 // 3x 24V FET output pin mapping
-// PINC.4, 57, OUT3
+// PINC.4, 57, OUT3 X42
 #define FET1					33
-// PINC.5, 58, OUT4
+// PINC.5, 58, OUT4 X44
 #define	FET2					32
-// PINF.4, 93, OUT5
+// PINF.4, 93, OUT5 X45
 #define	FET3					58
 
 // RGB lights pin mapping
@@ -740,7 +740,7 @@
 #define CASE_LIGHT_PIN			25
 
 // case fan pin mapping
-// PINF.4, 93, OUT5
+// PINF.4, 93, OUT5 X45
 #define	CASE_FAN_PIN			58
 
 // display pin mapping
