@@ -10154,6 +10154,7 @@ void processSpecialGCode( GCode* pCommand )
                         if(y > maxY) y = maxY;
                     }
 
+#if FEATURE_DIGIT_FLOW_COMPENSATION
                     //bezogen auf : M3411 S P F-90 -> Flow CMP Speed einstellungen werden kurz substituiert und dann resubstituiert
                     g_nDigitFlowCompensation_Fmin = min;
                     g_nDigitFlowCompensation_Fmax = max;
@@ -10161,6 +10162,7 @@ void processSpecialGCode( GCode* pCommand )
                     g_nDigitFlowCompensation_intense = -75;
                     //M82:
                     Printer::relativeExtruderCoordinateMode = false;
+#endif // FEATURE_DIGIT_FLOW_COMPENSATION
 
 					Printer::setEAxisSteps(0); //G92 E0
 
@@ -10228,10 +10230,16 @@ void processSpecialGCode( GCode* pCommand )
                         if(skip_by_keys) break; //mache die Startmade überspringbar -> weiter zum Druck.
                     }
                     Commands::waitUntilEndOfAllMoves(); //feature startline
+#if FEATURE_DIGIT_FLOW_COMPENSATION
+					// reset speed adjustment after start line.
+					// -> after start line we want to travel to the start of print as fast as possible.
+					Printer::dynamicExtrusionFactor = 1.0f;
+					Printer::dynamicFeedrateFactor = 1.0f;
                     g_nDigitFlowCompensation_Fmin = save_g_nDigitFlowCompensation_Fmin;
                     g_nDigitFlowCompensation_Fmax = save_g_nDigitFlowCompensation_Fmax;
                     g_nDigitFlowCompensation_speed_intense = save_g_nDigitFlowCompensation_speed_intense;
                     g_nDigitFlowCompensation_intense = save_g_nDigitFlowCompensation_intense;
+#endif // FEATURE_DIGIT_FLOW_COMPENSATION
 
 					Printer::setEAxisSteps(0); //G92 E0
 					
