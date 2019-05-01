@@ -166,7 +166,7 @@ char            Printer::enableBeeper;
 #endif // FEATURE_BEEPER
 
 #if FEATURE_CASE_LIGHT
-char            Printer::enableCaseLight;
+char            Printer::enableCaseLight = CASE_LIGHTS_DEFAULT_ON;
 #endif // FEATURE_CASE_LIGHT
 
 #if FEATURE_RGB_LIGHT_EFFECTS
@@ -182,9 +182,9 @@ char            Printer::enable230VOutput;
 #endif // FEATURE_230V_OUTPUT
 
 #if FEATURE_24V_FET_OUTPUTS
-char            Printer::enableFET1;
-char            Printer::enableFET2;
-char            Printer::enableFET3;
+char            Printer::enableFET1 = FET1_DEFAULT_ON;
+char            Printer::enableFET2 = FET2_DEFAULT_ON;
+char            Printer::enableFET3 = FET3_DEFAULT_ON;
 #endif // FEATURE_24V_FET_OUTPUTS
 
 #if FEATURE_CASE_FAN
@@ -437,6 +437,18 @@ inline bool isExtrusionAllowed(float e) {
 }
 
 /**
+* Set the printers feedrate according to active unit settings
+*/
+void Printer::setFeedrate(float feedrate) {
+	if (feedrate <= 0) return;
+
+	if (Printer::unitIsInches)
+		Printer::feedrate = feedrate * (float)Printer::feedrateMultiply * 0.0042333f;  // Factor is 25.4/60/100 = convertToMM(0.00016666666f)
+	else
+		Printer::feedrate = feedrate * (float)Printer::feedrateMultiply * 0.00016666666f;
+}
+
+/**
 \brief Sets the destination coordinates to values stored in com.
 
 For the computation of the destination, the following facts are considered:
@@ -482,10 +494,7 @@ bool Printer::queueGCodeCoordinates(GCode *com, bool noDriving)
 
 	if (com->hasF())
 	{
-		if (unitIsInches)
-			Printer::feedrate = com->F * (float)Printer::feedrateMultiply * 0.0042333f;  // Factor is 25.4/60/100 = convertToMM(0.00016666666f)
-		else
-			Printer::feedrate = com->F * (float)Printer::feedrateMultiply * 0.00016666666f;
+		Printer::setFeedrate(com->F);
 	}
 
 #if FEATURE_Kurt67_WOBBLE_FIX
@@ -877,15 +886,15 @@ void Printer::setup()
     WRITE(EXT1_HEATER_PIN,HEATER_PINS_INVERTED);
 #endif // defined(EXT1_HEATER_PIN) && EXT1_HEATER_PIN>-1 && NUM_EXTRUDER>1
 
-#if EXT0_EXTRUDER_COOLER_PIN>-1
+#if EXT0_EXTRUDER_COOLER_PIN >- 1
     SET_OUTPUT(EXT0_EXTRUDER_COOLER_PIN);
-    WRITE(EXT0_EXTRUDER_COOLER_PIN,LOW);
-#endif // EXT0_EXTRUDER_COOLER_PIN>-1
+    WRITE(EXT0_EXTRUDER_COOLER_PIN, LOW);
+#endif // EXT0_EXTRUDER_COOLER_PIN >- 1
 
-#if defined(EXT1_EXTRUDER_COOLER_PIN) && EXT1_EXTRUDER_COOLER_PIN>-1 && NUM_EXTRUDER>1
+#if defined(EXT1_EXTRUDER_COOLER_PIN) && EXT1_EXTRUDER_COOLER_PIN >- 1 && NUM_EXTRUDER > 1
     SET_OUTPUT(EXT1_EXTRUDER_COOLER_PIN);
-    WRITE(EXT1_EXTRUDER_COOLER_PIN,LOW);
-#endif // defined(EXT1_EXTRUDER_COOLER_PIN) && EXT1_EXTRUDER_COOLER_PIN>-1 && NUM_EXTRUDER>1
+    WRITE(EXT1_EXTRUDER_COOLER_PIN, LOW);
+#endif // defined(EXT1_EXTRUDER_COOLER_PIN) && EXT1_EXTRUDER_COOLER_PIN >- 1 && NUM_EXTRUDER > 1
 
 #if USE_ADVANCE
     advanceStepsSet = 0;
@@ -946,26 +955,7 @@ void Printer::setup()
     endstopZMinHit        = ENDSTOP_NOT_HIT;
     endstopZMaxHit        = ENDSTOP_NOT_HIT;
 #endif // FEATURE_CONFIGURABLE_Z_ENDSTOPS
-
-#if FEATURE_CASE_LIGHT
-    enableCaseLight = CASE_LIGHTS_DEFAULT_ON;
-#endif // FEATURE_CASE_LIGHT
-
-#if FEATURE_24V_FET_OUTPUTS
-    enableFET1 = FET1_DEFAULT_ON;
-    enableFET2 = FET2_DEFAULT_ON;
-    enableFET3 = FET3_DEFAULT_ON;
-
-    SET_OUTPUT(FET1);
-    WRITE(FET1, enableFET1);
-
-    SET_OUTPUT(FET2);
-    WRITE(FET2, enableFET2);
-
-    SET_OUTPUT(FET3);
-    WRITE(FET3, enableFET3);
-#endif // FEATURE_24V_FET_OUTPUTS
-
+	
 #if FEATURE_CASE_FAN
     fanOffDelay = CASE_FAN_OFF_DELAY;
 #endif // FEATURE_CASE_FAN
@@ -1014,26 +1004,43 @@ void Printer::setup()
 
     // Read settings from eeprom if wanted [readDataFromEEPROM or destroy corrupted eeprom]
     EEPROM::init();
-
-
+	
 #if FEATURE_230V_OUTPUT
     enable230VOutput = OUTPUT_230V_DEFAULT_ON;
     SET_OUTPUT(OUTPUT_230V_PIN);
     WRITE(OUTPUT_230V_PIN, enable230VOutput);
 #endif // FEATURE_230V_OUTPUT
 
+#if FEATURE_24V_FET_OUTPUTS
+#if FET1 > -1
+	SET_OUTPUT(FET1);
+	WRITE(FET1, enableFET1);
+#endif // FET1
+#if FET2 > -1
+	SET_OUTPUT(FET2);
+	WRITE(FET2, enableFET2);
+#endif // FET2
+#if FET3 > -1 && !(FEATURE_CASE_FAN && CASE_FAN_PIN > -1)
+	SET_OUTPUT(FET3);
+	WRITE(FET3, enableFET3);
+#endif // FET3
+#endif // FEATURE_24V_FET_OUTPUTS
+
+#if FEATURE_CASE_FAN && CASE_FAN_PIN > -1
+    SET_OUTPUT(CASE_FAN_PIN);
+
+ #if CASE_FAN_ALWAYS_ON
+    WRITE(CASE_FAN_PIN, 1);
+ #else
+    WRITE(CASE_FAN_PIN, 0);
+ #endif // CASE_FAN_ALWAYS_ON
+#endif // FEATURE_CASE_FAN && CASE_FAN_PIN > -1
+
 #if FEATURE_CASE_LIGHT
     SET_OUTPUT(CASE_LIGHT_PIN);
     WRITE(CASE_LIGHT_PIN, enableCaseLight);
 #endif // FEATURE_CASE_LIGHT
 
-    SET_OUTPUT(CASE_FAN_PIN);
-
-#if CASE_FAN_ALWAYS_ON
-    WRITE(CASE_FAN_PIN, 1);
-#else
-    WRITE(CASE_FAN_PIN, 0);
-#endif // CASE_FAN_ALWAYS_ON
 
     updateDerivedParameter();
     Commands::checkFreeMemory();

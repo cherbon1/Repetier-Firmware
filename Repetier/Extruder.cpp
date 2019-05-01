@@ -77,9 +77,9 @@ void Extruder::manageTemperatures()
         act->updateCurrentTemperature();
         if(controller == autotuneIndex) continue;  // Ignore heater we are currently testing
 
-        if(controller<NUM_EXTRUDER)
+        if(controller < NUM_EXTRUDER)
         {
-#if NUM_EXTRUDER>=2 && EXT0_EXTRUDER_COOLER_PIN==EXT1_EXTRUDER_COOLER_PIN && EXT0_EXTRUDER_COOLER_PIN>=0
+#if NUM_EXTRUDER >= 2 && EXT0_EXTRUDER_COOLER_PIN == EXT1_EXTRUDER_COOLER_PIN && EXT0_EXTRUDER_COOLER_PIN >= 0
             if(controller==1 && autotuneIndex!=0 && autotuneIndex!=1)
                 if(tempController[0]->currentTemperatureC<EXTRUDER_FAN_COOL_TEMP && tempController[0]->targetTemperatureC<EXTRUDER_FAN_COOL_TEMP &&
                         tempController[1]->currentTemperatureC<EXTRUDER_FAN_COOL_TEMP && tempController[1]->targetTemperatureC<EXTRUDER_FAN_COOL_TEMP)
@@ -87,9 +87,9 @@ void Extruder::manageTemperatures()
                 else
                     extruder[0].coolerPWM = extruder[0].coolerSpeed;
             if(controller>1)
-#endif // NUM_EXTRUDER>=2 && EXT0_EXTRUDER_COOLER_PIN==EXT1_EXTRUDER_COOLER_PIN && EXT0_EXTRUDER_COOLER_PIN>=0
+#endif // NUM_EXTRUDER >= 2 && EXT0_EXTRUDER_COOLER_PIN == EXT1_EXTRUDER_COOLER_PIN && EXT0_EXTRUDER_COOLER_PIN >= 0
 
-                if(act->currentTemperatureC<EXTRUDER_FAN_COOL_TEMP && act->targetTemperatureC<EXTRUDER_FAN_COOL_TEMP)
+                if(act->currentTemperatureC < EXTRUDER_FAN_COOL_TEMP && act->targetTemperatureC < EXTRUDER_FAN_COOL_TEMP)
                     extruder[controller].coolerPWM = 0;
                 else
                     extruder[controller].coolerPWM = extruder[controller].coolerSpeed;
@@ -374,8 +374,7 @@ void Extruder::selectExtruderById(uint8_t extruderId)
     }
 #endif // FEATURE_MILLING_MODE
 
-    if(extruderId>=NUM_EXTRUDER)
-        extruderId = 0;
+    if(extruderId >= NUM_EXTRUDER) extruderId = Extruder::current->id;
 
 #if NUM_EXTRUDER>1
     bool executeSelect = false;
@@ -407,6 +406,12 @@ void Extruder::selectExtruderById(uint8_t extruderId)
     Printer::maxAccelerationMMPerSquareSecond[E_AXIS] = Printer::maxTravelAccelerationMMPerSquareSecond[E_AXIS] = Extruder::current->maxAcceleration;
     Printer::maxPrintAccelerationStepsPerSquareSecond[E_AXIS] = Printer::maxTravelAccelerationStepsPerSquareSecond[E_AXIS] = uint32_t(Printer::maxAccelerationMMPerSquareSecond[E_AXIS] * Printer::axisStepsPerMM[E_AXIS]);
 
+	float minimumESpeed = 1.41 * Extruder::current->maxAcceleration * sqrt(2.0f / (Extruder::current->stepsPerMM * Extruder::current->maxAcceleration));
+	if (minimumESpeed > Extruder::current->maxEJerk) {
+		Extruder::current->maxEJerk = minimumESpeed;
+		Com::printFLN(PSTR("E jerk was too low, setting to "), minimumESpeed);
+	}
+
     g_nManualSteps[E_AXIS] = (unsigned short)lroundf(Printer::axisStepsPerMM[E_AXIS] * DEFAULT_MANUAL_MM_E);
     g_nPauseSteps[E_AXIS]  = long   (Printer::axisStepsPerMM[E_AXIS] * DEFAULT_PAUSE_MM_E);
 
@@ -433,49 +438,47 @@ void Extruder::selectExtruderById(uint8_t extruderId)
 
 void Extruder::setTemperatureForExtruder(float temperatureInCelsius,uint8_t extr,bool beep)
 {
-    if( extr >= NUM_EXTRUDER )
-    {
+    if (extr >= NUM_EXTRUDER) {
         // do not set the temperature for an extruder which is not present - this attempt could heat up the extruder without any control and could significantly overheat the extruder
-        if(temperatureInCelsius > 0) Com::printFLN( PSTR( "setTemperatureForExtruder(): cant set Temp for Extr. T" ), extr );
+        if (temperatureInCelsius > 0) Com::printFLN(PSTR( "setTemperatureForExtruder(): cant set Temp for Extr. T" ), extr);
         return;
     }
 
     bool alloffs = true;
-    for(uint8_t i=0; i < NUM_EXTRUDER; i++)
-        if(tempController[i]->targetTemperatureC > 0) alloffs = false;
+    for(uint8_t i=0; i < NUM_EXTRUDER; i++) if(tempController[i]->targetTemperatureC > 0) alloffs = false;
 
 #ifdef EXTRUDER_MAX_TEMP
-    if(temperatureInCelsius > EXTRUDER_MAX_TEMP) temperatureInCelsius = EXTRUDER_MAX_TEMP;
+    if (temperatureInCelsius > EXTRUDER_MAX_TEMP) temperatureInCelsius = EXTRUDER_MAX_TEMP;
 #endif // EXTRUDER_MAX_TEMP
 
-    if(temperatureInCelsius < 0) temperatureInCelsius=0;
+    if (temperatureInCelsius < 0) temperatureInCelsius = 0;
     TemperatureController *tc = tempController[extr];
-	if(tc->isSensorDefect() || tc->isSensorDecoupled()) temperatureInCelsius = 0;
-    if(tc->sensorType == 0) temperatureInCelsius = 0;
-    tc->setTargetTemperature(temperatureInCelsius,0);
+	if (tc->isSensorDefect() || tc->isSensorDecoupled()) temperatureInCelsius = 0;
+    if (tc->sensorType == 0) temperatureInCelsius = 0;
+    tc->setTargetTemperature(temperatureInCelsius, 0);
     tc->updateTempControlVars();
-    if(beep && temperatureInCelsius > 30)
-        tc->setAlarm(true);
-    if(temperatureInCelsius>=EXTRUDER_FAN_COOL_TEMP) extruder[extr].coolerPWM = extruder[extr].coolerSpeed;
 
-    if( Printer::debugInfo() )
-    {
-        Com::printF(Com::tTargetExtr,extr,0);
-        Com::printFLN(Com::tColon,temperatureInCelsius,0);
+    if (beep && temperatureInCelsius > 30) tc->setAlarm(true);
+
+    if (temperatureInCelsius >= EXTRUDER_FAN_COOL_TEMP) extruder[extr].coolerPWM = extruder[extr].coolerSpeed;
+
+    if (Printer::debugInfo()) {
+        Com::printF(Com::tTargetExtr, extr, 0);
+        Com::printFLN(Com::tColon, temperatureInCelsius, 0);
     }
 
-#if FEATURE_CASE_FAN && !CASE_FAN_ALWAYS_ON
-    if(Printer::ignoreFanOn){
+#if FEATURE_CASE_FAN && !CASE_FAN_ALWAYS_ON && CASE_FAN_PIN > -1
+    if (Printer::ignoreFanOn) {
         //ignore the case fan whenever there is another cooling solution available // Nibbels
         //the fan should still be connected within the rf2000 but might be avoided to suppress noise.
         //the ignore-flag has to be set at runtime to prevent unlearned persons to risk overheat having the wrong startcode.
         //enable and disable the fan with M3120 or M3121 or M3300 P3 S{1,0}
         Printer::prepareFanOff = 0;
         Printer::fanOffDelay = 0;
-    }else{
+    } else {
         bool isheating = false;
         for(uint8_t i=0; i < NUM_EXTRUDER; i++) if(tempController[i]->targetTemperatureC > CASE_FAN_ON_TEMPERATURE) isheating = true;
-        if( isheating )
+        if (isheating)
         {
             // enable the case fan in case any extruder is turned on
             Printer::prepareFanOff = 0;
@@ -484,7 +487,7 @@ void Extruder::setTemperatureForExtruder(float temperatureInCelsius,uint8_t extr
         else
         {
             // disable the case fan in case the extruder is turned off
-            if( Printer::fanOffDelay )
+            if (Printer::fanOffDelay)
             {
                 // we are going to disable the case fan after the delay
                 Printer::prepareFanOff = HAL::timeInMilliseconds();
@@ -497,7 +500,7 @@ void Extruder::setTemperatureForExtruder(float temperatureInCelsius,uint8_t extr
             }
         }
     }
-#endif // FEATURE_CASE_FAN && !CASE_FAN_ALWAYS_ON
+#endif // FEATURE_CASE_FAN && !CASE_FAN_ALWAYS_ON && CASE_FAN_PIN > -1
 
 #if FEATURE_DITTO_PRINTING
     if(Extruder::dittoMode && extr == 0)
@@ -510,8 +513,7 @@ void Extruder::setTemperatureForExtruder(float temperatureInCelsius,uint8_t extr
 #endif // FEATURE_DITTO_PRINTING
 
     bool alloff = true;
-    for(uint8_t i=0; i < NUM_EXTRUDER; i++)
-        if(tempController[i]->targetTemperatureC > 0) alloff = false;
+    for (uint8_t i=0; i < NUM_EXTRUDER; i++) if(tempController[i]->targetTemperatureC > 0) alloff = false;
 
 #if EEPROM_MODE != 0
     if(alloff && !alloffs) // All heaters are now switched off?
@@ -533,7 +535,6 @@ void Extruder::setTemperatureForExtruder(float temperatureInCelsius,uint8_t extr
         Printer::filamentPrinted = 0;  // new print, new counter
         Printer::flag2 &= ~PRINTER_FLAG2_RESET_FILAMENT_USAGE;
     }
-
 } // setTemperatureForExtruder
 
 void Extruder::setTemperatureForAllExtruders(float temperatureInCelsius, bool beep){
@@ -1093,7 +1094,7 @@ void TemperatureController::autotunePID(float temp, uint8_t controllerId, int ma
     autotuneIndex = controllerId;
 	extruder[controllerId].tempControl.stopDecouple();
     pwm_pos[pwmIndex] = pidMax;
-    if(controllerId<NUM_EXTRUDER)
+    if(controllerId < NUM_EXTRUDER)
     {
         extruder[controllerId].coolerPWM = extruder[controllerId].coolerSpeed;
         extruder[0].coolerPWM = extruder[0].coolerSpeed;

@@ -620,7 +620,7 @@ UI_MENU_CHANGEACTION(ui_menu_quick_speedmultiply,UI_TEXT_SPEED_MULTIPLY,UI_ACTIO
 
 UI_MENU_ACTIONCOMMAND_FILTER(ui_menu_quick_output_object,UI_TEXT_OUTPUT_OBJECT,UI_ACTION_RF_OUTPUT_OBJECT,0, MENU_MODE_PRINTING | MENU_MODE_SD_PRINTING | MENU_MODE_PAUSED)
 #define OUTPUT_OBJECT_COUNT 1
-#define OUTPUT_OBJECT_ENTRY ,&ui_menu_quick_output_object
+#define OUTPUT_OBJECT_ENTRY , &ui_menu_quick_output_object
 
 #if FEATURE_PARK
 UI_MENU_ACTIONCOMMAND(ui_menu_quick_park,UI_TEXT_PARK_HEAT_BED,UI_ACTION_RF_PARK)
@@ -632,8 +632,8 @@ UI_MENU_ACTIONCOMMAND(ui_menu_quick_park,UI_TEXT_PARK_HEAT_BED,UI_ACTION_RF_PARK
 #endif // FEATURE_PARK
 
 #if FEATURE_230V_OUTPUT
-UI_MENU_ACTIONCOMMAND(ui_menu_toggle_230V_output,UI_TEXT_230V_OUTPUT,UI_ACTION_230V_OUTPUT)
-#define OUTPUT_230V_ENTRY ,&ui_menu_toggle_230V_output
+UI_MENU_ACTIONCOMMAND(ui_menu_toggle_230V_output, UI_TEXT_230V_OUTPUT, UI_ACTION_230V_OUTPUT)
+#define OUTPUT_230V_ENTRY , &ui_menu_toggle_230V_output
 #define OUTPUT_230V_COUNT 1
 #else
 #define OUTPUT_230V_ENTRY
@@ -641,36 +641,36 @@ UI_MENU_ACTIONCOMMAND(ui_menu_toggle_230V_output,UI_TEXT_230V_OUTPUT,UI_ACTION_2
 #endif // FEATURE_230V_OUTPUT
 
 #if FEATURE_CASE_LIGHT //Output X19 @RF2000/RF1000
-UI_MENU_ACTIONCOMMAND(ui_menu_light_mode,UI_TEXT_LIGHTS_ONOFF,UI_ACTION_LIGHTS_ONOFF)
-#define LIGHT_MODE_ENTRY ,&ui_menu_light_mode
+UI_MENU_ACTIONCOMMAND(ui_menu_light_mode, UI_TEXT_LIGHTS_ONOFF, UI_ACTION_LIGHTS_ONOFF)
+#define LIGHT_MODE_ENTRY , &ui_menu_light_mode
 #define LIGHT_MODE_COUNT 1
 #else
 #define LIGHT_MODE_ENTRY
 #define LIGHT_MODE_COUNT 0
 #endif // FEATURE_CASE_LIGHT
 
-#if FEATURE_24V_FET_OUTPUTS
-UI_MENU_ACTIONCOMMAND(ui_menu_toggle_FET1_output,UI_TEXT_FET1_OUTPUT,UI_ACTION_FET1_OUTPUT)
-#define OUTPUT_FET1_ENTRY ,&ui_menu_toggle_FET1_output
+#if FEATURE_24V_FET_OUTPUTS && FET1 > -1
+UI_MENU_ACTIONCOMMAND(ui_menu_toggle_FET1_output, UI_TEXT_FET1_OUTPUT, UI_ACTION_FET1_OUTPUT)
+#define OUTPUT_FET1_ENTRY , &ui_menu_toggle_FET1_output
 #define OUTPUT_FET1_COUNT 1
 #else
 #define OUTPUT_FET1_ENTRY
 #define OUTPUT_FET1_COUNT 0
-#endif // FEATURE_24V_FET_OUTPUTS
+#endif // FEATURE_24V_FET_OUTPUTS && FET1 > -1
 
-#if FEATURE_24V_FET_OUTPUTS
-UI_MENU_ACTIONCOMMAND(ui_menu_toggle_FET2_output,UI_TEXT_FET2_OUTPUT,UI_ACTION_FET2_OUTPUT)
-#define OUTPUT_FET2_ENTRY ,&ui_menu_toggle_FET2_output
+#if FEATURE_24V_FET_OUTPUTS && FET2 > -1
+UI_MENU_ACTIONCOMMAND(ui_menu_toggle_FET2_output, UI_TEXT_FET2_OUTPUT, UI_ACTION_FET2_OUTPUT)
+#define OUTPUT_FET2_ENTRY , &ui_menu_toggle_FET2_output
 #define OUTPUT_FET2_COUNT 1
 #else
 #define OUTPUT_FET2_ENTRY
 #define OUTPUT_FET2_COUNT 0
-#endif // FEATURE_24V_FET_OUTPUTS
+#endif // FEATURE_24V_FET_OUTPUTS && FET2 > -1
 
 UI_MENU_ACTION4(ui_menu_quick_reset_ack, UI_ACTION_RF_RESET_ACK, UI_TEXT_RESET_ACK, "", UI_ACTION_TEXT_YES, UI_ACTION_TEXT_NO)
 UI_MENU_ACTIONSELECTOR(ui_menu_quick_reset,UI_TEXT_RESET,ui_menu_quick_reset_ack)
 #define RESET_VIA_MENU_COUNT 1
-#define RESET_VIA_MENU_ENTRY ,&ui_menu_quick_reset
+#define RESET_VIA_MENU_ENTRY , &ui_menu_quick_reset
 
 //das LIGHT_MODE_ENTRY ist der X19! Könnte verwirrend sein... RGB-Light gibts in Configuration->General
 #define UI_MENU_QUICK {UI_MENU_ADDCONDBACK &ui_menu_quick_stop_print, &ui_menu_home_all, &ui_menu_quick_stopstepper, &ui_menu_quick_stop_mill OUTPUT_OBJECT_ENTRY ,&ui_menu_quick_speedmultiply, UI_MENU_CONFIGURATION_CAL_COND &ui_menu_quick_flowmultiply  PARK_ENTRY OUTPUT_230V_ENTRY LIGHT_MODE_ENTRY OUTPUT_FET1_ENTRY OUTPUT_FET2_ENTRY RESET_VIA_MENU_ENTRY }

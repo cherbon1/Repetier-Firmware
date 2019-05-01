@@ -74,9 +74,6 @@
 /** \brief Allows to use the 24V FET outputs */
 #define FEATURE_24V_FET_OUTPUTS             0                                                   // the RF1000 does not support the 24V FET outputs
 
-/** \brief Allows to use the EEPROM which provides type information */
-#define FEATURE_TYPE_EEPROM                 1                                                   // 1 = on, 0 = off
-
 /** \brief Allows to use the case fan
 WARNING: Do not enable the case fan feature in case you have a second extruder attached to the HZ2 pin (X8) - this could heat up the extruder endlessly and could destroy it */
 #define FEATURE_CASE_FAN                    0                                                   // 0 = off, 1 = on
@@ -92,6 +89,9 @@ WARNING: Do not enable the case fan feature in case you have a second extruder a
 #else
  #define EXT0_HOTEND_TYPE                    HOTEND_TYPE_V2
 #endif // NUM_EXTRUDER == 2
+
+/** \brief This feature enables a security check so that the Firmware for a RF1000 is only working on a RF1000 Board otherwise the firmware beeps. */
+#define FEATURE_TYPE_EEPROM                 1                                                   // 1 = on, 0 = off
 
 // ##########################################################################################
 // ##   Calibration
@@ -277,9 +277,6 @@ The codes are only executed for multiple extruder when changing the extruder. */
 #define EXT0_SELECT_COMMANDS                "M117 Extruder 0"
 #define EXT0_DESELECT_COMMANDS              ""
 
-/** \brief The extruder cooler is a fan to cool the extruder when it is heating. If you turn the etxruder on, the fan goes on. */
-#define EXT0_EXTRUDER_COOLER_PIN            -1
-
 /** \brief PWM speed for the cooler fan. 0=off 255=full speed */
 #define EXT0_EXTRUDER_COOLER_SPEED          255
 
@@ -446,9 +443,6 @@ That way you can execute some mechanical components needed for extruder selectio
 The codes are only executed for multiple extruder when changing the extruder. */
 #define EXT1_SELECT_COMMANDS                "M117 Extruder 1"
 #define EXT1_DESELECT_COMMANDS              ""
-
-/** \brief The extruder cooler is a fan to cool the extruder when it is heating. If you turn the etxruder on, the fan goes on. */
-#define EXT1_EXTRUDER_COOLER_PIN            -1
 
 /** \brief PWM speed for the cooler fan. 0=off 255=full speed */
 #define EXT1_EXTRUDER_COOLER_SPEED          255

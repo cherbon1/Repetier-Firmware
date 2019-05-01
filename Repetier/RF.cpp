@@ -6384,7 +6384,7 @@ void handleStrainGaugeFeatures(millis_t uTime){
 
 						// goto pause without blocking
 						g_uPauseTime = HAL::timeInMilliseconds();
-						g_pauseMode = PAUSE_MODE_PAUSED_AND_MOVED; // Blocks Queue
+						g_pauseMode = PAUSE_MODE_PAUSED_AND_MOVED; // Blocks Queue -> here axis homed and printing
 						g_pauseStatus = PAUSE_STATUS_GOTO_PAUSE_AND_MOVE;
                     }
                 }
@@ -6674,7 +6674,7 @@ void handleStartStandby(millis_t uTime) {
 	/**
 	 * Check if the Fan shall be turned off.
 	 */
-#if FEATURE_CASE_FAN && !CASE_FAN_ALWAYS_ON
+#if FEATURE_CASE_FAN && !CASE_FAN_ALWAYS_ON && CASE_FAN_PIN > -1
     if( Printer::prepareFanOff )
     {
 		if( Printer::prepareFanOff > uTime ){
@@ -6687,7 +6687,7 @@ void handleStartStandby(millis_t uTime) {
             if( !Printer::ignoreFanOn ) WRITE( CASE_FAN_PIN, 0 );
         }
     }
-#endif // FEATURE_CASE_FAN && !CASE_FAN_ALWAYS_ON
+#endif // FEATURE_CASE_FAN && !CASE_FAN_ALWAYS_ON && CASE_FAN_PIN > -1
 	
 	/**
 	 * Check if the Printer should reset the printing flag
@@ -6893,7 +6893,10 @@ void loopFeatures() //wird so aufgerufen, dass es ein ~100ms Takt sein sollte.
 #if FEATURE_RGB_LIGHT_EFFECTS
 		updateRGBLightStatus();
 #endif // FEATURE_RGB_LIGHT_EFFECTS
-		handleScanWorkTasks();
+		if (!g_pauseMode)
+		{
+			handleScanWorkTasks();
+		}
 
 		nEntered--;
 	}
@@ -8054,7 +8057,7 @@ void processSpecialGCode( GCode* pCommand )
             case 3070: // M3070 [S] - pause the print as if the "Pause" button would have been pressed
             {
                 //put pause task into MOVE_CACHE
-                if( pCommand->hasS() && pCommand->S >= 2)
+                if( pCommand->hasS() && pCommand->S >= 2 && Printer::areAxisHomed())
                 {
                     // we shall pause the printing and we shall move away
                     queueTask( TASK_PAUSE_PRINT_AND_MOVE );
@@ -8384,7 +8387,7 @@ void processSpecialGCode( GCode* pCommand )
                 break;
             }
 
-#if FEATURE_CASE_FAN && !CASE_FAN_ALWAYS_ON
+#if FEATURE_CASE_FAN && !CASE_FAN_ALWAYS_ON && CASE_FAN_PIN > -1
             case 3120:  // M3120 - turn on the case fan
             {
                 //disable fan-temp-ignore to original state // Nibbels
@@ -8441,12 +8444,14 @@ void processSpecialGCode( GCode* pCommand )
                 }
                 break;
             }
-#endif // FEATURE_CASE_FAN && !CASE_FAN_ALWAYS_ON
+#endif // FEATURE_CASE_FAN && !CASE_FAN_ALWAYS_ON && CASE_FAN_PIN > -1
 
 #if FEATURE_FIND_Z_ORIGIN
             case 3130: // M3130 - start/stop the search of the z-origin
             {
                 startFindZOrigin();
+				// We have to wait until the findZOrigin is stopped because this is used in gcode flow.
+				// findZOrigin is not processing within pause and resuming after pause.
                 Commands::waitUntilEndOfAllMoves(); //find z origin, might prevent stop
                 break;
             }
@@ -9039,6 +9044,7 @@ void processSpecialGCode( GCode* pCommand )
                 {
                     switch( pCommand->P )
                     {
+#if FET1 > -1
                         case 1:
                         {
                             if( pCommand->hasS() )
@@ -9060,6 +9066,8 @@ void processSpecialGCode( GCode* pCommand )
                             }
                             break;
                         }
+#endif // FET1
+#if FET2 > -1
                         case 2:
                         {
                             if( pCommand->hasS() )
@@ -9081,6 +9089,8 @@ void processSpecialGCode( GCode* pCommand )
                             }
                             break;
                         }
+#endif // FET2
+#if FET3 > -1
                         case 3:
                         {
                             if( pCommand->hasS() )
@@ -9102,6 +9112,7 @@ void processSpecialGCode( GCode* pCommand )
                             }
                             break;
                         }
+#endif // FET3
                     }
                 }
                 else
@@ -10143,6 +10154,7 @@ void processSpecialGCode( GCode* pCommand )
                         if(y > maxY) y = maxY;
                     }
 
+#if FEATURE_DIGIT_FLOW_COMPENSATION
                     //bezogen auf : M3411 S P F-90 -> Flow CMP Speed einstellungen werden kurz substituiert und dann resubstituiert
                     g_nDigitFlowCompensation_Fmin = min;
                     g_nDigitFlowCompensation_Fmax = max;
@@ -10150,6 +10162,7 @@ void processSpecialGCode( GCode* pCommand )
                     g_nDigitFlowCompensation_intense = -75;
                     //M82:
                     Printer::relativeExtruderCoordinateMode = false;
+#endif // FEATURE_DIGIT_FLOW_COMPENSATION
 
 					Printer::setEAxisSteps(0); //G92 E0
 
@@ -10217,10 +10230,16 @@ void processSpecialGCode( GCode* pCommand )
                         if(skip_by_keys) break; //mache die Startmade überspringbar -> weiter zum Druck.
                     }
                     Commands::waitUntilEndOfAllMoves(); //feature startline
+#if FEATURE_DIGIT_FLOW_COMPENSATION
+					// reset speed adjustment after start line.
+					// -> after start line we want to travel to the start of print as fast as possible.
+					Printer::dynamicExtrusionFactor = 1.0f;
+					Printer::dynamicFeedrateFactor = 1.0f;
                     g_nDigitFlowCompensation_Fmin = save_g_nDigitFlowCompensation_Fmin;
                     g_nDigitFlowCompensation_Fmax = save_g_nDigitFlowCompensation_Fmax;
                     g_nDigitFlowCompensation_speed_intense = save_g_nDigitFlowCompensation_speed_intense;
                     g_nDigitFlowCompensation_intense = save_g_nDigitFlowCompensation_intense;
+#endif // FEATURE_DIGIT_FLOW_COMPENSATION
 
 					Printer::setEAxisSteps(0); //G92 E0
 					

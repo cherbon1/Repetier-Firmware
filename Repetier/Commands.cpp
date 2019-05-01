@@ -553,19 +553,23 @@ void Commands::executeGCode(GCode *com)
 	GCodeSource::activeSource = com->source;
 	Com::writeToAll = true;
 
-    if(com->hasG())
+    if (com->hasG())
     {
 	    Commands::processGCode(com);
     }
-    else if(com->hasM())    // Process M Code
+    else if (com->hasM())    // Process M Code
     {
 		Commands::processMCode(com);
     }
-    else if(com->hasT())      // Process T code
-    {
-        Commands::waitUntilEndOfAllMoves(); //Tn-Code (change Extruder)
-        Extruder::selectExtruderById(com->T);
-    }
+	else if (com->hasT())      // Process T code
+	{
+		Commands::waitUntilEndOfAllMoves(); //Tn-Code (change Extruder)
+		Extruder::selectExtruderById(com->T);
+	}
+	else if (com->hasF())      // Process F code http://linuxcnc.org/docs/html/gcode/other-code.html#sec:set-feed-rate
+	{
+		Printer::setFeedrate(com->F);
+	}
     else
     {
         if(Printer::debugErrors())
@@ -1408,23 +1412,27 @@ void Commands::processMCode(GCode *com) {
 		EEPROM::update(com);
 		break;
 	}
-	case 207:   // M207 - X<XY jerk> Z<Z Jerk>
+	case 207:   // M207 - X<XY jerk> Z<Z Jerk> E<E Jerk>
 	{
-		if (com->hasX())
-			Printer::maxXYJerk = constrain(com->X, 1.0f, 33.3f);
+		// Die Minimalwerte für XYZ sind hier eigentlich egal. Denn sie werden durch die Acceleration innerhalb updateDerivedParameter() auf ein Minimum angehoben.
+		if (com->hasX()) {
+			Printer::maxXYJerk = constrain(com->X, 0.001f, 33.3f);
+			Com::printFLN(Com::tXYJerkColon, Printer::maxXYJerk);
+			Printer::updateDerivedParameter();
+		}
+		if (com->hasZ()) {
+			Printer::maxZJerk = constrain(com->Z, 0.001f, 2.0f);
+			Com::printFLN(Com::tZJerkColon, Printer::maxZJerk);
+			Printer::updateDerivedParameter();
+		}
+
+		// Das ist die E-Startgeschwindigkeit. Quasi dasselbe wie Jerk für den Extruder.
 		if (com->hasE())
 		{
 			Extruder::current->maxEJerk = constrain(com->E, 1.0f, Extruder::current->maxFeedrate);
 			Extruder::selectExtruderById(Extruder::current->id);
 		}
-		if (com->hasZ())
-			Printer::maxZJerk = constrain(com->Z, 0.05f, 2.0f);
 
-		if (Printer::debugInfo())
-		{
-			Com::printF(Com::tXYJerkColon, Printer::maxXYJerk);
-			Com::printFLN(Com::tZJerkColon, Printer::maxZJerk);
-		}
 		break;
 	}
 	case 218:
