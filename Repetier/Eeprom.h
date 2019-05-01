@@ -60,9 +60,8 @@ have problems with other modules using the eeprom */
 #define EPR_BED_DRIVE_MIN               124
 #define EPR_PRINTING_TIME               125  // Time in seconds printing
 #define EPR_PRINTING_DISTANCE           129  // Filament length printed
-#define EPR_X_HOME_OFFSET               133
-#define EPR_Y_HOME_OFFSET               137
-//#define EPR_Z_HOME_OFFSET               141 //z home pos removed by nibbels
+#define EPR_CHECK_NUM_EXTRUDERS             141  // Remember last num_extruders
+//142 143 144 free
 #define EPR_X_LENGTH                    145
 #define EPR_Y_LENGTH                    149
 #define EPR_Z_LENGTH                    153
@@ -111,12 +110,14 @@ have problems with other modules using the eeprom */
 #define EPR_RF_MOVE_MODE_X              1042
 #define EPR_RF_MOVE_MODE_Y              1043
 #define EPR_RF_MOVE_MODE_Z              1044
-#define EPR_RF_Z_MODE                   1045 //das ist byte, 1046 wäre frei.
+#define EPR_RF_Z_MODE                   1045
+#define EPR_RF_MOVE_MODE_XY_KOSYS       1046
+#define EPR_RF_MOVE_POSITION_FEEDRATE   1047  //das ist byte, 1048 wäre frei.
 
 //vorsicht bei mehrbytigen Variablen, dann freilassen.
 
-#define EPR_RF_MOD_Z_STEP_SIZE            1900 //+1901+1902+1903 g_nManualSteps[Z_AXIS] [4byte unsigned long]
-
+#define EPR_RF_MOD_Z_STEP_SIZE            1900 //+1901 g_nManualSteps[Z_AXIS] [2byte unsigned short]
+//+1902+1903 waren mal verwendet, long -> short, nun frei.
 #define EPR_RF_MOD_ZOS_SCAN_POINT_X       1904 //g_ZOSTestPoint[0] [1byte unsigned char]
 #define EPR_RF_MOD_ZOS_SCAN_POINT_Y       1905 //g_ZOSTestPoint[1] [1byte unsigned char]
 
@@ -126,8 +127,8 @@ have problems with other modules using the eeprom */
 #define EPR_RF_EMERGENCYPAUSEDIGITSMIN    1910 //+1911+1912+1913 g_nEmergencyPauseDigitsMin [4byte long]
 #define EPR_RF_EMERGENCYPAUSEDIGITSMAX    1914 //+1915+1916+1917 g_nEmergencyPauseDigitsMax [4byte long]
 
-#define EPR_RF_EMERGENCYZSTOPDIGITSMIN    1918 //+1919 g_nZEmergencyStopAllMin [2byte short]
-#define EPR_RF_EMERGENCYZSTOPDIGITSMAX    1920 //+1921 g_nZEmergencyStopAllMax [2byte short]
+#define EPR_RF_EMERGENCYZSTOPDIGITSMIN    1918 //+1919 g_nEmergencyStopZAndEMin [2byte short]
+#define EPR_RF_EMERGENCYZSTOPDIGITSMAX    1920 //+1921 g_nEmergencyStopZAndEMax [2byte short]
 
 #define EPR_RF_HEATED_BED_SENSOR_TYPE     1922 //[1byte]
 
@@ -224,8 +225,9 @@ public:
     static void update(GCode *com);
     static void updatePrinterUsage();
     static int getExtruderOffset(uint8_t extruder=0);
-
+private:
+	static void restoreEEPROMExtruderSettingsFromConfiguration(uint8_t extruderId);
+	static void storeExtruderDataIntoEEPROM(uint8_t extruderId);
 }; // EEPROM
-
 
 #endif // EEPROM_H

@@ -122,11 +122,10 @@ extern uint8_t          pwm_pos[NUM_EXTRUDER+3]; // 0-NUM_EXTRUDER = Heater 0-NU
 extern uint8_t          fanSpeed; //remember user input fan speed at a 0..255 scale.
 
 #if USE_ADVANCE
-#ifdef ENABLE_QUADRATIC_ADVANCE
-extern int              maxadv;
-#endif // ENABLE_QUADRATIC_ADVANCE
 extern int              maxadv2;
 extern float            maxadvspeed;
+// Delay filament relax at the end of print, could be a simple timeout
+extern volatile int     waitRelax;
 #endif // USE_ADVANCE
 
 #include "Extruder.h"
@@ -154,11 +153,6 @@ extern volatile uint8_t     execute10msPeriodical;
 #if FAN_PIN>-1 && FEATURE_FAN_CONTROL
 extern uint8_t fanKickstart;
 #endif // FAN_PIN>-1 && FEATURE_FAN_CONTROL
-
-// Delay filament relax at the end of print, could be a simple timeout
-extern volatile int         waitRelax;
-
-extern void updateStepsParameter(PrintLine *p);
 
 #if SDSUPPORT
 extern char                 tempLongFilename[LONG_FILENAME_LENGTH+1];
@@ -193,15 +187,14 @@ public:
     void mount(bool silent = false);
     void unmount();
     void startPrint();
-    void pausePrint(bool intern = false);
-    void continuePrint(bool intern = false);
-    void stopPrint();
+
     inline void setIndex(uint32_t  newpos)
     {
         if(!sdactive) return;
         sdpos = newpos;
         file.seekSet(sdpos);
     }
+
     void printStatus();
     void ls();
     void startWrite(char *filename);
@@ -212,9 +205,6 @@ public:
     void makeDirectory(char *filename);
     bool showFilename(const uint8_t *name);
     void automount();
-private:
-    uint8_t lsRecursive(SdBaseFile *parent,uint8_t level,char *findFilename);
-// SdFile *getDirectory(char* name);
 };
 
 extern SDCard sd;

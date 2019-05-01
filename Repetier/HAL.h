@@ -47,7 +47,8 @@ All known arduino boards use 64. This value is needed for the extruder timing. *
 #define ANALOG_PRESCALER _BV(ADPS0)|_BV(ADPS1)|_BV(ADPS2)
 
 #ifndef EXTERNALSERIAL
-#define  HardwareSerial_h // Don't use standard serial console
+ #undef HardwareSerial_h
+ #define HardwareSerial_h // Don't use standard serial console
 #endif
 
 #include <inttypes.h>
@@ -55,8 +56,6 @@ All known arduino boards use 64. This value is needed for the extruder timing. *
 #include "Print.h"
 
 #include "Arduino.h"
-#define COMPAT_PRE1
-
 #include "fastio.h"
 
 // FEATURE_WATCHDOG
@@ -84,9 +83,8 @@ class InterruptProtectedBlock
 private:
     uint8_t sreg;
 public:
-    inline void protect(bool save = false)
+    inline void protect()
     {
-        if(save) sreg = SREG;
         cli();
     }
 
@@ -185,24 +183,22 @@ void FEATURE_READ_CALIPER_HOOK(); //read in calipers 48bit protocol bitwise!
   Modified to use only 1 queue with fixed length by Repetier
 */
 
-#undef SERIAL_RX_BUFFER_SIZE
-//undef fix gegen compiler warning
-#define SERIAL_RX_BUFFER_SIZE   128
-#define SERIAL_RX_BUFFER_MASK   127
+ #define SERIAL_BUFFER_SIZE 128
+ #define SERIAL_BUFFER_MASK 127
 
-#undef SERIAL_TX_BUFFER_SIZE
-#undef SERIAL_TX_BUFFER_MASK
-#ifdef BIG_OUTPUT_BUFFER
+ #undef SERIAL_TX_BUFFER_SIZE
+ #undef SERIAL_TX_BUFFER_MASK
+ #ifdef BIG_OUTPUT_BUFFER
   #define SERIAL_TX_BUFFER_SIZE 128
   #define SERIAL_TX_BUFFER_MASK 127
-#else
+ #else
   #define SERIAL_TX_BUFFER_SIZE 64
   #define SERIAL_TX_BUFFER_MASK 63
-#endif
+ #endif
 
 struct ring_buffer_rx
 {
-    unsigned char buffer[SERIAL_RX_BUFFER_SIZE];
+    unsigned char buffer[SERIAL_BUFFER_SIZE];
     volatile uint8_t head;
     volatile uint8_t tail;
 };
@@ -214,7 +210,7 @@ struct ring_buffer_tx
     volatile uint8_t tail;
 };
 
-class RFHardwareSerial : public Print
+class RFHardwareSerial : public Stream
 {
 public:
     ring_buffer_rx      *_rx_buffer;
@@ -247,11 +243,24 @@ public:
     int outputUnused(void); // Used for output in interrupts
 };
 
-extern RFHardwareSerial RFSerial;
-#define RFSERIAL RFSerial
-#define WAIT_OUT_EMPTY while(tx_buffer.head != tx_buffer.tail) {}
+ extern RFHardwareSerial RFSerial;
+ #define RFSERIAL RFSerial
+ #define WAIT_OUT_EMPTY while(tx_buffer.head != tx_buffer.tail) {}
 #else // EXTERNALSERIAL
-#define RFSERIAL Serial
+	#define RFSERIAL Serial
+	#if defined(BLUETOOTH_SERIAL) && BLUETOOTH_SERIAL > 0
+		#if BLUETOOTH_SERIAL == 1
+		 #define RFSERIAL2 Serial1
+		#elif BLUETOOTH_SERIAL == 2
+		 #define RFSERIAL2 Serial2
+		#elif BLUETOOTH_SERIAL == 3
+		 #define RFSERIAL2 Serial3
+		#elif BLUETOOTH_SERIAL == 4
+		 #define RFSERIAL2 Serial4
+		#elif BLUETOOTH_SERIAL == 5
+		 #define RFSERIAL2 Serial5
+		#endif
+	#endif
 #endif // EXTERNALSERIAL
 
 #define OUT_P_I(p,i)        Com::printF(PSTR(p),(int)(i))
@@ -440,67 +449,6 @@ public:
         return res;
 
     } // ComputeV
-
-    // Multiply two 16 bit values and return 32 bit result
-    static inline uint32_t mulu16xu16to32(unsigned int a,unsigned int b)
-    {
-        uint32_t res;
-
-
-        // 18 Ticks = 1.125 us
-        __asm volatile ( // 0 = res, 1 = timer, 2 = accel %D2=0 ,%A1 are unused is free
-            // Result LSB first: %A0, %B0, %A1
-            "clr r18 \n\t"
-            "mul %B2,%B1 \n\t" // mul hig bytes
-            "movw %C0,r0 \n\t"
-            "mul %A1,%A2 \n\t" // mul low bytes
-            "movw %A0,r0 \n\t"
-            "mul %A1,%B2 \n\t"
-            "add %B0,r0 \n\t"
-            "adc %C0,r1 \n\t"
-            "adc %D0,r18 \n\t"
-            "mul %B1,%A2 \n\t"
-            "add %B0,r0 \n\t"
-            "adc %C0,r1 \n\t"
-            "adc %D0,r18 \n\t"
-            "clr r1 \n\t"
-            :"=&r"(res),"=r"(a),"=r"(b)
-            :"1"(a),"2"(b)
-            :"r18" );
-        // return (long)a*b;
-        return res;
-
-    } // mulu16xu16to32
-
-    // Multiply two 16 bit values and return 16 bit result
-    static inline unsigned int mulu6xu16shift16(unsigned int a,unsigned int b)
-    {
-        unsigned int res;
-
-
-        // 18 Ticks = 1.125 us
-        __asm volatile ( // 0 = res, 1 = timer, 2 = accel %D2=0 ,%A1 are unused is free
-            // Result LSB first: %A0, %B0, %A1
-            "clr r18 \n\t"
-            "mul %B2,%B1 \n\t" // mul hig bytes
-            "movw %A0,r0 \n\t"
-            "mul %A1,%A2 \n\t" // mul low bytes
-            "mov r19,r1 \n\t"
-            "mul %A1,%B2 \n\t"
-            "add r19,r0 \n\t"
-            "adc %A0,r1 \n\t"
-            "adc %B0,r18 \n\t"
-            "mul %B1,%A2 \n\t"
-            "add r19,r0 \n\t"
-            "adc %A0,r1 \n\t"
-            "adc %B0,r18 \n\t"
-            "clr r1 \n\t"
-            :"=&r"(res),"=r"(a),"=r"(b)
-            :"1"(a),"2"(b)
-            :"r18","r19" );
-        return res;
-
-    } // mulu6xu16shift16
 
     static inline void digitalWrite(uint8_t pin,uint8_t value)
     {
@@ -788,29 +736,9 @@ public:
     static void WDT_Init(void);
 
     // Watchdog support FEATURE_WATCHDOG
-    inline static void startWatchdog()
-    {
-        // external watchdog
-        SET_OUTPUT(WATCHDOG_PIN);
-        g_bPingWatchdog = 1; //allow pinging
-        tellWatchdogOk(); //Nibbels: Init für g_uLastCommandLoop
-        pingWatchdog(); //Nibbels: Hier macht der mehr sinn!
-        HAL::WDT_Init(); //Nibbels: use watchdogtimer to test var and trigger
-    } // startWatchdog
-
-    inline static void stopWatchdog()
-    {
-        g_bPingWatchdog = 0; //disallow pinging
-        // external watchdog
-        WRITE(WATCHDOG_PIN,LOW); //Nibbels: In case you stop the watchdog it has to be set floating. thatwhy disable internal pullup as this will make the state like OUTPUT-high. This is not really needed as this function does not do anything when starting the arduino. rightnow at start it sets a pin to input which is already input.
-        SET_INPUT(WATCHDOG_PIN);
-    } // stopWatchdog
-
-    inline static void tellWatchdogOk()
-    {
-        g_uLastCommandLoop = HAL::timeInMilliseconds();
-    } // pingWatchdog
-
+	static void startWatchdog();
+	static void stopWatchdog();
+	static void tellWatchdogOk();
     inline static void pingWatchdog()
     {
         if( !g_bPingWatchdog )
@@ -850,8 +778,6 @@ public:
 #if USE_ADVANCE
     static void resetExtruderDirection();
 #endif // USE_ADVANCE
-protected:
-private:
 };
 
 #define EXTRUDER_TIMER_VECTOR   TIMER0_COMPA_vect

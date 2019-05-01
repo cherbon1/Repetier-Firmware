@@ -98,7 +98,6 @@
 #define ORIG_E1_ENABLE_PIN      -1
 #endif // NUM_EXTRUDER == 2
 
-#define SDPOWER                 -1
 #define SDSS                    53
 // PINB.0, 19, SS
 #define LED_PIN                 13
@@ -112,7 +111,6 @@
 // PINA.5, 73, OUT2
 #endif
 
-#define PS_ON_PIN               -1
 #define WATCHDOG_PIN            37
 // PINC.0
 
@@ -139,6 +137,11 @@
 
 #define E0_PINS                 ORIG_E0_STEP_PIN, ORIG_E0_DIR_PIN, ORIG_E0_ENABLE_PIN,
 #define E1_PINS                 ORIG_E1_STEP_PIN, ORIG_E1_DIR_PIN, ORIG_E1_ENABLE_PIN,
+
+// The extruder cooler is a fan to cool the extruder when it is heating. If you turn the etxruder on, the fan goes on.
+// Used to cool the E3D-v6 hotend as example. This is not the part fan.
+#define EXT0_EXTRUDER_COOLER_PIN -1
+#define EXT1_EXTRUDER_COOLER_PIN -1
 
 // these pins are defined in the SD library if building with SD support
 #define SCK_PIN                 52
@@ -351,7 +354,6 @@
 #define ORIG_E1_ENABLE_PIN      30
 // PINC.7, 60, ENA_DRV5
 
-#define SDPOWER                 -1
 #define SDSS                    53
 // PINB.0, 19, SS
 #define LED_PIN                 -1
@@ -359,7 +361,6 @@
 #define ORIG_FAN_PIN            27
 // PINA.5, 73, OUT2
 
-#define PS_ON_PIN               -1
 #define WATCHDOG_PIN            29
 // PINA.7, 71, WDI
 
@@ -382,6 +383,11 @@
 
 #define E0_PINS                 ORIG_E0_STEP_PIN, ORIG_E0_DIR_PIN, ORIG_E0_ENABLE_PIN,
 #define E1_PINS                 ORIG_E1_STEP_PIN, ORIG_E1_DIR_PIN, ORIG_E1_ENABLE_PIN,
+
+// The extruder cooler is a fan to cool the extruder when it is heating. If you turn the etxruder on, the fan goes on.
+// Used to cool the E3D-v6 hotend as example. This is not the part fan.
+#define EXT0_EXTRUDER_COOLER_PIN -1
+#define EXT1_EXTRUDER_COOLER_PIN -1
 
 // these pins are defined in the SD library if building with SD support
 #define SCK_PIN                 52
@@ -468,11 +474,11 @@
 
 // 3x 24V FET output pin mapping
 #define FET1                    33
-// PINC.4, 57, OUT3
+// PINC.4, 57, OUT3 X42
 #define FET2                    32
-// PINC.5, 58, OUT4
+// PINC.5, 58, OUT4 X44
 #define FET3                    58
-// PINF.4, 93, OUT5
+// PINF.4, 93, OUT5 X45
 
 // RGB lights pin mapping
 #define RGB_LIGHT_R_PIN         6
@@ -488,7 +494,7 @@
 
 // case fan pin mapping
 #define CASE_FAN_PIN            58
-// PINF.4, 93, OUT5
+// PINF.4, 93, OUT5 X45
 
 // display pin mapping
 #define UI_DISPLAY_RS_PIN       63
@@ -595,7 +601,6 @@
 // PINC.7, 60, ENA_DRV5
 #define ORIG_E1_ENABLE_PIN      30
 
-#define SDPOWER				    -1
 // PINB.0, 19, SS
 #define SDSS				    53
 #define LED_PIN				    -1
@@ -603,7 +608,6 @@
 // PINA.5, 73, OUT2
 #define ORIG_FAN_PIN			27
 
-#define PS_ON_PIN			    -1
 // PINA.7, 71, WDI
 #define WATCHDOG_PIN		    29
 
@@ -626,6 +630,11 @@
 
 #define E0_PINS					ORIG_E0_STEP_PIN, ORIG_E0_DIR_PIN, ORIG_E0_ENABLE_PIN,
 #define E1_PINS					ORIG_E1_STEP_PIN, ORIG_E1_DIR_PIN, ORIG_E1_ENABLE_PIN,
+
+// The extruder cooler is a fan to cool the extruder when it is heating. If you turn the etxruder on, the fan goes on.
+// Used to cool the E3D-v6 hotend as example. This is not the part fan.
+#define EXT0_EXTRUDER_COOLER_PIN -1
+#define EXT1_EXTRUDER_COOLER_PIN -1
 
 // these pins are defined in the SD library if building with SD support
 // PINB.1, 20, SCK
@@ -711,11 +720,11 @@
 #define OUTPUT_230V_PIN			3
 
 // 3x 24V FET output pin mapping
-// PINC.4, 57, OUT3
+// PINC.4, 57, OUT3 X42
 #define FET1					33
-// PINC.5, 58, OUT4
+// PINC.5, 58, OUT4 X44
 #define	FET2					32
-// PINF.4, 93, OUT5
+// PINF.4, 93, OUT5 X45
 #define	FET3					58
 
 // RGB lights pin mapping
@@ -731,7 +740,7 @@
 #define CASE_LIGHT_PIN			25
 
 // case fan pin mapping
-// PINF.4, 93, OUT5
+// PINF.4, 93, OUT5 X45
 #define	CASE_FAN_PIN			58
 
 // display pin mapping

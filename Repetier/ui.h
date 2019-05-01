@@ -39,7 +39,6 @@
 #define UI_ACTION_DUMMY                    10000
 #define UI_ACTION_BACK                      1000
 #define UI_ACTION_OK                        1001
-#define UI_ACTION_MENU_UP                   1002
 #define UI_ACTION_EMERGENCY_STOP            1004
 #define UI_ACTION_XPOSITION                 1005
 #define UI_ACTION_YPOSITION                 1006
@@ -89,7 +88,6 @@
 #define UI_ACTION_DEBUG_INFO                1075
 #define UI_ACTION_DEBUG_ERROR               1076
 #define UI_ACTION_DEBUG_DRYRUN              1077
-#define UI_ACTION_POWER                     1078
 #define UI_ACTION_PREHEAT_PLA               1079
 #define UI_ACTION_COOLDOWN                  1080
 #define UI_ACTION_HEATED_BED_OFF            1081
@@ -220,13 +218,12 @@
 #define UI_ACTION_FET1_OUTPUT               2001
 #define UI_ACTION_FET2_OUTPUT               2002
 
+#define UI_ACTION_CONFIG_SINGLE_STEPS_KOSYS 2003
+#define UI_ACTION_CONFIG_POSITION_FEEDRATE  2004
 
 #define UI_ACTION_MENU_XPOS                 4000
 #define UI_ACTION_MENU_YPOS                 4001
 #define UI_ACTION_MENU_ZPOS                 4002
-#define UI_ACTION_MENU_XPOSFAST             4003
-#define UI_ACTION_MENU_YPOSFAST             4004
-#define UI_ACTION_MENU_ZPOSFAST             4005
 #define UI_ACTION_MENU_QUICKSETTINGS        4007
 #define UI_ACTION_MENU_EXTRUDER             4008
 #define UI_ACTION_MENU_POSITIONS            4009
@@ -248,7 +245,6 @@
 
 // Load some parts of the printers configuration
 #if MOTHERBOARD == DEVICE_TYPE_RF1000
-#define UI_HAS_KEYS                       1        // 1 = Some keys attached
 #define UI_HAS_BACK_KEY                   1
 #define UI_DISPLAY_TYPE                   1        // 1 = LCD Display with 4 bit data bus
 #define UI_COLS                          16        //check MAX_COLS when changed
@@ -260,7 +256,6 @@
 #endif // MOTHERBOARD == DEVICE_TYPE_RF1000
 
 #if MOTHERBOARD == DEVICE_TYPE_RF2000 || MOTHERBOARD == DEVICE_TYPE_RF2000v2
-#define UI_HAS_KEYS                       1        // 1 = Some keys attached
 #define UI_HAS_BACK_KEY                   1
 #define UI_DISPLAY_TYPE                   1        // 1 = LCD Display with 4 bit data bus
 #define UI_COLS                          20        //check MAX_COLS when changed
@@ -288,7 +283,7 @@ typedef struct
 
     bool showEntry() const;
 
-}const UIMenuEntry;
+} const UIMenuEntry;
 
 
 typedef struct
@@ -397,9 +392,6 @@ extern  char    g_nServiceRequest;
   const UIMenuEntry * const name ## _entries[] PROGMEM = {&name ## _1,&name ## _2};\
   const UIMenu name PROGMEM = {0,0,2,name ## _entries};
 
-#define UI_MENU_ACTION4C(name,action,rows)              UI_MENU_ACTION4(name,action,rows)
-#define UI_MENU_ACTION2C(name,action,rows)              UI_MENU_ACTION2(name,action,rows)
-
 #define UI_MENU_ACTION4(name,action,row1,row2,row3,row4)    UI_STRING(name ## _1txt,row1) UI_STRING(name ## _2txt,row2) UI_STRING(name ## _3txt,row3) UI_STRING(name ## _4txt,row4) \
   UIMenuEntry name ## _1 PROGMEM ={name ## _1txt,0,0,0,0};\
   UIMenuEntry name ## _2 PROGMEM ={name ## _2txt,0,0,0,0};\
@@ -475,22 +467,32 @@ public:
     void addInt(int value,uint8_t digits,char fillChar=' '); // Print int into printCols
     void addLong(long value,char digits);
     void addFloat(float number, char fixdigits,uint8_t digits);
-    void addStringP(PGM_P text);
+    void addStringP(FSTRINGPARAM(text));
 	void ui_init_keys();
 	void ui_check_keys(int &action);
+	void menuEsc();
     void okAction();
     void rightAction();
+	void backAction();
     void nextPreviousAction(int8_t next);
+	void senseOffsetUpAction();
+	void senseOffsetDownAction();
+	void zOffsetPlusAction();
+	void zOffsetMinusAction();
     void createChar(uint8_t location,const uint8_t charmap[]);
     void initialize(); // Initialize display and keys
 	void initializeLCD(bool normal = true);
     void printRow(uint8_t r,char *txt,char *txt2,uint8_t changeAtCol); // Print row on display
     void printRowP(uint8_t r,PGM_P txt);
-    void parse(char *txt,bool ram); /// Parse output and write to printCols;
+    void parse(char *txt, bool ram); /// Parse output and write to printCols;
     void refreshPage();
     void executeAction(int action);
+	void slowAction();
+
     void finishAction(int action);
-    void slowAction();
+	void changeSwitchCase(int action, int8_t increment);
+	void mainSwitchCase(int action);
+
     void fastAction();
     void showMessage(bool refresh);
     void pushMenu(void *men,bool refresh);

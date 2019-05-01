@@ -22,10 +22,8 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
  */
-#include "../../../Repetier.h"
 #include "FatFile.h"
 #include "FatFileSystem.h"
-#if SDSUPPORT
 //------------------------------------------------------------------------------
 bool FatFile::getSFN(char* name) {
   dir_t* dir;
@@ -52,14 +50,16 @@ fail:
   return false;
 }
 //------------------------------------------------------------------------------
-void FatFile::printSFN() {
+size_t FatFile::printSFN(print_t* pr) {
   char name[13];
   if (!getSFN(name)) {
     DBG_FAIL_MACRO;
-    return;
+    goto fail;
   }
-  Com::print(name);
+  return pr->write(name);
 
+fail:
+  return 0;
 }
 #if !USE_LONG_FILE_NAMES
 //------------------------------------------------------------------------------
@@ -123,7 +123,7 @@ fail:
 //------------------------------------------------------------------------------
 // open with filename in fname
 #define SFN_OPEN_USES_CHKSUM 0
-bool FatFile::open(FatFile* dirFile, fname_t* fname, uint8_t oflag) {
+bool FatFile::open(FatFile* dirFile, fname_t* fname, oflag_t oflag) {
   bool emptyFound = false;
 #if SFN_OPEN_USES_CHKSUM
   uint8_t chksum;
@@ -189,8 +189,8 @@ bool FatFile::open(FatFile* dirFile, fname_t* fname, uint8_t oflag) {
     }
     index++;
   }
-  // don't create unless O_CREAT and O_WRITE
-  if (!(oflag & O_CREAT) || !(oflag & O_WRITE)) {
+  // don't create unless O_CREAT and write mode
+  if (!(oflag & O_CREAT) || !isWriteMode(oflag)) {
     DBG_FAIL_MACRO;
     goto fail;
   }
@@ -241,14 +241,14 @@ fail:
   return false;
 }
 //------------------------------------------------------------------------------
-void FatFile::printName() {
-  printSFN();
+size_t FatFile::printName(print_t* pr) {
+  return printSFN(pr);
 }
 //------------------------------------------------------------------------------
 bool FatFile::remove() {
   dir_t* dir;
   // Can't remove if LFN or not open for write.
-  if (!isFile() || isLFN() || !(m_flags & O_WRITE)) {
+  if (!isFile() || isLFN() || !(m_flags & F_WRITE)) {
     DBG_FAIL_MACRO;
     goto fail;
   }
@@ -276,4 +276,3 @@ fail:
   return false;
 }
 #endif  // !USE_LONG_FILE_NAMES
-#endif

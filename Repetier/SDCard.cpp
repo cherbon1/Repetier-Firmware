@@ -22,7 +22,7 @@
 
 char tempLongFilename[LONG_FILENAME_LENGTH+1];
 char fullName[LONG_FILENAME_LENGTH * SD_MAX_FOLDER_DEPTH + SD_MAX_FOLDER_DEPTH + 1];
-
+SDCardGCodeSource sdSource;
 SDCard sd;
 
 SDCard::SDCard() {
@@ -30,13 +30,7 @@ SDCard::SDCard() {
     sdactive = false;
     savetosd = false;
     Printer::setAutomount(false);
-
-    //power to SD reader
-#if SDPOWER > -1
-    SET_OUTPUT(SDPOWER);
-    WRITE(SDPOWER,HIGH);
-#endif // SDPOWER > -1
-
+	
 #if defined(SDCARDDETECT) && SDCARDDETECT>-1
     SET_INPUT(SDCARDDETECT);
     WRITE(SDCARDDETECT,HIGH);
@@ -142,10 +136,10 @@ void SDCard::initsd(bool silent)
     Printer::setMenuMode(MENU_MODE_SD_MOUNTED,true);
 
     fat.chdir();
-    if(selectFileByName("init.g", true))
-    {
-        startPrint();
-    }
+  //  if(selectFileByName("init.g", true))
+  //  {
+		//SDCard::startPrint();
+  //  }
 #endif // SDSS >- 1
 } // initsd
 
@@ -172,11 +166,13 @@ void SDCard::unmount()
 
 void SDCard::startPrint()
 {
-    if(!sdactive) return;
+    if (!sdactive) return;
+	if (g_pauseMode) return;
     sdmode = 1;
     Printer::setMenuMode(MENU_MODE_SD_PRINTING, true);
     Printer::setMenuMode(MENU_MODE_PAUSED, false);
     Printer::setPrinting(true);
+	GCodeSource::registerSource(&sdSource);
 } // startPrint
 
 void SDCard::writeCommand(GCode *code)
@@ -361,7 +357,7 @@ void SDCard::ls()
     fat.chdir();
 
     file.openRoot(fat.vol());
-    file.ls(0, 0);
+    file.ls();
     Com::printFLN(Com::tEndFileList);
 } // ls
 
@@ -469,7 +465,6 @@ void SDCard::finishWrite() {
     file.sync();
     file.close();
     savetosd = false;
-
     Com::printFLN(Com::tDoneSavingFile);
 
     g_uStartOfIdle = HAL::timeInMilliseconds(); //SDCard::finishWrite() tDoneSavingFile

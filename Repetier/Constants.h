@@ -20,7 +20,7 @@
 #define CONSTANTS_H
 
 
-#define REPETIER_VERSION                    "1.43.20"
+#define REPETIER_VERSION                    "1.43.98"
 #define UI_PRINTER_COMPANY                  "Conrad Community"
 #define UI_VERSION_STRING                   "V " REPETIER_VERSION
 
@@ -76,7 +76,7 @@
 #define MENU_MODE_MILLER                    64  // we have to show the miller menu
 #define MENU_MODE_FAN_MODE_PDM              128  // we have to show the miller menu
 
-#define IGNORE_COORDINATE                   99999
+#define IGNORE_COORDINATE                   99999.0f
 
 #define TASK_NO_TASK                        0
 #define TASK_ENABLE_Z_COMPENSATION          1
@@ -84,24 +84,22 @@
 #define TASK_PAUSE_PRINT                    4
 #define TASK_PAUSE_PRINT_AND_MOVE           5
 #define TASK_MOVE_FROM_BUTTON               10
+#define TASK_MOVE_POSITION_MANUAL           11
 #define TASK_ENABLE_SENSE_OFFSET            100
+#define TASK_UNLOCK_DISPLAY_MSG             101
 
+//no pause
 #define PAUSE_STATUS_NONE                   0   // we are not paused at the moment
-#define PAUSE_STATUS_PAUSED                 1   // we have paused the print (= pause position reached)
-
-#define PAUSE_STATUS_GOTO_PAUSE1            2   // we are waiting until the last queue move is finished
-#define PAUSE_STATUS_GOTO_PAUSE2            3   // we are going to pause the print/milling (= moving to the pause position)
-#define PAUSE_STATUS_GOTO_PAUSE3            4   // we are going to pause the milling second stage: moving Z
-#define PAUSE_STATUS_PREPARE_CONTINUE2_1    5   // we are going to continue the print (= moving to the continue position)
-#define PAUSE_STATUS_PREPARE_CONTINUE2_2    6   // we are going to continue the print (= moving to the continue position)
-#define PAUSE_STATUS_PREPARE_CONTINUE1      7   // we are going to continue the print (= moving to the continue position)
-
-#define PAUSE_STATUS_HEATING                8   // we are heating up again.
-
-#define PAUSE_STATUS_TASKGOTO_PAUSE_1       9   // we are going to pause the print (= moving to the pause position)
-#define PAUSE_STATUS_TASKGOTO_PAUSE_2      10   // we are going to pause the print (= moving to the pause position)
-#define PAUSE_STATUS_TASKGOTO_PAUSE_3      11   // we are going to pause the print (= moving to the pause position)
-
+//pause changing
+#define PAUSE_STATUS_GOTO_PAUSE             1   // we are going to pause the print
+#define PAUSE_STATUS_GOTO_MOVED             2   // we are going to move the head of a paused print to pause position
+#define PAUSE_STATUS_GOTO_PAUSE_AND_MOVE    3   // we are going to pause the print and move the head to pause position
+#define PAUSE_STATUS_HEATING                4   // we are heating up again.
+#define PAUSE_STATUS_GOTO_CONTINUE          5   // we are going to continue the print (= moving to the continue position)
+//finished pausing
+#define PAUSE_STATUS_PAUSING                6   // we are moving rightnow
+#define PAUSE_STATUS_PAUSED                 7   // we have paused the print (= pause position reached)use position reached)
+#define PAUSE_STATUS_PAUSED_STANDBY         8   // we have paused the print and dropped temps
 
 #define PAUSE_MODE_NONE                     0   // we are not paused at the moment
 #define PAUSE_MODE_PAUSED                   1   // stopp at the last printing position
@@ -121,17 +119,16 @@
 #define RGB_STATUS_COLOR_CHANGE             15
 
 #define MOVE_MODE_SINGLE_STEPS              1
-#define MOVE_MODE_SINGLE_MOVE               2
-#define MOVE_MODE_1_MM                      3
-#define MOVE_MODE_10_MM                     4
-#define MOVE_MODE_50_MM                     5
+#define MOVE_MODE_1_MM                      2
+#define MOVE_MODE_10_MM                     3
+#define MOVE_MODE_50_MM                     4
+#define MOVE_MODE_SINGLE_MOVE               5
 
 #define HEAT_BED_SCAN_MODE_PLA              1
 #define HEAT_BED_SCAN_MODE_ABS              2
 
 #define Z_VALUE_MODE_Z_MIN                  1   // show the z-distance to z-min (print)
 #define Z_VALUE_MODE_Z_ORIGIN               1   // show the z-distance to the z-origin (mill)
-#define Z_VALUE_MODE_SURFACE                2   // show the z-distance to the surface of the heat bed (print) or work part (mill)
 #define Z_VALUE_MODE_LAYER                  3   // show the z-distance to the surface of the heat bed (print) or work part (mill)
 
 #define STOP_BECAUSE_OF_Z_MIN               1
@@ -147,6 +144,5 @@
 #define int8                                int8_t
 #define uint32                              uint32_t
 #define int32                               int32_t
-
 
 #endif // CONSTANTS_H

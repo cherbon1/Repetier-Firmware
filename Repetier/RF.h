@@ -427,42 +427,30 @@
 /*
 The following variables are used for movements in x/y/z direction:
 
-- Printer::queuePositionTargetSteps[x/y/z]
-  - unit is [steps]
-  - holds the position which shall be reached through the g-codes which are currently within the queue
-  - this is not the position to which the printer is heading at the moment, because the printer is heading always to one position (from one g-code) and the queue can contain several g-codes
-
-- Printer::queuePositionLastSteps[x/y/z]
-  - unit is [steps]
-  - holds the last position which has been calculated as queuePositionTargetSteps
-  - in most cases, the value of queuePositionLastSteps is identical to the value of queuePositionTargetSteps, the values of these variables are different only while a new position is calculated
-
-- Printer::queuePositionLastMM[x/y/z]
+- Printer::destinationMM[x/y/z]
   - unit is [mm]
-  - the rest is identical to queuePositionLastSteps
+  - this is the precise target coordinate which might not be fully reachable by full steps
+  - add set and subtract positions here.
 
-- Printer::queuePositionCurrentSteps[x/y/z]
+- Printer::destinationMMLast[x/y/z]
+  - unit is [mm]
+  - this coordinate keeps track of the real coordinates which where commanded by using full output steps.
+  - Printer::destinationMMLast - Printer::destinationMM is the step rounding error of the current axis.
+  - change this variable only if you want to define a new error delta free axis scale. -> Printer::destinationMM = Printer::destinationMMLast = blubb.
+
+- Printer::currentSteps[x/y/z]
   - unit is [steps]
   - holds the position which has been reached through the movements from the queue
-  - the value of queuePositionCurrentSteps represents the current position of the printer in x, y and z direction
+  - the value of currentSteps represents the current position of the printer in x, y and z direction
 
 - Printer::stepperDirection[x/y/z]
   - holds the direction of the axes as it is requested by the currently processed movement from the queue
 
-- Printer::queuePositionCommandMM[x/y/z]
-  - unit is [mm]
-  - in most cases, the value of queuePositionCommandMM is identical to the value of queuePositionLastMM, the values of these variables are different only while a new command is processed
-
-- Printer::directPositionTargetSteps[x/y/z]
+- Printer::directDestinationSteps[x/y/z]
   - unit is [steps]
   - holds the position which shall be reached through direct movements, e.g. from the manual buttons or from the direct pause/continue functionality
 
-- Printer::directPositionLastSteps[x/y/z]
-  - unit is [steps]
-  - holds the last position which has been calculated as directPositionTargetSteps
-  - in most cases, the value of directPositionLastSteps is identical to the value of directPositionTargetSteps, the values of these variables are different only while a new position is calculated
-
-- Printer::directPositionCurrentSteps[x/y/z]
+- Printer::directCurrentSteps[x/y/z]
   - unit is [steps]
   - holds the position which has been reached through direct movements, e.g. from the manual buttons or from the direct pause/continue functionality
 
@@ -485,16 +473,14 @@ The following variables are used for movements in x/y/z direction:
   - holds the position which has been reached through the z-compensation
 
 - the current x/y position of the printer in [steps] is:
-  - Printer::queuePositionCurrentSteps[x/y] + directPositionCurrentSteps[x/y]
-  - note that an additional, extruder-dependent origin can be used/set
-  - see also:
-    - Printer::currentXPosition()
-    - Printer::currentYPosition()
+  - Printer::currentSteps[x/y] + directCurrentSteps[x/y]
+  - from Endstop: Printer::currentXSteps or Printer::currentYSteps
 
 - the current z position of the printer in [steps] is:
-  - Printer::queuePositionCurrentSteps[z] + directPositionCurrentSteps[z] + compensatedPositionCurrentStepsZ
+  - Printer::currentSteps[z] + directCurrentSteps[z] + compensatedPositionCurrentStepsZ
+  - Printer::currentZSteps as the resulting position from endstop
   - see also:
-    - Printer::currentZPosition()
+    - Printer::currentZPositionMM()
 
 */
 
@@ -538,13 +524,43 @@ extern const char   ui_text_sensor_error[]          PROGMEM;
 extern const char   ui_text_heater_error[]          PROGMEM;
 extern const char   ui_text_saving_success[]        PROGMEM;
 
+// Geplantes Canceling
+#define SCAN_ABORT_REASON_CANCELED  1
+#define SCAN_ABORT_REASON_PRINTER_LONELY  2
+
+// Kabelbruch, Extruder verspannt, Stecker wackelig, Ingress,...
+#define SCAN_ABORT_REASON_START_PRESSURE  3
+#define SCAN_ABORT_REASON_IDLE_PRESSURE  4
+#define SCAN_ABORT_REASON_AVERAGE_PRESSURE  5
+
+// Hinweise auf Bugs
+#define SCAN_ABORT_REASON_SCAN_OVER_START  6
+#define SCAN_ABORT_REASON_SCAN_STEP_DELTA_OUT_OF_RANGE  7
+#define SCAN_ABORT_REASON_MATRIX_DIMENSION  8
+
+// Löcher im Druckbett, Druckbett verdreckt, Mechanik problem, DDP schlecht geklebt
+#define SCAN_ABORT_REASON_SCAN_TOO_UNEVEN  9
+
+// Z-Schraube falsch, Origin-/Workpart-Scan gegen nichts, ??
+// _MAX_COMPENSATION und _ENDSTOP_PROTECTION deuten im Printermodus auf dasselbe hin, sind aber 2 unterschiedliche Stellen.
+#define SCAN_ABORT_REASON_MIN_ENDSTOP  10
+#define SCAN_ABORT_REASON_MAX_ENDSTOP  11
+#define SCAN_ABORT_REASON_REACHED_MAX_COMPENSATION  12
+#define SCAN_ABORT_REASON_REACHED_ENDSTOP_PROTECTION  13
+
+// Ungültige oder nicht vorhandene Z-Matrix
+#define SCAN_ABORT_REASON_MISSING_MATRIX  14
+// Softwaretechnisch ungültiges Ergebnis. Scan über 12+mm tief??
+#define SCAN_ABORT_REASON_OVERFLOWING_MATRIX  15
+// Anscheinend crashgefährliches Hardware-Software-Setting
+#define SCAN_ABORT_REASON_BAD_HEIGHT_MATRIX  16
+
 #if FEATURE_HEAT_BED_Z_COMPENSATION
 
 // determine the maximal needed size for the heat bed compensation
 // in case also FEATURE_WORK_PART_Z_COMPENSATION is enabled, only the defined dimensions for the heat bed scan count (so it must be ensured that the dimensions of the heat bed compensation matrix are at least of the size of the work part compensation matrix)
 #define COMPENSATION_MATRIX_MAX_X           long((X_MAX_LENGTH_PRINT - HEAT_BED_SCAN_X_START_MM - HEAT_BED_SCAN_X_END_MM) / HEAT_BED_SCAN_X_STEP_SIZE_MIN_MM + 4)
 #define COMPENSATION_MATRIX_MAX_Y           long((Y_MAX_LENGTH       - HEAT_BED_SCAN_Y_START_MM - HEAT_BED_SCAN_Y_END_MM) / HEAT_BED_SCAN_Y_STEP_SIZE_MIN_MM + 4)
-
 #define COMPENSATION_MATRIX_SIZE            long(COMPENSATION_MATRIX_MAX_X * COMPENSATION_MATRIX_MAX_Y * 2 + EEPROM_OFFSET_MATRIX_START)   // [bytes]
 
 #elif FEATURE_WORK_PART_Z_COMPENSATION
@@ -552,7 +568,6 @@ extern const char   ui_text_saving_success[]        PROGMEM;
 // determine the maximal needed size for the work part compensation
 #define COMPENSATION_MATRIX_MAX_X           long((X_MAX_LENGTH_MILL - WORK_PART_SCAN_X_START_MM - WORK_PART_SCAN_X_END_MM) / WORK_PART_SCAN_X_STEP_SIZE_MIN_MM + 4)
 #define COMPENSATION_MATRIX_MAX_Y           long((Y_MAX_LENGTH      - WORK_PART_SCAN_Y_START_MM - WORK_PART_SCAN_Y_END_MM) / WORK_PART_SCAN_Y_STEP_SIZE_MIN_MM + 4)
-
 #define COMPENSATION_MATRIX_SIZE            long(COMPENSATION_MATRIX_MAX_X * COMPENSATION_MATRIX_MAX_Y * 2 + EEPROM_OFFSET_MATRIX_START)   // [bytes]
 
 #endif // FEATURE_HEAT_BED_Z_COMPENSATION && FEATURE_WORK_PART_Z_COMPENSATION
@@ -564,9 +579,6 @@ extern  long            g_offsetZCompensationSteps; // this is the minimal dista
 extern  short           g_ZCompensationMax;
 extern  long            g_minZCompensationSteps;
 extern  long            g_maxZCompensationSteps;
-#if AUTOADJUST_MIN_MAX_ZCOMP
-extern  bool            g_auto_minmaxZCompensationSteps;
-#endif //AUTOADJUST_MIN_MAX_ZCOMP
 extern  long            g_diffZCompensationSteps;
 extern  volatile unsigned char g_nHeatBedScanStatus;
 extern  char            g_nActiveHeatBed;
@@ -599,9 +611,9 @@ extern  long            g_nZScanZPosition;
 
 extern  char            g_nHeatBedScanMode;         // 0 = oldScan, 1 = PLA, 2 = ABS
 
-extern  long            g_nScanXStepSizeMm;
+extern  long            g_nScanXStepSizeMM;
 extern  long            g_nScanXStepSizeSteps;
-extern  long            g_nScanYStepSizeMm;
+extern  long            g_nScanYStepSizeMM;
 extern  long            g_nScanYStepSizeSteps;
 
 extern  unsigned short  g_nScanContactPressureDelta;
@@ -615,7 +627,7 @@ extern  millis_t        g_uStopTime;
 extern volatile millis_t g_uBlockCommands;
 
 // other configurable parameters
-extern  unsigned long   g_nManualSteps[4];
+extern  unsigned short  g_nManualSteps[4];
 extern  volatile long   g_nPauseSteps[4];
 extern  volatile long   g_nContinueSteps[4];
 extern  volatile char   g_pauseStatus;
@@ -628,10 +640,11 @@ extern long             g_nEmergencyPauseDigitsMin;  //short reicht eigentlich
 extern long             g_nEmergencyPauseDigitsMax;  //short reicht eigentlich
 #endif // FEATURE_EMERGENCY_PAUSE
 
-#if FEATURE_EMERGENCY_STOP_ALL
-extern short             g_nZEmergencyStopAllMin;
-extern short             g_nZEmergencyStopAllMax;
-#endif //FEATURE_EMERGENCY_STOP_ALL
+#if FEATURE_EMERGENCY_STOP_Z_AND_E
+extern short             g_nEmergencyStopZAndEMin;
+extern short             g_nEmergencyStopZAndEMax;
+extern bool              g_nEmergencyESkip;
+#endif //FEATURE_EMERGENCY_STOP_Z_AND_E
 
 #if FEATURE_SENSIBLE_PRESSURE
 /* brief: This is for correcting too close Z at first layer, see FEATURE_SENSIBLE_PRESSURE // Idee Wessix, coded by Nibbels  */
@@ -652,8 +665,6 @@ extern bool             g_nDigitZCompensationDigits_active;
  extern int8_t           g_nDigitFlowCompensation_speed_intense;
  extern short            g_nDigitFlowCompensation_Fmin;
  extern short            g_nDigitFlowCompensation_Fmax;
- extern float            g_nDigitFlowCompensation_flowmulti;
- extern float            g_nDigitFlowCompensation_feedmulti;
  #endif // FEATURE_DIGIT_FLOW_COMPENSATION
 #endif // FEATURE_DIGIT_Z_COMPENSATION
 
@@ -694,6 +705,8 @@ extern void initRF( void );
 extern void initStrainGauge( void );
 extern short readStrainGauge( unsigned char uAddress );
 
+extern void showAbortScanReason(const void* scanName, char abortScanIdentifier);
+
 #if FEATURE_HEAT_BED_Z_COMPENSATION
 extern void startHeatBedScan( void );
 extern void scanHeatBed( void );
@@ -715,9 +728,8 @@ extern short testExtruderTemperature( void );
 extern short testHeatBedTemperature( void );
 extern long getZMatrixDepth( long x, long y );
 extern long getZMatrixDepth_CurrentXY( void );
-extern void doHeatBedZCompensation( void );
+extern void recalculateHeatBedZCompensation( void );
 
-extern long getHeatBedOffset( void );
 extern void switchActiveHeatBed( char newActiveHeatBed );
 #endif // FEATURE_HEAT_BED_Z_COMPENSATION
 
@@ -765,7 +777,7 @@ extern void writeWord24C256( int addressI2C, unsigned int addressEEPROM, unsigne
 extern unsigned char readByte24C256( int addressI2C, unsigned int addressEEPROM );
 extern unsigned short readWord24C256( int addressI2C, unsigned int addressEEPROM );
 
-extern void doZCompensation( void );
+extern void recalculateZCompensation( void );
 extern void loopFeatures( void );
 extern void outputObject( bool showerrors = true );
 
@@ -773,21 +785,16 @@ extern void outputObject( bool showerrors = true );
 extern void parkPrinter( void );
 #endif // FEATURE_PARK
 
-extern bool processingDirectMove();
-
-extern void waitforPauseStatus_fromButton();
 extern void pausePrint( void );
+extern void killPausePrint( void );
 extern void continuePrint( void );
-extern void determinePausePosition( void );
-extern void determineZPausePositionForPrint( void );
-extern void determineZPausePositionForMill( void );
 extern void setExtruderCurrent( uint8_t nr, uint8_t current );
-extern void processCommand( GCode* pCommand );
+extern void processSpecialGCode( GCode* pCommand );
 extern void queueTask( char task );
 extern void processButton( int nAction );
-extern void nextPreviousXAction( int8_t increment );
-extern void nextPreviousYAction( int8_t increment );
-extern void nextPreviousZAction( int8_t increment );
+extern void moveXAction( int8_t increment );
+extern void moveYAction( int8_t increment );
+extern void moveZAction( int8_t increment );
 
 #if STEPPER_CURRENT_CONTROL==CURRENT_CONTROL_DRV8711
 extern void setMotorCurrent( unsigned char driver, uint8_t level );
@@ -804,9 +811,6 @@ extern unsigned short readMotorStatus( unsigned char driver );
 #endif //FEATURE_READ_STEPPER_STATUS
 #endif // CURRENT_CONTROL_DRV8711
 
-extern void cleanupXPositions( void );
-extern void cleanupYPositions( void );
-extern void cleanupZPositions( void );
 extern void cleanupEPositions( void );
 extern void setZOrigin( void );
 
