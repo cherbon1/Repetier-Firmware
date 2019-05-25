@@ -21,7 +21,7 @@
 
 #define MAX_CMD_SIZE 96
 
-enum FirmwareState { NotBusy=0, Processing, Paused, WaitHeater, Calibrating };
+enum FirmwareState { NotBusy = 0, Processing, Paused, WaitHeater, Calibrating };
 
 #if SDSUPPORT
 class SDCard;
@@ -47,57 +47,57 @@ Available source types are:
 - flash memory
 */
 class GCodeSource {
-	static fast8_t numSources; ///< Number of data sources available
-	static fast8_t numWriteSources;
-	static GCodeSource *sources[MAX_DATA_SOURCES];
-	static GCodeSource *writeableSources[MAX_DATA_SOURCES];
+    static fast8_t numSources; ///< Number of data sources available
+    static fast8_t numWriteSources;
+    static GCodeSource *sources[MAX_DATA_SOURCES];
+    static GCodeSource *writeableSources[MAX_DATA_SOURCES];
 public:
-	static GCodeSource *activeSource;
-	static void registerSource(GCodeSource *newSource);
-	static void removeSource(GCodeSource *delSource);
-	static void rotateSource(); ///< Move active to next source
-	static void writeToAll(uint8_t byte); ///< Write to all listening sources
-	static void printAllFLN(FSTRINGPARAM(text));
-	static void printAllFLN(FSTRINGPARAM(text), int32_t v);
-	uint32_t lastLineNumber;
-	uint8_t wasLastCommandReceivedAsBinary; ///< Was the last successful command in binary mode?
-	millis_t timeOfLastDataPacket;
-	int8_t waitingForResend; ///< Waiting for line to be resend. -1 = no wait.
+    static GCodeSource *activeSource;
+    static void registerSource(GCodeSource *newSource);
+    static void removeSource(GCodeSource *delSource);
+    static void rotateSource(); ///< Move active to next source
+    static void writeToAll(uint8_t byte); ///< Write to all listening sources
+    static void printAllFLN(FSTRINGPARAM(text));
+    static void printAllFLN(FSTRINGPARAM(text), int32_t v);
+    uint32_t lastLineNumber;
+    uint8_t wasLastCommandReceivedAsBinary; ///< Was the last successful command in binary mode?
+    millis_t timeOfLastDataPacket;
+    int8_t waitingForResend; ///< Waiting for line to be resend. -1 = no wait.
 
-	GCodeSource();
-	virtual ~GCodeSource() {}
-	virtual bool isOpen() = 0;
-	virtual bool supportsWrite() = 0; ///< true if write is a non dummy function
-	virtual bool closeOnError() = 0; // return true if the channel can not interactively correct errors.
-	virtual bool dataAvailable() = 0; // would read return a new byte?
-	virtual int readByte() = 0;
-	virtual void close() = 0;
-	virtual void writeByte(uint8_t byte) = 0;
+    GCodeSource();
+    virtual ~GCodeSource() {}
+    virtual bool isOpen() = 0;
+    virtual bool supportsWrite() = 0; ///< true if write is a non dummy function
+    virtual bool closeOnError() = 0; // return true if the channel can not interactively correct errors.
+    virtual bool dataAvailable() = 0; // would read return a new byte?
+    virtual int readByte() = 0;
+    virtual void close() = 0;
+    virtual void writeByte(uint8_t byte) = 0;
 };
 
 class SerialGCodeSource : public GCodeSource {
-	Stream *stream;
+    Stream *stream;
 public:
-	SerialGCodeSource(Stream *p);
-	virtual bool isOpen();
-	virtual bool supportsWrite(); ///< true if write is a non dummy function
-	virtual bool closeOnError(); // return true if the channel can not interactively correct errors.
-	virtual bool dataAvailable(); // would read return a new byte?
-	virtual int readByte();
-	virtual void writeByte(uint8_t byte);
-	virtual void close();
+    SerialGCodeSource(Stream *p);
+    virtual bool isOpen();
+    virtual bool supportsWrite(); ///< true if write is a non dummy function
+    virtual bool closeOnError(); // return true if the channel can not interactively correct errors.
+    virtual bool dataAvailable(); // would read return a new byte?
+    virtual int readByte();
+    virtual void writeByte(uint8_t byte);
+    virtual void close();
 };
 //#pragma message "Sd support: " XSTR(SDSUPPORT)  
 #if SDSUPPORT
 class SDCardGCodeSource : public GCodeSource {
 public:
-	virtual bool isOpen();
-	virtual bool supportsWrite(); ///< true if write is a non dummy function
-	virtual bool closeOnError(); // return true if the channel can not interactively correct errors.
-	virtual bool dataAvailable(); // would read return a new byte?
-	virtual int readByte();
-	virtual void writeByte(uint8_t byte);
-	virtual void close();
+    virtual bool isOpen();
+    virtual bool supportsWrite(); ///< true if write is a non dummy function
+    virtual bool closeOnError(); // return true if the channel can not interactively correct errors.
+    virtual bool dataAvailable(); // would read return a new byte?
+    virtual int readByte();
+    virtual void writeByte(uint8_t byte);
+    virtual void close();
 };
 #endif
 
@@ -149,143 +149,143 @@ public:
 
     inline bool hasM()
     {
-        return ((params & 2)!=0);
+        return ((params & 2) != 0);
     } // hasM
 
     inline bool hasN()
     {
-        return ((params & 1)!=0);
+        return ((params & 1) != 0);
     } // hasN
 
     inline bool hasG()
     {
-        return ((params & 4)!=0);
+        return ((params & 4) != 0);
     } // hasG
 
     inline void setX(char set)
     {
-        if( set )   params |= 8;
+        if (set)   params |= 8;
         else        params &= ~8;
     } // setX
 
     inline bool hasX()
     {
-        return ((params & 8)!=0);
+        return ((params & 8) != 0);
     } // hasX
 
     inline void setY(char set)
     {
-        if( set )   params |= 16;
+        if (set)   params |= 16;
         else        params &= ~16;
     } // setY
 
     inline bool hasY()
     {
-        return ((params & 16)!=0);
+        return ((params & 16) != 0);
     } // hasY
 
     inline void setZ(char set)
     {
-        if( set )   params |= 32;
+        if (set)   params |= 32;
         else        params &= ~32;
     } // setZ
 
     inline bool hasZ()
     {
-        return ((params & 32)!=0);
+        return ((params & 32) != 0);
     } // hasZ
 
     inline bool hasNoXYZ()
     {
-        return ((params & 56)==0);
+        return ((params & 56) == 0);
     } // hasNoXYZ
 
     inline bool hasE()
     {
-        return ((params & 64)!=0);
+        return ((params & 64) != 0);
     } // hasE
 
      //(params & 128) param1 Bit 7 :  always set to distinguish binary from ASCII line.
 
     inline bool hasF()
     {
-        return ((params & 256)!=0);
+        return ((params & 256) != 0);
     } // hasF
 
     inline bool hasT()
     {
-        return ((params & 512)!=0);
+        return ((params & 512) != 0);
     } // hasT
 
     inline bool hasS()
     {
-        return ((params & 1024)!=0);
+        return ((params & 1024) != 0);
     } // hasS
 
     inline bool hasP()
     {
-        return ((params & 2048)!=0);
+        return ((params & 2048) != 0);
     } // hasP
 
     inline bool isV2()
     {
-        return ((params & 4096)!=0);
+        return ((params & 4096) != 0);
     } // isV2
 
     inline bool hasString()
     {
-        return ((params & 32768)!=0);
+        return ((params & 32768) != 0);
     } // hasString
 
     inline bool hasI()
     {
-        return ((params2 & 1)!=0);
+        return ((params2 & 1) != 0);
     } // hasI
 
     inline bool hasJ()
     {
-        return ((params2 & 2)!=0);
+        return ((params2 & 2) != 0);
     } // hasJ
 
     inline bool hasR()
     {
-        return ((params2 & 4)!=0);
+        return ((params2 & 4) != 0);
     } // hasR
 
     //new identifiers
     inline bool hasD()
     {
-        return ((params2 & 8)!=0);
+        return ((params2 & 8) != 0);
     }
     inline bool hasC()
     {
-        return ((params2 & 16)!=0);
+        return ((params2 & 16) != 0);
     }
     inline bool hasH()
     {
-        return ((params2 & 32)!=0);
+        return ((params2 & 32) != 0);
     }
     inline bool hasA()
     {
-        return ((params2 & 64)!=0);
+        return ((params2 & 64) != 0);
     }
     inline bool hasB()
     {
-        return ((params2 & 128)!=0);
+        return ((params2 & 128) != 0);
     }
     inline bool hasK()
     {
-        return ((params2 & 256)!=0);
+        return ((params2 & 256) != 0);
     }
     inline bool hasL()
     {
-        return ((params2 & 512)!=0);
+        return ((params2 & 512) != 0);
     }
     inline bool hasO()
     {
-        return ((params2 & 1024)!=0);
+        return ((params2 & 1024) != 0);
     }
-	
+
     inline long getS(long def)
     {
         return (hasS() ? S : def);
@@ -294,12 +294,12 @@ public:
     {
         return (hasP() ? P : def);
     } // getP
-	inline void setFormatError() {
-		params2 |= 32768;
-	}
-	inline bool hasFormatError() {
-		return ((params2 & 32768) != 0);
-	}	
+    inline void setFormatError() {
+        params2 |= 32768;
+    }
+    inline bool hasFormatError() {
+        return ((params2 & 32768) != 0);
+    }
     void printCommand();
     bool parseBinary(uint8_t *buffer, fast8_t length, bool fromSerial);
     bool parseAscii(char *line, bool fromSerial);
@@ -311,13 +311,13 @@ public:
     static void executeFString(FSTRINGPARAM(cmd));
     static void executeString(char *cmd);
     static uint8_t computeBinarySize(char *ptr);
-	//static void fatalError(FSTRINGPARAM(message));
-	static void reportFatalError();
-//	static void resetFatalError();
-	inline static bool hasFatalError() {
-		return fatalErrorMsg != NULL;
-	}
-	static FSTRINGPARAM(fatalErrorMsg);
+    //static void fatalError(FSTRINGPARAM(message));
+    static void reportFatalError();
+    //	static void resetFatalError();
+    inline static bool hasFatalError() {
+        return fatalErrorMsg != NULL;
+    }
+    static FSTRINGPARAM(fatalErrorMsg);
     static void keepAlive(enum FirmwareState state);
     static uint32_t keepAliveInterval;
 
@@ -325,30 +325,30 @@ public:
     friend class SDCard;
 #endif //SDSUPPORT
     friend class UIDisplay;
-	friend class GCodeSource;
+    friend class GCodeSource;
 
-	GCodeSource *source;
+    GCodeSource *source;
 
 protected:
     void outputGCommand();
     void checkAndPushCommand();
     static void requestResend();
-	inline float parseFloatValue(char *s)
-	{
-		char *endPtr;
-		while (*s == 32) s++; // skip spaces
-		float f = (strtod(s, &endPtr));
-		if (s == endPtr) f = 0.0; // treat empty string "x " as "x0"
-		return f;
-	}
-	inline long parseLongValue(char *s)
-	{
-		char *endPtr;
-		while (*s == 32) s++; // skip spaces
-		long l = (strtol(s, &endPtr, 10));
-		if (s == endPtr) l = 0; // treat empty string argument "p " as "p0"
-		return l;
-	}
+    inline float parseFloatValue(char *s)
+    {
+        char *endPtr;
+        while (*s == 32) s++; // skip spaces
+        float f = (strtod(s, &endPtr));
+        if (s == endPtr) f = 0.0; // treat empty string "x " as "x0"
+        return f;
+    }
+    inline long parseLongValue(char *s)
+    {
+        char *endPtr;
+        while (*s == 32) s++; // skip spaces
+        long l = (strtol(s, &endPtr, 10));
+        if (s == endPtr) l = 0; // treat empty string argument "p " as "p0"
+        return l;
+    }
 
     static GCode commandsBuffered[GCODE_BUFFER_SIZE];   ///< Buffer for received commands.
     static uint8_t bufferReadIndex;                     ///< Read position in gcode_buffer.
@@ -362,8 +362,8 @@ protected:
     static uint32_t lastLineNumber;                     ///< Last line number received.
     static uint32_t actLineNumber;                      ///< Line number of current command.
     static volatile uint8_t bufferLength;               ///< Number of commands stored in gcode_buffer
-	static uint8_t formatErrors;                        ///< Number of sequential format errors
-	static millis_t lastBusySignal;                     ///< When was the last busy signal
+    static uint8_t formatErrors;                        ///< Number of sequential format errors
+    static millis_t lastBusySignal;                     ///< When was the last busy signal
 }; // GCode
 
 #endif // GCODE_H

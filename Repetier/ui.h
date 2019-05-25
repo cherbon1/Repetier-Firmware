@@ -462,46 +462,46 @@ public:
     PGM_P               statusText;
     char                locked;
 
-	UIDisplay();
+    UIDisplay();
 
-    void addInt(int value,uint8_t digits,char fillChar=' '); // Print int into printCols
-    void addLong(long value,char digits);
-    void addFloat(float number, char fixdigits,uint8_t digits);
+    void addInt(int value, uint8_t digits, char fillChar = ' '); // Print int into printCols
+    void addLong(long value, char digits);
+    void addFloat(float number, char fixdigits, uint8_t digits);
     void addStringP(FSTRINGPARAM(text));
-	void ui_init_keys();
-	void ui_check_keys(int &action);
-	void menuEsc();
+    void ui_init_keys();
+    void ui_check_keys(int &action);
+    void menuEsc();
     void okAction();
     void rightAction();
-	void backAction();
+    void backAction();
     void nextPreviousAction(int8_t next);
-	void senseOffsetUpAction();
-	void senseOffsetDownAction();
-	void zOffsetPlusAction();
-	void zOffsetMinusAction();
-    void createChar(uint8_t location,const uint8_t charmap[]);
+    void senseOffsetUpAction();
+    void senseOffsetDownAction();
+    void zOffsetPlusAction();
+    void zOffsetMinusAction();
+    void createChar(uint8_t location, const uint8_t charmap[]);
     void initialize(); // Initialize display and keys
-	void initializeLCD(bool normal = true);
-    void printRow(uint8_t r,char *txt,char *txt2,uint8_t changeAtCol); // Print row on display
-    void printRowP(uint8_t r,PGM_P txt);
+    void initializeLCD(bool normal = true);
+    void printRow(uint8_t r, char *txt, char *txt2, uint8_t changeAtCol); // Print row on display
+    void printRowP(uint8_t r, PGM_P txt);
     void parse(char *txt, bool ram); /// Parse output and write to printCols;
     void refreshPage();
     void executeAction(int action);
-	void slowAction();
+    void slowAction();
 
     void finishAction(int action);
-	void changeSwitchCase(int action, int8_t increment);
-	void mainSwitchCase(int action);
+    void changeSwitchCase(int action, int8_t increment);
+    void mainSwitchCase(int action);
 
     void fastAction();
     void showMessage(bool refresh);
-    void pushMenu(void *men,bool refresh);
+    void pushMenu(void *men, bool refresh);
     void adjustMenuPos();
-    void setStatusP(PGM_P txt,bool error = false);
-    void setStatus(char *txt,bool error = false,bool force = false);
+    void setStatusP(PGM_P txt, bool error = false);
+    void setStatus(char *txt, bool error = false, bool force = false);
 
 #if SDSUPPORT
-    char                cwd[SD_MAX_FOLDER_DEPTH*LONG_FILENAME_LENGTH+2];
+    char                cwd[SD_MAX_FOLDER_DEPTH*LONG_FILENAME_LENGTH + 2];
     uint8_t             folderLevel;
 
     void updateSDFileCount();
@@ -607,7 +607,7 @@ extern UIDisplay uid;
 #define BEEP_WRONG_FIRMWARE {}
 #endif // FEATURE_BEEPER
 
-extern void beep(uint8_t duration,uint8_t count);
+extern void beep(uint8_t duration, uint8_t count);
 
 #endif // UI_H
 

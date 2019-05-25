@@ -146,12 +146,12 @@ public:
 
     inline uint8_t getWaitForXLinesFilled()
     {
-		// This function seems to produce a pausing if X_AXIS is the primary axis 
-		// or if y is the primary axis and only one line in queue
-		// or if z axis is the primary and only two lines in queue 
-		// or if e axis is the primary and only three lines in queue 
-		//
-		// ?????? :D But still original Repetier
+        // This function seems to produce a pausing if X_AXIS is the primary axis 
+        // or if y is the primary axis and only one line in queue
+        // or if z axis is the primary and only two lines in queue 
+        // or if e axis is the primary and only three lines in queue 
+        //
+        // ?????? :D But still original Repetier
         return primaryAxis;
     } // getWaitForXLinesFilled
 
@@ -162,7 +162,7 @@ public:
 
     inline bool isExtruderForwardMove()
     {
-        return (dir & 136)==136; //isEPositiveMove()
+        return (dir & 136) == 136; //isEPositiveMove()
     } // isExtruderForwardMove
 
     inline void block()
@@ -180,9 +180,9 @@ public:
         return flags & FLAG_BLOCKED;
     } // isBlocked
 
-	// If we reach endstops or softendstops we have two options: 
-	// 1) abort the move and place coordinate to "is"
-	// 2) stop the physical move but let "the virtual" coordinates flow. Hereby we can revert the coordinates by moving the other way.
+    // If we reach endstops or softendstops we have two options: 
+    // 1) abort the move and place coordinate to "is"
+    // 2) stop the physical move but let "the virtual" coordinates flow. Hereby we can revert the coordinates by moving the other way.
     inline bool isAbortAtEndstops()
     {
         return flags & FLAG_ABORT_AT_ENDSTOPS;
@@ -200,73 +200,73 @@ public:
 
     inline void setXMoveFinished()
     {
-        dir&=~16;
+        dir &= ~16;
         Printer::stepperDirection[X_AXIS] = 0;
     } // setXMoveFinished
 
     inline void setYMoveFinished()
     {
-        dir&=~32;
+        dir &= ~32;
         Printer::stepperDirection[Y_AXIS] = 0;
     } // setYMoveFinished
 
     inline void setZMoveFinished()
     {
-        dir&=~64;
+        dir &= ~64;
         Printer::stepperDirection[Z_AXIS] = 0;
     } // setZMoveFinished
 
     inline void setEMoveFinished()
     {
-        dir&=~128;
+        dir &= ~128;
         Extruder::current->stepperDirection = 0;
     } // setEMoveFinished
 
     inline void setXYMoveFinished()
     {
-        dir&=~48;
+        dir &= ~48;
         Printer::stepperDirection[Y_AXIS] = 0;
         Printer::stepperDirection[X_AXIS] = 0;
     } // setXYMoveFinished
 
     inline bool isXPositiveMove()
     {
-        return (dir & 17)==17;
+        return (dir & 17) == 17;
     } // isXPositiveMove
 
     inline bool isXNegativeMove()
     {
-        return (dir & 17)==16;
+        return (dir & 17) == 16;
     } // isXNegativeMove
 
     inline bool isYPositiveMove()
     {
-        return (dir & 34)==34;
+        return (dir & 34) == 34;
     } // isYPositiveMove
 
     inline bool isYNegativeMove()
     {
-        return (dir & 34)==32;
+        return (dir & 34) == 32;
     } // isYNegativeMove
 
     inline bool isZPositiveMove()
     {
-        return (dir & 68)==68;
+        return (dir & 68) == 68;
     } // isZPositiveMove
 
     inline bool isZNegativeMove()
     {
-        return (dir & 68)==64;
+        return (dir & 68) == 64;
     } // isZNegativeMove
 
     inline bool isEPositiveMove()
     {
-        return (dir & 136)==136;
+        return (dir & 136) == 136;
     } // isEPositiveMove
 
     inline bool isENegativeMove()
     {
-        return (dir & 136)==128;
+        return (dir & 136) == 128;
     } // isENegativeMove
 
     inline bool isXMove()
@@ -296,12 +296,12 @@ public:
 
     inline bool isEOnlyMove()
     {
-        return (dir & 240)==128;
+        return (dir & 240) == 128;
     } // isEOnlyMove
 
     inline bool isNoMove()
     {
-        return (dir & 240)==0;
+        return (dir & 240) == 0;
     } // isNoMove
 
     inline bool isXYZMove()
@@ -309,37 +309,37 @@ public:
         return dir & 112;
     } // isXYZMove
 
-	inline bool isMoveOfAxis(uint8_t axis)
-	{
-		return (dir & (16 << axis));
-	} // isMoveOfAxis
+    inline bool isMoveOfAxis(uint8_t axis)
+    {
+        return (dir & (16 << axis));
+    } // isMoveOfAxis
 
-	inline void setMoveOfAxisFinished(uint8_t axis)
-	{
-		dir &= ~(16 << axis);
-		Printer::stepperDirection[axis] = 0;
-	} // setMoveOfAxisFinished
+    inline void setMoveOfAxisFinished(uint8_t axis)
+    {
+        dir &= ~(16 << axis);
+        Printer::stepperDirection[axis] = 0;
+    } // setMoveOfAxisFinished
 
-	inline bool isPositiveMoveOfAxis(uint8_t axis)
-	{
-		uint8_t mask = (17 << axis);
+    inline bool isPositiveMoveOfAxis(uint8_t axis)
+    {
+        uint8_t mask = (17 << axis);
 
-		return (dir & mask) == mask;
-	} // isPositiveMoveOfAxis
+        return (dir & mask) == mask;
+    } // isPositiveMoveOfAxis
 
-	inline bool isNegativeMoveOfAxis(uint8_t axis)
-	{
-		return (dir & (17 << axis)) == (16 << axis);
-	} // isPositiveMoveOfAxis
+    inline bool isNegativeMoveOfAxis(uint8_t axis)
+    {
+        return (dir & (17 << axis)) == (16 << axis);
+    } // isPositiveMoveOfAxis
 
     inline void setMoveOfAxis(uint8_t axis)
     {
-        dir |= 16<<axis;
+        dir |= 16 << axis;
     } // setMoveOfAxis
 
     inline void setPositiveDirectionForAxis(uint8_t axis)
     {
-        dir |= 1<<axis;
+        dir |= 1 << axis;
     } // setPositiveDirectionForAxis
 
     inline static void resetPathPlanner()
@@ -352,7 +352,7 @@ public:
     inline void updateAdvanceSteps(speed_t v)
     {
         if (!Printer::isAdvanceActivated()) return;
-		
+
         int32_t tred = (v * advanceL) >> 16;
         HAL::forbidInterrupts();
         Printer::extruderStepsNeeded += tred - Printer::advanceStepsSet;
@@ -363,7 +363,7 @@ public:
 
     INLINE bool moveDecelerating(uint8_t forQueue)
     {
-        if(stepsRemaining <= static_cast<int32_t>(decelSteps))
+        if (stepsRemaining <= static_cast<int32_t>(decelSteps))
         {
             if (!(flags & FLAG_DECELERATING)) //reset "timer" only once.
             {
@@ -372,8 +372,8 @@ public:
             }
             return true;
         }
-        
-		return false;
+
+        return false;
     } // moveDecelerating
 
     INLINE bool moveAccelerating(uint8_t forQueue)
@@ -384,7 +384,7 @@ public:
     void updateStepsParameter();
     inline float safeSpeed(fast8_t drivingAxis);
     void calculateMove(float axis_diff[], fast8_t drivingAxis, float feedrate);
-    
+
     INLINE long getWaitTicks()
     {
         return timeInTicks;
@@ -395,15 +395,15 @@ public:
         timeInTicks = wait;
     } // setWaitTicks
 
-	static INLINE bool hasLines()
-	{
-		return linesCount;
-	} // hasLines
+    static INLINE bool hasLines()
+    {
+        return linesCount;
+    } // hasLines
 
-	static uint8_t getLinesCount() {
-		InterruptProtectedBlock noInts;
-		return linesCount;
-	}
+    static uint8_t getLinesCount() {
+        InterruptProtectedBlock noInts;
+        return linesCount;
+    }
 
     static INLINE void setCurrentLine()
     {
@@ -432,22 +432,22 @@ public:
         return &lines[linesWritePos];
     } // getNextWriteLine
 
-    static inline void computeMaxJunctionSpeed(PrintLine *previous,PrintLine *current);
+    static inline void computeMaxJunctionSpeed(PrintLine *previous, PrintLine *current);
 
     static long needCmpWait();
-	static void stepSlowedZCompensation();
+    static void stepSlowedZCompensation();
     static long performQueueMove();
     static long performDirectMove();
 
     static long performMove(PrintLine* move, uint8_t forQueue);
-    static void waitForXFreeLines(uint8_t b=1);
+    static void waitForXFreeLines(uint8_t b = 1);
     static inline void forwardPlanner(uint8_t p);
-    static inline void backwardPlanner(uint8_t p,uint8_t last);
+    static inline void backwardPlanner(uint8_t p, uint8_t last);
     static void updateTrapezoids();
     static uint8_t insertWaitMovesIfNeeded(uint8_t pathOptimize, uint8_t waitExtraLines);
     static void prepareQueueMove(uint8_t abortAtEndstops, uint8_t pathOptimize, float feedrate);
     static void prepareDirectMove(bool stoppable, bool feedrateSource);
-    static void stopDirectMove( void );
+    static void stopDirectMove(void);
 #if FEATURE_ARC_SUPPORT
     static void arc(float *position, float *target, float *offset, float radius, uint8_t isclockwise);
 #endif // FEATURE_ARC_SUPPORT
@@ -462,77 +462,77 @@ public:
         p = (p >= MOVE_CACHE_SIZE - 1 ? 0 : p + 1);
     } // nextPlannerIndex
 
-    static inline void queueTask( char task )
+    static inline void queueTask(char task)
     {
         PrintLine*  p;
 
         p = getNextWriteLine();
         p->task = task;
 
-        nextPlannerIndex( linesWritePos );
+        nextPlannerIndex(linesWritePos);
         InterruptProtectedBlock noInts; //BEGIN_INTERRUPT_PROTECTED
         linesCount++;
         //END_INTERRUPT_PROTECTED
         return;
     } // queueTask
 
-    inline void enableSteppers( void )
+    inline void enableSteppers(void)
     {
-        if( Printer::blockAll )
+        if (Printer::blockAll)
         {
             // do not enable anything in case everything is blocked
             return;
         }
 
         // Only enable axis that are moving. If the axis doesn't need to move then it can stay disabled depending on configuration.
-        if(isXMove())
+        if (isXMove())
         {
             Printer::enableXStepper();
         }
-        if(isYMove())
+        if (isYMove())
         {
             Printer::enableYStepper();
         }
-        if(isZMove())
+        if (isZMove())
         {
             Printer::enableZStepper();
         }
-        if(isEMove())
+        if (isEMove())
         {
             Printer::unmarkAllSteppersDisabled(); //doesnt fit into Extruder::enable() because of forward declare -> TODO
             Extruder::enable();
         }
     } // enableSteppers
 
-	inline void adjustDirections(void)
-	{
-		if (Printer::blockAll)
-		{
-			// do not enable anything in case everything is blocked
-			return;
-		}
+    inline void adjustDirections(void)
+    {
+        if (Printer::blockAll)
+        {
+            // do not enable anything in case everything is blocked
+            return;
+        }
 
-		// Only enable axis that are moving. If the axis doesn't need to move then it can stay disabled depending on configuration.
-		if (isXMove())
-		{
-			Printer::setXDirection(isXPositiveMove());
-		}
-		if (isYMove())
-		{
-			Printer::setYDirection(isYPositiveMove());
-		}
-		if (isZMove())
-		{
-			Printer::setZDirection(isZPositiveMove());
-		}
-		if (isEMove())
-		{
+        // Only enable axis that are moving. If the axis doesn't need to move then it can stay disabled depending on configuration.
+        if (isXMove())
+        {
+            Printer::setXDirection(isXPositiveMove());
+        }
+        if (isYMove())
+        {
+            Printer::setYDirection(isYPositiveMove());
+        }
+        if (isZMove())
+        {
+            Printer::setZDirection(isZPositiveMove());
+        }
+        if (isEMove())
+        {
 #if USE_ADVANCE
-			if (!Printer::isAdvanceActivated()) // Set direction if no advance/OPS enabled
+            if (!Printer::isAdvanceActivated()) // Set direction if no advance/OPS enabled
 #endif
-				Extruder::setDirection(isEPositiveMove());
-		}
-	} // adjustDirections
+                Extruder::setDirection(isEPositiveMove());
+        }
+    } // adjustDirections
 };
 
 #endif // MOTION_H
