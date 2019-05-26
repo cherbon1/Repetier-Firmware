@@ -1551,7 +1551,7 @@ long PrintLine::performMove(PrintLine* move, uint8_t forQueue)
 
 #if FEATURE_HEAT_BED_Z_COMPENSATION
                 // This Block adds % parts of steps to extrusion because of higher layer heights caused by ZCMP
-                // We calculated compensatedPositionOverPercE as a result of streched layer hightes. Here we add material to the layer to compensate stretching.
+                // We calculated compensatedPositionOverPercE as a result of streched layer heights. Here we add material to the layer to compensate stretching.
                 if (Printer::compensatedPositionOverPercE != 0) {
                     Printer::compensatedPositionCollectTinyE += Printer::compensatedPositionOverPercE;
                     if (Printer::compensatedPositionCollectTinyE >= 1) {
