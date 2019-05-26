@@ -832,7 +832,7 @@ ISR(TIMER1_COMPA_vect)
 #if FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
     if (PrintLine::cur == NULL && PrintLine::direct.task == TASK_NO_TASK)
     {
-        PrintLine::stepSlowedZCompensation();
+        PrintLine::stepSlowedZCompensation(); // Z is free here.
         // Wait if the z-CMP is under heavy workload
         if (PrintLine::needCmpWait())
         {

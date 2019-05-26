@@ -140,7 +140,6 @@ public:
 #endif // FEATURE_WORK_PART_Z_COMPENSATION
 
     static volatile long    currentSteps[3];
-    static volatile char    stepperDirection[3];              // this is the current x/y/z-direction from the processing of G-Codes
     static volatile char    blockAll;
 
     static volatile long    currentXSteps;
@@ -466,7 +465,6 @@ public:
 #if FEATURE_TWO_XSTEPPER
             WRITE(X2_DIR_PIN, !INVERT_X_DIR);
 #endif // FEATURE_TWO_XSTEPPER
-            stepperDirection[X_AXIS] = 1;
         }
         else
         {
@@ -475,7 +473,6 @@ public:
 #if FEATURE_TWO_XSTEPPER
             WRITE(X2_DIR_PIN, INVERT_X_DIR);
 #endif // FEATURE_TWO_XSTEPPER
-            stepperDirection[X_AXIS] = -1;
         }
     } // setXDirection
 
@@ -488,7 +485,6 @@ public:
 #if FEATURE_TWO_YSTEPPER
             WRITE(Y2_DIR_PIN, !INVERT_Y_DIR);
 #endif // FEATURE_TWO_YSTEPPER
-            stepperDirection[Y_AXIS] = 1;
         }
         else
         {
@@ -497,7 +493,6 @@ public:
 #if FEATURE_TWO_YSTEPPER
             WRITE(Y2_DIR_PIN, INVERT_Y_DIR);
 #endif // FEATURE_TWO_YSTEPPER
-            stepperDirection[Y_AXIS] = -1;
         }
     } // setYDirection
 
@@ -513,7 +508,6 @@ public:
 #if FEATURE_CONFIGURABLE_Z_ENDSTOPS
             lastZDirection = 1;
 #endif // FEATURE_CONFIGURABLE_Z_ENDSTOPS
-            stepperDirection[Z_AXIS] = 1;
         }
         else
         {
@@ -525,7 +519,6 @@ public:
 #if FEATURE_CONFIGURABLE_Z_ENDSTOPS
             lastZDirection = -1;
 #endif // FEATURE_CONFIGURABLE_Z_ENDSTOPS
-            stepperDirection[Z_AXIS] = -1;
         }
     } // setZDirection
 
@@ -1097,6 +1090,7 @@ public:
     static void updateDerivedParameter();
     static void switchEverythingOff();
     static void updateAdvanceActivated();
+    static bool isZMoveActive();
 
     static INLINE void setXAxisSteps(int32_t x) {
         InterruptProtectedBlock noInts;

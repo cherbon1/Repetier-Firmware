@@ -443,9 +443,6 @@ The following variables are used for movements in x/y/z direction:
   - holds the position which has been reached through the movements from the queue
   - the value of currentSteps represents the current position of the printer in x, y and z direction
 
-- Printer::stepperDirection[x/y/z]
-  - holds the direction of the axes as it is requested by the currently processed movement from the queue
-
 - Printer::directDestinationSteps[x/y/z]
   - unit is [steps]
   - holds the position which shall be reached through direct movements, e.g. from the manual buttons or from the direct pause/continue functionality

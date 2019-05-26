@@ -5325,7 +5325,6 @@ void moveZ(int nSteps)
 
         g_nZScanZPosition += (Printer::getZDirectionIsPos() ? 1 : -1);
     }
-    Printer::stepperDirection[Z_AXIS] = 0; //stepper immer freigeben. moveZ läuft nie parallel zu anderen Z-Bewegungen!
 } // moveZ
 
 
@@ -6447,7 +6446,7 @@ void handleStrainGaugeFeatures(millis_t uTime) {
                 g_nEmergencyESkip = true;
 
                 // Block if we are driving Z rightnow
-                if (Printer::stepperDirection[Z_AXIS] && !Extruder::current->stepperDirection)
+                if (Printer::isZMoveActive() && !Extruder::current->stepperDirection)
                 {
                     // the pressure is outside the allowed range, we must perform the emergency stop
                     doEmergencyStop(STOP_BECAUSE_OF_Z_BLOCK);

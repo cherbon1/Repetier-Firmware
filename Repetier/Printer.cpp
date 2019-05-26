@@ -116,7 +116,6 @@ volatile long   Printer::staticCompensationZ = 0;
 #endif // FEATURE_WORK_PART_Z_COMPENSATION
 
 volatile long   Printer::currentSteps[3] = { 0, 0, 0 };
-volatile char   Printer::stepperDirection[3] = { 0, 0, 0 };
 volatile char   Printer::blockAll = 0;
 
 volatile long   Printer::currentXSteps = 0;  //das ist der X-Zähler der GCodes zum Zählen des tiefsten Schalterdruckpunkts /Schaltercrash.
@@ -434,6 +433,20 @@ inline bool isExtrusionAllowed(float e) {
     }
 
     return true;
+}
+
+bool Printer::isZMoveActive() {
+    if (PrintLine::direct.stepsRemaining && PrintLine::direct.isZMove()) {
+        return true;
+    }
+    if (PrintLine::cur == NULL) {
+        return false;
+    }
+    if (PrintLine::cur->isZMove()) {
+        return true;
+    }
+
+    return false;
 }
 
 /**

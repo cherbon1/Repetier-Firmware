@@ -201,19 +201,16 @@ public:
     inline void setXMoveFinished()
     {
         dir &= ~16;
-        Printer::stepperDirection[X_AXIS] = 0;
     } // setXMoveFinished
 
     inline void setYMoveFinished()
     {
         dir &= ~32;
-        Printer::stepperDirection[Y_AXIS] = 0;
     } // setYMoveFinished
 
     inline void setZMoveFinished()
     {
         dir &= ~64;
-        Printer::stepperDirection[Z_AXIS] = 0;
     } // setZMoveFinished
 
     inline void setEMoveFinished()
@@ -225,8 +222,12 @@ public:
     inline void setXYMoveFinished()
     {
         dir &= ~48;
-        Printer::stepperDirection[Y_AXIS] = 0;
-        Printer::stepperDirection[X_AXIS] = 0;
+    } // setXYMoveFinished
+
+    inline void setXYZEMoveFinished()
+    {
+        dir &= ~240;
+        Extruder::current->stepperDirection = 0;
     } // setXYMoveFinished
 
     inline bool isXPositiveMove()
@@ -317,7 +318,6 @@ public:
     inline void setMoveOfAxisFinished(uint8_t axis)
     {
         dir &= ~(16 << axis);
-        Printer::stepperDirection[axis] = 0;
     } // setMoveOfAxisFinished
 
     inline bool isPositiveMoveOfAxis(uint8_t axis)
@@ -412,10 +412,10 @@ public:
 
     static INLINE void removeCurrentLineForbidInterrupt()
     {
+        HAL::forbidInterrupts();
         nextPlannerIndex(linesPos);
         cur->task = TASK_NO_TASK;
         cur = NULL;
-        HAL::forbidInterrupts();
         --linesCount;
     } // removeCurrentLineForbidInterrupt
 

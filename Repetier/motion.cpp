@@ -1040,7 +1040,7 @@ void PrintLine::stepSlowedZCompensation() {
     if (Printer::blockAll) {
         return;
     }
-
+    
     // We do not want the zCMP to have a total axis dependand constant speed. 
     // Constant jerky speedup and speeddowns sound awfull and we suspect that to cause the z-lift problematic.
 
@@ -1056,19 +1056,21 @@ void PrintLine::stepSlowedZCompensation() {
         waitSteps--;
         return;
     }
-
+    
     int32_t cmpDiff = Printer::compensatedPositionTargetStepsZ - Printer::compensatedPositionCurrentStepsZ;
 
     if (cmpDiff > 0)
     {
         // here we shall move the z-axis only in case performQueueMove() is not moving into the other direction at the moment
-        if (!Printer::stepperDirection[Z_AXIS])
+        bool posZ = Printer::getZDirectionIsPos();
+        if (!posZ)
         {
+            posZ = true;
             // set the direction only in case it is not set already
-            Printer::setZDirection(true);
+            Printer::setZDirection(posZ);
         }
         // we must move the heat bed do the bottom
-        if (Printer::getZDirectionIsPos())
+        if (posZ)
         {
             Printer::startZStep();
 #if STEPPER_HIGH_DELAY>0
@@ -1090,13 +1092,15 @@ void PrintLine::stepSlowedZCompensation() {
     if (cmpDiff < 0)
     {
         // here we shall move the z-axis only in case performQueueMove() is not moving into the other direction at the moment
-        if (!Printer::stepperDirection[Z_AXIS])
+        bool posZ = Printer::getZDirectionIsPos();
+        if (posZ)
         {
+            posZ = false;
             // set the direction only in case it is not set already
-            Printer::setZDirection(false);
+            Printer::setZDirection(posZ);
         }
         // we must move the heat bed to the top
-        if (!Printer::getZDirectionIsPos())
+        if (!posZ)
         {
             Printer::startZStep();
 #if STEPPER_HIGH_DELAY>0
@@ -1673,7 +1677,7 @@ long PrintLine::performMove(PrintLine* move, uint8_t forQueue)
         }
 #if FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
         else if (move->isXOrYMove()) {
-            PrintLine::stepSlowedZCompensation();
+            PrintLine::stepSlowedZCompensation(); // Z is free here. This is no Z-Move
         }
 #endif // FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
 
@@ -1767,12 +1771,9 @@ long PrintLine::performMove(PrintLine* move, uint8_t forQueue)
 
     if (move->stepsRemaining <= 0 || move->isNoMove())  // line finished
     {
-        if (move->stepsRemaining <= 0) { //Wenn keine Steps mehr da, sollten alle Achsen die benutzt wurden wieder freigegeben werden. Bei Z ist der Sonderfall, dass die Z-Kompensation sich reinschummeln könnte.
-            move->setXYMoveFinished();
-            move->setZMoveFinished(); // Wichtig, das die Z-Kompensation wieder weiterarbeiten kann, auch wichtig bei PrintLine::direct!
+        //Wenn keine Steps mehr da, sollten alle Achsen die benutzt wurden wieder freigegeben werden. Bei Z ist der Sonderfall, dass die Z-Kompensation sich reinschummeln könnte.
+        move->setXYZEMoveFinished();  // Wichtig, das die Z-Kompensation wieder weiterarbeiten kann, auch wichtig bei PrintLine::direct!
                                       // Auch wenn kein Z-Move, könnte die Z-Kompensation die Achse Z benutzt haben.
-            move->setEMoveFinished();
-        }
 
         if (forQueue) {
             removeCurrentLineForbidInterrupt();

@@ -21,6 +21,12 @@ TODO:
 # milling mode: test or rework milling functions
 # pause @RF1000: test if z max-endstop is respected while moving in dual-endstop circular setting
 
+V 01.43.99.Mod (2019-05-26)
+- fixed a bug that sometimes caused the zcompensation to "hang" when the printlines were long.
+  The problem was that the compensation was only able to drive into one direction per move
+  because it did not free Z direction afterwards and blocked itself on direction changes.
+  That produced some weired looking first layers when printing some gcodes.
+
 V 01.43.98.Mod (2019-05-01)
 - At the end of a M3912 startline the speed adjustment is now reset to 100%
   to gain a faster travel to the start point (instead of auto accelerating due to normal digits).
