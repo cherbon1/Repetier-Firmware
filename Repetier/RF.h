@@ -443,9 +443,6 @@ The following variables are used for movements in x/y/z direction:
   - holds the position which has been reached through the movements from the queue
   - the value of currentSteps represents the current position of the printer in x, y and z direction
 
-- Printer::stepperDirection[x/y/z]
-  - holds the direction of the axes as it is requested by the currently processed movement from the queue
-
 - Printer::directDestinationSteps[x/y/z]
   - unit is [steps]
   - holds the position which shall be reached through direct movements, e.g. from the manual buttons or from the direct pause/continue functionality
@@ -660,12 +657,12 @@ extern short            g_nLastDigits;
 #if FEATURE_DIGIT_Z_COMPENSATION
 extern float            g_nDigitZCompensationDigits;
 extern bool             g_nDigitZCompensationDigits_active;
- #if FEATURE_DIGIT_FLOW_COMPENSATION
- extern int8_t           g_nDigitFlowCompensation_intense;
- extern int8_t           g_nDigitFlowCompensation_speed_intense;
- extern short            g_nDigitFlowCompensation_Fmin;
- extern short            g_nDigitFlowCompensation_Fmax;
- #endif // FEATURE_DIGIT_FLOW_COMPENSATION
+#if FEATURE_DIGIT_FLOW_COMPENSATION
+extern int8_t           g_nDigitFlowCompensation_intense;
+extern int8_t           g_nDigitFlowCompensation_speed_intense;
+extern short            g_nDigitFlowCompensation_Fmin;
+extern short            g_nDigitFlowCompensation_Fmax;
+#endif // FEATURE_DIGIT_FLOW_COMPENSATION
 #endif // FEATURE_DIGIT_Z_COMPENSATION
 
 #if FEATURE_FIND_Z_ORIGIN
@@ -701,103 +698,103 @@ extern unsigned char    g_uRGBTargetG;
 extern unsigned char    g_uRGBTargetB;
 #endif // FEATURE_RGB_LIGHT_EFFECTS
 
-extern void initRF( void );
-extern void initStrainGauge( void );
-extern short readStrainGauge( unsigned char uAddress );
+extern void initRF(void);
+extern void initStrainGauge(void);
+extern short readStrainGauge(unsigned char uAddress);
 
 extern void showAbortScanReason(const void* scanName, char abortScanIdentifier);
 
 #if FEATURE_HEAT_BED_Z_COMPENSATION
-extern void startHeatBedScan( void );
-extern void scanHeatBed( void );
-extern void startZOScan( bool automatrixleveling = false );
-extern void searchZOScan( void );
+extern void startHeatBedScan(void);
+extern void scanHeatBed(void);
+extern void startZOScan(bool automatrixleveling = false);
+extern void searchZOScan(void);
 
 //Z-Schrauben Helper
 extern float g_ZSchraubenSollDrehungenWarm_U;
 extern float g_ZSchraubenSollKorrekturWarm_mm;
 extern char g_ZSchraubeOk;
 
-extern void calculateZScrewCorrection( void );
+extern void calculateZScrewCorrection(void);
 
 //Menüumschalter für Z-Step-Höhe
-extern void configureMANUAL_STEPS_Z( int8_t increment );
+extern void configureMANUAL_STEPS_Z(int8_t increment);
 
-extern void abortSearchHeatBedZOffset( bool reloadMatrix );
-extern short testExtruderTemperature( void );
-extern short testHeatBedTemperature( void );
-extern long getZMatrixDepth( long x, long y );
-extern long getZMatrixDepth_CurrentXY( void );
-extern void recalculateHeatBedZCompensation( void );
+extern void abortSearchHeatBedZOffset(bool reloadMatrix);
+extern short testExtruderTemperature(void);
+extern short testHeatBedTemperature(void);
+extern long getZMatrixDepth(long x, long y);
+extern long getZMatrixDepth_CurrentXY(void);
+extern void recalculateHeatBedZCompensation(void);
 
-extern void switchActiveHeatBed( char newActiveHeatBed );
+extern void switchActiveHeatBed(char newActiveHeatBed);
 #endif // FEATURE_HEAT_BED_Z_COMPENSATION
 
 #if FEATURE_ALIGN_EXTRUDERS
-extern void startAlignExtruders( void );
-extern void alignExtruders( void );
+extern void startAlignExtruders(void);
+extern void alignExtruders(void);
 #endif // FEATURE_ALIGN_EXTRUDERS
 
 #if FEATURE_WORK_PART_Z_COMPENSATION
-extern void startWorkPartScan( char nMode );
-extern void scanWorkPart( void );
-extern void doWorkPartZCompensation( void );
-extern long getWorkPartOffset( void );
+extern void startWorkPartScan(char nMode);
+extern void scanWorkPart(void);
+extern void doWorkPartZCompensation(void);
+extern long getWorkPartOffset(void);
 #endif // FEATURE_WORK_PART_Z_COMPENSATION
 
 
 #if FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
-extern short readIdlePressure( short* pnIdlePressure );
-extern short testIdlePressure( void );
-extern short readAveragePressure( short* pnAveragePressure );
+extern short readIdlePressure(short* pnIdlePressure);
+extern short testIdlePressure(void);
+extern short readAveragePressure(short* pnAveragePressure);
 
 extern void moveZMinusUpFast();
-extern void moveZPlusDownSlow( uint8_t acuteness = 1 );
-extern void moveZMinusUpSlow( short* pnContactPressure, uint8_t acuteness = 1 );
+extern void moveZPlusDownSlow(uint8_t acuteness = 1);
+extern void moveZMinusUpSlow(short* pnContactPressure, uint8_t acuteness = 1);
 extern void moveZPlusDownFast();
-extern void moveZ( int nSteps );
-extern void restoreDefaultScanParameters( void );
-extern void outputScanParameters( void );
-extern void outputCompensationMatrix( char format = 0 );
-extern void initCompensationMatrix( void );
-extern void determineCompensationOffsetZ( void );
-extern void adjustCompensationMatrix( short nZ );
-extern void saveCompensationMatrix( unsigned int uAddress );
-extern void clearCompensationMatrix( unsigned int uAddress );
+extern void moveZ(int nSteps);
+extern void restoreDefaultScanParameters(void);
+extern void outputScanParameters(void);
+extern void outputCompensationMatrix(char format = 0);
+extern void initCompensationMatrix(void);
+extern void determineCompensationOffsetZ(void);
+extern void adjustCompensationMatrix(short nZ);
+extern void saveCompensationMatrix(unsigned int uAddress);
+extern void clearCompensationMatrix(unsigned int uAddress);
 
-extern char prepareCompensationMatrix( void );
-extern char loadCompensationMatrix( unsigned int uAddress );
+extern char prepareCompensationMatrix(void);
+extern char loadCompensationMatrix(unsigned int uAddress);
 
 #endif // FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
 
-extern void clearExternalEEPROM( void );
-extern void writeByte24C256( int addressI2C, unsigned int addressEEPROM, unsigned char data );
-extern void writeWord24C256( int addressI2C, unsigned int addressEEPROM, unsigned short data );
+extern void clearExternalEEPROM(void);
+extern void writeByte24C256(int addressI2C, unsigned int addressEEPROM, unsigned char data);
+extern void writeWord24C256(int addressI2C, unsigned int addressEEPROM, unsigned short data);
 
-extern unsigned char readByte24C256( int addressI2C, unsigned int addressEEPROM );
-extern unsigned short readWord24C256( int addressI2C, unsigned int addressEEPROM );
+extern unsigned char readByte24C256(int addressI2C, unsigned int addressEEPROM);
+extern unsigned short readWord24C256(int addressI2C, unsigned int addressEEPROM);
 
-extern void recalculateZCompensation( void );
-extern void loopFeatures( void );
-extern void outputObject( bool showerrors = true );
+extern void recalculateZCompensation(void);
+extern void loopFeatures(void);
+extern void outputObject(bool showerrors = true);
 
 #if FEATURE_PARK
-extern void parkPrinter( void );
+extern void parkPrinter(void);
 #endif // FEATURE_PARK
 
-extern void pausePrint( void );
-extern void killPausePrint( void );
-extern void continuePrint( void );
-extern void setExtruderCurrent( uint8_t nr, uint8_t current );
-extern void processSpecialGCode( GCode* pCommand );
-extern void queueTask( char task );
-extern void processButton( int nAction );
-extern void moveXAction( int8_t increment );
-extern void moveYAction( int8_t increment );
-extern void moveZAction( int8_t increment );
+extern void pausePrint(void);
+extern void killPausePrint(void);
+extern void continuePrint(void);
+extern void setExtruderCurrent(uint8_t nr, uint8_t current);
+extern void processSpecialGCode(GCode* pCommand);
+extern void queueTask(char task);
+extern void processButton(int nAction);
+extern void moveXAction(int8_t increment);
+extern void moveYAction(int8_t increment);
+extern void moveZAction(int8_t increment);
 
 #if STEPPER_CURRENT_CONTROL==CURRENT_CONTROL_DRV8711
-extern void setMotorCurrent( unsigned char driver, uint8_t level );
+extern void setMotorCurrent(unsigned char driver, uint8_t level);
 
 // adjust/set Microsteps()
 extern unsigned short drv8711Axis_2_InitMicrosteps(uint8_t axis);
@@ -805,59 +802,59 @@ extern unsigned short drv8711ModeValue_2_MicroSteps(uint8_t modeValue);
 extern uint8_t        drv8711MicroSteps_2_ModeValue(unsigned short microsteps);
 extern void           drv8711adjustMicroSteps(unsigned char driver);
 
-extern void drv8711Init( void );
+extern void drv8711Init(void);
 #if FEATURE_READ_STEPPER_STATUS
-extern unsigned short readMotorStatus( unsigned char driver );
+extern unsigned short readMotorStatus(unsigned char driver);
 #endif //FEATURE_READ_STEPPER_STATUS
 #endif // CURRENT_CONTROL_DRV8711
 
-extern void cleanupEPositions( void );
-extern void setZOrigin( void );
+extern void cleanupEPositions(void);
+extern void setZOrigin(void);
 
 #if FEATURE_FIND_Z_ORIGIN
-extern void startFindZOrigin( void );
-extern void findZOrigin( void );
+extern void startFindZOrigin(void);
+extern void findZOrigin(void);
 #endif // FEATURE_FIND_Z_ORIGIN
 
-extern void switchOperatingMode( char newOperatingMode );
+extern void switchOperatingMode(char newOperatingMode);
 
 #if FEATURE_MILLING_MODE
-extern void switchActiveWorkPart( char newActiveWorkPart );
-extern void setScanXYStart( void );
-extern void setScanXYEnd( void );
+extern void switchActiveWorkPart(char newActiveWorkPart);
+extern void setScanXYStart(void);
+extern void setScanXYEnd(void);
 #endif // FEATURE_MILLING_MODE
 
 #if FEATURE_RGB_LIGHT_EFFECTS
-extern void setRGBTargetColors( uint8_t R, uint8_t G, uint8_t B );
-extern void setRGBLEDs( uint8_t R, uint8_t G, uint8_t B );
-extern void updateRGBLightStatus( void );
+extern void setRGBTargetColors(uint8_t R, uint8_t G, uint8_t B);
+extern void setRGBLEDs(uint8_t R, uint8_t G, uint8_t B);
+extern void updateRGBLightStatus(void);
 #endif // FEATURE_RGB_LIGHT_EFFECTS
 
-extern void setupForPrinting( void );
-extern void setupForMilling( void );
-extern void prepareZCompensation( void );
-extern unsigned char isSupportedGCommand( unsigned int currentGCode, char neededMode, char outputLog = 1 );
-extern unsigned char isSupportedMCommand( unsigned int currentMCode, char neededMode, char outputLog = 1 );
-extern unsigned char isMovingAllowed( const char* pszCommand, char outputLog = 1 );
-extern unsigned char isHomingAllowed( GCode* com, char outputLog = 1 );
-extern void showInvalidSyntax( unsigned int currentMCode );
-extern void addUInt32( char* pszString, uint32_t uNumber );
-extern void addFloat( char* pszString, float fNumber, uint8_t uDigits );
+extern void setupForPrinting(void);
+extern void setupForMilling(void);
+extern void prepareZCompensation(void);
+extern unsigned char isSupportedGCommand(unsigned int currentGCode, char neededMode, char outputLog = 1);
+extern unsigned char isSupportedMCommand(unsigned int currentMCode, char neededMode, char outputLog = 1);
+extern unsigned char isMovingAllowed(const char* pszCommand, char outputLog = 1);
+extern unsigned char isHomingAllowed(GCode* com, char outputLog = 1);
+extern void showInvalidSyntax(unsigned int currentMCode);
+extern void addUInt32(char* pszString, uint32_t uNumber);
+extern void addFloat(char* pszString, float fNumber, uint8_t uDigits);
 
 #if FEATURE_HEAT_BED_TEMP_COMPENSATION
-extern float getHeatBedTemperatureOffset( float temperatureInCelsius );
+extern float getHeatBedTemperatureOffset(float temperatureInCelsius);
 #endif // FEATURE_HEAT_BED_TEMP_COMPENSATION
 
 #if FEATURE_TYPE_EEPROM
-extern void determineHardwareType( void );
-extern void notifyAboutWrongHardwareType( unsigned char guessedHardwareType );
+extern void determineHardwareType(void);
+extern void notifyAboutWrongHardwareType(unsigned char guessedHardwareType);
 #endif // FEATURE_TYPE_EEPROM
-extern void showIdle( void );
-extern void showError( const void* line2, const void* line3 = NULL, const void* line4 = NULL );
-extern void showWarning( const void* line2, const void* line3 = NULL, const void* line4 = NULL );
-extern void showInformation( const void* line2, const void* line3 = NULL, const void* line4 = NULL );
-extern void showMyPage( const void* line1, const void* line2 = NULL, const void* line3 = NULL, const void* line4 = NULL );
+extern void showIdle(void);
+extern void showError(const void* line2, const void* line3 = NULL, const void* line4 = NULL);
+extern void showWarning(const void* line2, const void* line3 = NULL, const void* line4 = NULL);
+extern void showInformation(const void* line2, const void* line3 = NULL, const void* line4 = NULL);
+extern void showMyPage(const void* line1, const void* line2 = NULL, const void* line3 = NULL, const void* line4 = NULL);
 
-void doEmergencyStop( char reason );
-void addLong( char* string, long value, char digits );
+void doEmergencyStop(char reason);
+void addLong(char* string, long value, char digits);
 #endif // RF_H
