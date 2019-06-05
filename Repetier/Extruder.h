@@ -66,7 +66,7 @@ public:
     float       tempArray[16];
 
     uint8_t     flags;
-    
+
     millis_t    lastDecoupleTest;    ///< Last time of decoupling sensor-heater test
     float       lastDecoupleTemp;    ///< Temperature on last test
     millis_t    decoupleTestPeriod;  ///< Time between setting and testing decoupling.
@@ -83,11 +83,11 @@ public:
         return flags & TEMPERATURE_CONTROLLER_FLAG_ALARM;
     }
     inline void setAlarm(bool on) {
-        if(on) flags |= TEMPERATURE_CONTROLLER_FLAG_ALARM; 
+        if (on) flags |= TEMPERATURE_CONTROLLER_FLAG_ALARM;
         else flags &= ~TEMPERATURE_CONTROLLER_FLAG_ALARM;
-    }	
-	
-	//Code für den Decouple-Test der Heizkreisläufe:
+    }
+
+    //Code für den Decouple-Test der Heizkreisläufe:
     inline bool isDecoupleFull()
     {
         return flags & TEMPERATURE_CONTROLLER_FLAG_DECOUPLE_FULL;
@@ -111,48 +111,48 @@ public:
         flags &= ~(TEMPERATURE_CONTROLLER_FLAG_DECOUPLE_FULL | TEMPERATURE_CONTROLLER_FLAG_DECOUPLE_HOLD);
     }
 
-	//Phase 1: wir stehen auf einer Stufe und merken uns die Zeit und die Temperatur. Das wird später mit der neuen Temperatur verglichen und dann muss die Temperatur gestiegen sein.
+    //Phase 1: wir stehen auf einer Stufe und merken uns die Zeit und die Temperatur. Das wird später mit der neuen Temperatur verglichen und dann muss die Temperatur gestiegen sein.
     inline void startFullDecoupleTest(millis_t &t)
     {
-        if(isDecoupleFull()) return;
+        if (isDecoupleFull()) return;
         lastDecoupleTest = t;
         lastDecoupleTemp = currentTemperatureC;
-		//switch active test method to "temperature has to rise":
-		setDecoupleFull();
+        //switch active test method to "temperature has to rise":
+        setDecoupleFull();
     }
-	
-	//Phase 2: Wir sind voll aufgeheizt und prüfen ob die Temperatur ohne Änderung der Zieltemperatur abdriftet.
-	//         Schlägt an, wenn die Heizkartusche kaputt geht oder rausrutscht. Oder auch wenn der Sensorwert willkürlich wandert.
-	//         Ist der Sensor ausserhalb der bekannten MIN-MAX Limits wird das auch erkannt.
-	//
-	//         ???: 
-	//         Der Regler steuert, wenn der Fehler anfängt, soweit es geht noch nach. Driftet der Sensorwert wegen schleichendem Sensordefekt !langsam! nach unten, heizt der PID-Regler um so mehr.
-	//         Solange der PID-Regler den Drift kompensieren kann und das System glaubt, die Temperaturen sind im Rahmen von MIN-MAX könnte der Heizblock heißer sein als gewollt!
-	//         Allerdings sollte der Thermistor > 300°C schnell das Zeitliche segnen völligen Mist anzeigen und dann greifen die Checks wieder.
+
+    //Phase 2: Wir sind voll aufgeheizt und prüfen ob die Temperatur ohne Änderung der Zieltemperatur abdriftet.
+    //         Schlägt an, wenn die Heizkartusche kaputt geht oder rausrutscht. Oder auch wenn der Sensorwert willkürlich wandert.
+    //         Ist der Sensor ausserhalb der bekannten MIN-MAX Limits wird das auch erkannt.
+    //
+    //         ???: 
+    //         Der Regler steuert, wenn der Fehler anfängt, soweit es geht noch nach. Driftet der Sensorwert wegen schleichendem Sensordefekt !langsam! nach unten, heizt der PID-Regler um so mehr.
+    //         Solange der PID-Regler den Drift kompensieren kann und das System glaubt, die Temperaturen sind im Rahmen von MIN-MAX könnte der Heizblock heißer sein als gewollt!
+    //         Allerdings sollte der Thermistor > 300°C schnell das Zeitliche segnen völligen Mist anzeigen und dann greifen die Checks wieder.
     inline void startHoldDecoupleTest(millis_t &t)
     {
-		//nur starten, wenn es nicht schon läuft.
-        if(isDecoupleHold()) return;
-		//nicht starten, wenn die temperatur "noch" ausserhalb der decoupling varianz liegt. kann z.b. sein, dass die pid-control-range 30 grad ist und das hier 20.
-        if(fabs(currentTemperatureC - targetTemperatureC) + 1 > DECOUPLING_TEST_MAX_HOLD_VARIANCE) return;
-		//beim ersten start setzt man den timer auf "jetzt". Es dauert also bis zum ersten check nicht 1 sekunde sondern so wie die config eingestellt ist.
-		//erst danach macht der code jede sekunde den "Wackelcheck".
+        //nur starten, wenn es nicht schon läuft.
+        if (isDecoupleHold()) return;
+        //nicht starten, wenn die temperatur "noch" ausserhalb der decoupling varianz liegt. kann z.b. sein, dass die pid-control-range 30 grad ist und das hier 20.
+        if (fabs(currentTemperatureC - targetTemperatureC) + 1 > DECOUPLING_TEST_MAX_HOLD_VARIANCE) return;
+        //beim ersten start setzt man den timer auf "jetzt". Es dauert also bis zum ersten check nicht 1 sekunde sondern so wie die config eingestellt ist.
+        //erst danach macht der code jede sekunde den "Wackelcheck".
         lastDecoupleTest = t;
         lastDecoupleTemp = targetTemperatureC;
-		//switch active test method to "temperature has to stay where it was":
-		setDecoupleHold();
+        //switch active test method to "temperature has to stay where it was":
+        setDecoupleHold();
     }
-	
-	//4 Funktionen um die Sensorstatus Flags in den einzelnen TemperatureController zu schreiben.
+
+    //4 Funktionen um die Sensorstatus Flags in den einzelnen TemperatureController zu schreiben.
     inline void setSensorDefect(bool on) {
-        if(on) flags |= TEMPERATURE_CONTROLLER_FLAG_SENSDEFECT;
+        if (on) flags |= TEMPERATURE_CONTROLLER_FLAG_SENSDEFECT;
         else flags &= ~TEMPERATURE_CONTROLLER_FLAG_SENSDEFECT;
     }
     inline bool isSensorDefect() {
         return flags & TEMPERATURE_CONTROLLER_FLAG_SENSDEFECT;
     }
     inline void setSensorDecoupled(bool on) {
-        if(on) flags |= TEMPERATURE_CONTROLLER_FLAG_SENSDECOUPLED;
+        if (on) flags |= TEMPERATURE_CONTROLLER_FLAG_SENSDECOUPLED;
         else flags &= ~TEMPERATURE_CONTROLLER_FLAG_SENSDECOUPLED;
     }
     inline bool isSensorDecoupled()
@@ -172,7 +172,7 @@ current state variables, like current temperature, feeder position etc.
 */
 class Extruder   // Size: 12*1 Byte+12*4 Byte+4*2Byte = 68 Byte
 {
-    public:
+public:
     static      Extruder*   current;
 
 #if FEATURE_DITTO_PRINTING
@@ -211,31 +211,31 @@ class Extruder   // Size: 12*1 Byte+12*4 Byte+4*2Byte = 68 Byte
     static INLINE void step()
     {
 #if NUM_EXTRUDER==1
-        WRITE(EXT0_STEP_PIN,HIGH);
+        WRITE(EXT0_STEP_PIN, HIGH);
 #else
-        switch(Extruder::current->id)
+        switch (Extruder::current->id)
         {
-            case 0:
-            {
+        case 0:
+        {
 #if NUM_EXTRUDER>0
-                WRITE(EXT0_STEP_PIN,HIGH);
+            WRITE(EXT0_STEP_PIN, HIGH);
 
 #if FEATURE_DITTO_PRINTING
-                if(Extruder::dittoMode)
-                {
-                    WRITE(EXT1_STEP_PIN,HIGH);
-                }
+            if (Extruder::dittoMode)
+            {
+                WRITE(EXT1_STEP_PIN, HIGH);
+            }
 #endif // FEATURE_DITTO_PRINTING
 #endif // NUM_EXTRUDER>0
-                break;
-            }
+            break;
+        }
 
 #if defined(EXT1_STEP_PIN) && NUM_EXTRUDER>1
-            case 1:
-            {
-                WRITE(EXT1_STEP_PIN,HIGH);
-                break;
-            }
+        case 1:
+        {
+            WRITE(EXT1_STEP_PIN, HIGH);
+            break;
+        }
 #endif // defined(EXT1_STEP_PIN) && NUM_EXTRUDER>1
         }
 #endif
@@ -247,31 +247,31 @@ class Extruder   // Size: 12*1 Byte+12*4 Byte+4*2Byte = 68 Byte
     static INLINE void unstep()
     {
 #if NUM_EXTRUDER==1
-        WRITE(EXT0_STEP_PIN,LOW);
+        WRITE(EXT0_STEP_PIN, LOW);
 #else
-        switch(Extruder::current->id)
+        switch (Extruder::current->id)
         {
-            case 0:
-            {
+        case 0:
+        {
 #if NUM_EXTRUDER>0
-                WRITE(EXT0_STEP_PIN,LOW);
+            WRITE(EXT0_STEP_PIN, LOW);
 
 #if FEATURE_DITTO_PRINTING
-                if(Extruder::dittoMode)
-                {
-                    WRITE(EXT1_STEP_PIN,LOW);
-                }
+            if (Extruder::dittoMode)
+            {
+                WRITE(EXT1_STEP_PIN, LOW);
+            }
 #endif // FEATURE_DITTO_PRINTING
 #endif // NUM_EXTRUDER>0
-                break;
-            }
+            break;
+        }
 
 #if defined(EXT1_STEP_PIN) && NUM_EXTRUDER>1
-            case 1:
-            {
-                WRITE(EXT1_STEP_PIN,LOW);
-                break;
-            }
+        case 1:
+        {
+            WRITE(EXT1_STEP_PIN, LOW);
+            break;
+        }
 #endif // defined(EXT1_STEP_PIN) && NUM_EXTRUDER>1
         }
 #endif // NUM_EXTRUDER==1
@@ -283,54 +283,54 @@ class Extruder   // Size: 12*1 Byte+12*4 Byte+4*2Byte = 68 Byte
     static inline void setDirection(uint8_t dir)
     {
 #if NUM_EXTRUDER==1
-        if(dir)
+        if (dir)
         {
-            if( Extruder::current->stepperDirection != 1 )
+            if (Extruder::current->stepperDirection != 1)
             {
-                WRITE(EXT0_DIR_PIN,!EXT0_INVERSE);
+                WRITE(EXT0_DIR_PIN, !EXT0_INVERSE);
                 Extruder::current->stepperDirection = 1;
             }
         }
         else
         {
-            if( Extruder::current->stepperDirection != -1 )
+            if (Extruder::current->stepperDirection != -1)
             {
-                WRITE(EXT0_DIR_PIN,EXT0_INVERSE);
+                WRITE(EXT0_DIR_PIN, EXT0_INVERSE);
                 Extruder::current->stepperDirection = -1;
             }
         }
 #else
-        switch(Extruder::current->id)
+        switch (Extruder::current->id)
         {
 #if NUM_EXTRUDER>0
-            case 0:
-            {
-                if(dir)
-                    WRITE(EXT0_DIR_PIN,!EXT0_INVERSE);
-                else
-                    WRITE(EXT0_DIR_PIN,EXT0_INVERSE);
+        case 0:
+        {
+            if (dir)
+                WRITE(EXT0_DIR_PIN, !EXT0_INVERSE);
+            else
+                WRITE(EXT0_DIR_PIN, EXT0_INVERSE);
 
 #if FEATURE_DITTO_PRINTING
-                if(Extruder::dittoMode) {
-                    if(dir)
-                        WRITE(EXT1_DIR_PIN,!EXT1_INVERSE);
-                    else
-                        WRITE(EXT1_DIR_PIN,EXT1_INVERSE);
-                }
-#endif // FEATURE_DITTO_PRINTING
-                break;
+            if (Extruder::dittoMode) {
+                if (dir)
+                    WRITE(EXT1_DIR_PIN, !EXT1_INVERSE);
+                else
+                    WRITE(EXT1_DIR_PIN, EXT1_INVERSE);
             }
+#endif // FEATURE_DITTO_PRINTING
+            break;
+        }
 #endif // NUM_EXTRUDER>0
 
 #if defined(EXT1_DIR_PIN) && NUM_EXTRUDER>1
-            case 1:
-            {
-                if(dir)
-                    WRITE(EXT1_DIR_PIN,!EXT1_INVERSE);
-                else
-                    WRITE(EXT1_DIR_PIN,EXT1_INVERSE);
-                break;
-            }
+        case 1:
+        {
+            if (dir)
+                WRITE(EXT1_DIR_PIN, !EXT1_INVERSE);
+            else
+                WRITE(EXT1_DIR_PIN, EXT1_INVERSE);
+            break;
+        }
 #endif // defined(EXT1_DIR_PIN) && NUM_EXTRUDER>1
         }
 #endif // NUM_EXTRUDER>0
@@ -342,26 +342,26 @@ class Extruder   // Size: 12*1 Byte+12*4 Byte+4*2Byte = 68 Byte
     {
 #if NUM_EXTRUDER==1
 #if EXT0_ENABLE_PIN>-1
-        WRITE(EXT0_ENABLE_PIN,EXT0_ENABLE_ON );
+        WRITE(EXT0_ENABLE_PIN, EXT0_ENABLE_ON);
 #endif // EXT0_ENABLE_PIN>-1
 #else
-        if(Extruder::current->enablePin > -1)
-            HAL::digitalWrite(Extruder::current->enablePin,Extruder::current->enableOn);
+        if (Extruder::current->enablePin > -1)
+            HAL::digitalWrite(Extruder::current->enablePin, Extruder::current->enableOn);
 
 #if FEATURE_DITTO_PRINTING
-        if(Extruder::dittoMode)
+        if (Extruder::dittoMode)
         {
-            if(extruder[1].enablePin > -1)
-                HAL::digitalWrite(extruder[1].enablePin,extruder[1].enableOn);
+            if (extruder[1].enablePin > -1)
+                HAL::digitalWrite(extruder[1].enablePin, extruder[1].enableOn);
         }
 #endif // FEATURE_DITTO_PRINTING
 #endif // NUM_EXTRUDER==1
 
 #if STEPPER_ON_DELAY
-        if( !Extruder::current->enabled )
+        if (!Extruder::current->enabled)
         {
             Extruder::current->enabled = 1;
-            HAL::delayMilliseconds( STEPPER_ON_DELAY );
+            HAL::delayMilliseconds(STEPPER_ON_DELAY);
         }
 #endif // STEPPER_ON_DELAY
 
@@ -371,9 +371,9 @@ class Extruder   // Size: 12*1 Byte+12*4 Byte+4*2Byte = 68 Byte
     static void selectExtruderById(uint8_t extruderId);
     static void initExtruder();
     static void initHeatedBed();
-    static void setHeatedBedTemperature(float temperatureInCelsius,bool beep = false);
+    static void setHeatedBedTemperature(float temperatureInCelsius, bool beep = false);
     static float getHeatedBedTemperature();
-    static void setTemperatureForExtruder(float temperatureInCelsius,uint8_t extr,bool beep = false);
+    static void setTemperatureForExtruder(float temperatureInCelsius, uint8_t extr, bool beep = false);
     static void setTemperatureForAllExtruders(float temperatureInCelsius, bool beep);
 }; // Extruder
 

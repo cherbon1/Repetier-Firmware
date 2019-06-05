@@ -32,14 +32,14 @@ public:
     FSTRINGVAR(tNAN)
     FSTRINGVAR(tINF)
     FSTRINGVAR(tError)
-	FSTRINGVAR(tFatal)
+    FSTRINGVAR(tFatal)
     FSTRINGVAR(tInfo)
     FSTRINGVAR(tWarning)
     FSTRINGVAR(tResend)
     FSTRINGVAR(tEcho)
     FSTRINGVAR(tOkSpace)
     FSTRINGVAR(tWrongChecksum)
-	FSTRINGVAR(tFormatError)
+    FSTRINGVAR(tFormatError)
     FSTRINGVAR(tMissingChecksum)
     FSTRINGVAR(tDonePrinting)
     FSTRINGVAR(tX)
@@ -168,7 +168,7 @@ public:
     FSTRINGVAR(tHeatedBed)
     FSTRINGVAR(tExtruderSpace)
     FSTRINGVAR(tTempSensorDefect)
-	FSTRINGVAR(tTempHeaterDefect)
+    FSTRINGVAR(tTempHeaterDefect)
     FSTRINGVAR(tTempSensorWorking)
     FSTRINGVAR(tDryModeUntilRestart)
 
@@ -347,16 +347,16 @@ public:
 #if FEATURE_FIND_Z_ORIGIN
     FSTRINGVAR(tFindZOrigin)
 #endif // FEATURE_FIND_Z_ORIGIN
-	FSTRINGVAR(tCap)
-	FSTRINGVAR(tConfig)
+    FSTRINGVAR(tCap)
+    FSTRINGVAR(tConfig)
 
-	static void cap(FSTRINGPARAM(text));
-	static void config(FSTRINGPARAM(text));
-	static void config(FSTRINGPARAM(text), int value);
-	static void config(FSTRINGPARAM(text), const char *msg);
-	static void config(FSTRINGPARAM(text), int32_t value);
-	static void config(FSTRINGPARAM(text), uint32_t value);
-	static void config(FSTRINGPARAM(text), float value, uint8_t digits = 2);
+    static void cap(FSTRINGPARAM(text));
+    static void config(FSTRINGPARAM(text));
+    static void config(FSTRINGPARAM(text), int value);
+    static void config(FSTRINGPARAM(text), const char *msg);
+    static void config(FSTRINGPARAM(text), int32_t value);
+    static void config(FSTRINGPARAM(text), uint32_t value);
+    static void config(FSTRINGPARAM(text), float value, uint8_t digits = 2);
     static void printNumber(uint32_t n);
     static void printWarningF(FSTRINGPARAM(text));
     static void printInfoF(FSTRINGPARAM(text));
@@ -366,32 +366,32 @@ public:
     static void printErrorFLN(FSTRINGPARAM(text));
     static void printFLN(FSTRINGPARAM(text));
     static void printF(FSTRINGPARAM(ptr));
-    static void printF(FSTRINGPARAM(text),int value);
-    static void printF(FSTRINGPARAM(text),const char *msg);
-    static void printF(FSTRINGPARAM(text),int32_t value);
-    static void printF(FSTRINGPARAM(text),uint32_t value);
-    static void printF(FSTRINGPARAM(text),float value,uint8_t digits=2,bool komma_as_dot=false);
-    static void printFLN(FSTRINGPARAM(text),int value);
-    static void printFLN(FSTRINGPARAM(text),int32_t value);
-    static void printFLN(FSTRINGPARAM(text),uint32_t value);
-    static void printFLN(FSTRINGPARAM(text),const char *msg);
-    static void printFLN(FSTRINGPARAM(text),float value,uint8_t digits=2,bool komma_as_dot=false);
-    static void printArrayFLN(FSTRINGPARAM(text),float *arr,uint8_t n=4,uint8_t digits=2);
-    static void printArrayFLN(FSTRINGPARAM(text),int32_t *arr,uint8_t n=4);
+    static void printF(FSTRINGPARAM(text), int value);
+    static void printF(FSTRINGPARAM(text), const char *msg);
+    static void printF(FSTRINGPARAM(text), int32_t value);
+    static void printF(FSTRINGPARAM(text), uint32_t value);
+    static void printF(FSTRINGPARAM(text), float value, uint8_t digits = 2, bool komma_as_dot = false);
+    static void printFLN(FSTRINGPARAM(text), int value);
+    static void printFLN(FSTRINGPARAM(text), int32_t value);
+    static void printFLN(FSTRINGPARAM(text), uint32_t value);
+    static void printFLN(FSTRINGPARAM(text), const char *msg);
+    static void printFLN(FSTRINGPARAM(text), float value, uint8_t digits = 2, bool komma_as_dot = false);
+    static void printArrayFLN(FSTRINGPARAM(text), float *arr, uint8_t n = 4, uint8_t digits = 2);
+    static void printArrayFLN(FSTRINGPARAM(text), int32_t *arr, uint8_t n = 4);
     static void printSharpLine();
     static void print(int32_t value);
-    static inline void print(uint32_t value) {printNumber(value);}
-    static inline void print(int value) {print((int32_t)value);}
+    static inline void print(uint32_t value) { printNumber(value); }
+    static inline void print(int value) { print((int32_t)value); }
     static void print(const char *text);
     static inline void print(char c) {
-		GCodeSource::writeToAll(c);
-	}
-    static void printFloat(float number, uint8_t digits, bool komma_as_dot=false);
+        GCodeSource::writeToAll(c);
+    }
+    static void printFloat(float number, uint8_t digits, bool komma_as_dot = false);
     static inline void println() {
-		GCodeSource::writeToAll('\r');
-		GCodeSource::writeToAll('\n');
-	}
-	static bool writeToAll;
+        GCodeSource::writeToAll('\r');
+        GCodeSource::writeToAll('\n');
+    }
+    static bool writeToAll;
 }; // Com
 
 #endif // COMMUNICATION_H
