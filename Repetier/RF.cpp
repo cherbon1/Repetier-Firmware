@@ -5884,7 +5884,7 @@ void handlePauseTime(millis_t uTime) {
                             //Zieltemperatur: z.B. 230 - 100 = 130°C Pausetemperatur.
                             Extruder::setTemperatureForExtruder(extruder[i].tempControl.targetTemperatureC - float(coolDownSetting), i);
                             extruder[i].tempControl.paused = coolDownSetting; // Merke nach Set-Temp sonst wird .paused genullt.
-                            //laden bei continuePrint()
+                            //laden bei continuePrintLoadTemperatures()
                         }
                     }
                     g_pauseStatus = PAUSE_STATUS_PAUSED_STANDBY;
@@ -8747,7 +8747,7 @@ void processSpecialGCode(GCode* pCommand) {
                             }
                         }
 
-                        //Anzeige der aktuellen Settings
+                        // Anzeige der aktuellen Settings
                         Com::printFLN(PSTR("M3900/M3901: ### AKTIVE ZOS SETTINGS ###"));
                         Com::printF(PSTR("M3900/M3901: Testposition [X]: "), g_ZOSTestPoint[X_AXIS]);
                         Com::printF(PSTR(" Testposition [Y]: "), g_ZOSTestPoint[Y_AXIS]);

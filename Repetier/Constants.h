@@ -18,7 +18,7 @@
 #ifndef CONSTANTS_H
 #define CONSTANTS_H
 
-#define REPETIER_VERSION "1.43.99"
+#define REPETIER_VERSION "1.44.00"
 #define UI_PRINTER_COMPANY "Conrad Community"
 #define UI_VERSION_STRING "V " REPETIER_VERSION
 

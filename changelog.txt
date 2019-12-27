@@ -21,6 +21,10 @@ TODO:
 # milling mode: test or rework milling functions
 # pause @RF1000: test if z max-endstop is respected while moving in dual-endstop circular setting
 
+V 01.44.00.Mod (2019-12-28)
+- added fixed missing optional break
+- reformatted code using "clang format"
+
 V 01.43.99.Mod (2019-05-26)
 - fixed a bug that sometimes caused the zcompensation to "hang" when the printlines were long.
   The problem was that the compensation was only able to drive into one direction per move
