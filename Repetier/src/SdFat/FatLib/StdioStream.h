@@ -86,23 +86,23 @@ const uint8_t UNGETC_BUF_SIZE = 2;
 #ifndef EOF
 /** End-of-file return value. */
 #define EOF (-1)
-#endif  // EOF
+#endif // EOF
 #ifndef NULL
 /** Null pointer */
 #define NULL 0
-#endif  // NULL
+#endif // NULL
 #ifndef SEEK_CUR
 /** Seek relative to current position. */
 #define SEEK_CUR 1
-#endif  // SEEK_CUR
-#ifndef  SEEK_END
+#endif // SEEK_CUR
+#ifndef SEEK_END
 /** Seek relative to end-of-file. */
 #define SEEK_END 2
-#endif  // SEEK_END
+#endif // SEEK_END
 #ifndef SEEK_SET
 /** Seek relative to start-of-file. */
 #define SEEK_SET 0
-#endif  // SEEK_SET
+#endif // SEEK_SET
 //------------------------------------------------------------------------------
 /** \class StdioStream
  * \brief StdioStream implements a minimal stdio stream.
@@ -110,22 +110,22 @@ const uint8_t UNGETC_BUF_SIZE = 2;
  * StdioStream does not support subdirectories or long file names.
  */
 class StdioStream : private FatFile {
- public:
-  /** Constructor
+public:
+    /** Constructor
    *
    */
-  StdioStream() {
-    m_w = m_r = 0;
-    m_p = m_buf;
-    m_status = 0;
-  }
-  //----------------------------------------------------------------------------
-  /** Clear the stream's end-of-file and error indicators. */
-  void clearerr() {
-    m_status &= ~(S_ERR | S_EOF);
-  }
-  //----------------------------------------------------------------------------
-  /** Close a stream.
+    StdioStream() {
+        m_w = m_r = 0;
+        m_p = m_buf;
+        m_status = 0;
+    }
+    //----------------------------------------------------------------------------
+    /** Clear the stream's end-of-file and error indicators. */
+    void clearerr() {
+        m_status &= ~(S_ERR | S_EOF);
+    }
+    //----------------------------------------------------------------------------
+    /** Close a stream.
    *
    * A successful call to the fclose function causes the stream  to be
    * flushed and the associated file to be closed. Any unwritten buffered
@@ -136,23 +136,23 @@ class StdioStream : private FatFile {
    * \return zero if the stream was successfully closed, or EOF if any any
    * errors are detected.
    */
-  int fclose();
-  //----------------------------------------------------------------------------
-  /** Test the stream's end-of-file indicator.
+    int fclose();
+    //----------------------------------------------------------------------------
+    /** Test the stream's end-of-file indicator.
    * \return non-zero if and only if the end-of-file indicator is set.
    */
-  int feof() {
-    return (m_status & S_EOF) != 0;
-  }
-  //----------------------------------------------------------------------------
-  /** Test the stream's error indicator.
+    int feof() {
+        return (m_status & S_EOF) != 0;
+    }
+    //----------------------------------------------------------------------------
+    /** Test the stream's error indicator.
    * \return return non-zero if and only if the error indicator is set.
    */
-  int ferror() {
-    return (m_status & S_ERR) != 0;
-  }
-  //----------------------------------------------------------------------------
-  /** Flush the stream.
+    int ferror() {
+        return (m_status & S_ERR) != 0;
+    }
+    //----------------------------------------------------------------------------
+    /** Flush the stream.
    *
    * If stream is an output stream or an update stream in which the most
    * recent operation was not input, any unwritten data is written to the
@@ -162,20 +162,20 @@ class StdioStream : private FatFile {
    * \return sets the error indicator for the stream and returns EOF if an
    * error occurs, otherwise it returns zero.
    */
-  int fflush();
-  //----------------------------------------------------------------------------
-  /** Get a byte from the stream.
+    int fflush();
+    //----------------------------------------------------------------------------
+    /** Get a byte from the stream.
    *
    * \return If the end-of-file indicator for the stream is set, or if the
    * stream is at end-of-file, the end-of-file indicator for the stream is
    * set and the fgetc function returns EOF. Otherwise, the fgetc function
    * returns the next character from the input stream.
    */
-  int fgetc() {
-    return m_r-- == 0 ? fillGet() : *m_p++;
-  }
-  //----------------------------------------------------------------------------
-  /** Get a string from a stream.
+    int fgetc() {
+        return m_r-- == 0 ? fillGet() : *m_p++;
+    }
+    //----------------------------------------------------------------------------
+    /** Get a string from a stream.
    *
    * The fgets function reads at most one less than the number of
    * characters specified by num from the stream into the array pointed
@@ -197,9 +197,9 @@ class StdioStream : private FatFile {
    * occurs during the operation, the array contents are indeterminate
    * and a null pointer is returned.
    */
-  char* fgets(char* str, size_t num, size_t* len = 0);
-  //----------------------------------------------------------------------------
-  /** Open a stream.
+    char* fgets(char* str, size_t num, size_t* len = 0);
+    //----------------------------------------------------------------------------
+    /** Open a stream.
    *
    * Open a file and associates the stream with it.
    *
@@ -259,9 +259,9 @@ class StdioStream : private FatFile {
    *
    * \return true for success or false for failure.
    */
-  bool fopen(const char* path, const char * mode);
-  //----------------------------------------------------------------------------
-  /** Write a byte to a stream.
+    bool fopen(const char* path, const char* mode);
+    //----------------------------------------------------------------------------
+    /** Write a byte to a stream.
    *
    * \param[in] c the byte to be written  (converted to an unsigned char).
    *
@@ -269,11 +269,11 @@ class StdioStream : private FatFile {
    * has written. Otherwise, it returns EOF and sets the error indicator for
    * the stream.
    */
-  int fputc(int c) {
-    return m_w-- == 0 ? flushPut(c) : *m_p++ = c;
-  }
-  //----------------------------------------------------------------------------
-  /** Write a string to a stream.
+    int fputc(int c) {
+        return m_w-- == 0 ? flushPut(c) : *m_p++ = c;
+    }
+    //----------------------------------------------------------------------------
+    /** Write a string to a stream.
    *
    * \param[in] str a pointer to the string to be written.
    *
@@ -281,9 +281,9 @@ class StdioStream : private FatFile {
    * number. Otherwise, it returns EOF and sets the error indicator for
    * the stream.
    */
-  int fputs(const char* str);
-  //----------------------------------------------------------------------------
-  /** Binary input.
+    int fputs(const char* str);
+    //----------------------------------------------------------------------------
+    /** Binary input.
    *
    * Reads an array of up to count elements, each one with a size of size
    * bytes.
@@ -299,9 +299,9 @@ class StdioStream : private FatFile {
    * is zero, fread returns zero and the contents of the array and the
    * state of the stream remain unchanged.
    */
-  size_t fread(void* ptr, size_t size, size_t count);
-  //----------------------------------------------------------------------------
-  /** Set the file position for the stream.
+    size_t fread(void* ptr, size_t size, size_t count);
+    //----------------------------------------------------------------------------
+    /** Set the file position for the stream.
    *
    * \param[in] offset number of offset from the origin.
    *
@@ -317,16 +317,16 @@ class StdioStream : private FatFile {
    * \return zero for success. Otherwise, it returns non-zero and sets the
    * error indicator for the stream.
    */
-  int fseek(int32_t offset, int origin);
-  //----------------------------------------------------------------------------
-  /** Get the current position in a stream.
+    int fseek(int32_t offset, int origin);
+    //----------------------------------------------------------------------------
+    /** Get the current position in a stream.
    *
    * \return If successful, ftell return the current value of the position
    * indicator. On failure, ftell returns −1L.
    */
-  int32_t ftell();
-  //----------------------------------------------------------------------------
-  /** Binary output.
+    int32_t ftell();
+    //----------------------------------------------------------------------------
+    /** Binary output.
    *
    * Writes an array of up to count elements, each one with a size of size
    * bytes.
@@ -340,9 +340,9 @@ class StdioStream : private FatFile {
    * less than count, an error has occurred.  If size or count is zero,
    * fwrite returns zero.
    */
-  size_t fwrite(const void * ptr, size_t size, size_t count);
-  //----------------------------------------------------------------------------
-  /** Get a byte from the stream.
+    size_t fwrite(const void* ptr, size_t size, size_t count);
+    //----------------------------------------------------------------------------
+    /** Get a byte from the stream.
    *
    * getc and fgetc are equivalent but getc is in-line so it is faster but
    * require more flash memory.
@@ -352,12 +352,11 @@ class StdioStream : private FatFile {
    * set and the fgetc function returns EOF. Otherwise, the fgetc function
    * returns the next character from the input stream.
    */
-  inline __attribute__((always_inline))
-  int getc() {
-    return m_r-- == 0 ? fillGet() : *m_p++;
-  }
-  //----------------------------------------------------------------------------
-  /** Write a byte to a stream.
+    inline __attribute__((always_inline)) int getc() {
+        return m_r-- == 0 ? fillGet() : *m_p++;
+    }
+    //----------------------------------------------------------------------------
+    /** Write a byte to a stream.
    *
    * putc and fputc are equivalent but putc is in-line so it is faster but
    * require more flash memory.
@@ -368,58 +367,56 @@ class StdioStream : private FatFile {
    * has written. Otherwise, it returns EOF and sets the error indicator for
    * the stream.
    */
-  inline __attribute__((always_inline))
-  int putc(int c) {
-    return m_w-- == 0 ? flushPut(c) : *m_p++ = c;
-  }
-  //----------------------------------------------------------------------------
-  /** Write a CR/LF.
+    inline __attribute__((always_inline)) int putc(int c) {
+        return m_w-- == 0 ? flushPut(c) : *m_p++ = c;
+    }
+    //----------------------------------------------------------------------------
+    /** Write a CR/LF.
    *
    * \return two, the number of bytes written, for success or -1 for failure.
    */
-  inline __attribute__((always_inline))
-  int putCRLF() {
-    if (m_w < 2) {
-      if (!flushBuf()) {
-        return -1;
-      }
+    inline __attribute__((always_inline)) int putCRLF() {
+        if (m_w < 2) {
+            if (!flushBuf()) {
+                return -1;
+            }
+        }
+        *m_p++ = '\r';
+        *m_p++ = '\n';
+        m_w -= 2;
+        return 2;
     }
-    *m_p++ = '\r';
-    *m_p++ = '\n';
-    m_w -= 2;
-    return 2;
-  }
-  //----------------------------------------------------------------------------
-  /** Write a character.
+    //----------------------------------------------------------------------------
+    /** Write a character.
    * \param[in] c the character to write.
    * \return the number of bytes written.
    */
-  size_t print(char c) {
-    return putc(c) < 0 ? 0 : 1;
-  }
-  //----------------------------------------------------------------------------
-  /** Write a string.
+    size_t print(char c) {
+        return putc(c) < 0 ? 0 : 1;
+    }
+    //----------------------------------------------------------------------------
+    /** Write a string.
    *
    * \param[in] str the string to be written.
    *
    * \return the number of bytes written.
    */
-  size_t print(const char* str) {
-    int n = fputs(str);
-    return n < 0 ? 0 : n;
-  }
-  //----------------------------------------------------------------------------
+    size_t print(const char* str) {
+        int n = fputs(str);
+        return n < 0 ? 0 : n;
+    }
+    //----------------------------------------------------------------------------
 #if (defined(ARDUINO) && ENABLE_ARDUINO_FEATURES) || defined(DOXYGEN)
-  /** Print a string stored in flash memory.
+    /** Print a string stored in flash memory.
    *
    * \param[in] str the string to print.
    *
    * \return the number of bytes written.
    */
-  size_t print(const __FlashStringHelper *str);
-#endif  // (defined(ARDUINO) && ENABLE_ARDUINO_FEATURES) || defined(DOXYGEN)
-  //----------------------------------------------------------------------------
-  /** Print a floating point number.
+    size_t print(const __FlashStringHelper* str);
+#endif // (defined(ARDUINO) && ENABLE_ARDUINO_FEATURES) || defined(DOXYGEN)
+    //----------------------------------------------------------------------------
+    /** Print a floating point number.
    *
    * \param[in] prec Number of digits after decimal point.
    *
@@ -427,11 +424,11 @@ class StdioStream : private FatFile {
    *
    * \return the number of bytes written.
    */
-  size_t print(double val, uint8_t prec = 2) {
-    return print(static_cast<float>(val), prec);
-  }
-  //----------------------------------------------------------------------------
-  /** Print a floating point number.
+    size_t print(double val, uint8_t prec = 2) {
+        return print(static_cast<float>(val), prec);
+    }
+    //----------------------------------------------------------------------------
+    /** Print a floating point number.
    *
    * \param[in] prec Number of digits after decimal point.
    *
@@ -439,32 +436,32 @@ class StdioStream : private FatFile {
    *
    * \return the number of bytes written.
    */
-  size_t print(float val, uint8_t prec = 2) {
-    int n = printDec(val, prec);
-    return n > 0 ? n : 0;
-  }
-  //----------------------------------------------------------------------------
-  /**  Print a number.
+    size_t print(float val, uint8_t prec = 2) {
+        int n = printDec(val, prec);
+        return n > 0 ? n : 0;
+    }
+    //----------------------------------------------------------------------------
+    /**  Print a number.
    *
    * \param[in] val the number to be printed.
    *
    * \return the number of bytes written.
    */
-  template <typename T>
-  size_t print(T val) {
-    int n = printDec(val);
-    return n > 0 ? n : 0;
-  }
-  //----------------------------------------------------------------------------
-  /** Write a CR/LF.
+    template <typename T>
+    size_t print(T val) {
+        int n = printDec(val);
+        return n > 0 ? n : 0;
+    }
+    //----------------------------------------------------------------------------
+    /** Write a CR/LF.
    *
    * \return two, the number of bytes written, for success or zero for failure.
    */
-  size_t println() {
-    return putCRLF() > 0 ? 2 : 0;
-  }
-  //----------------------------------------------------------------------------
-  /** Print a floating point number followed by CR/LF.
+    size_t println() {
+        return putCRLF() > 0 ? 2 : 0;
+    }
+    //----------------------------------------------------------------------------
+    /** Print a floating point number followed by CR/LF.
    *
    * \param[in] val the number to be printed.
    *
@@ -472,11 +469,11 @@ class StdioStream : private FatFile {
    *
    * \return the number of bytes written.
    */
-  size_t println(double val, uint8_t prec = 2) {
-    return println(static_cast<float>(val), prec);
-  }
-  //----------------------------------------------------------------------------
-  /** Print a floating point number followed by CR/LF.
+    size_t println(double val, uint8_t prec = 2) {
+        return println(static_cast<float>(val), prec);
+    }
+    //----------------------------------------------------------------------------
+    /** Print a floating point number followed by CR/LF.
    *
    * \param[in] val the number to be printed.
    *
@@ -484,139 +481,139 @@ class StdioStream : private FatFile {
    *
    * \return the number of bytes written.
    */
-  size_t println(float val, uint8_t prec = 2) {
-    int n = printDec(val, prec);
-    return n > 0 && putCRLF() > 0 ? n + 2 : 0;
-  }
-  //----------------------------------------------------------------------------
-  /** Print an item followed by CR/LF
+    size_t println(float val, uint8_t prec = 2) {
+        int n = printDec(val, prec);
+        return n > 0 && putCRLF() > 0 ? n + 2 : 0;
+    }
+    //----------------------------------------------------------------------------
+    /** Print an item followed by CR/LF
    *
    * \param[in] val the item to be printed.
    *
    * \return the number of bytes written.
    */
-  template <typename T>
-  size_t println(T val) {
-    int n = print(val);
-    return putCRLF() > 0 ? n + 2 : 0;
-  }
-  //----------------------------------------------------------------------------
-  /** Print a char as a number.
-   * \param[in] n number to be printed.
-   * \return The number of bytes written or -1 if an error occurs.
-   */
-  int printDec(char n) {
-    if (CHAR_MIN == 0) {
-      return printDec((unsigned char)n);
-    } else {
-      return printDec((signed char)n);
+    template <typename T>
+    size_t println(T val) {
+        int n = print(val);
+        return putCRLF() > 0 ? n + 2 : 0;
     }
-  }
-  //----------------------------------------------------------------------------
-  /** print a signed 8-bit integer
+    //----------------------------------------------------------------------------
+    /** Print a char as a number.
    * \param[in] n number to be printed.
    * \return The number of bytes written or -1 if an error occurs.
    */
-  int printDec(signed char n);
-  //----------------------------------------------------------------------------
-  /** Print an unsigned 8-bit number.
+    int printDec(char n) {
+        if (CHAR_MIN == 0) {
+            return printDec((unsigned char)n);
+        } else {
+            return printDec((signed char)n);
+        }
+    }
+    //----------------------------------------------------------------------------
+    /** print a signed 8-bit integer
+   * \param[in] n number to be printed.
+   * \return The number of bytes written or -1 if an error occurs.
+   */
+    int printDec(signed char n);
+    //----------------------------------------------------------------------------
+    /** Print an unsigned 8-bit number.
    * \param[in] n number to be print.
    * \return The number of bytes written or -1 if an error occurs.
    */
-  int printDec(unsigned char n) {
-    return printDec((uint16_t)n);
-  }
-  //----------------------------------------------------------------------------
-  /** Print a int16_t
+    int printDec(unsigned char n) {
+        return printDec((uint16_t)n);
+    }
+    //----------------------------------------------------------------------------
+    /** Print a int16_t
    * \param[in] n number to be printed.
    * \return The number of bytes written or -1 if an error occurs.
    */
-  int printDec(int16_t n);
-  //----------------------------------------------------------------------------
-  /** print a uint16_t.
+    int printDec(int16_t n);
+    //----------------------------------------------------------------------------
+    /** print a uint16_t.
    * \param[in] n number to be printed.
    * \return The number of bytes written or -1 if an error occurs.
    */
-  int printDec(uint16_t n);
-  //----------------------------------------------------------------------------
-  /** Print a signed 32-bit integer.
+    int printDec(uint16_t n);
+    //----------------------------------------------------------------------------
+    /** Print a signed 32-bit integer.
    * \param[in] n number to be printed.
    * \return The number of bytes written or -1 if an error occurs.
    */
-  int printDec(int32_t n);
-  //----------------------------------------------------------------------------
-  /** Write an unsigned 32-bit number.
+    int printDec(int32_t n);
+    //----------------------------------------------------------------------------
+    /** Write an unsigned 32-bit number.
    * \param[in] n number to be printed.
    * \return The number of bytes written or -1 if an error occurs.
    */
-  int printDec(uint32_t n);
-  //----------------------------------------------------------------------------
-  /** Print a double.
+    int printDec(uint32_t n);
+    //----------------------------------------------------------------------------
+    /** Print a double.
    * \param[in] value The number to be printed.
    * \param[in] prec Number of digits after decimal point.
    * \return The number of bytes written or -1 if an error occurs.
    */
-  int printDec(double value, uint8_t prec) {
-    return printDec(static_cast<float>(value), prec);
-  }
-  //----------------------------------------------------------------------------
-  /** Print a float.
+    int printDec(double value, uint8_t prec) {
+        return printDec(static_cast<float>(value), prec);
+    }
+    //----------------------------------------------------------------------------
+    /** Print a float.
    * \param[in] value The number to be printed.
    * \param[in] prec Number of digits after decimal point.
    * \return The number of bytes written or -1 if an error occurs.
    */
-  int printDec(float value, uint8_t prec);
-  //----------------------------------------------------------------------------
-  /** Print a number followed by a field terminator.
+    int printDec(float value, uint8_t prec);
+    //----------------------------------------------------------------------------
+    /** Print a number followed by a field terminator.
    * \param[in] value The number to be printed.
    * \param[in] term The field terminator.
    * \param[in] prec Number of digits after decimal point.
    * \return The number of bytes written or -1 if an error occurs.
    */
-  int printField(double value, char term, uint8_t prec = 2) {
-    return printField(static_cast<float>(value), term, prec) > 0;
-  }
-  //----------------------------------------------------------------------------
-  /** Print a number followed by a field terminator.
+    int printField(double value, char term, uint8_t prec = 2) {
+        return printField(static_cast<float>(value), term, prec) > 0;
+    }
+    //----------------------------------------------------------------------------
+    /** Print a number followed by a field terminator.
    * \param[in] value The number to be printed.
    * \param[in] term The field terminator.
    * \param[in] prec Number of digits after decimal point.
    * \return The number of bytes written or -1 if an error occurs.
    */
-  int printField(float value, char term, uint8_t prec = 2) {
-    int rtn = printDec(value, prec);
-    return rtn < 0 || putc(term) < 0 ? -1 : rtn + 1;
-  }
-  //----------------------------------------------------------------------------
-  /** Print a number followed by a field terminator.
+    int printField(float value, char term, uint8_t prec = 2) {
+        int rtn = printDec(value, prec);
+        return rtn < 0 || putc(term) < 0 ? -1 : rtn + 1;
+    }
+    //----------------------------------------------------------------------------
+    /** Print a number followed by a field terminator.
    * \param[in] value The number to be printed.
    * \param[in] term The field terminator.
    * \return The number of bytes written or -1 if an error occurs.
    */
-  template <typename T>
-  int printField(T value, char term) {
-    int rtn = printDec(value);
-    return rtn < 0 || putc(term) < 0 ? -1 : rtn + 1;
-  }
-  //----------------------------------------------------------------------------
-  /** Print HEX
+    template <typename T>
+    int printField(T value, char term) {
+        int rtn = printDec(value);
+        return rtn < 0 || putc(term) < 0 ? -1 : rtn + 1;
+    }
+    //----------------------------------------------------------------------------
+    /** Print HEX
    * \param[in] n number to be printed as HEX.
    *
    * \return The number of bytes written or -1 if an error occurs.
    */
-  int printHex(uint32_t n);
-  //----------------------------------------------------------------------------
-  /** Print HEX with CRLF
+    int printHex(uint32_t n);
+    //----------------------------------------------------------------------------
+    /** Print HEX with CRLF
    * \param[in] n number to be printed as HEX.
    *
    * \return The number of bytes written or -1 if an error occurs.
    */
-  int printHexln(uint32_t n) {
-    int rtn = printHex(n);
-    return  rtn < 0 || putCRLF() != 2 ? -1 : rtn + 2;
-  }
-  //----------------------------------------------------------------------------
-  /** Set position of a stream to the beginning.
+    int printHexln(uint32_t n) {
+        int rtn = printHex(n);
+        return rtn < 0 || putCRLF() != 2 ? -1 : rtn + 2;
+    }
+    //----------------------------------------------------------------------------
+    /** Set position of a stream to the beginning.
    *
    * The rewind function sets the file position to the beginning of the
    * file. It is equivalent to fseek(0L, SEEK_SET) except that the error
@@ -624,9 +621,9 @@ class StdioStream : private FatFile {
    *
    * \return true for success or false for failure.
    */
-  bool rewind();
-  //----------------------------------------------------------------------------
-  /** Push a byte back into an input stream.
+    bool rewind();
+    //----------------------------------------------------------------------------
+    /** Push a byte back into an input stream.
    *
    * \param[in] c the byte (converted to an unsigned char) to be pushed back.
    *
@@ -640,28 +637,28 @@ class StdioStream : private FatFile {
    * \return Upon successful completion, ungetc() returns the byte pushed
    * back after conversion. Otherwise it returns EOF.
    */
-  int ungetc(int c);
-  //============================================================================
- private:
-  bool fillBuf();
-  int fillGet();
-  bool flushBuf();
-  int flushPut(uint8_t c);
-  char* fmtSpace(uint8_t len);
-  int write(const void* buf, size_t count);
-  //----------------------------------------------------------------------------
-  // S_SRD and S_WR are never simultaneously asserted
-  static const uint8_t S_SRD = 0x01;  // OK to read
-  static const uint8_t S_SWR = 0x02;  // OK to write
-  static const uint8_t S_SRW = 0x04;  // open for reading & writing
-  static const uint8_t S_EOF = 0x10;  // found EOF
-  static const uint8_t S_ERR = 0x20;  // found error
-  //----------------------------------------------------------------------------
-  uint8_t  m_status;
-  uint8_t* m_p;
-  uint8_t  m_r;
-  uint8_t  m_w;
-  uint8_t  m_buf[STREAM_BUF_SIZE];
+    int ungetc(int c);
+    //============================================================================
+private:
+    bool fillBuf();
+    int fillGet();
+    bool flushBuf();
+    int flushPut(uint8_t c);
+    char* fmtSpace(uint8_t len);
+    int write(const void* buf, size_t count);
+    //----------------------------------------------------------------------------
+    // S_SRD and S_WR are never simultaneously asserted
+    static const uint8_t S_SRD = 0x01; // OK to read
+    static const uint8_t S_SWR = 0x02; // OK to write
+    static const uint8_t S_SRW = 0x04; // open for reading & writing
+    static const uint8_t S_EOF = 0x10; // found EOF
+    static const uint8_t S_ERR = 0x20; // found error
+    //----------------------------------------------------------------------------
+    uint8_t m_status;
+    uint8_t* m_p;
+    uint8_t m_r;
+    uint8_t m_w;
+    uint8_t m_buf[STREAM_BUF_SIZE];
 };
 //------------------------------------------------------------------------------
-#endif  // StdioStream_h
+#endif // StdioStream_h

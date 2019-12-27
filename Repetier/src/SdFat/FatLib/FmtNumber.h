@@ -26,10 +26,10 @@
 #define FmtNumber_h
 //  #include <ctype.h>
 inline bool isDigit(char c) {
-  return '0' <= c && c <= '9';
+    return '0' <= c && c <= '9';
 }
 inline bool isSpace(char c) {
-  return c == ' ' || (0X9 <= c && c <= 0XD);
+    return c == ' ' || (0X9 <= c && c <= 0XD);
 }
 #include <math.h>
 #include <stdint.h>
@@ -40,4 +40,4 @@ char* fmtFloat(float value, char* ptr, uint8_t prec, char expChar);
 char* fmtHex(uint32_t n, char* p);
 float scale10(float v, int8_t n);
 float scanFloat(const char* str, char** ptr);
-#endif  // FmtNumber_h
+#endif // FmtNumber_h

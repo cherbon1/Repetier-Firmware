@@ -22,7 +22,7 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
  */
- /**
+/**
  * \file
  * \brief Minimal AVR Serial driver.
  */
@@ -35,33 +35,33 @@
  * \brief mini serial class for the %SdFat library.
  */
 class MinimumSerial : public Print {
- public:
-  /** \return true for hardware serial */
-  operator bool() { return true; }
-  /**
+public:
+    /** \return true for hardware serial */
+    operator bool() { return true; }
+    /**
    * \return one if data is available.
    */
-  int available();
-  /**
+    int available();
+    /**
    * Set baud rate for serial port zero and enable in non interrupt mode.
    * Do not call this function if you use another serial library.
    * \param[in] baud rate
    */
-  void begin(uint32_t baud);
-  /** Wait for write done. */
-  void flush();
-  /**
+    void begin(uint32_t baud);
+    /** Wait for write done. */
+    void flush();
+    /**
    *  Unbuffered read
    *  \return -1 if no character is available or an available character.
    */
-  int read();
-  /**
+    int read();
+    /**
    * Unbuffered write
    *
    * \param[in] b byte to write.
    * \return 1
    */
-  size_t write(uint8_t b);
-  using Print::write;
+    size_t write(uint8_t b);
+    using Print::write;
 };
-#endif  // MinimumSerial_h
+#endif // MinimumSerial_h

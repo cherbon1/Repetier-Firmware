@@ -30,32 +30,32 @@
  */
 #if defined(__AVR__) || defined(DOXYGEN)
 /** boundary between stack and heap. */
-extern char *__brkval;
+extern char* __brkval;
 /** End of bss section.*/
 extern char __bss_end;
 /** Amount of free stack space.
  * \return The number of free bytes.
  */
 static int FreeStack() {
-  char* sp = reinterpret_cast<char*>(SP);
-  return __brkval ? sp - __brkval : sp - &__bss_end;
-//  char top;
-//  return __brkval ? &top - __brkval : &top - &__bss_end;
+    char* sp = reinterpret_cast<char*>(SP);
+    return __brkval ? sp - __brkval : sp - &__bss_end;
+    //  char top;
+    //  return __brkval ? &top - __brkval : &top - &__bss_end;
 }
-#elif defined(PLATFORM_ID)  // Particle board
+#elif defined(PLATFORM_ID) // Particle board
 static int FreeStack() {
-  return System.freeMemory();
+    return System.freeMemory();
 }
 #elif defined(__arm__)
 extern "C" char* sbrk(int incr);
 static int FreeStack() {
-  char top = 't';
-  return &top - reinterpret_cast<char*>(sbrk(0));
+    char top = 't';
+    return &top - reinterpret_cast<char*>(sbrk(0));
 }
 #else
 #warning FreeStack is not defined for this system.
 static int FreeStack() {
-  return 0;
+    return 0;
 }
 #endif
-#endif  // FreeStack_h
+#endif // FreeStack_h

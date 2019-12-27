@@ -32,7 +32,7 @@
 #include <stdint.h>
 #ifdef __AVR__
 #include <avr/io.h>
-#endif  // __AVR__
+#endif // __AVR__
 //------------------------------------------------------------------------------
 /**
  * Set INCLUDE_SDIOS nonzero to include sdios.h in SdFat.h.
@@ -99,9 +99,9 @@
 #elif defined(__arm__)
 // ARM gcc defines open flags.
 #define USE_FCNTL_H 1
-#else  // defined(__AVR__)
+#else // defined(__AVR__)
 #define USE_FCNTL_H 0
-#endif  // defined(__AVR__)
+#endif // defined(__AVR__)
 //------------------------------------------------------------------------------
 /**
  * If CHECK_FLASH_PROGRAMMING is zero, overlap of single sector flash
@@ -183,9 +183,9 @@
  */
 #ifdef __arm__
 #define USE_SEPARATE_FAT_CACHE 1
-#else  // __arm__
+#else // __arm__
 #define USE_SEPARATE_FAT_CACHE 0
-#endif  // __arm__
+#endif // __arm__
 //------------------------------------------------------------------------------
 /**
  * Set USE_MULTI_BLOCK_IO nonzero to use multi-block SD read/write.
@@ -204,9 +204,9 @@
 #if defined(__MK64FX512__) || defined(__MK66FX1M0__)
 #define ENABLE_SDIO_CLASS 1
 #define ENABLE_SDIOEX_CLASS 1
-#else  // ENABLE_SDIO_CLASS
+#else // ENABLE_SDIO_CLASS
 #define ENABLE_SDIO_CLASS 0
-#endif  // ENABLE_SDIO_CLASS
+#endif // ENABLE_SDIO_CLASS
 //------------------------------------------------------------------------------
 /**
  * Determine the default SPI configuration.
@@ -214,22 +214,22 @@
 #if defined(__STM32F1__) || defined(__STM32F4__) || defined(PLATFORM_ID)
 // has multiple SPI ports
 #define SD_HAS_CUSTOM_SPI 2
-#elif defined(__AVR__)\
-  || defined(__SAM3X8E__) || defined(__SAM3X8H__)\
-  || (defined(__arm__) && defined(CORE_TEENSY))\
-  || defined(ESP8266)
+#elif defined(__AVR__) \
+    || defined(__SAM3X8E__) || defined(__SAM3X8H__) \
+    || (defined(__arm__) && defined(CORE_TEENSY)) \
+    || defined(ESP8266)
 #define SD_HAS_CUSTOM_SPI 1
-#else  // SD_HAS_CUSTOM_SPI
+#else // SD_HAS_CUSTOM_SPI
 // Use standard SPI library.
 #define SD_HAS_CUSTOM_SPI 0
-#endif  // SD_HAS_CUSTOM_SPI
+#endif // SD_HAS_CUSTOM_SPI
 //------------------------------------------------------------------------------
 /**
  * Check if API to select HW SPI port is needed.
  */
 #if USE_STANDARD_SPI_LIBRARY > 1 || SD_HAS_CUSTOM_SPI > 1
 #define IMPLEMENT_SPI_PORT_SELECTION 1
-#else  // IMPLEMENT_SPI_PORT_SELECTION
+#else // IMPLEMENT_SPI_PORT_SELECTION
 #define IMPLEMENT_SPI_PORT_SELECTION 0
-#endif  // IMPLEMENT_SPI_PORT_SELECTION
-#endif  // SdFatConfig_h
+#endif // IMPLEMENT_SPI_PORT_SELECTION
+#endif // SdFatConfig_h

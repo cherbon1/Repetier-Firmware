@@ -33,4 +33,4 @@
 //------------------------------------------------------------------------------
 /** FatFileSystem version YYYYMMDD */
 #define FAT_LIB_VERSION 20150131
-#endif  // FatLib_h
+#endif // FatLib_h

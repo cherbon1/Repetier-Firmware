@@ -15,7 +15,6 @@
     along with Repetier-Firmware.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-
 #ifndef REPETIER_H
 #define REPETIER_H
 
@@ -26,7 +25,6 @@
 #define str(a) #a
 
 #include "Configuration.h"
-
 
 #if MOTHERBOARD == DEVICE_TYPE_RF1000
 #include "RF1000.h"
@@ -50,87 +48,83 @@
 #undef min
 #undef max
 
-
 class RMath {
 public:
-    static inline float min(float a, float b)
-    {
-        if (a < b) return a;
+    static inline float min(float a, float b) {
+        if (a < b)
+            return a;
         return b;
     } // min
 
-    static inline float max(float a, float b)
-    {
-        if (a < b) return b;
+    static inline float max(float a, float b) {
+        if (a < b)
+            return b;
         return a;
     } // max
 
-    static inline long min(long a, long b)
-    {
-        if (a < b) return a;
+    static inline long min(long a, long b) {
+        if (a < b)
+            return a;
         return b;
     } // min
 
-    static inline long max(long a, long b)
-    {
-        if (a < b) return b;
+    static inline long max(long a, long b) {
+        if (a < b)
+            return b;
         return a;
     } // max
 
-    static inline int min(int a, int b)
-    {
-        if (a < b) return a;
+    static inline int min(int a, int b) {
+        if (a < b)
+            return a;
         return b;
     } // min
 
-    static inline int max(int a, int b)
-    {
-        if (a < b) return b;
+    static inline int max(int a, int b) {
+        if (a < b)
+            return b;
         return a;
     } // max
 
-    static inline unsigned int min(unsigned int a, unsigned int b)
-    {
-        if (a < b) return a;
+    static inline unsigned int min(unsigned int a, unsigned int b) {
+        if (a < b)
+            return a;
         return b;
     } // min
 
-    static inline unsigned int max(unsigned int a, unsigned int b)
-    {
-        if (a < b) return b;
+    static inline unsigned int max(unsigned int a, unsigned int b) {
+        if (a < b)
+            return b;
         return a;
     } // max
 
-    static inline long sqr(long a)
-    {
-        return a*a;
+    static inline long sqr(long a) {
+        return a * a;
     } // sqr
 
-    static inline float sqr(float a)
-    {
-        return a*a;
+    static inline float sqr(float a) {
+        return a * a;
     } // sqr
-
 };
 
-extern const uint8      osAnalogInputChannels[] PROGMEM;
-extern volatile uint8   osAnalogInputCounter[ANALOG_INPUTS];
-extern volatile uint    osAnalogInputBuildup[ANALOG_INPUTS];
-extern volatile uint8   osAnalogInputPos; // Current sampling position
-extern volatile uint    osAnalogInputValues[ANALOG_INPUTS];
-extern uint8_t          pwm_pos[NUM_EXTRUDER + 3]; // 0-NUM_EXTRUDER = Heater 0-NUM_EXTRUDER of extruder, NUM_EXTRUDER = Heated bed, NUM_EXTRUDER+1 Board fan, NUM_EXTRUDER+2 = Fan
-extern uint8_t          fanSpeed; //remember user input fan speed at a 0..255 scale.
+extern const uint8 osAnalogInputChannels[] PROGMEM;
+extern volatile uint8 osAnalogInputCounter[ANALOG_INPUTS];
+extern volatile uint osAnalogInputBuildup[ANALOG_INPUTS];
+extern volatile uint8 osAnalogInputPos; // Current sampling position
+extern volatile uint osAnalogInputValues[ANALOG_INPUTS];
+extern uint8_t pwm_pos[NUM_EXTRUDER + 3]; // 0-NUM_EXTRUDER = Heater 0-NUM_EXTRUDER of extruder, NUM_EXTRUDER = Heated bed, NUM_EXTRUDER+1 Board fan, NUM_EXTRUDER+2 = Fan
+extern uint8_t fanSpeed;                  //remember user input fan speed at a 0..255 scale.
 
 #if USE_ADVANCE
-extern int              maxadv2;
-extern float            maxadvspeed;
+extern int maxadv2;
+extern float maxadvspeed;
 // Delay filament relax at the end of print, could be a simple timeout
-extern volatile int     waitRelax;
+extern volatile int waitRelax;
 #endif // USE_ADVANCE
 
 #include "Extruder.h"
 
-#if FEATURE_DITTO_PRINTING && NUM_EXTRUDER!=2
+#if FEATURE_DITTO_PRINTING && NUM_EXTRUDER != 2
 #error Ditto printing requires exactly 2 extruder.
 #endif // FEATURE_DITTO_PRINTING && NUM_EXTRUDER!=2
 
@@ -145,65 +139,64 @@ extern void drv8711Init();
 
 extern long baudrate;
 
-extern volatile uint8_t     execute100msPeriodical;
-extern volatile uint8_t     execute50msPeriodical;
-extern volatile uint8_t     execute16msPeriodical;
-extern volatile uint8_t     execute10msPeriodical;
+extern volatile uint8_t execute100msPeriodical;
+extern volatile uint8_t execute50msPeriodical;
+extern volatile uint8_t execute16msPeriodical;
+extern volatile uint8_t execute10msPeriodical;
 
-#if FAN_PIN>-1 && FEATURE_FAN_CONTROL
+#if FAN_PIN > -1 && FEATURE_FAN_CONTROL
 extern uint8_t fanKickstart;
 #endif // FAN_PIN>-1 && FEATURE_FAN_CONTROL
 
 #if SDSUPPORT
-extern char                 tempLongFilename[LONG_FILENAME_LENGTH + 1];
-extern char                 fullName[LONG_FILENAME_LENGTH*SD_MAX_FOLDER_DEPTH + SD_MAX_FOLDER_DEPTH + 1];
+extern char tempLongFilename[LONG_FILENAME_LENGTH + 1];
+extern char fullName[LONG_FILENAME_LENGTH * SD_MAX_FOLDER_DEPTH + SD_MAX_FOLDER_DEPTH + 1];
 #include "src/SdFat/SdFat.h"
 
-inline void memcopy2(void *dest, void *source) {
+inline void memcopy2(void* dest, void* source) {
     *((int16_t*)dest) = *((int16_t*)source);
 }
-inline void memcopy4(void *dest, void *source) {
+inline void memcopy4(void* dest, void* source) {
     *((int32_t*)dest) = *((int32_t*)source);
 }
 
-class SDCard
-{
+class SDCard {
 public:
     SdFat fat;
     SdFile file;
     uint32_t filesize;
     uint32_t sdpos;
-    char *shortname; // Pointer to start of filename itself
-    char *pathend; // File to char where pathname in fullname ends
+    char* shortname; // Pointer to start of filename itself
+    char* pathend;   // File to char where pathname in fullname ends
     uint8_t sdmode;  // 1 if we are printing from sd card, 2 = stop accepting new commands
     bool sdactive;
     bool savetosd;
 
     SDCard();
     void initsd(bool silent = false);
-    void writeCommand(GCode *code);
-    bool selectFileByName(const char *filename, bool silent = false);
+    void writeCommand(GCode* code);
+    bool selectFileByName(const char* filename, bool silent = false);
     bool selectFileByPos(uint16_t filePos, bool silent = false);
     void mount(bool silent = false);
     void unmount();
     void startPrint();
 
-    inline void setIndex(uint32_t  newpos)
-    {
-        if (!sdactive) return;
+    inline void setIndex(uint32_t newpos) {
+        if (!sdactive)
+            return;
         sdpos = newpos;
         file.seekSet(sdpos);
     }
 
     void printStatus();
     void ls();
-    void startWrite(char *filename);
-    void deleteFile(char *filename);
+    void startWrite(char* filename);
+    void deleteFile(char* filename);
     void finishWrite();
     void writePSTR(FSTRINGPARAM(str));
-    char *createFilename(char *buffer, const dir_t &p);
-    void makeDirectory(char *filename);
-    bool showFilename(const uint8_t *name);
+    char* createFilename(char* buffer, const dir_t& p);
+    void makeDirectory(char* filename);
+    bool showFilename(const uint8_t* name);
     void automount();
 };
 

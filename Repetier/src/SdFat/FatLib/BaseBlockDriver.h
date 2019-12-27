@@ -30,7 +30,7 @@
  * \brief Base block driver.
  */
 class BaseBlockDriver {
- public:
+public:
     /**
    * Read a 512 byte block from an SD card.
    *
@@ -39,13 +39,13 @@ class BaseBlockDriver {
    * \return The value true is returned for success and
    * the value false is returned for failure.
    */
-  virtual bool readBlock(uint32_t block, uint8_t* dst) = 0;
-  /** End multi-block transfer and go to idle state.
+    virtual bool readBlock(uint32_t block, uint8_t* dst) = 0;
+    /** End multi-block transfer and go to idle state.
    * \return The value true is returned for success and
    * the value false is returned for failure.
    */
-  virtual bool syncBlocks() = 0;
-  /**
+    virtual bool syncBlocks() = 0;
+    /**
    * Writes a 512 byte block to an SD card.
    *
    * \param[in] block Logical block to be written.
@@ -53,9 +53,9 @@ class BaseBlockDriver {
    * \return The value true is returned for success and
    * the value false is returned for failure.
    */
-  virtual bool writeBlock(uint32_t block, const uint8_t* src) = 0;
+    virtual bool writeBlock(uint32_t block, const uint8_t* src) = 0;
 #if USE_MULTI_BLOCK_IO
-  /**
+    /**
    * Read multiple 512 byte blocks from an SD card.
    *
    * \param[in] block Logical block to be read.
@@ -64,8 +64,8 @@ class BaseBlockDriver {
    * \return The value true is returned for success and
    * the value false is returned for failure.
    */
-  virtual bool readBlocks(uint32_t block, uint8_t* dst, size_t nb) = 0;
-  /**
+    virtual bool readBlocks(uint32_t block, uint8_t* dst, size_t nb) = 0;
+    /**
    * Write multiple 512 byte blocks to an SD card.
    *
    * \param[in] block Logical block to be written.
@@ -74,7 +74,7 @@ class BaseBlockDriver {
    * \return The value true is returned for success and
    * the value false is returned for failure.
    */
-  virtual bool writeBlocks(uint32_t block, const uint8_t* src, size_t nb) = 0;
-#endif  // USE_MULTI_BLOCK_IO
+    virtual bool writeBlocks(uint32_t block, const uint8_t* src, size_t nb) = 0;
+#endif // USE_MULTI_BLOCK_IO
 };
-#endif  // BaseBlockDriver_h
+#endif // BaseBlockDriver_h
