@@ -2569,6 +2569,7 @@ void searchZOScan(void) {
             Printer::homeAxis(false, true, false);
             moveZ(-g_nZScanZPosition); // g_nZScanZPosition counts z-steps. we need to move the heatbed down to be at z=0 again
             g_nZOSScanStatus = 100;    // No AUTO_MATRIX_LEVELING
+            break;
         }
         case 100: {
             g_nZOSScanStatus = 0;
