@@ -26,9 +26,6 @@ enum FirmwareState { NotBusy = 0,
                      WaitHeater,
                      Calibrating };
 
-#if SDSUPPORT
-class SDCard;
-#endif //SDSUPPORT
 class Commands;
 class GCode;
 
@@ -46,7 +43,6 @@ so every channel gets the same chance to send commands.
 
 Available source types are:
 - serial communication port
-- sd card
 - flash memory
 */
 class GCodeSource {
@@ -92,26 +88,10 @@ public:
     virtual void writeByte(uint8_t byte);
     virtual void close();
 };
-//#pragma message "Sd support: " XSTR(SDSUPPORT)
-#if SDSUPPORT
-class SDCardGCodeSource : public GCodeSource {
-public:
-    virtual bool isOpen();
-    virtual bool supportsWrite(); ///< true if write is a non dummy function
-    virtual bool closeOnError();  // return true if the channel can not interactively correct errors.
-    virtual bool dataAvailable(); // would read return a new byte?
-    virtual int readByte();
-    virtual void writeByte(uint8_t byte);
-    virtual void close();
-};
-#endif
 
 extern SerialGCodeSource serial0Source;
 #if BLUETOOTH_SERIAL > 0
 extern SerialGCodeSource serial1Source;
-#endif
-#if SDSUPPORT
-extern SDCardGCodeSource sdSource;
 #endif
 
 class GCode // 52 uint8_ts per command needed
@@ -303,9 +283,6 @@ public:
     static void keepAlive(enum FirmwareState state);
     static uint32_t keepAliveInterval;
 
-#if SDSUPPORT
-    friend class SDCard;
-#endif //SDSUPPORT
     friend class UIDisplay;
     friend class GCodeSource;
 

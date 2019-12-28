@@ -6,8 +6,9 @@ Based on Repetier-Firmware - the fast and user friendly firmware.
 
 ## Disclaimer
 
-THIS VERSION IS AN UNOFFICIAL MODIFICATION OF mhiers UNOFFICIAL MODIFICATION OF THE ORIGINAL FIRMWARE. It is neither endorsed nor
-supported by the developers of the RF1000 firmware.  
+THIS VERSION IS AN UNOFFICIAL MODIFICATION OF mhiers UNOFFICIAL MODIFICATION OF THE ORIGINAL FIRMWARE. 
+It is neither endorsed nor supported by the developers of the RF1000 firmware.  
+There is no SD-Card support included.  
 USE AT YOUR OWN RISK.
 
 For the official version, have a look at the upstream repository:
@@ -16,7 +17,7 @@ https://github.com/RF1000/Repetier-Firmware (see branch development. Or else loo
 ## HowTo Install
 
 - Download the Firmware `Branch: community_development` and unzip all the files.  
-- Install Arduino.cc IDE 1.8.6 and later if it is not installed on your computer already.  
+- Install Arduino.cc IDE 1.8.10 and later if it is not installed on your computer already.  
 - Edit and save Configuration.h Line 46 to 48 according to your printers model. You have to remove the two **//** in front of the printers name you wish to activate:  
 `#define MOTHERBOARD                         DEVICE_TYPE_RF1000` or  
 `#define MOTHERBOARD                         DEVICE_TYPE_RF2000` or  

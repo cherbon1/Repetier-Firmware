@@ -25,20 +25,7 @@ void Commands::commandLoop() {
 
     GCode* code = GCode::peekCurrentCommand();
     if (code) {
-#if SDSUPPORT
-        if (sd.savetosd) {
-            if (!(code->hasM() && code->M == 29)) // still writing to file
-                sd.writeCommand(code);
-            else
-                sd.finishWrite();
-#ifdef ECHO_ON_EXECUTE
-            code->echoCommand();
-#endif
-        } else
-#endif //SDSUPPORT
-        {
-            Commands::executeGCode(code);
-        }
+        Commands::executeGCode(code);
         code->popCurrentCommand();
         Commands::checkForPeriodicalActions(Processing); //check heater and other stuff every n milliseconds
     } else {
@@ -80,9 +67,6 @@ void Commands::checkForPeriodicalActions(enum FirmwareState state) {
         Extruder::manageTemperatures();
         if (state == WaitHeater)
             Commands::printTemperatures(); //selfcontrolling timediff
-#if defined(SDCARDDETECT) && SDCARDDETECT > -1 && defined(SDSUPPORT) && SDSUPPORT
-        sd.automount();
-#endif // defined(SDCARDDETECT) && SDCARDDETECT>-1 && defined(SDSUPPORT) && SDSUPPORT
         UI_SLOW;
     }
 
@@ -759,78 +743,6 @@ void Commands::processGCode(GCode* com) {
 */
 void Commands::processMCode(GCode* com) {
     switch (com->M) {
-#if SDSUPPORT
-    case 20: // M20 - list SD card
-    {
-        if (sd.sdactive)
-            sd.ls();
-        break;
-    }
-    case 21: // M21 - init SD card
-    {
-        sd.mount(/*not silent mount*/);
-        break;
-    }
-    case 22: // M22 - release SD card
-    {
-        sd.unmount();
-        break;
-    }
-    case 23: // M23 - Select file
-    {
-        if (!sd.sdactive)
-            break;
-        if (com->hasString()) {
-            sd.fat.chdir();
-            sd.selectFileByName(com->text);
-        }
-        break;
-    }
-    case 24: // M24 - Start SD print
-    {
-        if (g_pauseMode) {
-            continuePrint();
-        } else {
-            sd.startPrint();
-        }
-        break;
-    }
-    case 25: // M25 - Pause (SD) print
-    {
-        queueTask(TASK_PAUSE_PRINT);
-        Commands::waitUntilEndOfAllMoves(); //M400 (normal gcode wait)
-        break;
-    }
-    case 26: // M26 - Set SD index
-    {
-        Com::printFLN(PSTR("M26: not supported"));
-        break;
-    }
-    case 27: // M27 - Get SD status
-        sd.printStatus();
-        break;
-    case 28: // M28 - Start SD write
-        if (com->hasString())
-            sd.startWrite(com->text);
-        break;
-    case 29: // M29 - Stop SD write
-             //processed in write to file routine above
-             //savetosd = false;
-        break;
-    case 30: // M30 - filename - Delete file
-        if (com->hasString()) {
-            sd.fat.chdir();
-            sd.deleteFile(com->text);
-        }
-        break;
-    case 32: // M32 - directoryname
-        if (com->hasString()) {
-            sd.fat.chdir();
-            sd.makeDirectory(com->text);
-        }
-        break;
-#endif // SDSUPPORT
-
     case 104: // M104 - set extruder temp
     {
         if (isSupportedMCommand(com->M, OPERATING_MODE_PRINT)) {

@@ -664,35 +664,6 @@ Honeywell 100K Thermistor (135-104LAG-J01)  : R0 = 100000  T0 = 25  Beta = 3974
 #define Z2_DIR_PIN                          E1_DIR_PIN
 #define Z2_ENABLE_PIN                       E1_ENABLE_PIN
 
-
-// ##########################################################################################
-// ##   configure the SD Card
-// ##########################################################################################
-
-/** \brief  Select whether the SD card is supported. */
-#define SDSUPPORT                           0                                                   // 1 = supported, 0 = not supported
-#if SDSUPPORT
-#error SD printing is currently not working very well. It works but we saw are sporadic drives to x and y home or extrusion problems.
-#error Remove this warning if you know what you are doing and if you really want to print from SD with all possible risks.
-#endif
-
-/** \brief  Change to true if you get a inserted message on removal. */
-#define SDCARDDETECTINVERTED                false
-
-/** \brief Show extended directory including file length. Don't use this with Pronterface! */
-#define SD_EXTENDED_DIR                     true
-
-/** \brief Total size of the buffer used to store the long filenames */
-// If you need more maximum file name length than 26 chars 
-// - For SD-Printing using a Gcode / using Octoprints sd file listing
-// - Or for seeing the full filenames within the SD-Card file menu
-// then increase MAX_VFAT_ENTRIES to 3. But that has to be payed with ~65bytes of Ram.
-// (Printing a file using the SD card menu will start the print using the file number, so you dont need to see the full file length.)
-#define MAX_VFAT_ENTRIES                    (2)
-#define LONG_FILENAME_LENGTH                (13*MAX_VFAT_ENTRIES+1)
-#define SD_MAX_FOLDER_DEPTH                 2
-
-
 // ##########################################################################################
 // ##   configuration of the manual steps
 // ##########################################################################################
@@ -804,8 +775,6 @@ Honeywell 100K Thermistor (135-104LAG-J01)  : R0 = 100000  T0 = 25  Beta = 3974
 #define UI_SET_EXTRUDER_FEEDRATE            1.5f                                                 // [mm/sec]
 #define UI_SET_EXTRUDER_RETRACT_DISTANCE    3                                                   // [mm]
 #define COOLDOWN_THRESHOLD                  40                                                  // [°C]
-
-#define SHOW_DEBUGGING_MENU                 0                                                   // 1 = show, 0 = hide
 
 #define SPEED_MIN_MILLIS                    300
 #define SPEED_MAX_MILLIS                    50

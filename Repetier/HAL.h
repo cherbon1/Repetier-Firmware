@@ -594,7 +594,6 @@ public:
         SET_INPUT(MISO_PIN);
         SET_OUTPUT(MOSI_PIN);
         SET_OUTPUT(SCK_PIN);
-
         // SS must be in output mode even it is not chip select
         SET_OUTPUT(SDSS);
 

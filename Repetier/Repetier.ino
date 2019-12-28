@@ -1,6 +1,6 @@
 /*
     This file is part of the Repetier-Firmware for RF devices from Conrad Electronic SE.
-    To-be-compiled with Arduino V 1.8.5 or compatible.
+    To-be-compiled with Arduino V 1.8.10 or compatible.
 
     Repetier-Firmware is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -32,7 +32,7 @@
 
 Implemented Codes
 
- Standard RF1000/RF2000/RF2000v2 gcodes: http://www.rf1000.de/wiki/index.php/GCodes 
+ Standard RF1000/RF2000/RF2000v2 gcodes: http://www.rf1000.de/wiki/index.php/GCodes without SD-Card support.
  Special mod version RF1000/RF2000/RF2000v2 gcodes: http://www.rf1000.de/wiki/index.php/Gcodes
 */
 

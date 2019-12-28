@@ -2948,34 +2948,12 @@ void startViscosityTest(int maxdigits = 10000, float maxfeedrate = 5.0f, float i
             break;
         }
     }
-#if SDSUPPORT
-    if (sd.sdactive) {
-        char filename[] = "Visco000.csv"; //000 wird überschrieben mit zahl
-        for (uint8_t z = 0; z < 255; z++) {
-            char* str = &filename[8];
-            uint8_t n = z;
-            do {
-                uint8_t m = n;
-                n /= 10;
-                *--str = '0' + (m - 10 * n);
-            } while (n);
-            if (!sd.fat.exists(filename)) {
-                break;
-            }
-        }
-        sd.startWrite(filename);
-    }
-#endif
+
     Com::printFLN(PSTR("CSV-Logfile:START"));
 
     Com::printFLN(PSTR(";Testing Filament..."));
     Com::printFLN(PSTR(";Temperature [°C];e [mm/s];digits [1]"));
-#if SDSUPPORT
-    if (sd.savetosd) {
-        sd.writePSTR(PSTR(";Temperature [°C];e [mm/s];digits [1]"));
-        sd.writePSTR(Com::tNewline);
-    }
-#endif
+
     for (float T = (float)StartTemp; T <= EndTemp;) {
         //@Init the Temp is reached by preheat!
         for (float e = 0.05; e <= maxfeedrate; e += incrementfeedrate) { //iterate all points
@@ -2994,20 +2972,6 @@ void startViscosityTest(int maxdigits = 10000, float maxfeedrate = 5.0f, float i
             Com::printF(Com::tSemiColon, Extruder::current->tempControl.currentTemperatureC, 1, true); //true = dezimalkomma, nicht punkt. Wegen Excel.
             Com::printF(Com::tSemiColon, e, 3, true);                                                  //true = dezimalkomma, nicht punkt. Wegen Excel.
             Com::printFLN(Com::tSemiColon, extrudedigits);
-
-#if SDSUPPORT
-            if (sd.savetosd) {
-                sd.file.write((uint8_t)';');
-                /* float -> printField(float value, char term, uint8_t prec = 2) */
-                sd.file.printField(Extruder::current->tempControl.currentTemperatureC, 0, 2);
-                sd.file.write((uint8_t)';');
-                sd.file.printField(e, 0, 3);
-                sd.file.write((uint8_t)';');
-                /* long -> printField(int32_t value, char term) */
-                sd.file.printField(extrudedigits, 0);
-                sd.writePSTR(Com::tNewline);
-            }
-#endif
 
             if (extrudedigits < g_nCurrentIdlePressure - maxdigits || extrudedigits > g_nCurrentIdlePressure + maxdigits || extrudedigits < -maxdigits || extrudedigits > maxdigits) {
                 Printer::queueRelativeMMCoordinates(0, 0, 0, -0.5, 10, true, true); //loose some force on dms
@@ -3037,10 +3001,6 @@ void startViscosityTest(int maxdigits = 10000, float maxfeedrate = 5.0f, float i
 
     Com::printFLN(PSTR("CSV-Logfile:ENDE"));
     Com::printFLN(PSTR("Copy and save this Log to *.csv-File for Excel."));
-
-#if SDSUPPORT
-    sd.finishWrite();
-#endif
 
     if (StartTemp > 0)
         Extruder::setTemperatureForExtruder(0, Extruder::current->id, true); //wir schalten aus, aber auch wieder an.
@@ -9510,35 +9470,7 @@ void processSpecialGCode(GCode* pCommand) {
             break;
         }
 #endif //FEATURE_USER_INT3
-
-        /*
-                    case 3998: // M3998 : this proofs how to write data to sd
-                    {
-                        Com::printF( PSTR( "File Write: " ) );
-                        char filename[] = "SVDat___.csv";
-
-                        sd.startWrite(filename);
-                        if(sd.savetosd){
-                            sd.writePSTR(PSTR( "[um]" ));
-                            sd.writePSTR(Com::tNewline);
-                            sd.writePSTR(Com::tNewline);
-                            sd.writePSTR(PSTR( "AM" ));
-                            sd.file.printField(1.98765f, 0, 3);
-                            sd.writePSTR(Com::tNewline);
-                            sd.file.printField((float)234000, 0, 0);
-                            sd.file.write((uint8_t)';');
-                            sd.file.write((uint8_t)';');
-                            sd.writePSTR( PSTR( ";Temperature [°C];e [mm/s];digits [1]" ) );
-                            sd.writePSTR(Com::tNewline);
-                        }else{
-                            Com::printFLN( PSTR( "Write Error" ) );
-                        }
-                        sd.finishWrite();
-                        Com::printFLN( PSTR( "END" ) );
-                        break;
-                    }
-        */
-
+   
 #if FEATURE_READ_CALIPER
         case 3999: // M3999 : proof that dummy function/additional hardware button works! || by Nibbels
         {
