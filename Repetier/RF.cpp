@@ -3494,6 +3494,7 @@ void findZOrigin(void) {
             Printer::disableCMPnow(true); //schalte Z CMP ab für findZOrigin
 #endif                                    // FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
             g_nFindZOriginStatus = 10;
+            break;
         }
         case 10: {
             // move the heat bed up until we detect the contact pressure

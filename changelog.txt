@@ -13,7 +13,7 @@ TODO:
 
 V 01.44.00.Mod (2019-12-28)
 - reformatted code using "clang format"
-- added fixed missing optional break
+- added two missing optional breaks
 - removed useless debugging menu option
 - removed all sdcard code
 
