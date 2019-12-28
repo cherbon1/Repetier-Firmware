@@ -840,10 +840,6 @@ UI_MENU_ACTIONSELECTOR_FILTER(ui_menu_extruder_offset_y,UI_TEXT_EXTRUDER_OFFSET_
  UI_MENU_CHANGEACTION( ui_menu_wobble_fix_ax  , UI_TEXT_WOBBLE_FIX_AMPX,    UI_ACTION_WOBBLE_FIX_AMPX )
  UI_MENU_CHANGEACTION( ui_menu_wobble_fix_ay1 , UI_TEXT_WOBBLE_FIX_AMPY1,   UI_ACTION_WOBBLE_FIX_AMPY1 )
  UI_MENU_CHANGEACTION( ui_menu_wobble_fix_ay2 , UI_TEXT_WOBBLE_FIX_AMPY2,   UI_ACTION_WOBBLE_FIX_AMPY2 )
- /*
- UI_MENU_CHANGEACTION( ui_menu_wobble_fix_pz  , UI_TEXT_WOBBLE_FIX_PHASEZ,  UI_ACTION_WOBBLE_FIX_PHASEZ )
- UI_MENU_CHANGEACTION( ui_menu_wobble_fix_az  , UI_TEXT_WOBBLE_FIX_AMPZ,    UI_ACTION_WOBBLE_FIX_AMPZ )
-*/
  #define UI_MENU_WOBBLE {UI_MENU_ADDCONDBACK &ui_menu_wobble_fix_pxy, &ui_menu_wobble_fix_ax, &ui_menu_wobble_fix_ay1, &ui_menu_wobble_fix_ay2 /*, &ui_menu_wobble_fix_pz, &ui_menu_wobble_fix_az*/  }
  UI_MENU(ui_menu_wobble_fix,UI_MENU_WOBBLE,UI_MENU_BACKCNT+4 /*+2*/)
 
