@@ -94,10 +94,17 @@ void SDCard::initsd(bool silent) {
                 char szStatus[21];
                 strcpy(szStatus, UI_TEXT_SD_ERROR);
                 addLong(szStatus, int(fat.card()->errorCode()), 3);
+
+                // Codes siehe SdFat.h lines 707ff
                 switch (fat.card()->errorCode()) {
-                case 32: {
+                case 1: {
                     strcat(szStatus, " Timeout");
                     Com::printFLN(PSTR("SD Timeout"));
+                    break;
+                }
+                case 26: {
+                    strcat(szStatus, " No CRC");
+                    Com::printFLN(PSTR("CRC unsupported"));
                     break;
                 }
                 default: {

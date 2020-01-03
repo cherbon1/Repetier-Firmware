@@ -1,19 +1,8 @@
-With a Version > 1.43.20 the following machine modes still have to be tested:
-- Dual-Extruder printing
-- Milling
-
-This should work awsome:
-- Single-Extruder printing from USB
-- Arc support G2/G3
-
-TODO:
-# Milling mode: test move while pause in respect to z-first and z direction
-# Milling mode: test or rework milling functions
-# Pause @RF1000: test if z max-endstop is respected while moving in dual-endstop circular setting
-# Test SD-Support again, test it carefully, test it alot and (!)without z-lift.
-
 V 01.45.00.Mod (2020-01-03)
 - reinserted the whole SD support with rollback to original sd library. (but upgraded code)
+   CRC-CCITT on
+   512byte fat cache off
+- adjusted error code output to original sdfat
 
 V 01.44.00.Mod (2019-12-28)
 - reformatted code using "clang format"
