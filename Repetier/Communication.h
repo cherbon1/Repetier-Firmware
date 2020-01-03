@@ -58,6 +58,7 @@ public:
     FSTRINGVAR(tK)
     FSTRINGVAR(tL)
     FSTRINGVAR(tO)
+    FSTRINGVAR(tSDReadError)
     FSTRINGVAR(tExpectedLine)
     FSTRINGVAR(tGot)
     FSTRINGVAR(tSkip)
@@ -309,6 +310,29 @@ public:
 #endif // FAN_PIN>-1 && FEATURE_FAN_CONTROL
 
 #endif // EEPROM_MODE==0
+
+#if SDSUPPORT
+    FSTRINGVAR(tSDRemoved)
+    FSTRINGVAR(tSDInserted)
+    FSTRINGVAR(tSDInitFail)
+    FSTRINGVAR(tErrorWritingToFile)
+    FSTRINGVAR(tBeginFileList)
+    FSTRINGVAR(tEndFileList)
+    FSTRINGVAR(tFileOpened)
+    FSTRINGVAR(tSpaceSizeColon)
+    FSTRINGVAR(tFileSelected)
+    FSTRINGVAR(tFileOpenFailed)
+    FSTRINGVAR(tSDPrintingByte)
+    FSTRINGVAR(tNotSDPrinting)
+    FSTRINGVAR(tOpenFailedFile)
+    FSTRINGVAR(tWritingToFile)
+    FSTRINGVAR(tDoneSavingFile)
+    FSTRINGVAR(tFileDeleted)
+    FSTRINGVAR(tDeletionFailed)
+    FSTRINGVAR(tDirectoryCreated)
+    FSTRINGVAR(tCreationFailed)
+    FSTRINGVAR(tSDErrorCode)
+#endif // SDSUPPORT
 
     FSTRINGVAR(tHeaterDecoupledWarning)
     FSTRINGVAR(tOutputObjectPrint)

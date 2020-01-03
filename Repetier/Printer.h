@@ -690,6 +690,9 @@ public:
 
     static INLINE void setPrinting(bool b) {
         flag3 = (b ? flag3 | PRINTER_FLAG3_PRINTING : flag3 & ~PRINTER_FLAG3_PRINTING);
+        if (!b) {
+            Printer::setMenuMode(MENU_MODE_SD_PRINTING, b);
+        }
         Printer::setMenuMode(MENU_MODE_PRINTING, b);
     }
 

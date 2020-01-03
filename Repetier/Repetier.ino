@@ -32,7 +32,7 @@
 
 Implemented Codes
 
- Standard RF1000/RF2000/RF2000v2 gcodes: http://www.rf1000.de/wiki/index.php/GCodes without SD-Card support.
+ Standard RF1000/RF2000/RF2000v2 gcodes: http://www.rf1000.de/wiki/index.php/GCodes.
  Special mod version RF1000/RF2000/RF2000v2 gcodes: http://www.rf1000.de/wiki/index.php/Gcodes
 */
 

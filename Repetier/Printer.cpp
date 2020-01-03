@@ -1040,6 +1040,10 @@ void Printer::setup() {
 
     Extruder::selectExtruderById(0);
 
+#if SDSUPPORT
+    sd.mount(true /* Silent mount because otherwise RF1000 prints errors if no sdcard is present at boottime*/);
+#endif // SDSUPPORT
+
 #if FEATURE_RGB_LIGHT_EFFECTS
     setRGBLEDs(0, 0, 0);
 
@@ -1788,10 +1792,20 @@ void Printer::stopPrint() //function for aborting USB and SD-Prints
         return;
     g_uStartOfIdle = 0; //jetzt nicht mehr in showidle() gehen, das erledigt später g_uStopTime;
 
-    //block some of the usb sources from sending more data
-    Com::printFLN(PSTR("RequestStop:"));     //tell repetierserver to stop.
-    Com::printFLN(PSTR("// action:cancel")); //tell octoprint to cancel print. > 1.3.7  https://github.com/foosel/OctoPrint/issues/2367#issuecomment-357554341
-    Com::printFLN(PSTR("USB print stopped."));
+#if SDSUPPORT
+    if (sd.sdmode) //prüfung auf !sdmode sollte hier eigenlicht nicht mehr nötig sein, aber ..
+    {
+        //block sdcard from reading more.
+        Com::printFLN(PSTR("SD print stopped."));
+        sd.sdmode = 0;
+    } else
+#endif //SDSUPPORT
+    {
+        //block some of the usb sources from sending more data
+        Com::printFLN(PSTR("RequestStop:"));     //tell repetierserver to stop.
+        Com::printFLN(PSTR("// action:cancel")); //tell octoprint to cancel print. > 1.3.7  https://github.com/foosel/OctoPrint/issues/2367#issuecomment-357554341
+        Com::printFLN(PSTR("USB print stopped."));
+    }
 
     InterruptProtectedBlock noInts;
     g_uBlockCommands = 1; //keine gcodes mehr ausführen bis beenden beendet.
@@ -1833,7 +1847,7 @@ void Printer::showConfiguration() {
     Com::config(PSTR("NumExtruder:"), NUM_EXTRUDER);
     Com::config(PSTR("MixingExtruder:"), 0);
     Com::config(PSTR("HeatedBed:"), HAVE_HEATED_BED);
-    Com::config(PSTR("SDCard:"), 0);
+    Com::config(PSTR("SDCard:"), SDSUPPORT);
     Com::config(PSTR("Fan:"), FAN_PIN > -1 && FEATURE_FAN_CONTROL);
     Com::config(PSTR("Fan2:0"));
     Com::config(PSTR("LCD:"), 0);
