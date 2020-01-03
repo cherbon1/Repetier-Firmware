@@ -83,6 +83,12 @@
     <ClInclude Include="uimenu.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="SdFat.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="FatStructs.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Commands.cpp">
@@ -113,6 +119,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="ui.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="SdFat.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="SDCard.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

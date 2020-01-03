@@ -149,9 +149,10 @@ extern uint8_t fanKickstart;
 #endif // FAN_PIN>-1 && FEATURE_FAN_CONTROL
 
 #if SDSUPPORT
+#define SHORT_FILENAME_LENGTH 14
 extern char tempLongFilename[LONG_FILENAME_LENGTH + 1];
 extern char fullName[LONG_FILENAME_LENGTH * SD_MAX_FOLDER_DEPTH + SD_MAX_FOLDER_DEPTH + 1];
-#include "src/SdFat/SdFat.h"
+#include "SdFat.h"
 
 inline void memcopy2(void* dest, void* source) {
     *((int16_t*)dest) = *((int16_t*)source);
@@ -175,8 +176,7 @@ public:
     SDCard();
     void initsd(bool silent = false);
     void writeCommand(GCode* code);
-    bool selectFileByName(const char* filename, bool silent = false);
-    bool selectFileByPos(uint16_t filePos, bool silent = false);
+    bool selectFile(char *filename, bool silent = false);
     void mount(bool silent = false);
     void unmount();
     void startPrint();

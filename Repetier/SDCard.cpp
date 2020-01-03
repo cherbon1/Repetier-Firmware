@@ -74,11 +74,11 @@ void SDCard::initsd(bool silent) {
 #endif // defined(SDCARDDETECT) && SDCARDDETECT>-1
 
     //fix in https://github.com/repetier/Repetier-Firmware/commit/d4e396d0f4d1b81cc4d388360be461f11ceb9edd ??
-    HAL::delayMilliseconds(50);     // wait for stabilization of contacts, bootup ...
-    fat.begin(SDSS, SD_SCK_MHZ(4)); // dummy init of SD_CARD
-    HAL::delayMilliseconds(50);     // wait for init end
+    HAL::delayMilliseconds(50);      // wait for stabilization of contacts, bootup ...
+    fat.begin(SDSS, SPI_FULL_SPEED); // dummy init of SD_CARD
+    HAL::delayMilliseconds(50);      // wait for init end
 
-    if (!fat.begin(SDSS, SD_SCK_MHZ(4))) {
+    if (!fat.begin(SDSS, SPI_FULL_SPEED)) {
         if (!silent) {
             Com::printFLN(Com::tSDInitFail);
             sdmode = 100; // prevent automount loop!
@@ -131,10 +131,6 @@ void SDCard::initsd(bool silent) {
     Printer::setMenuMode(MENU_MODE_SD_MOUNTED, true);
 
     fat.chdir();
-    //  if(selectFileByName("init.g", true))
-    //  {
-    //SDCard::startPrint();
-    //  }
 #endif // SDSS >- 1
 } // initsd
 
@@ -331,21 +327,38 @@ void SDCard::ls() {
     fat.chdir();
 
     file.openRoot(fat.vol());
-    file.ls();
+    file.ls(0, 0);
     Com::printFLN(Com::tEndFileList);
 } // ls
 
-bool SDCard::selectFileByName(const char* filename, bool silent) {
+int8_t RFstricmp(const char* s1, const char* s2) {
+    while (*s1 && (tolower(*s1) == tolower(*s2)))
+        s1++, s2++;
+    return (const uint8_t)tolower(*s1) - (const uint8_t)tolower(*s2);
+} // RFstricmp
+
+int8_t RFstrnicmp(const char* s1, const char* s2, size_t n) {
+    while (n--) {
+        if (tolower(*s1) != tolower(*s2))
+            return (uint8_t)tolower(*s1) - (uint8_t)tolower(*s2);
+        s1++;
+        s2++;
+    }
+    return 0;
+} // RFstrnicmp
+
+bool SDCard::selectFile(char* filename, bool silent) {
     if (!sdactive)
         return false;
-    sdmode = 0;
 
-    const char* oldP = filename;
+    sdmode = 0;
+    SdBaseFile parent;
+    char* oldP = filename;
+
     file.close();
-    // Filename for progress view
-    // strncpy(Printer::printName, filename, 20);
-    // Printer::printName[20] = 0;
-    if (file.open(fat.vwd(), filename, O_READ)) {
+
+    parent = *fat.vwd();
+    if (file.open(&parent, filename, O_READ)) {
         if ((oldP = strrchr(filename, '/')) != NULL)
             oldP++;
         else
@@ -357,57 +370,17 @@ bool SDCard::selectFileByName(const char* filename, bool silent) {
         }
         sdpos = 0;
         filesize = file.fileSize();
+
         Com::printFLN(Com::tFileSelected);
+
         return true;
     } else {
-        if (!silent)
+        if (!silent) {
             Com::printFLN(Com::tFileOpenFailed);
+        }
         return false;
     }
-}
-
-bool SDCard::selectFileByPos(uint16_t filePos, bool silent) {
-    if (!sdactive)
-        return false;
-    sdmode = 0;
-
-    FatFile* root = sd.fat.vwd();
-    FatFile ffile;
-    root->rewind();
-    while (ffile.openNext(root, O_READ)) {
-        ffile.getName(tempLongFilename, LONG_FILENAME_LENGTH);
-        if (uid.folderLevel >= SD_MAX_FOLDER_DEPTH && strcmp(tempLongFilename, "..") == 0) {
-            ffile.close();
-            continue;
-        }
-        if (tempLongFilename[0] == '.' && tempLongFilename[1] != '.') {
-            ffile.close();
-            continue; // MAC CRAP
-        }
-        if (filePos-- > 0) { //loop until filePos reached
-            ffile.close();
-            continue;
-        }
-
-        if (file.open(fat.vwd(), ffile.dirIndex(), O_READ)) {
-            sdpos = 0;
-            filesize = file.fileSize();
-            if (!silent) {
-                Com::printF(Com::tFileSelected, (int32_t)ffile.dirIndex());
-                Com::printFLN(Com::tSpaceSizeColon, file.fileSize());
-            }
-
-            ffile.close();
-            return true;
-        } else {
-            if (!silent)
-                Com::printFLN(Com::tFileOpenFailed);
-        }
-    }
-
-    ffile.close();
-    return false;
-} // selectFileByPos
+} // selectFile
 
 void SDCard::printStatus() {
     if (sdactive) {

@@ -2354,51 +2354,39 @@ void UIDisplay::setStatus(char* txt, bool error, bool force) {
 const UIMenu* const ui_pages[UI_NUM_PAGES] PROGMEM = UI_PAGES;
 
 #if SDSUPPORT
-uint16_t nFilesOnCard;
+uint8_t nFilesOnCard;
 void UIDisplay::updateSDFileCount() {
-    FatFile* root = sd.fat.vwd();
-    FatFile file;
+    dir_t* p = NULL;
+    SdBaseFile* root = sd.fat.vwd();
+
     root->rewind();
     nFilesOnCard = 0;
-    while (file.openNext(root, O_READ)) {
-        file.getName(tempLongFilename, LONG_FILENAME_LENGTH);
-        if (folderLevel >= SD_MAX_FOLDER_DEPTH && strcmp(tempLongFilename, "..") == 0) {
-            file.close();
+    while ((p = root->getLongFilename(p, NULL, 0, NULL))) {
+        if (!(DIR_IS_FILE(p) || DIR_IS_SUBDIR(p)))
             continue;
-        }
-        if (tempLongFilename[0] == '.' && tempLongFilename[1] != '.') {
-            file.close();
+        if (folderLevel >= SD_MAX_FOLDER_DEPTH && DIR_IS_SUBDIR(p) && !(p->name[0] == '.' && p->name[1] == '.'))
             continue;
-        }
         nFilesOnCard++;
-        file.close();
-        if (nFilesOnCard > 5000) // Arbitrary maximum, limited only by how long someone would scroll
+        if (nFilesOnCard == 254)
             return;
     }
 } // updateSDFileCount
 
-void getSDFilenameAt(uint16_t filePos, char* filename) {
-    FatFile* root = sd.fat.vwd();
-    FatFile file;
+void getSDFilenameAt(byte filePos, char* filename) {
+    dir_t* p = NULL;
+    SdBaseFile* root = sd.fat.vwd();
+
     root->rewind();
-    while (file.openNext(root, O_READ)) {
-        file.getName(tempLongFilename, LONG_FILENAME_LENGTH);
-        if (uid.folderLevel >= SD_MAX_FOLDER_DEPTH && strcmp(tempLongFilename, "..") == 0) {
-            file.close();
+    while ((p = root->getLongFilename(p, tempLongFilename, 0, NULL))) {
+        if (!DIR_IS_FILE(p) && !DIR_IS_SUBDIR(p))
             continue;
-        }
-        if (tempLongFilename[0] == '.' && tempLongFilename[1] != '.') {
-            file.close();
-            continue; // MAC CRAP
-        }
-        if (filePos--) {
-            file.close();
+        if (uid.folderLevel >= SD_MAX_FOLDER_DEPTH && DIR_IS_SUBDIR(p) && !(p->name[0] == '.' && p->name[1] == '.'))
             continue;
-        }
+        if (filePos--)
+            continue;
         strcpy(filename, tempLongFilename);
-        if (file.isDir())
+        if (DIR_IS_SUBDIR(p))
             strcat(filename, "/"); // Set marker for directory
-        file.close();
         break;
     }
 } // getSDFilenameAt
@@ -2438,10 +2426,10 @@ void UIDisplay::goDir(char* name) {
 } // goDir
 
 void sdrefresh(uint16_t& r, char cache[UI_ROWS][MAX_COLS + 1]) {
-    uint16_t offset = uid.menuTop[uid.menuLevel];
-    FatFile* root;
-    FatFile file;
-    uint16_t length, skip;
+    dir_t* p = NULL;
+    byte offset = uid.menuTop[uid.menuLevel];
+    SdBaseFile* root;
+    byte length, skip;
 
     sd.fat.chdir(uid.cwd);
     root = sd.fat.vwd();
@@ -2449,42 +2437,51 @@ void sdrefresh(uint16_t& r, char cache[UI_ROWS][MAX_COLS + 1]) {
 
     skip = (offset > 0 ? offset - 1 : 0);
 
-    while (r + offset < nFilesOnCard + 1 && r < UI_ROWS && file.openNext(root, O_READ)) {
-        HAL::pingWatchdog();
-        file.getName(tempLongFilename, LONG_FILENAME_LENGTH);
-
-        if (uid.folderLevel >= SD_MAX_FOLDER_DEPTH && strcmp(tempLongFilename, "..") == 0) {
-            file.close();
-            continue;
-        }
-        if (tempLongFilename[0] == '.' && tempLongFilename[1] != '.') {
-            file.close();
-            continue; // MAC CRAP
-        }
+    while (int16_t(r) + offset < int16_t(nFilesOnCard) + 1 && r < UI_ROWS && (p = root->getLongFilename(p, tempLongFilename, 0, NULL))) {
         // done if past last used entry
         // skip deleted entry and entries for . and  ..
         // only list subdirectories and files
-        if (skip > 0) {
-            skip--;
-            file.close();
-            continue;
-        }
-        //write listing:
-        uid.col = 0;
-        if (r + offset == uid.menuPos[uid.menuLevel])
-            uid.printCols[uid.col++] = CHAR_SELECTOR;
-        else
-            uid.printCols[uid.col++] = ' ';
-        // print file name with possible blank fill
-        if (file.isDir())
-            uid.printCols[uid.col++] = bFOLD; // Prepend folder symbol
+        if ((DIR_IS_FILE(p) || DIR_IS_SUBDIR(p))) {
+            if (uid.folderLevel >= SD_MAX_FOLDER_DEPTH && DIR_IS_SUBDIR(p) && !(p->name[0] == '.' && p->name[1] == '.'))
+                continue;
+            if (skip > 0) {
+                skip--;
+                continue;
+            }
 
-        length = RMath::min((int)strlen(tempLongFilename), (int)MAX_COLS - (int)uid.col);
-        memcpy(uid.printCols + uid.col, tempLongFilename, length);
-        uid.col += length;
-        uid.printCols[uid.col] = 0;
-        strcpy(cache[r++], uid.printCols);
-        file.close();
+            uid.printCols[0] = ' ';
+            uid.col = 1;
+
+            if (DIR_IS_SUBDIR(p))
+                uid.printCols[uid.col++] = 6; // Prepend folder symbol
+            length = RMath::min((int)strlen(tempLongFilename), (int)(MAX_COLS - uid.col));
+            memcpy(uid.printCols + uid.col, tempLongFilename, length);
+            uid.col += length;
+            uid.printCols[uid.col] = 0;
+
+            uint8_t curShift = (uid.shift <= 0 ? 0 : uid.shift);
+            uint8_t curLen = strlen(uid.printCols);
+
+            if (curLen > UI_COLS) {
+                // this file name is longer than the available width of the display
+                curShift = RMath::min(curLen - UI_COLS, curShift);
+            } else {
+                curShift = 0;
+            }
+
+            if (r + offset == uid.menuPos[uid.menuLevel]) {
+                // the menu cursor is placed at this file name at the moment
+                uid.printCols[curShift] = (char)CHAR_SELECTOR;
+            } else {
+                // this file name is above/below the current menu cursor item
+                uid.printCols[curShift] = ' ';
+            }
+
+            if (DIR_IS_SUBDIR(p))
+                uid.printCols[curShift + 1] = 6; // Prepend folder symbol
+
+            strcpy(cache[r++], uid.printCols);
+        }
     }
 } // sdrefresh
 #endif // SDSUPPORT
@@ -2750,12 +2747,7 @@ void UIDisplay::okAction() {
         sd.file.close();
         sd.fat.chdir(cwd);
 
-        /*
-        This is not like original Repetier.
-        We open the file according to its position (filePos) in the directory.
-        That totally ignores the length limit of the filename
-        */
-        if (sd.selectFileByPos(filePos, false)) {
+        if (sd.selectFile(filename, false)) {
             sd.startPrint();
             BEEP_START_PRINTING
             exitmenu();
@@ -2765,8 +2757,7 @@ void UIDisplay::okAction() {
     }
 #endif // SDSUPPORT
 
-    if (entType == 2) // Enter submenu
-    {
+    if (entType == 2) { // Enter submenu
         pushMenu((void*)action, false);
         BEEP_SHORT
         return;

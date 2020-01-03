@@ -782,7 +782,7 @@ void Commands::processMCode(GCode* com) {
             break;
         if (com->hasString()) {
             sd.fat.chdir();
-            sd.selectFileByName(com->text);
+            sd.selectFile(com->text);
         }
         break;
     }
