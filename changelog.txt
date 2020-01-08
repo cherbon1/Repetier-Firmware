@@ -2,6 +2,7 @@ V 01.45.00.Mod (2020-01-03)
 - reinserted the whole SD support with rollback to original sd library. (but upgraded code)
    CRC-CCITT on
    512byte fat cache off
+   multi block IO off (paranoia setting, doesn`t happen)
 - adjusted error code output to original sdfat
 
 V 01.44.00.Mod (2019-12-28)

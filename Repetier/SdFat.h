@@ -556,7 +556,7 @@ union csd_t {
 /**
  * Don't use mult-block read/write on small AVR boards
  */
-#define USE_MULTI_BLOCK_SD_IO 1
+#define USE_MULTI_BLOCK_SD_IO 0
 
 //------------------------------------------------------------------------------
 /**
