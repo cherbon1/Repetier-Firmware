@@ -51,8 +51,9 @@ Start with an integral limit with EEPROM-values of `PID I drive min = 30` and `P
 
 http://www.rf1000.de/wiki/index.php/Kategorie:CommunityMod_Firmware  
 
-## Version 1.43.Mod - usefull threads within our forum
+## Version 1.45.Mod - usefull threads within our forum
 
+http://www.rf1000.de/viewtopic.php?f=67&t=2708 (Thread to Stable 1.45 / 03.01.2020)  
 http://www.rf1000.de/viewtopic.php?f=67&t=2403 (Thread to Stable 1.43 / 28.11.2018)  
 http://www.rf1000.de/viewtopic.php?f=67&t=2324 (Thread to Stable 1.42 / 28.07.2018)  
 http://www.rf1000.de/viewtopic.php?f=67&t=2084 (Thread to Stable 1.37x7 / 26.11.2017)  

@@ -52,8 +52,9 @@ Starte mit I-Anteil limits (EEPROM-Werte) `PID I drive min = 30` and `PID I driv
 
 http://www.rf1000.de/wiki/index.php/Kategorie:CommunityMod_Firmware  
 
-## Version RF 1.43.Mod - wichtige Threads im Forum
+## Version RF 1.45.Mod - wichtige Threads im Forum
 
+http://www.rf1000.de/viewtopic.php?f=67&t=2708 (Thread to Stable 1.45 / 03.01.2020)  
 http://www.rf1000.de/viewtopic.php?f=67&t=2403 (Thread to Stable 1.43 / 28.11.2018)  
 http://www.rf1000.de/viewtopic.php?f=67&t=2324 (Thread to Stable 1.42 / 28.07.2018)  
 http://www.rf1000.de/viewtopic.php?f=67&t=2084 (Thread to Stable 1.37x7 / 26.11.2017)  
