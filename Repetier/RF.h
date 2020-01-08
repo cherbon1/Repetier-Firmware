@@ -15,10 +15,8 @@
     along with Repetier-Firmware.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-
 #ifndef RF_H
 #define RF_H
-
 
 // ##########################################################################################
 // ##   RF specific UI Actions
@@ -26,40 +24,40 @@
 
 //Diese Events sind alle in ProcessButton() in den case`s verlinkt. Der rest nicht, siehe ui.h und executeAction()
 
-#define UI_ACTION_RF_MIN_REPEATABLE          500
+#define UI_ACTION_RF_MIN_REPEATABLE 500
 
-#define UI_ACTION_RF_HEAT_BED_UP             514
-#define UI_ACTION_RF_HEAT_BED_DOWN           515
-#define UI_ACTION_RF_EXTRUDER_OUTPUT         516
-#define UI_ACTION_RF_EXTRUDER_RETRACT        517
-#define UI_ACTION_RF_SET_Z_MATRIX_HEAT_BED   518
-#define UI_ACTION_RF_SET_Z_MATRIX_WORK_PART  519
-#define UI_ACTION_RF_SET_SCAN_DELTA_X        520
-#define UI_ACTION_RF_SET_SCAN_DELTA_Y        521
-#define UI_ACTION_RF_SCAN_START_HEIGHT       530
+#define UI_ACTION_RF_HEAT_BED_UP 514
+#define UI_ACTION_RF_HEAT_BED_DOWN 515
+#define UI_ACTION_RF_EXTRUDER_OUTPUT 516
+#define UI_ACTION_RF_EXTRUDER_RETRACT 517
+#define UI_ACTION_RF_SET_Z_MATRIX_HEAT_BED 518
+#define UI_ACTION_RF_SET_Z_MATRIX_WORK_PART 519
+#define UI_ACTION_RF_SET_SCAN_DELTA_X 520
+#define UI_ACTION_RF_SET_SCAN_DELTA_Y 521
+#define UI_ACTION_RF_SCAN_START_HEIGHT 530
 
-#define UI_ACTION_RF_MAX_REPEATABLE          600
+#define UI_ACTION_RF_MAX_REPEATABLE 600
 
-#define UI_ACTION_RF_MIN_SINGLE             1500
+#define UI_ACTION_RF_MIN_SINGLE 1500
 
-#define UI_ACTION_RF_TEST_COMPENSATION      1513
-#define UI_ACTION_RF_PAUSE                  1518
-#define UI_ACTION_RF_CONTINUE               1519
-#define UI_ACTION_RF_SCAN_HEAT_BED          1520
-#define UI_ACTION_RF_SCAN_HEAT_BED_PLA      1521
-#define UI_ACTION_RF_SCAN_HEAT_BED_ABS      1522
-#define UI_ACTION_RF_PARK                   1523
-#define UI_ACTION_RF_RESET                  1524
-#define UI_ACTION_RF_RESET_ACK              1525
-#define UI_ACTION_RF_OUTPUT_OBJECT          1526
-#define UI_ACTION_RF_FIND_Z_ORIGIN          1527
-#define UI_ACTION_RF_SCAN_WORK_PART         1528
-#define UI_ACTION_RF_SET_SCAN_XY_START      1529
-#define UI_ACTION_RF_SET_SCAN_XY_END        1530
+#define UI_ACTION_RF_TEST_COMPENSATION 1513
+#define UI_ACTION_RF_PAUSE 1518
+#define UI_ACTION_RF_CONTINUE 1519
+#define UI_ACTION_RF_SCAN_HEAT_BED 1520
+#define UI_ACTION_RF_SCAN_HEAT_BED_PLA 1521
+#define UI_ACTION_RF_SCAN_HEAT_BED_ABS 1522
+#define UI_ACTION_RF_PARK 1523
+#define UI_ACTION_RF_RESET 1524
+#define UI_ACTION_RF_RESET_ACK 1525
+#define UI_ACTION_RF_OUTPUT_OBJECT 1526
+#define UI_ACTION_RF_FIND_Z_ORIGIN 1527
+#define UI_ACTION_RF_SCAN_WORK_PART 1528
+#define UI_ACTION_RF_SET_SCAN_XY_START 1529
+#define UI_ACTION_RF_SET_SCAN_XY_END 1530
 //FEATURE_ALIGN_EXTRUDERS
-#define	UI_ACTION_RF_ALIGN_EXTRUDERS        1531
+#define UI_ACTION_RF_ALIGN_EXTRUDERS 1531
 
-#define UI_ACTION_RF_MAX_SINGLE             1600
+#define UI_ACTION_RF_MAX_SINGLE 1600
 
 /*
 // ##########################################################################################
@@ -420,7 +418,6 @@
 
 */
 
-
 // ##########################################################################################
 // ##   X/Y/Z movements
 // ##########################################################################################
@@ -481,193 +478,193 @@ The following variables are used for movements in x/y/z direction:
 
 */
 
-#define DRV8711_NUM_CHANNELS                5
+#define DRV8711_NUM_CHANNELS 5
 
-extern const char   ui_text_error[]                 PROGMEM;
-extern const char   ui_text_warning[]               PROGMEM;
-extern const char   ui_text_information[]           PROGMEM;
-extern const char   ui_text_set_origin[]            PROGMEM;
-extern const char   ui_text_heat_bed_scan[]         PROGMEM;
-extern const char   ui_text_work_part_scan[]        PROGMEM;
-extern const char   ui_text_find_z_origin[]         PROGMEM;
-extern const char   ui_text_output_object[]         PROGMEM;
-extern const char   ui_text_park_heat_bed[]         PROGMEM;
-extern const char   ui_text_pause[]                 PROGMEM;
-extern const char   ui_text_home[]                  PROGMEM;
-extern const char   ui_text_z_compensation[]        PROGMEM;
-extern const char   ui_text_change_mode[]           PROGMEM;
-extern const char   ui_text_change_z_type[]         PROGMEM;
-extern const char   ui_text_change_miller_type[]    PROGMEM;
-extern const char   ui_text_x_axis[]                PROGMEM;
-extern const char   ui_text_y_axis[]                PROGMEM;
-extern const char   ui_text_z_axis[]                PROGMEM;
+extern const char ui_text_error[] PROGMEM;
+extern const char ui_text_warning[] PROGMEM;
+extern const char ui_text_information[] PROGMEM;
+extern const char ui_text_set_origin[] PROGMEM;
+extern const char ui_text_heat_bed_scan[] PROGMEM;
+extern const char ui_text_work_part_scan[] PROGMEM;
+extern const char ui_text_find_z_origin[] PROGMEM;
+extern const char ui_text_output_object[] PROGMEM;
+extern const char ui_text_park_heat_bed[] PROGMEM;
+extern const char ui_text_pause[] PROGMEM;
+extern const char ui_text_home[] PROGMEM;
+extern const char ui_text_z_compensation[] PROGMEM;
+extern const char ui_text_change_mode[] PROGMEM;
+extern const char ui_text_change_z_type[] PROGMEM;
+extern const char ui_text_change_miller_type[] PROGMEM;
+extern const char ui_text_x_axis[] PROGMEM;
+extern const char ui_text_y_axis[] PROGMEM;
+extern const char ui_text_z_axis[] PROGMEM;
 #if FEATURE_ALIGN_EXTRUDERS
-extern const char   ui_text_align_extruders[]       PROGMEM;
+extern const char ui_text_align_extruders[] PROGMEM;
 #endif // FEATURE_ALIGN_EXTRUDERS
-extern const char   ui_text_extruder[]              PROGMEM;
-extern const char   ui_text_autodetect_pid[]        PROGMEM;
-extern const char   ui_text_temperature_manager[]   PROGMEM;
-extern const char   ui_text_home_unknown[]          PROGMEM;
-extern const char   ui_text_saving_needless[]       PROGMEM;
-extern const char   ui_text_operation_denied[]      PROGMEM;
-extern const char   ui_text_emergency_pause[]       PROGMEM;
-extern const char   ui_text_emergency_stop[]        PROGMEM;
-extern const char   ui_text_invalid_matrix[]        PROGMEM;
-extern const char   ui_text_min_reached[]           PROGMEM;
-extern const char   ui_text_max_reached[]           PROGMEM;
-extern const char   ui_text_temperature_wrong[]     PROGMEM;
-extern const char   ui_text_timeout[]               PROGMEM;
-extern const char   ui_text_sensor_error[]          PROGMEM;
-extern const char   ui_text_heater_error[]          PROGMEM;
-extern const char   ui_text_saving_success[]        PROGMEM;
+extern const char ui_text_extruder[] PROGMEM;
+extern const char ui_text_autodetect_pid[] PROGMEM;
+extern const char ui_text_temperature_manager[] PROGMEM;
+extern const char ui_text_home_unknown[] PROGMEM;
+extern const char ui_text_saving_needless[] PROGMEM;
+extern const char ui_text_operation_denied[] PROGMEM;
+extern const char ui_text_emergency_pause[] PROGMEM;
+extern const char ui_text_emergency_stop[] PROGMEM;
+extern const char ui_text_invalid_matrix[] PROGMEM;
+extern const char ui_text_min_reached[] PROGMEM;
+extern const char ui_text_max_reached[] PROGMEM;
+extern const char ui_text_temperature_wrong[] PROGMEM;
+extern const char ui_text_timeout[] PROGMEM;
+extern const char ui_text_sensor_error[] PROGMEM;
+extern const char ui_text_heater_error[] PROGMEM;
+extern const char ui_text_saving_success[] PROGMEM;
 
 // Geplantes Canceling
-#define SCAN_ABORT_REASON_CANCELED  1
-#define SCAN_ABORT_REASON_PRINTER_LONELY  2
+#define SCAN_ABORT_REASON_CANCELED 1
+#define SCAN_ABORT_REASON_PRINTER_LONELY 2
 
 // Kabelbruch, Extruder verspannt, Stecker wackelig, Ingress,...
-#define SCAN_ABORT_REASON_START_PRESSURE  3
-#define SCAN_ABORT_REASON_IDLE_PRESSURE  4
-#define SCAN_ABORT_REASON_AVERAGE_PRESSURE  5
+#define SCAN_ABORT_REASON_START_PRESSURE 3
+#define SCAN_ABORT_REASON_IDLE_PRESSURE 4
+#define SCAN_ABORT_REASON_AVERAGE_PRESSURE 5
 
 // Hinweise auf Bugs
-#define SCAN_ABORT_REASON_SCAN_OVER_START  6
-#define SCAN_ABORT_REASON_SCAN_STEP_DELTA_OUT_OF_RANGE  7
-#define SCAN_ABORT_REASON_MATRIX_DIMENSION  8
+#define SCAN_ABORT_REASON_SCAN_OVER_START 6
+#define SCAN_ABORT_REASON_SCAN_STEP_DELTA_OUT_OF_RANGE 7
+#define SCAN_ABORT_REASON_MATRIX_DIMENSION 8
 
 // Löcher im Druckbett, Druckbett verdreckt, Mechanik problem, DDP schlecht geklebt
-#define SCAN_ABORT_REASON_SCAN_TOO_UNEVEN  9
+#define SCAN_ABORT_REASON_SCAN_TOO_UNEVEN 9
 
 // Z-Schraube falsch, Origin-/Workpart-Scan gegen nichts, ??
 // _MAX_COMPENSATION und _ENDSTOP_PROTECTION deuten im Printermodus auf dasselbe hin, sind aber 2 unterschiedliche Stellen.
-#define SCAN_ABORT_REASON_MIN_ENDSTOP  10
-#define SCAN_ABORT_REASON_MAX_ENDSTOP  11
-#define SCAN_ABORT_REASON_REACHED_MAX_COMPENSATION  12
-#define SCAN_ABORT_REASON_REACHED_ENDSTOP_PROTECTION  13
+#define SCAN_ABORT_REASON_MIN_ENDSTOP 10
+#define SCAN_ABORT_REASON_MAX_ENDSTOP 11
+#define SCAN_ABORT_REASON_REACHED_MAX_COMPENSATION 12
+#define SCAN_ABORT_REASON_REACHED_ENDSTOP_PROTECTION 13
 
 // Ungültige oder nicht vorhandene Z-Matrix
-#define SCAN_ABORT_REASON_MISSING_MATRIX  14
+#define SCAN_ABORT_REASON_MISSING_MATRIX 14
 // Softwaretechnisch ungültiges Ergebnis. Scan über 12+mm tief??
-#define SCAN_ABORT_REASON_OVERFLOWING_MATRIX  15
+#define SCAN_ABORT_REASON_OVERFLOWING_MATRIX 15
 // Anscheinend crashgefährliches Hardware-Software-Setting
-#define SCAN_ABORT_REASON_BAD_HEIGHT_MATRIX  16
+#define SCAN_ABORT_REASON_BAD_HEIGHT_MATRIX 16
 
 #if FEATURE_HEAT_BED_Z_COMPENSATION
 
 // determine the maximal needed size for the heat bed compensation
 // in case also FEATURE_WORK_PART_Z_COMPENSATION is enabled, only the defined dimensions for the heat bed scan count (so it must be ensured that the dimensions of the heat bed compensation matrix are at least of the size of the work part compensation matrix)
-#define COMPENSATION_MATRIX_MAX_X           long((X_MAX_LENGTH_PRINT - HEAT_BED_SCAN_X_START_MM - HEAT_BED_SCAN_X_END_MM) / HEAT_BED_SCAN_X_STEP_SIZE_MIN_MM + 4)
-#define COMPENSATION_MATRIX_MAX_Y           long((Y_MAX_LENGTH       - HEAT_BED_SCAN_Y_START_MM - HEAT_BED_SCAN_Y_END_MM) / HEAT_BED_SCAN_Y_STEP_SIZE_MIN_MM + 4)
-#define COMPENSATION_MATRIX_SIZE            long(COMPENSATION_MATRIX_MAX_X * COMPENSATION_MATRIX_MAX_Y * 2 + EEPROM_OFFSET_MATRIX_START)   // [bytes]
+#define COMPENSATION_MATRIX_MAX_X long((X_MAX_LENGTH_PRINT - HEAT_BED_SCAN_X_START_MM - HEAT_BED_SCAN_X_END_MM) / HEAT_BED_SCAN_X_STEP_SIZE_MIN_MM + 4)
+#define COMPENSATION_MATRIX_MAX_Y long((Y_MAX_LENGTH - HEAT_BED_SCAN_Y_START_MM - HEAT_BED_SCAN_Y_END_MM) / HEAT_BED_SCAN_Y_STEP_SIZE_MIN_MM + 4)
+#define COMPENSATION_MATRIX_SIZE long(COMPENSATION_MATRIX_MAX_X * COMPENSATION_MATRIX_MAX_Y * 2 + EEPROM_OFFSET_MATRIX_START) // [bytes]
 
 #elif FEATURE_WORK_PART_Z_COMPENSATION
 
 // determine the maximal needed size for the work part compensation
-#define COMPENSATION_MATRIX_MAX_X           long((X_MAX_LENGTH_MILL - WORK_PART_SCAN_X_START_MM - WORK_PART_SCAN_X_END_MM) / WORK_PART_SCAN_X_STEP_SIZE_MIN_MM + 4)
-#define COMPENSATION_MATRIX_MAX_Y           long((Y_MAX_LENGTH      - WORK_PART_SCAN_Y_START_MM - WORK_PART_SCAN_Y_END_MM) / WORK_PART_SCAN_Y_STEP_SIZE_MIN_MM + 4)
-#define COMPENSATION_MATRIX_SIZE            long(COMPENSATION_MATRIX_MAX_X * COMPENSATION_MATRIX_MAX_Y * 2 + EEPROM_OFFSET_MATRIX_START)   // [bytes]
+#define COMPENSATION_MATRIX_MAX_X long((X_MAX_LENGTH_MILL - WORK_PART_SCAN_X_START_MM - WORK_PART_SCAN_X_END_MM) / WORK_PART_SCAN_X_STEP_SIZE_MIN_MM + 4)
+#define COMPENSATION_MATRIX_MAX_Y long((Y_MAX_LENGTH - WORK_PART_SCAN_Y_START_MM - WORK_PART_SCAN_Y_END_MM) / WORK_PART_SCAN_Y_STEP_SIZE_MIN_MM + 4)
+#define COMPENSATION_MATRIX_SIZE long(COMPENSATION_MATRIX_MAX_X * COMPENSATION_MATRIX_MAX_Y * 2 + EEPROM_OFFSET_MATRIX_START) // [bytes]
 
 #endif // FEATURE_HEAT_BED_Z_COMPENSATION && FEATURE_WORK_PART_Z_COMPENSATION
 
-extern  millis_t        g_uStartOfIdle;
+extern millis_t g_uStartOfIdle;
 
 #if FEATURE_HEAT_BED_Z_COMPENSATION
-extern  long            g_offsetZCompensationSteps; // this is the minimal distance between the heat bed and the extruder at the moment when the z-min endstop is hit
-extern  short           g_ZCompensationMax;
-extern  long            g_minZCompensationSteps;
-extern  long            g_maxZCompensationSteps;
-extern  long            g_diffZCompensationSteps;
-extern  volatile unsigned char g_nHeatBedScanStatus;
-extern  char            g_nActiveHeatBed;
+extern long g_offsetZCompensationSteps; // this is the minimal distance between the heat bed and the extruder at the moment when the z-min endstop is hit
+extern short g_ZCompensationMax;
+extern long g_minZCompensationSteps;
+extern long g_maxZCompensationSteps;
+extern long g_diffZCompensationSteps;
+extern volatile unsigned char g_nHeatBedScanStatus;
+extern char g_nActiveHeatBed;
 //ZOS:
-extern  volatile unsigned char g_nZOSScanStatus;
-extern  unsigned char          g_ZOSTestPoint[2];
-extern  float           g_ZOSlearningRate;
-extern  float           g_ZOSlearningGradient;
-extern  long            g_min_nZScanZPosition;
-extern  unsigned char   g_ZOS_Auto_Matrix_Leveling_State;
+extern volatile unsigned char g_nZOSScanStatus;
+extern unsigned char g_ZOSTestPoint[2];
+extern float g_ZOSlearningRate;
+extern float g_ZOSlearningGradient;
+extern long g_min_nZScanZPosition;
+extern unsigned char g_ZOS_Auto_Matrix_Leveling_State;
 //Matrix speichern über Menü: Sinnmarker
-extern  volatile unsigned char  g_ZMatrixChangedInRam;
+extern volatile unsigned char g_ZMatrixChangedInRam;
 #endif // FEATURE_HEAT_BED_Z_COMPENSATION
 
 #if FEATURE_WORK_PART_Z_COMPENSATION
 extern volatile unsigned char g_nWorkPartScanStatus;
-extern  char            g_nWorkPartScanMode;        // 0 = do not home z-axis, 1 = home z-axis
-extern  char            g_nActiveWorkPart;
+extern char g_nWorkPartScanMode; // 0 = do not home z-axis, 1 = home z-axis
+extern char g_nActiveWorkPart;
 #endif // FEATURE_WORK_PART_Z_COMPENSATION
 
 #if FEATURE_WORK_PART_Z_COMPENSATION || FEATURE_HEAT_BED_Z_COMPENSATION
-extern  float           g_scanStartZLiftMM;
+extern float g_scanStartZLiftMM;
 #endif //FEATURE_WORK_PART_Z_COMPENSATION || FEATURE_HEAT_BED_Z_COMPENSATION
 
 #if FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
-extern  char            g_abortZScan;
-extern  short           g_ZCompensationMatrix[COMPENSATION_MATRIX_MAX_X][COMPENSATION_MATRIX_MAX_Y];
-extern  unsigned char   g_uZMatrixMax[2];
-extern  long            g_nZScanZPosition;
+extern char g_abortZScan;
+extern short g_ZCompensationMatrix[COMPENSATION_MATRIX_MAX_X][COMPENSATION_MATRIX_MAX_Y];
+extern unsigned char g_uZMatrixMax[2];
+extern long g_nZScanZPosition;
 
-extern  char            g_nHeatBedScanMode;         // 0 = oldScan, 1 = PLA, 2 = ABS
+extern char g_nHeatBedScanMode; // 0 = oldScan, 1 = PLA, 2 = ABS
 
-extern  long            g_nScanXStepSizeMM;
-extern  long            g_nScanXStepSizeSteps;
-extern  long            g_nScanYStepSizeMM;
-extern  long            g_nScanYStepSizeSteps;
+extern long g_nScanXStepSizeMM;
+extern long g_nScanXStepSizeSteps;
+extern long g_nScanYStepSizeMM;
+extern long g_nScanYStepSizeSteps;
 
-extern  unsigned short  g_nScanContactPressureDelta;
-extern  unsigned short  g_nScanRetryPressureDelta;
+extern unsigned short g_nScanContactPressureDelta;
+extern unsigned short g_nScanRetryPressureDelta;
 #endif // #if FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
 
-extern  long            g_staticZSteps;
-extern  char            g_debugLevel;
-extern  char            g_debugLog;
-extern  millis_t        g_uStopTime;
+extern long g_staticZSteps;
+extern char g_debugLevel;
+extern char g_debugLog;
+extern millis_t g_uStopTime;
 extern volatile millis_t g_uBlockCommands;
 
 // other configurable parameters
-extern  unsigned short  g_nManualSteps[4];
-extern  volatile long   g_nPauseSteps[4];
-extern  volatile long   g_nContinueSteps[4];
-extern  volatile char   g_pauseStatus;
-extern  volatile char   g_pauseMode;
-extern  volatile millis_t g_uPauseTime;
-extern  volatile char   g_pauseBeepDone;
+extern unsigned short g_nManualSteps[4];
+extern volatile long g_nPauseSteps[4];
+extern volatile long g_nContinueSteps[4];
+extern volatile char g_pauseStatus;
+extern volatile char g_pauseMode;
+extern volatile millis_t g_uPauseTime;
+extern volatile char g_pauseBeepDone;
 
 #if FEATURE_EMERGENCY_PAUSE
-extern long             g_nEmergencyPauseDigitsMin;  //short reicht eigentlich
-extern long             g_nEmergencyPauseDigitsMax;  //short reicht eigentlich
-#endif // FEATURE_EMERGENCY_PAUSE
+extern long g_nEmergencyPauseDigitsMin; //short reicht eigentlich
+extern long g_nEmergencyPauseDigitsMax; //short reicht eigentlich
+#endif                                  // FEATURE_EMERGENCY_PAUSE
 
 #if FEATURE_EMERGENCY_STOP_Z_AND_E
-extern short             g_nEmergencyStopZAndEMin;
-extern short             g_nEmergencyStopZAndEMax;
-extern bool              g_nEmergencyESkip;
+extern short g_nEmergencyStopZAndEMin;
+extern short g_nEmergencyStopZAndEMax;
+extern bool g_nEmergencyESkip;
 #endif //FEATURE_EMERGENCY_STOP_Z_AND_E
 
 #if FEATURE_SENSIBLE_PRESSURE
 /* brief: This is for correcting too close Z at first layer, see FEATURE_SENSIBLE_PRESSURE // Idee Wessix, coded by Nibbels  */
-extern long             nSensiblePressureSum;
-extern char             nSensiblePressureChecks;
-extern short            g_nSensiblePressureDigits;
-extern short            g_nSensiblePressureOffsetMax;
-extern short            g_nSensiblePressureOffset;
-extern char             g_nSensiblePressure1stMarke; //sagt, ob regelung aktiv oder inaktiv, wegen Z-Limits
-#endif // FEATURE_SENSIBLE_PRESSURE
+extern long nSensiblePressureSum;
+extern char nSensiblePressureChecks;
+extern short g_nSensiblePressureDigits;
+extern short g_nSensiblePressureOffsetMax;
+extern short g_nSensiblePressureOffset;
+extern char g_nSensiblePressure1stMarke; //sagt, ob regelung aktiv oder inaktiv, wegen Z-Limits
+#endif                                   // FEATURE_SENSIBLE_PRESSURE
 
-extern short            g_nLastDigits;
+extern short g_nLastDigits;
 #if FEATURE_DIGIT_Z_COMPENSATION
-extern float            g_nDigitZCompensationDigits;
-extern bool             g_nDigitZCompensationDigits_active;
+extern float g_nDigitZCompensationDigits;
+extern bool g_nDigitZCompensationDigits_active;
 #if FEATURE_DIGIT_FLOW_COMPENSATION
-extern int8_t           g_nDigitFlowCompensation_intense;
-extern int8_t           g_nDigitFlowCompensation_speed_intense;
-extern short            g_nDigitFlowCompensation_Fmin;
-extern short            g_nDigitFlowCompensation_Fmax;
+extern int8_t g_nDigitFlowCompensation_intense;
+extern int8_t g_nDigitFlowCompensation_speed_intense;
+extern short g_nDigitFlowCompensation_Fmin;
+extern short g_nDigitFlowCompensation_Fmax;
 #endif // FEATURE_DIGIT_FLOW_COMPENSATION
 #endif // FEATURE_DIGIT_Z_COMPENSATION
 
 #if FEATURE_FIND_Z_ORIGIN
 extern volatile unsigned char g_nFindZOriginStatus;
-extern long            g_nZOriginPosition[3];
+extern long g_nZOriginPosition[3];
 #endif // FEATURE_FIND_Z_ORIGIN
 
 #if FEATURE_ALIGN_EXTRUDERS
@@ -675,27 +672,27 @@ extern volatile unsigned char g_nAlignExtrudersStatus;
 #endif // FEATURE_ALIGN_EXTRUDERS
 
 #if FEATURE_RGB_LIGHT_EFFECTS
-extern unsigned char    g_uRGBHeatingR;
-extern unsigned char    g_uRGBHeatingG;
-extern unsigned char    g_uRGBHeatingB;
-extern unsigned char    g_uRGBPrintingR;
-extern unsigned char    g_uRGBPrintingG;
-extern unsigned char    g_uRGBPrintingB;
-extern unsigned char    g_uRGBCoolingR;
-extern unsigned char    g_uRGBCoolingG;
-extern unsigned char    g_uRGBCoolingB;
-extern unsigned char    g_uRGBIdleR;
-extern unsigned char    g_uRGBIdleG;
-extern unsigned char    g_uRGBIdleB;
-extern unsigned char    g_uRGBManualR;
-extern unsigned char    g_uRGBManualG;
-extern unsigned char    g_uRGBManualB;
-extern volatile unsigned char   g_uRGBCurrentR;
-extern volatile unsigned char   g_uRGBCurrentG;
-extern volatile unsigned char   g_uRGBCurrentB;
-extern unsigned char    g_uRGBTargetR;
-extern unsigned char    g_uRGBTargetG;
-extern unsigned char    g_uRGBTargetB;
+extern unsigned char g_uRGBHeatingR;
+extern unsigned char g_uRGBHeatingG;
+extern unsigned char g_uRGBHeatingB;
+extern unsigned char g_uRGBPrintingR;
+extern unsigned char g_uRGBPrintingG;
+extern unsigned char g_uRGBPrintingB;
+extern unsigned char g_uRGBCoolingR;
+extern unsigned char g_uRGBCoolingG;
+extern unsigned char g_uRGBCoolingB;
+extern unsigned char g_uRGBIdleR;
+extern unsigned char g_uRGBIdleG;
+extern unsigned char g_uRGBIdleB;
+extern unsigned char g_uRGBManualR;
+extern unsigned char g_uRGBManualG;
+extern unsigned char g_uRGBManualB;
+extern volatile unsigned char g_uRGBCurrentR;
+extern volatile unsigned char g_uRGBCurrentG;
+extern volatile unsigned char g_uRGBCurrentB;
+extern unsigned char g_uRGBTargetR;
+extern unsigned char g_uRGBTargetG;
+extern unsigned char g_uRGBTargetB;
 #endif // FEATURE_RGB_LIGHT_EFFECTS
 
 extern void initRF(void);
@@ -741,7 +738,6 @@ extern void scanWorkPart(void);
 extern void doWorkPartZCompensation(void);
 extern long getWorkPartOffset(void);
 #endif // FEATURE_WORK_PART_Z_COMPENSATION
-
 
 #if FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
 extern short readIdlePressure(short* pnIdlePressure);
@@ -793,14 +789,14 @@ extern void moveXAction(int8_t increment);
 extern void moveYAction(int8_t increment);
 extern void moveZAction(int8_t increment);
 
-#if STEPPER_CURRENT_CONTROL==CURRENT_CONTROL_DRV8711
+#if STEPPER_CURRENT_CONTROL == CURRENT_CONTROL_DRV8711
 extern void setMotorCurrent(unsigned char driver, uint8_t level);
 
 // adjust/set Microsteps()
 extern unsigned short drv8711Axis_2_InitMicrosteps(uint8_t axis);
 extern unsigned short drv8711ModeValue_2_MicroSteps(uint8_t modeValue);
-extern uint8_t        drv8711MicroSteps_2_ModeValue(unsigned short microsteps);
-extern void           drv8711adjustMicroSteps(unsigned char driver);
+extern uint8_t drv8711MicroSteps_2_ModeValue(unsigned short microsteps);
+extern void drv8711adjustMicroSteps(unsigned char driver);
 
 extern void drv8711Init(void);
 #if FEATURE_READ_STEPPER_STATUS

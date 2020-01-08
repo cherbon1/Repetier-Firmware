@@ -670,11 +670,7 @@ Honeywell 100K Thermistor (135-104LAG-J01)  : R0 = 100000  T0 = 25  Beta = 3974
 // ##########################################################################################
 
 /** \brief  Select whether the SD card is supported. */
-#define SDSUPPORT                           0                                                   // 1 = supported, 0 = not supported
-#if SDSUPPORT
-#error SD printing is currently not working very well. It works but we saw are sporadic drives to x and y home or extrusion problems.
-#error Remove this warning if you know what you are doing and if you really want to print from SD with all possible risks.
-#endif
+#define SDSUPPORT                           1                                                   // 1 = supported, 0 = not supported
 
 /** \brief  Change to true if you get a inserted message on removal. */
 #define SDCARDDETECTINVERTED                false
@@ -804,8 +800,6 @@ Honeywell 100K Thermistor (135-104LAG-J01)  : R0 = 100000  T0 = 25  Beta = 3974
 #define UI_SET_EXTRUDER_FEEDRATE            1.5f                                                 // [mm/sec]
 #define UI_SET_EXTRUDER_RETRACT_DISTANCE    3                                                   // [mm]
 #define COOLDOWN_THRESHOLD                  40                                                  // [°C]
-
-#define SHOW_DEBUGGING_MENU                 0                                                   // 1 = show, 0 = hide
 
 #define SPEED_MIN_MILLIS                    300
 #define SPEED_MAX_MILLIS                    50

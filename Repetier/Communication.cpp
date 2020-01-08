@@ -15,7 +15,6 @@
     along with Repetier-Firmware.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-
 #include "Repetier.h"
 
 #ifndef FIRMWARE_URL
@@ -67,7 +66,7 @@ FSTRINGVALUE(Com::tExpectedLine, "Error:expected line ")
 FSTRINGVALUE(Com::tGot, " got ")
 FSTRINGVALUE(Com::tSkip, "skip ")
 FSTRINGVALUE(Com::tBLK, "BLK ")
-FSTRINGVALUE(Com::tStart, "start")                   // do not change "start" to "Start" because some applications might not be able to detect "Start" as "start"
+FSTRINGVALUE(Com::tStart, "start") // do not change "start" to "Start" because some applications might not be able to detect "Start" as "start"
 FSTRINGVALUE(Com::tStartWatchdog, "Start Watchdog")
 FSTRINGVALUE(Com::tPowerUp, "PowerUp")
 FSTRINGVALUE(Com::tExternalReset, "External Reset")
@@ -182,7 +181,7 @@ FSTRINGVALUE(Com::tDryModeUntilRestart, "Printer set into dry run mode until res
 FSTRINGVALUE(Com::tWait, WAITING_IDENTIFIER)
 #endif // WAITING_IDENTIFIER
 
-#if EEPROM_MODE==0
+#if EEPROM_MODE == 0
 FSTRINGVALUE(Com::tNoEEPROMSupport, "No EEPROM support compiled.\r\n")
 #else
 FSTRINGVALUE(Com::tConfigStoredEEPROM, "Configuration stored to EEPROM.")
@@ -303,7 +302,7 @@ FSTRINGVALUE(Com::tEPRPrinter_STEPPER_E1, "E1 Stepper current [2A/126]")
 #endif //NUM_EXTRUDER > 1
 FSTRINGVALUE(Com::tEPRInterruptSpacingInterval, "Interrupt spacing [CPU Ticks]")
 
-#if FAN_PIN>-1 && FEATURE_FAN_CONTROL
+#if FAN_PIN > -1 && FEATURE_FAN_CONTROL
 FSTRINGVALUE(Com::tEPRPrinter_FAN_MODE, "Fan modulation [0=PWM 1=PDM]")
 FSTRINGVALUE(Com::tEPRPrinter_FAN_SPEED, "Fan PWM divisor [15.3Hz/x]")
 FSTRINGVALUE(Com::tEPRPrinter_FAN_PART_FAN_PWM_MIN, "Partfan 1% level [1..239]")
@@ -351,7 +350,7 @@ FSTRINGVALUE(Com::tFindZOrigin, FIND_Z_ORIGIN_SCRIPT)
 FSTRINGVALUE(Com::tCap, "Cap:")
 FSTRINGVALUE(Com::tConfig, "Config:")
 
-; // needed because the development tool does not recognize the ; within FSTRINGVALUE definition right.
+    ; // needed because the development tool does not recognize the ; within FSTRINGVALUE definition right.
 
 bool Com::writeToAll = true; // transmit start messages to all devices!
 
@@ -367,7 +366,7 @@ void Com::config(FSTRINGPARAM(text), int value) {
     printF(tConfig);
     printFLN(text, value);
 }
-void Com::config(FSTRINGPARAM(text), const char *msg) {
+void Com::config(FSTRINGPARAM(text), const char* msg) {
     printF(tConfig);
     printF(text);
     print(msg);
@@ -385,170 +384,128 @@ void Com::config(FSTRINGPARAM(text), float value, uint8_t digits) {
     printF(tConfig);
     printFLN(text, value, digits);
 }
-void Com::printWarningF(FSTRINGPARAM(text))
-{
+void Com::printWarningF(FSTRINGPARAM(text)) {
     printF(tWarning);
     printF(text);
 } // printWarningF
 
-
-void Com::printWarningFLN(FSTRINGPARAM(text))
-{
+void Com::printWarningFLN(FSTRINGPARAM(text)) {
     printF(tWarning);
     printFLN(text);
 } // printWarningFLN
 
-
-void Com::printInfoF(FSTRINGPARAM(text))
-{
+void Com::printInfoF(FSTRINGPARAM(text)) {
     printF(tInfo);
     printF(text);
 } // printInfoF
 
-
-void Com::printInfoFLN(FSTRINGPARAM(text))
-{
+void Com::printInfoFLN(FSTRINGPARAM(text)) {
     printF(tInfo);
     printFLN(text);
 } // printInfoFLN
 
-void Com::printErrorF(FSTRINGPARAM(text))
-{
+void Com::printErrorF(FSTRINGPARAM(text)) {
     printF(tError);
     printF(text);
 } // printErrorF
 
-
-void Com::printErrorFLN(FSTRINGPARAM(text))
-{
+void Com::printErrorFLN(FSTRINGPARAM(text)) {
     printF(tError);
     printFLN(text);
 } // printErrorFLN
 
-
-void Com::printFLN(FSTRINGPARAM(text))
-{
+void Com::printFLN(FSTRINGPARAM(text)) {
     printF(text);
     println();
 } // printFLN
 
-
-void Com::printFLN(FSTRINGPARAM(text), const char *msg)
-{
+void Com::printFLN(FSTRINGPARAM(text), const char* msg) {
     printF(text);
     print(msg);
     println();
 } // printFLN
 
-
-void Com::printF(FSTRINGPARAM(ptr))
-{
+void Com::printF(FSTRINGPARAM(ptr)) {
     char c;
     while ((c = HAL::readFlashByte(ptr++)) != 0)
         GCodeSource::writeToAll(c);
 } // printF
 
-
-void Com::printF(FSTRINGPARAM(text), const char *msg)
-{
+void Com::printF(FSTRINGPARAM(text), const char* msg) {
     printF(text);
     print(msg);
 } // printF
 
-
-void Com::printF(FSTRINGPARAM(text), int value)
-{
+void Com::printF(FSTRINGPARAM(text), int value) {
     printF(text);
     print(value);
 } // printF
 
-
-void Com::printF(FSTRINGPARAM(text), int32_t value)
-{
+void Com::printF(FSTRINGPARAM(text), int32_t value) {
     printF(text);
     print(value);
 } // printF
 
-
-void Com::printF(FSTRINGPARAM(text), uint32_t value)
-{
+void Com::printF(FSTRINGPARAM(text), uint32_t value) {
     printF(text);
     printNumber(value);
 } // printF
 
-
-void Com::printFLN(FSTRINGPARAM(text), int value)
-{
+void Com::printFLN(FSTRINGPARAM(text), int value) {
     printF(text);
     print(value);
     println();
 } // printFLN
 
-
-void Com::printFLN(FSTRINGPARAM(text), int32_t value)
-{
+void Com::printFLN(FSTRINGPARAM(text), int32_t value) {
     printF(text);
     print(value);
     println();
 } // printFLN
 
-
-void Com::printFLN(FSTRINGPARAM(text), uint32_t value)
-{
+void Com::printFLN(FSTRINGPARAM(text), uint32_t value) {
     printF(text);
     printNumber(value);
     println();
 } // printFLN
 
-
-void Com::printFLN(FSTRINGPARAM(text), float value, uint8_t digits, bool komma_as_dot)
-{
+void Com::printFLN(FSTRINGPARAM(text), float value, uint8_t digits, bool komma_as_dot) {
     printF(text);
     printFloat(value, digits, komma_as_dot);
     println();
 } // printFLN
 
-
-void Com::printF(FSTRINGPARAM(text), float value, uint8_t digits, bool komma_as_dot)
-{
+void Com::printF(FSTRINGPARAM(text), float value, uint8_t digits, bool komma_as_dot) {
     printF(text);
     printFloat(value, digits, komma_as_dot);
 } // printF
 
 void Com::printSharpLine() {
-    for (uint8_t nnn = 0; nnn < 70; nnn++) Com::printF(PSTR("#"));
+    for (uint8_t nnn = 0; nnn < 70; nnn++)
+        Com::printF(PSTR("#"));
     Com::println();
 }
 
-void Com::print(const char *text)
-{
-    while (*text)
-    {
+void Com::print(const char* text) {
+    while (*text) {
         GCodeSource::writeToAll(*text++);
     }
 } // print
 
-
-void Com::print(int32_t value)
-{
-    if (value < 0)
-    {
+void Com::print(int32_t value) {
+    if (value < 0) {
         GCodeSource::writeToAll('-');
         value = -value;
     }
     printNumber(value);
 } // print
 
-
-void Com::printNumber(uint32_t n)
-{
+void Com::printNumber(uint32_t n) {
     char buf[11]; // Assumes 8-bit chars plus zero byte.
-    char *str = &buf[10];
-
+    char* str = &buf[10];
 
     *str = '\0';
-    do
-    {
+    do {
         unsigned long m = n;
         n /= 10;
         *--str = '0' + (m - 10 * n);
@@ -557,67 +514,59 @@ void Com::printNumber(uint32_t n)
     print(str);
 } // printNumber
 
-
-void Com::printArrayFLN(FSTRINGPARAM(text), float *arr, uint8_t n, uint8_t digits)
-{
+void Com::printArrayFLN(FSTRINGPARAM(text), float* arr, uint8_t n, uint8_t digits) {
     printF(text);
     for (uint8_t i = 0; i < n; i++)
         printF(Com::tSpace, arr[i], digits);
     println();
 } // printArrayFLN
 
-
-void Com::printArrayFLN(FSTRINGPARAM(text), int32_t *arr, uint8_t n)
-{
+void Com::printArrayFLN(FSTRINGPARAM(text), int32_t* arr, uint8_t n) {
     printF(text);
     for (uint8_t i = 0; i < n; i++)
         printF(Com::tSpace, arr[i]);
     println();
 } // printArrayFLN
 
-
-void Com::printFloat(float number, uint8_t digits, bool komma_as_dot)
-{
-    if (isnan(number))
-    {
+void Com::printFloat(float number, uint8_t digits, bool komma_as_dot) {
+    if (isnan(number)) {
         printF(tNAN);
         return;
     }
-    if (isinf(number))
-    {
+    if (isinf(number)) {
         printF(tINF);
         return;
     }
 
     // Handle negative numbers
-    if (number < 0.0)
-    {
+    if (number < 0.0) {
         print('-');
         number = -number;
     }
 
     // Round correctly so that print(1.999, 2) prints as "2.00"
     float rounding = 0.5;
-    for (uint8_t i = 0; i < digits; ++i) rounding *= 0.1;
+    for (uint8_t i = 0; i < digits; ++i)
+        rounding *= 0.1;
     /* *=0.1 evtl. besser als /= 10, aber "With g++, 200.f / 10 and 200.f * 0.1 emit exactly the same code. – Johan Kotlinski Nov 8 '10 at 15:31"
             Source: https://stackoverflow.com/questions/4125033/floating-point-division-vs-floating-point-multiplication*/
 
     number += rounding;
 
     // Extract the integer part of the number and print it
-    unsigned long   int_part = (unsigned long)number;
-    float           remainder = number - (float)int_part;
-
+    unsigned long int_part = (unsigned long)number;
+    float remainder = number - (float)int_part;
 
     printNumber(int_part);
 
     // Print the decimal point, but only if there are digits beyond
-    if (digits > 0 && komma_as_dot) print(',');
-    if (digits > 0 && !komma_as_dot) print('.');
+    if (digits > 0 && komma_as_dot)
+        print(',');
+    if (digits > 0 && !komma_as_dot)
+        print('.');
 
     // Extract digits from the remainder one at a time
-    while (digits-- > 0)
-    {
+    while (digits-- > 0) {
         remainder *= 10.0;
         int toPrint = int(remainder);
         print(toPrint);

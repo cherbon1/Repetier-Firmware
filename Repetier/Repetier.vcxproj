@@ -93,10 +93,10 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\Repetier;$(ProjectDir)..\..\..\..\..\..\Program Files (x86)\Arduino\hardware\arduino\avr\libraries\SPI\src;$(ProjectDir)..\..\..\..\..\..\Program Files (x86)\Arduino\hardware\arduino\avr\libraries\Wire\src;$(ProjectDir)..\..\..\..\..\..\Program Files (x86)\Arduino\hardware\arduino\avr\libraries\Wire\src\utility;$(ProjectDir)..\..\..\..\..\..\Program Files (x86)\Arduino\libraries;$(ProjectDir)..\..\..\..\..\..\Program Files (x86)\Arduino\hardware\arduino\avr\libraries;$(ProjectDir)..\..\..\Arduino\libraries;$(ProjectDir)..\..\..\..\..\..\Program Files (x86)\Arduino\hardware\arduino\avr\cores\arduino;$(ProjectDir)..\..\..\..\..\..\Program Files (x86)\Arduino\hardware\arduino\avr\variants\mega;$(ProjectDir)..\..\..\..\..\..\Program Files (x86)\Arduino\hardware\tools\avr\avr\include;$(ProjectDir)..\..\..\..\..\..\Program Files (x86)\Arduino\hardware\tools\avr\avr\include\avr;$(ProjectDir)..\..\..\..\..\..\Program Files (x86)\Arduino\hardware\tools\avr\lib\gcc\avr\4.8.1\include;$(ProjectDir)..\..\..\..\..\..\Program Files (x86)\Arduino\hardware\tools\avr\lib\gcc\avr\4.9.2\include;$(ProjectDir)..\..\..\..\..\..\Program Files (x86)\Arduino\hardware\tools\avr\lib\gcc\avr\4.9.3\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\Repetier;$(ProjectDir)..\..\..\..\..\..\Program Files (x86)\Arduino\hardware\arduino\avr\libraries\SPI\src;$(ProjectDir)..\..\..\..\..\..\Program Files (x86)\Arduino\hardware\arduino\avr\libraries\Wire\src;$(ProjectDir)..\..\..\..\..\..\Program Files (x86)\Arduino\hardware\arduino\avr\libraries\Wire\src\utility;$(ProjectDir)..\..\..\..\..\..\Program Files (x86)\Arduino\libraries;$(ProjectDir)..\..\..\..\..\..\Program Files (x86)\Arduino\hardware\arduino\avr\libraries;$(ProjectDir)..\..\..\Arduino\libraries;$(ProjectDir)..\..\..\..\..\..\Program Files (x86)\Arduino\hardware\arduino\avr\cores\arduino;$(ProjectDir)..\..\..\..\..\..\Program Files (x86)\Arduino\hardware\arduino\avr\variants\mega;$(ProjectDir)..\..\..\..\AppData\Local\arduino15\packages\arduino\tools\avr-gcc\7.3.0-atmel3.6.1-arduino5\avr\include;$(ProjectDir)..\..\..\..\AppData\Local\arduino15\packages\arduino\tools\avr-gcc\7.3.0-atmel3.6.1-arduino5\avr\include\avr;$(ProjectDir)..\..\..\..\AppData\Local\arduino15\packages\arduino\tools\avr-gcc\7.3.0-atmel3.6.1-arduino5\lib\gcc\avr\4.9.2\include;$(ProjectDir)..\..\..\..\AppData\Local\arduino15\packages\arduino\tools\avr-gcc\7.3.0-atmel3.6.1-arduino5\lib\gcc\avr\4.9.2\include;$(ProjectDir)..\..\..\..\AppData\Local\arduino15\packages\arduino\tools\avr-gcc\7.3.0-atmel3.6.1-arduino5\lib\gcc\avr\4.9.3\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <ForcedIncludeFiles>$(ProjectDir)__vm\.Repetier.vsarduino.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
       <WholeProgramOptimization>false</WholeProgramOptimization>
-      <PreprocessorDefinitions>__AVR_atmega2560__;__AVR_ATmega2560__;F_CPU=16000000L;ARDUINO=10809;ARDUINO_AVR_MEGA2560;ARDUINO_ARCH_AVR;__cplusplus=201103L;_VMICRO_INTELLISENSE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>__AVR_atmega2560__;__AVR_ATmega2560__;F_CPU=16000000L;ARDUINO=108010;ARDUINO_AVR_MEGA2560;ARDUINO_ARCH_AVR;__cplusplus=201103L;_VMICRO_INTELLISENSE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -123,6 +123,7 @@
     <ClInclude Include="Eeprom.h" />
     <ClInclude Include="Extruder.h" />
     <ClInclude Include="fastio.h" />
+    <ClInclude Include="FatStructs.h" />
     <ClInclude Include="gcode.h" />
     <ClInclude Include="HAL.h" />
     <ClInclude Include="motion.h" />
@@ -133,35 +134,7 @@
     <ClInclude Include="RF1000.h" />
     <ClInclude Include="RF2000.h" />
     <ClInclude Include="RF2000v2.h" />
-    <ClInclude Include="src\SdFat\BlockDriver.h" />
-    <ClInclude Include="src\SdFat\FatLib\ArduinoFiles.h" />
-    <ClInclude Include="src\SdFat\FatLib\ArduinoStream.h" />
-    <ClInclude Include="src\SdFat\FatLib\BaseBlockDriver.h" />
-    <ClInclude Include="src\SdFat\FatLib\bufstream.h" />
-    <ClInclude Include="src\SdFat\FatLib\FatApiConstants.h" />
-    <ClInclude Include="src\SdFat\FatLib\FatFile.h" />
-    <ClInclude Include="src\SdFat\FatLib\FatFileSystem.h" />
-    <ClInclude Include="src\SdFat\FatLib\FatLib.h" />
-    <ClInclude Include="src\SdFat\FatLib\FatLibConfig.h" />
-    <ClInclude Include="src\SdFat\FatLib\FatStructs.h" />
-    <ClInclude Include="src\SdFat\FatLib\FatVolume.h" />
-    <ClInclude Include="src\SdFat\FatLib\FmtNumber.h" />
-    <ClInclude Include="src\SdFat\FatLib\fstream.h" />
-    <ClInclude Include="src\SdFat\FatLib\ios.h" />
-    <ClInclude Include="src\SdFat\FatLib\iostream.h" />
-    <ClInclude Include="src\SdFat\FatLib\istream.h" />
-    <ClInclude Include="src\SdFat\FatLib\ostream.h" />
-    <ClInclude Include="src\SdFat\FatLib\StdioStream.h" />
-    <ClInclude Include="src\SdFat\FreeStack.h" />
-    <ClInclude Include="src\SdFat\MinimumSerial.h" />
-    <ClInclude Include="src\SdFat\SdCard\SdInfo.h" />
-    <ClInclude Include="src\SdFat\SdCard\SdioCard.h" />
-    <ClInclude Include="src\SdFat\SdCard\SdSpiCard.h" />
-    <ClInclude Include="src\SdFat\SdFat.h" />
-    <ClInclude Include="src\SdFat\SdFatConfig.h" />
-    <ClInclude Include="src\SdFat\sdios.h" />
-    <ClInclude Include="src\SdFat\SpiDriver\SdSpiDriver.h" />
-    <ClInclude Include="src\SdFat\SysCall.h" />
+    <ClInclude Include="SdFat.h" />
     <ClInclude Include="u8glib_ex.h" />
     <ClInclude Include="ui.h" />
     <ClInclude Include="uiconfig.h" />
@@ -180,18 +153,7 @@
     <ClCompile Include="Printer.cpp" />
     <ClCompile Include="RF.cpp" />
     <ClCompile Include="SDCard.cpp" />
-    <ClCompile Include="src\SdFat\FatLib\FatFile.cpp" />
-    <ClCompile Include="src\SdFat\FatLib\FatFileLFN.cpp" />
-    <ClCompile Include="src\SdFat\FatLib\FatFilePrint.cpp" />
-    <ClCompile Include="src\SdFat\FatLib\FatFileSFN.cpp" />
-    <ClCompile Include="src\SdFat\FatLib\FatVolume.cpp" />
-    <ClCompile Include="src\SdFat\FatLib\FmtNumber.cpp" />
-    <ClCompile Include="src\SdFat\FatLib\fstream.cpp" />
-    <ClCompile Include="src\SdFat\FatLib\istream.cpp" />
-    <ClCompile Include="src\SdFat\FatLib\ostream.cpp" />
-    <ClCompile Include="src\SdFat\FatLib\StdioStream.cpp" />
-    <ClCompile Include="src\SdFat\MinimumSerial.cpp" />
-    <ClCompile Include="src\SdFat\SdCard\SdSpiCard.cpp" />
+    <ClCompile Include="SdFat.cpp" />
     <ClCompile Include="ui.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -15,14 +15,12 @@
     along with Repetier-Firmware.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-
 #ifndef COMMUNICATION_H
 #define COMMUNICATION_H
 
 extern const char* const axisNames[] PROGMEM;
 
-class Com
-{
+class Com {
 public:
     FSTRINGVAR(tDebug)
     FSTRINGVAR(tFirmware)
@@ -176,7 +174,7 @@ public:
     FSTRINGVAR(tWait)
 #endif // WAITING_IDENTIFIER
 
-#if EEPROM_MODE==0
+#if EEPROM_MODE == 0
     FSTRINGVAR(tNoEEPROMSupport)
 #else
     FSTRINGVAR(tConfigStoredEEPROM)
@@ -304,7 +302,7 @@ public:
 #endif //NUM_EXTRUDER > 1
     FSTRINGVAR(tEPRInterruptSpacingInterval)
 
-#if FAN_PIN>-1 && FEATURE_FAN_CONTROL
+#if FAN_PIN > -1 && FEATURE_FAN_CONTROL
     FSTRINGVAR(tEPRPrinter_FAN_MODE)
     FSTRINGVAR(tEPRPrinter_FAN_SPEED)
     FSTRINGVAR(tEPRPrinter_FAN_PART_FAN_PWM_MIN)
@@ -353,7 +351,7 @@ public:
     static void cap(FSTRINGPARAM(text));
     static void config(FSTRINGPARAM(text));
     static void config(FSTRINGPARAM(text), int value);
-    static void config(FSTRINGPARAM(text), const char *msg);
+    static void config(FSTRINGPARAM(text), const char* msg);
     static void config(FSTRINGPARAM(text), int32_t value);
     static void config(FSTRINGPARAM(text), uint32_t value);
     static void config(FSTRINGPARAM(text), float value, uint8_t digits = 2);
@@ -367,22 +365,22 @@ public:
     static void printFLN(FSTRINGPARAM(text));
     static void printF(FSTRINGPARAM(ptr));
     static void printF(FSTRINGPARAM(text), int value);
-    static void printF(FSTRINGPARAM(text), const char *msg);
+    static void printF(FSTRINGPARAM(text), const char* msg);
     static void printF(FSTRINGPARAM(text), int32_t value);
     static void printF(FSTRINGPARAM(text), uint32_t value);
     static void printF(FSTRINGPARAM(text), float value, uint8_t digits = 2, bool komma_as_dot = false);
     static void printFLN(FSTRINGPARAM(text), int value);
     static void printFLN(FSTRINGPARAM(text), int32_t value);
     static void printFLN(FSTRINGPARAM(text), uint32_t value);
-    static void printFLN(FSTRINGPARAM(text), const char *msg);
+    static void printFLN(FSTRINGPARAM(text), const char* msg);
     static void printFLN(FSTRINGPARAM(text), float value, uint8_t digits = 2, bool komma_as_dot = false);
-    static void printArrayFLN(FSTRINGPARAM(text), float *arr, uint8_t n = 4, uint8_t digits = 2);
-    static void printArrayFLN(FSTRINGPARAM(text), int32_t *arr, uint8_t n = 4);
+    static void printArrayFLN(FSTRINGPARAM(text), float* arr, uint8_t n = 4, uint8_t digits = 2);
+    static void printArrayFLN(FSTRINGPARAM(text), int32_t* arr, uint8_t n = 4);
     static void printSharpLine();
     static void print(int32_t value);
     static inline void print(uint32_t value) { printNumber(value); }
     static inline void print(int value) { print((int32_t)value); }
-    static void print(const char *text);
+    static void print(const char* text);
     static inline void print(char c) {
         GCodeSource::writeToAll(c);
     }
