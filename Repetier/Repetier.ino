@@ -1,6 +1,6 @@
- /*
+/*
     This file is part of the Repetier-Firmware for RF devices from Conrad Electronic SE.
-    To-be-compiled with Arduino V 1.8.5 or compatible.
+    To-be-compiled with Arduino V 1.8.10 or compatible.
 
     Repetier-Firmware is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -16,11 +16,9 @@
     along with Repetier-Firmware.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-
 /**
 \mainpage Repetier-Firmware for Arduino based RepRaps
-<CENTER>Copyright &copy; 2011-2017 by repetier and Conrad Electronic SE
-</CENTER>
+<CENTER>Copyright &copy; 2011-2017 by repetier and Conrad Electronic SE</CENTER>
 
 \section Intro Introduction
 
@@ -34,23 +32,19 @@
 
 Implemented Codes
 
- Standard RF1000/RF2000/RF2000v2 gcodes: http://www.rf1000.de/wiki/index.php/GCodes 
+ Standard RF1000/RF2000/RF2000v2 gcodes: http://www.rf1000.de/wiki/index.php/GCodes.
  Special mod version RF1000/RF2000/RF2000v2 gcodes: http://www.rf1000.de/wiki/index.php/Gcodes
-
 */
 
 #include "Repetier.h"
 #include <SPI.h>
 #include <Wire.h>
 
-void setup()
-{
+void setup() {
     Printer::setup();
     initRF();
 } // setup
 
-
-void loop()
-{
+void loop() {
     Commands::commandLoop();
 } // loop

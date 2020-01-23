@@ -8,6 +8,7 @@ Basierend auf der Repetier-Firmware - die schnelle und benutzerfreundliche Firmw
 ## Warnhinweis
 Diese Firmware-Modifikation stellt eine Weiterentwicklung/Ergänzung von mhier's inoffizieller Firmware-Modifikation der original Conrad-Firmware dar. Sie wird vom Hersteller der RF1000 und RF2000 Geräte nicht unterstützt.  
 Für etwaige Schäden, die an Ihrem Gerät entstehen könnten, kann keine Verantwortung übernommen werden.  
+Diese Firmware unterstützt den Druck von SD-Karte nicht.  
 BENUTZUNG AUF EIGENE GEFAHR. 
 
 Link zur offiziellen Version der Firmware:
@@ -16,7 +17,7 @@ https://github.com/RF1000/Repetier-Firmware (siehe Branch developement. Oder auc
 ## Installationsanleitung
 
 - Das Firmwarepaket `Branch: community_development` herunterladen und entpacken.  
-- Installiere die Arduino.cc IDE 1.8.6 oder neuer, wenn es nicht bereits installiert ist.  
+- Installiere die Arduino.cc IDE 1.8.10 oder neuer, wenn es nicht bereits installiert ist.  
 - Man bearbeitet und speichert die Configuration.h bei Zeile 46 bis 48, je nachdem welchen Drucker man besitzt mit einem Texteditor. Man muss die zwei **//** vor dem Druckermodell entfernen, welches man aktivieren will:  
 `#define MOTHERBOARD                         DEVICE_TYPE_RF1000` or  
 `#define MOTHERBOARD                         DEVICE_TYPE_RF2000` or  
@@ -51,8 +52,9 @@ Starte mit I-Anteil limits (EEPROM-Werte) `PID I drive min = 30` and `PID I driv
 
 http://www.rf1000.de/wiki/index.php/Kategorie:CommunityMod_Firmware  
 
-## Version RF 1.43.Mod - wichtige Threads im Forum
+## Version RF 1.45.Mod - wichtige Threads im Forum
 
+http://www.rf1000.de/viewtopic.php?f=67&t=2708 (Thread to Stable 1.45 / 03.01.2020)  
 http://www.rf1000.de/viewtopic.php?f=67&t=2403 (Thread to Stable 1.43 / 28.11.2018)  
 http://www.rf1000.de/viewtopic.php?f=67&t=2324 (Thread to Stable 1.42 / 28.07.2018)  
 http://www.rf1000.de/viewtopic.php?f=67&t=2084 (Thread to Stable 1.37x7 / 26.11.2017)  

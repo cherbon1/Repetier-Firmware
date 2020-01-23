@@ -6,8 +6,9 @@ Based on Repetier-Firmware - the fast and user friendly firmware.
 
 ## Disclaimer
 
-THIS VERSION IS AN UNOFFICIAL MODIFICATION OF mhiers UNOFFICIAL MODIFICATION OF THE ORIGINAL FIRMWARE. It is neither endorsed nor
-supported by the developers of the RF1000 firmware.  
+THIS VERSION IS AN UNOFFICIAL MODIFICATION OF mhiers UNOFFICIAL MODIFICATION OF THE ORIGINAL FIRMWARE. 
+It is neither endorsed nor supported by the developers of the RF1000 firmware.  
+There is no SD-Card support included.  
 USE AT YOUR OWN RISK.
 
 For the official version, have a look at the upstream repository:
@@ -16,7 +17,7 @@ https://github.com/RF1000/Repetier-Firmware (see branch development. Or else loo
 ## HowTo Install
 
 - Download the Firmware `Branch: community_development` and unzip all the files.  
-- Install Arduino.cc IDE 1.8.6 and later if it is not installed on your computer already.  
+- Install Arduino.cc IDE 1.8.10 and later if it is not installed on your computer already.  
 - Edit and save Configuration.h Line 46 to 48 according to your printers model. You have to remove the two **//** in front of the printers name you wish to activate:  
 `#define MOTHERBOARD                         DEVICE_TYPE_RF1000` or  
 `#define MOTHERBOARD                         DEVICE_TYPE_RF2000` or  
@@ -50,8 +51,9 @@ Start with an integral limit with EEPROM-values of `PID I drive min = 30` and `P
 
 http://www.rf1000.de/wiki/index.php/Kategorie:CommunityMod_Firmware  
 
-## Version 1.43.Mod - usefull threads within our forum
+## Version 1.45.Mod - usefull threads within our forum
 
+http://www.rf1000.de/viewtopic.php?f=67&t=2708 (Thread to Stable 1.45 / 03.01.2020)  
 http://www.rf1000.de/viewtopic.php?f=67&t=2403 (Thread to Stable 1.43 / 28.11.2018)  
 http://www.rf1000.de/viewtopic.php?f=67&t=2324 (Thread to Stable 1.42 / 28.07.2018)  
 http://www.rf1000.de/viewtopic.php?f=67&t=2084 (Thread to Stable 1.37x7 / 26.11.2017)  
