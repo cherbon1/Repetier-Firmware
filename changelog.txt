@@ -1,5 +1,7 @@
 V 01.45.01.Mod (2020-04-19)
 - Z-Matrix Output: M3013 with parameter S does switch back the matrix after console output. (Thx @thecky)
+- Output object: In milling mode, the script is no longer executed automatically after an sd print (/menu stop print).
+  Add M3079 to the end of your gcodes if you want the old behaviour.
 V 01.45.00.Mod (2020-01-03)
 - reinserted the whole SD support with rollback to original sd library. (but upgraded code)
    CRC-CCITT on

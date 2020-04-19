@@ -5998,10 +5998,22 @@ void handleStopPrint(millis_t uTime) {
 
                 BEEP_STOP_PRINTING
 
-                g_uBlockCommands = uTime;
+#if FEATURE_MILLING_MODE
+                if (Printer::operatingMode == OPERATING_MODE_PRINT) {
+#endif // FEATURE_MILLING_MODE
+                    g_uBlockCommands = uTime;
+#if FEATURE_MILLING_MODE
+                }
+                else {
+                    // In milling mode we dont execute automatic outputObject. @See https://github.com/RF1000community/Repetier-Firmware/issues/206
+                    g_uBlockCommands = 0;
+                }
+#endif // FEATURE_MILLING_MODE
             }
         }
     }
+
+    // In milling mode g_uBlockCommands should never be > 1, see ~8 lines prior to this line.
     if (g_uBlockCommands > 1) //=1 scheint zu blocken, dann muss g_uStopTime aktiv sein und hier drüber erst eine Uhrzeit reinsetzen.
     {
         /*
