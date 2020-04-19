@@ -6710,7 +6710,7 @@ void processSpecialGCode(GCode* pCommand) {
                     format = 0;
                 }
 
-                if (nTemp < 0 || nTemp > EEPROM_MAX_HEAT_BED_SECTORS) {
+                if (nTemp < 1 || nTemp > EEPROM_MAX_HEAT_BED_SECTORS) {
                     if (Printer::debugErrors()) {
                         Com::printF(PSTR("M3013: invalid heat bed z matrix ("), nTemp);
                         Com::printFLN(PSTR(")"));
