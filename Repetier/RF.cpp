@@ -5853,7 +5853,11 @@ void handlePauseTime(millis_t uTime) {
 #endif
                 g_uPauseTime = 0;
             }
-        } else {
+        }
+        else if (g_pauseStatus == PAUSE_STATUS_NONE
+            || g_pauseStatus > PAUSE_STATUS_PAUSED
+            || g_pauseStatus == PAUSE_STATUS_HEATING
+            || g_pauseStatus == PAUSE_STATUS_GOTO_CONTINUE) {
             // we are not waiting for the pause event anymore
             g_uPauseTime = 0;
         }
@@ -5998,10 +6002,22 @@ void handleStopPrint(millis_t uTime) {
 
                 BEEP_STOP_PRINTING
 
-                g_uBlockCommands = uTime;
+#if FEATURE_MILLING_MODE
+                if (Printer::operatingMode == OPERATING_MODE_PRINT) {
+#endif // FEATURE_MILLING_MODE
+                    g_uBlockCommands = uTime;
+#if FEATURE_MILLING_MODE
+                }
+                else {
+                    // In milling mode we dont execute automatic outputObject. @See https://github.com/RF1000community/Repetier-Firmware/issues/206
+                    g_uBlockCommands = 0;
+                }
+#endif // FEATURE_MILLING_MODE
             }
         }
     }
+
+    // In milling mode g_uBlockCommands should never be > 1, see ~8 lines prior to this line.
     if (g_uBlockCommands > 1) //=1 scheint zu blocken, dann muss g_uStopTime aktiv sein und hier drüber erst eine Uhrzeit reinsetzen.
     {
         /*
@@ -6695,7 +6711,7 @@ void processSpecialGCode(GCode* pCommand) {
         {
             if (isSupportedMCommand(pCommand->M, OPERATING_MODE_PRINT)) {
                 char format;
-                char nOldHeatBed = 255;
+                char nOldHeatBed = 127;
 
                 if (pCommand->hasS()) {
                     nTemp = pCommand->S;
@@ -6745,7 +6761,7 @@ void processSpecialGCode(GCode* pCommand) {
                     showError((void*)ui_text_z_compensation, (void*)ui_text_invalid_matrix);
                 }
 
-                if (nOldHeatBed != 255) {
+                if (nOldHeatBed != 127) {
                     // restore z-compensation matrix, in case we switched them
                     switchActiveHeatBed(nOldHeatBed);
                 }
