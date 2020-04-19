@@ -6695,6 +6695,7 @@ void processSpecialGCode(GCode* pCommand) {
         {
             if (isSupportedMCommand(pCommand->M, OPERATING_MODE_PRINT)) {
                 char format;
+                char nOldHeatBed = 255;
 
                 if (pCommand->hasS()) {
                     nTemp = pCommand->S;
@@ -6709,7 +6710,7 @@ void processSpecialGCode(GCode* pCommand) {
                     format = 0;
                 }
 
-                if (nTemp < 0 || nTemp > EEPROM_MAX_HEAT_BED_SECTORS) {
+                if (nTemp < 1 || nTemp > EEPROM_MAX_HEAT_BED_SECTORS) {
                     if (Printer::debugErrors()) {
                         Com::printF(PSTR("M3013: invalid heat bed z matrix ("), nTemp);
                         Com::printFLN(PSTR(")"));
@@ -6718,6 +6719,8 @@ void processSpecialGCode(GCode* pCommand) {
                 }
 
                 if (g_nActiveHeatBed != nTemp) {
+                    // remember current z-compensation matrix
+                    nOldHeatBed = g_nActiveHeatBed;
                     // we have to switch to another z-compensation matrix
                     switchActiveHeatBed((char)nTemp);
                 }
@@ -6740,6 +6743,11 @@ void processSpecialGCode(GCode* pCommand) {
                     }
 
                     showError((void*)ui_text_z_compensation, (void*)ui_text_invalid_matrix);
+                }
+
+                if (nOldHeatBed != 255) {
+                    // restore z-compensation matrix, in case we switched them
+                    switchActiveHeatBed(nOldHeatBed);
                 }
             }
             break;
