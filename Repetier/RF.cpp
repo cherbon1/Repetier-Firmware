@@ -6695,7 +6695,7 @@ void processSpecialGCode(GCode* pCommand) {
         {
             if (isSupportedMCommand(pCommand->M, OPERATING_MODE_PRINT)) {
                 char format;
-                char nOldHeatBed = 255;
+                char nOldHeatBed = 127;
 
                 if (pCommand->hasS()) {
                     nTemp = pCommand->S;
@@ -6745,7 +6745,7 @@ void processSpecialGCode(GCode* pCommand) {
                     showError((void*)ui_text_z_compensation, (void*)ui_text_invalid_matrix);
                 }
 
-                if (nOldHeatBed != 255) {
+                if (nOldHeatBed != 127) {
                     // restore z-compensation matrix, in case we switched them
                     switchActiveHeatBed(nOldHeatBed);
                 }
