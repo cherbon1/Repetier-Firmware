@@ -5853,7 +5853,11 @@ void handlePauseTime(millis_t uTime) {
 #endif
                 g_uPauseTime = 0;
             }
-        } else {
+        }
+        else if (g_pauseStatus == PAUSE_STATUS_NONE
+            || g_pauseStatus > PAUSE_STATUS_PAUSED
+            || g_pauseStatus == PAUSE_STATUS_HEATING
+            || g_pauseStatus == PAUSE_STATUS_GOTO_CONTINUE) {
             // we are not waiting for the pause event anymore
             g_uPauseTime = 0;
         }
