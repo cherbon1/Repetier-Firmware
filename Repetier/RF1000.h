@@ -43,11 +43,11 @@ Overflow in Z-Matrix: >12.7f
 #error This Firmware supports up to 2 Extruders. You might have to reimplement the 3+ code or "request it" if you really got hands on a RFx000 board with 3+ Extruders.
 #endif // NUM_EXTRUDER > 2 || NUM_EXTRUDER < 0
 
-/** \brief Allows to use the device for milling */
+/** \brief Allows to use the device for milling (default off) */
+#ifndef FEATURE_MILLING_MODE
 #define FEATURE_MILLING_MODE 0 // 1 = on, 0 = off
-
+#endif
 #if FEATURE_MILLING_MODE
-#error REMOVE THIS LINE TO SHOW THAT YOU UNDERSTOOD THAT MILLING WITH A COMMUNITY-MOD-FW HIGHER THAN 1.43.20 HAS TO BE ALPHA-TESTED BY SOMEONE. WE CHANGED ALOT AND STILL DID NOT TEST MILLING.
 
 /** \brief Enables automatic compensation in z direction for the operationg mode "mill" */
 #define FEATURE_WORK_PART_Z_COMPENSATION 1 // 1 = on, 0 = off
