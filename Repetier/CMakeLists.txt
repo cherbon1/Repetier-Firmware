@@ -38,6 +38,15 @@ elseif(RF2000v2)
   set(CMAKE_CXX_FLAGS "-DMOTHERBOARD=DEVICE_TYPE_RF2000v2 ${CMAKE_CXX_FLAGS}")
 endif()
 
+# choose compiling with milling mode disabled or enabled
+option(MILLINGMODE "Build with milling mode enabled" OFF)
+if(MILLINGMODE)
+  set(CMAKE_CXX_FLAGS "-DFEATURE_MILLING_MODE=1 ${CMAKE_CXX_FLAGS}")
+  message("Milling mode has been ENABLED.")
+else()
+  message("Milling mode has been DISABLED. Use -DMILLINGMODE=ON to enable.")
+endif()
+
 # Define the source code
 setup_arduino_sketch(${PROJECT_NAME} ${CMAKE_SOURCE_DIR}/Repetier.ino SKETCHSRC)
 aux_source_directory(${CMAKE_SOURCE_DIR} repetier_sources)
