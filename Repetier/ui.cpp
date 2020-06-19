@@ -3388,7 +3388,7 @@ void UIDisplay::changeSwitchCase(int action, int8_t increment) {
     case UI_ACTION_MILL_ACCELERATION: {
 #if FEATURE_MILLING_MODE
         if (!Printer::isPrinting()) {
-            INCREMENT_MIN_MAX(Printer::max_milling_all_axis_acceleration, 2, 1, 200);
+            INCREMENT_MIN_MAX(Printer::max_milling_all_axis_acceleration, 2, 1, 999);
             Printer::updateDerivedParameter();
             HAL::eprSetInt16(EPR_RF_MILL_ACCELERATION, Printer::max_milling_all_axis_acceleration);
             EEPROM::updateChecksum();

@@ -252,9 +252,9 @@ void Printer::updateDerivedParameter() {
 #if FEATURE_MILLING_MODE
         } else {
             /** Acceleration in steps/s^2 in milling mode.*/
-            maxPrintAccelerationStepsPerSquareSecond[axis] = uint32_t(MILLER_ACCELERATION * axisStepsPerMM[axis]);
+            maxPrintAccelerationStepsPerSquareSecond[axis] = uint32_t(max_milling_all_axis_acceleration * axisStepsPerMM[axis]);
             /** Acceleration in steps/s^2 in milling-movement mode.*/
-            maxTravelAccelerationStepsPerSquareSecond[axis] = uint32_t(MILLER_ACCELERATION * axisStepsPerMM[axis]);
+            maxTravelAccelerationStepsPerSquareSecond[axis] = uint32_t(max_milling_all_axis_acceleration * axisStepsPerMM[axis]);
         }
 #endif // FEATURE_MILLING_MODE
     }
@@ -267,26 +267,10 @@ void Printer::updateDerivedParameter() {
     // driving axis is the problematic speed.
 
     float accel;
-#if FEATURE_MILLING_MODE
-    if (Printer::operatingMode == OPERATING_MODE_PRINT) {
-#endif // FEATURE_MILLING_MODE
-        accel = RMath::max(maxAccelerationMMPerSquareSecond[X_AXIS], maxTravelAccelerationMMPerSquareSecond[X_AXIS]);
-#if FEATURE_MILLING_MODE
-    } else {
-        accel = MILLER_ACCELERATION;
-    }
-#endif // FEATURE_MILLING_MODE
+    accel = RMath::max(maxAccelerationMMPerSquareSecond[X_AXIS], maxTravelAccelerationMMPerSquareSecond[X_AXIS]);
 
     float minimumSpeed = 1.41 * accel * sqrt(2.0f / (axisStepsPerMM[X_AXIS] * accel));
-#if FEATURE_MILLING_MODE
-    if (Printer::operatingMode == OPERATING_MODE_PRINT) {
-#endif // FEATURE_MILLING_MODE
-        accel = RMath::max(maxAccelerationMMPerSquareSecond[Y_AXIS], maxTravelAccelerationMMPerSquareSecond[Y_AXIS]);
-#if FEATURE_MILLING_MODE
-    } else {
-        accel = MILLER_ACCELERATION;
-    }
-#endif // FEATURE_MILLING_MODE
+    accel = RMath::max(maxAccelerationMMPerSquareSecond[Y_AXIS], maxTravelAccelerationMMPerSquareSecond[Y_AXIS]);
     float minimumSpeed2 = 1.41 * accel * sqrt(2.0f / (axisStepsPerMM[Y_AXIS] * accel));
     if (minimumSpeed2 > minimumSpeed) {
         minimumSpeed = minimumSpeed2;
