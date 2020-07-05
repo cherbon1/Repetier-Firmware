@@ -7707,6 +7707,30 @@ void processSpecialGCode(GCode* pCommand) {
             Commands::waitUntilEndOfAllMoves(); //find z origin, might prevent stop
             break;
         }
+        case 3131: // M3131 - start/stop the search of the X or Y axis origin
+        {
+            AxisAndDirection ad;
+            if(pCommand->hasX() && pCommand->X > 0) {
+		ad = AxisAndDirection::Xpos;
+            }
+            else if(pCommand->hasX() && pCommand->X < 0) {
+		ad = AxisAndDirection::Xneg;
+            }
+            else if(pCommand->hasY() && pCommand->Y > 0) {
+		ad = AxisAndDirection::Ypos;
+            }
+            else if(pCommand->hasY() && pCommand->Y < 0) {
+		ad = AxisAndDirection::Yneg;
+            }
+	    else {
+                Com::printFLN(PSTR("M3131: Need X or Y parameter"));
+            }
+            startFindAxisOrigin(ad);
+            // We have to wait until the findZOrigin is stopped because this is used in gcode flow.
+            // findZOrigin is not processing within pause and resuming after pause.
+            Commands::waitUntilEndOfAllMoves(); //find z origin, might prevent stop
+            break;
+        }
 #endif // FEATURE_FIND_AXIS_ORIGIN
 
 #if FEATURE_WORK_PART_Z_COMPENSATION
