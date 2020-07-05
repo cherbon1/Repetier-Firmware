@@ -241,6 +241,7 @@
 #define UI_TEXT_UPLOADING "Uploading..."
 #define UI_TEXT_SET_Z_ORIGIN "Set Z Origin"
 #define UI_TEXT_FIND_Z_ORIGIN "Find Z Origin"
+#define UI_TEXT_FIND_AXIS_ORIGIN "Find Axis Origin"
 #define UI_TEXT_ZCALIB "Z Calibration"
 #define UI_TEXT_Z_OFFSET "Z Offset"
 #define UI_TEXT_PID "PID Autotune"

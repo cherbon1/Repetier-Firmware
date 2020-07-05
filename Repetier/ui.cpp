@@ -4405,10 +4405,10 @@ void UIDisplay::mainSwitchCase(int action) {
             deny = 1; // the operating mode can not be switched while a work part scan is in progress
 #endif                // FEATURE_WORK_PART_Z_COMPENSATION
 
-#if FEATURE_FIND_Z_ORIGIN
-        if (g_nFindZOriginStatus)
+#if FEATURE_FIND_AXIS_ORIGIN
+        if (g_nFindAxisOriginStatus)
             deny = 1; // the operating mode can not be switched while the z-origin is searched
-#endif                // FEATURE_FIND_Z_ORIGIN
+#endif                // FEATURE_FIND_AXIS_ORIGIN
 
         if (deny) {
             showError((void*)ui_text_change_mode, (void*)ui_text_operation_denied);
@@ -4856,12 +4856,12 @@ void UIDisplay::mainSwitchCase(int action) {
         break;
     }
 
-#if FEATURE_FIND_Z_ORIGIN
+#if FEATURE_FIND_AXIS_ORIGIN
     case UI_ACTION_RF_FIND_Z_ORIGIN: {
-        startFindZOrigin();
+        startFindAxisOrigin(AxisAndDirection::Zneg);
         break;
     }
-#endif // FEATURE_FIND_Z_ORIGIN
+#endif // FEATURE_FIND_AXIS_ORIGIN
 
 #if FEATURE_PARK
     case UI_ACTION_RF_PARK: {

@@ -25,7 +25,7 @@ FSTRINGVALUE(ui_text_information, UI_TEXT_INFORMATION)
 FSTRINGVALUE(ui_text_set_origin, UI_TEXT_SET_ORIGIN)
 FSTRINGVALUE(ui_text_heat_bed_scan, UI_TEXT_HEAT_BED_SCAN)
 FSTRINGVALUE(ui_text_work_part_scan, UI_TEXT_WORK_PART_SCAN)
-FSTRINGVALUE(ui_text_find_z_origin, UI_TEXT_FIND_Z_ORIGIN)
+FSTRINGVALUE(ui_text_find_axis_origin, UI_TEXT_FIND_AXIS_ORIGIN)
 FSTRINGVALUE(ui_text_output_object, UI_TEXT_OUTPUT_OBJECT)
 FSTRINGVALUE(ui_text_park_heat_bed, UI_TEXT_PARK_HEAT_BED)
 FSTRINGVALUE(ui_text_pause, UI_TEXT_PAUSE)
@@ -107,10 +107,10 @@ unsigned char g_retryStatus = 0;
 
 char g_nHeatBedScanMode = 0;
 
-char g_abortZScan = 0;
+char g_abortAxisScan = 0;
 short g_ZCompensationMatrix[COMPENSATION_MATRIX_MAX_X][COMPENSATION_MATRIX_MAX_Y];
 unsigned char g_uZMatrixMax[2] = { 0, 0 };
-long g_nZScanZPosition = 0;
+long g_nAxisScanPosition = 0;
 long g_nLastZScanZPosition = 0;
 
 short g_nMaxPressureContact;
@@ -210,10 +210,11 @@ short g_nDigitFlowCompensation_Fmax = short(abs(EMERGENCY_PAUSE_DIGITS_MAX));   
 #endif                                                                              // FEATURE_DIGIT_FLOW_COMPENSATION
 #endif                                                                              // FEATURE_DIGIT_Z_COMPENSATION
 
-#if FEATURE_FIND_Z_ORIGIN
-volatile unsigned char g_nFindZOriginStatus = 0;
+#if FEATURE_FIND_AXIS_ORIGIN
+volatile unsigned char g_nFindAxisOriginStatus = 0;
+volatile AxisAndDirection g_nFindAxisOriginAxisAndDirection = AxisAndDirection::Zneg;
 long g_nZOriginPosition[3] = { 0, 0, 0 };
-#endif // FEATURE_FIND_Z_ORIGIN
+#endif // FEATURE_FIND_AXIS_ORIGIN
 
 #if FEATURE_ALIGN_EXTRUDERS
 volatile unsigned char g_nAlignExtrudersStatus = 0;
@@ -424,16 +425,16 @@ void startHeatBedScan(void) {
     if (g_nWorkPartScanStatus)
         return;
 #endif //FEATURE_WORK_PART_Z_COMPENSATION
-#if FEATURE_FIND_Z_ORIGIN
-    if (g_nFindZOriginStatus)
+#if FEATURE_FIND_AXIS_ORIGIN
+    if (g_nFindAxisOriginStatus)
         return;
-#endif //FEATURE_FIND_Z_ORIGIN
+#endif //FEATURE_FIND_AXIS_ORIGIN
     if (g_nHeatBedScanStatus) {
         // abort the heat bed scan
         if (Printer::debugInfo()) {
             Com::printFLN(PSTR("HBS: cancelled"));
         }
-        g_abortZScan = SCAN_ABORT_REASON_CANCELED;
+        g_abortAxisScan = SCAN_ABORT_REASON_CANCELED;
     } else {
         if (Printer::isPrinting()) {
             // there is some printing in progress at the moment - do not start the heat bed scan in this case
@@ -445,7 +446,7 @@ void startHeatBedScan(void) {
         } else {
             // start the heat bed scan
             g_nHeatBedScanStatus = 1;
-            g_abortZScan = 0; //dont kill job on start
+            g_abortAxisScan = 0; //dont kill job on start
             g_retryZScan = 0;
             BEEP_START_HEAT_BED_SCAN
         }
@@ -467,10 +468,10 @@ void scanHeatBed(void) {
     if (g_nWorkPartScanStatus)
         return;
 #endif //FEATURE_WORK_PART_Z_COMPENSATION
-#if FEATURE_FIND_Z_ORIGIN
-    if (g_nFindZOriginStatus)
+#if FEATURE_FIND_AXIS_ORIGIN
+    if (g_nFindAxisOriginStatus)
         return;
-#endif //FEATURE_FIND_Z_ORIGIN
+#endif //FEATURE_FIND_AXIS_ORIGIN
 
     static unsigned char nIndexX;
     static unsigned char nIndexY;
@@ -493,14 +494,14 @@ void scanHeatBed(void) {
     // +z = heat bed moves down
     // -z = heat bed moves up
 
-    if (g_abortZScan) {
-        showAbortScanReason((void*)ui_text_heat_bed_scan, g_abortZScan);
+    if (g_abortAxisScan) {
+        showAbortScanReason((void*)ui_text_heat_bed_scan, g_abortAxisScan);
         BEEP_ABORT_HEAT_BED_SCAN
         // the scan has been aborted
-        g_abortZScan = 0;
+        g_abortAxisScan = 0;
 
         // avoid to crash the extruder against the heat bed during the following homing
-        moveZ(int(Printer::axisStepsPerMM[Z_AXIS] * 5));
+        moveAxis(int(Printer::axisStepsPerMM[Z_AXIS] * 5));
 
         // start at the home position
         Printer::homeAxis(true, true, true);
@@ -560,7 +561,7 @@ void scanHeatBed(void) {
         case 1: {
             g_uStartOfIdle = 0; // scanHeatBed
             g_scanStartTime = HAL::timeInMilliseconds();
-            g_abortZScan = 0;
+            g_abortAxisScan = 0;
 #if DEBUG_HEAT_BED_SCAN
             nContactPressure = 0;
 #endif // DEBUG_HEAT_BED_SCAN
@@ -684,7 +685,7 @@ void scanHeatBed(void) {
             Commands::waitUntilEndOfAllMoves(); //scanHeatBed
 
             // move a bit away from the heat bed in order to achieve better measurements in case of hardware configurations where the extruder is very close to the heat bed after the z-homing
-            moveZ(long(Printer::axisStepsPerMM[Z_AXIS] * g_scanStartZLiftMM));
+            moveAxis(long(Printer::axisStepsPerMM[Z_AXIS] * g_scanStartZLiftMM));
 
             g_nHeatBedScanStatus = 25;
             g_lastScanTime = HAL::timeInMilliseconds();
@@ -785,7 +786,7 @@ void scanHeatBed(void) {
                     Com::printFLN(PSTR("x-dimension of the z matrix became too big: "), nIndexX);
                 }
 #endif // DEBUG_HEAT_BED_SCAN == 2
-                g_abortZScan = SCAN_ABORT_REASON_MATRIX_DIMENSION;
+                g_abortAxisScan = SCAN_ABORT_REASON_MATRIX_DIMENSION;
                 break;
             }
 
@@ -840,7 +841,7 @@ void scanHeatBed(void) {
         }
         //############################################################### ERROR HANDLING Case 45 105 139 + 132
         case 45: {
-            moveZ(long(Printer::axisStepsPerMM[Z_AXIS] * g_scanStartZLiftMM)); //spacing for bed
+            moveAxis(long(Printer::axisStepsPerMM[Z_AXIS] * g_scanStartZLiftMM)); //spacing for bed
             Printer::homeAxis(false, true, false);                             //Home Y
 
             g_scanRetries--;
@@ -856,7 +857,7 @@ void scanHeatBed(void) {
         case 46: {
             // home the z-axis in order to find the starting point again
             Printer::homeAxis(false, false, true);                             //Neben Bett: Home Z
-            moveZ(long(Printer::axisStepsPerMM[Z_AXIS] * g_scanStartZLiftMM)); //spacing for bed
+            moveAxis(long(Printer::axisStepsPerMM[Z_AXIS] * g_scanStartZLiftMM)); //spacing for bed
             g_nLastZScanZPosition = 0;                                         //Reset last scan position to avoid abort due to this limitter
 
             g_nHeatBedScanStatus = 47;
@@ -923,7 +924,7 @@ void scanHeatBed(void) {
                 // the current idle pressure is not plausible
                 if (g_scanRetries) {
                     g_retryZScan = 1;
-                    g_abortZScan = 0; //cancel abort which was already triggered inside readAveragePressure
+                    g_abortAxisScan = 0; //cancel abort which was already triggered inside readAveragePressure
                 }
                 break;
             }
@@ -988,7 +989,7 @@ void scanHeatBed(void) {
         }
         case 54: {
             // remember the z-position and the exact y-position of this row/column
-            g_ZCompensationMatrix[nIndexX][nIndexY] = (short)g_nZScanZPosition;
+            g_ZCompensationMatrix[nIndexX][nIndexY] = (short)g_nAxisScanPosition;
             g_ZCompensationMatrix[0][nIndexY] = (short)((float)nY / Printer::axisStepsPerMM[Y_AXIS] + 0.5); // convert to mm
 
             if (nIndexX > g_uZMatrixMax[X_AXIS]) {
@@ -1057,7 +1058,7 @@ void scanHeatBed(void) {
                     Com::printFLN(PSTR("y-dimension of the z matrix became too big: "), nIndexY);
                 }
 #endif // DEBUG_HEAT_BED_SCAN == 2
-                g_abortZScan = SCAN_ABORT_REASON_MATRIX_DIMENSION;
+                g_abortAxisScan = SCAN_ABORT_REASON_MATRIX_DIMENSION;
                 break;
             }
 
@@ -1074,7 +1075,7 @@ void scanHeatBed(void) {
         }
         case 60: {
             // avoid to crash the extruder against the heat bed during the following homing
-            moveZ(int(Printer::axisStepsPerMM[Z_AXIS] * 5));
+            moveAxis(int(Printer::axisStepsPerMM[Z_AXIS] * 5));
 
             // move back to the home position
             Printer::homeAxis(true, true, true);
@@ -1233,7 +1234,7 @@ void scanHeatBed(void) {
         }
         //############################################################### ERROR HANDLING Case 45 105 139 + 132
         case 105: {
-            moveZ(long(Printer::axisStepsPerMM[Z_AXIS] * g_scanStartZLiftMM)); //spacing for bed
+            moveAxis(long(Printer::axisStepsPerMM[Z_AXIS] * g_scanStartZLiftMM)); //spacing for bed
             Printer::homeAxis(false, true, false);                             //Home Y
 
             g_scanRetries--;
@@ -1252,7 +1253,7 @@ void scanHeatBed(void) {
             // home the z-axis in order to find the starting point again
             Printer::homeAxis(false, false, true); //Neben Bett: Home Z
             // ensure that there is no z endstop hit before we perform the z-axis homing
-            moveZ(long(Printer::axisStepsPerMM[Z_AXIS] * g_scanStartZLiftMM)); //spacing for bed - wird von moveUpFast() später korrigiert.
+            moveAxis(long(Printer::axisStepsPerMM[Z_AXIS] * g_scanStartZLiftMM)); //spacing for bed - wird von moveUpFast() später korrigiert.
             g_nLastZScanZPosition = 0;                                         //Reset last scan position to avoid abort due to this limitter
 
             g_nHeatBedScanStatus = 107;
@@ -1305,7 +1306,7 @@ void scanHeatBed(void) {
                 // the current idle pressure is not plausible
                 if (g_scanRetries) {
                     g_retryZScan = 1;
-                    g_abortZScan = 0; //cancel abort which was already triggered inside readAveragePressure
+                    g_abortAxisScan = 0; //cancel abort which was already triggered inside readAveragePressure
                 }
                 break;
             }
@@ -1465,7 +1466,7 @@ void scanHeatBed(void) {
         }
         case 133: {
             // move the heat bed 5mm down
-            moveZ(int(Printer::axisStepsPerMM[Z_AXIS] * 5));
+            moveAxis(int(Printer::axisStepsPerMM[Z_AXIS] * 5));
             g_lastScanTime = HAL::timeInMilliseconds();
             g_nHeatBedScanStatus = 134;
 
@@ -1479,7 +1480,7 @@ void scanHeatBed(void) {
         }
         case 134: {
             // move the heat bed 5mm down
-            moveZ(int(Printer::axisStepsPerMM[Z_AXIS] * 5));
+            moveAxis(int(Printer::axisStepsPerMM[Z_AXIS] * 5));
             g_lastScanTime = HAL::timeInMilliseconds();
             g_nHeatBedScanStatus = 135;
 
@@ -1569,7 +1570,7 @@ void scanHeatBed(void) {
         }
         //############################################################### ERROR HANDLING Case 45 105 139 + 132
         case 139: {
-            moveZ(long(Printer::axisStepsPerMM[Z_AXIS] * g_scanStartZLiftMM)); //spacing for bed
+            moveAxis(long(Printer::axisStepsPerMM[Z_AXIS] * g_scanStartZLiftMM)); //spacing for bed
             Printer::homeAxis(false, true, false);                             //Home Y
 
             g_scanRetries--;
@@ -1586,7 +1587,7 @@ void scanHeatBed(void) {
         case 140: {
             // home the z-axis in order to find the starting point again
             Printer::homeAxis(false, false, true);                             //Neben Bett: Home Z
-            moveZ(long(Printer::axisStepsPerMM[Z_AXIS] * g_scanStartZLiftMM)); //spacing for bed
+            moveAxis(long(Printer::axisStepsPerMM[Z_AXIS] * g_scanStartZLiftMM)); //spacing for bed
             g_nLastZScanZPosition = 0;                                         //Reset last scan position to avoid abort due to this limitter
 
             g_nHeatBedScanStatus = 141;
@@ -1641,7 +1642,7 @@ void scanHeatBed(void) {
                 // the current idle pressure is not plausible
                 if (g_scanRetries) {
                     g_retryZScan = 1;
-                    g_abortZScan = 0; //cancel abort which was already triggered inside readAveragePressure
+                    g_abortAxisScan = 0; //cancel abort which was already triggered inside readAveragePressure
                 }
                 break;
             }
@@ -1707,7 +1708,7 @@ void scanHeatBed(void) {
         }
         case 148: {
             // adjust the current z-position to the compensation matrix in order to consider the different length of the extruder at higher temperatures
-            adjustCompensationMatrix((short)g_nZScanZPosition);
+            adjustCompensationMatrix((short)g_nAxisScanPosition);
 
             if (Printer::debugInfo()) {
                 // output the converted heat bed compensation matrix
@@ -1728,7 +1729,7 @@ void scanHeatBed(void) {
         }
         case 149: {
             // avoid to crash the extruder against the heat bed during the following homing
-            moveZ(int(Printer::axisStepsPerMM[Z_AXIS] * 5));
+            moveAxis(int(Printer::axisStepsPerMM[Z_AXIS] * 5));
 
             // move back to the home position
             Printer::homeAxis(true, true, true);
@@ -1796,7 +1797,7 @@ void scanHeatBed(void) {
 void startAlignExtruders(void) {
     if (g_nAlignExtrudersStatus) {
         // abort the alignment of the extruders
-        g_abortZScan = SCAN_ABORT_REASON_CANCELED;
+        g_abortAxisScan = SCAN_ABORT_REASON_CANCELED;
         return;
     } else {
         if (Printer::isPrinting()) {
@@ -1832,7 +1833,7 @@ void startAlignExtruders(void) {
         // we are ready to align the extruders at the current x and y position with the current temperature
         // the user can choose the x and y position as well as the to-be-used temperatures of the extruders
         g_nAlignExtrudersStatus = 100;
-        g_abortZScan = 0; //dont kill job on start
+        g_abortAxisScan = 0; //dont kill job on start
     }
 } // startAlignExtruders
 
@@ -1850,16 +1851,16 @@ void alignExtruders(void) {
     if (g_nWorkPartScanStatus)
         return;
 #endif //FEATURE_WORK_PART_Z_COMPENSATION
-#if FEATURE_FIND_Z_ORIGIN
-    if (g_nFindZOriginStatus)
+#if FEATURE_FIND_AXIS_ORIGIN
+    if (g_nFindAxisOriginStatus)
         return;
-#endif //FEATURE_FIND_Z_ORIGIN
+#endif //FEATURE_FIND_AXIS_ORIGIN
 
-    if (g_abortZScan) {
-        showAbortScanReason((void*)ui_text_align_extruders, g_abortZScan);
+    if (g_abortAxisScan) {
+        showAbortScanReason((void*)ui_text_align_extruders, g_abortAxisScan);
         BEEP_ABORT_ALIGN_EXTRUDERS
         // the alignment has been aborted
-        g_abortZScan = 0;
+        g_abortAxisScan = 0;
 
         // avoid to crash the extruder against the heat bed during a following move
         moveZ(int(Printer::axisStepsPerMM[Z_AXIS] * 5));
@@ -1986,7 +1987,7 @@ void alignExtruders(void) {
                     //After one hour waiting for user interaction: beep, shut off all temps and abort.
                     BEEP_ABORT_ALIGN_EXTRUDERS
                     if (uRemainingSeconds > HEAT_BED_SCAN_ALIGN_EXTRUDERS_ABORT_DELAY + 4) {
-                        g_abortZScan = SCAN_ABORT_REASON_PRINTER_LONELY;
+                        g_abortAxisScan = SCAN_ABORT_REASON_PRINTER_LONELY;
                         Extruder::setTemperatureForAllExtruders(0, false);
                         Extruder::setHeatedBedTemperature(0);
                         break;
@@ -2056,22 +2057,22 @@ void startZOScan(bool automatrixleveling) {
     if (g_nWorkPartScanStatus)
         return;
 #endif //FEATURE_WORK_PART_Z_COMPENSATION
-#if FEATURE_FIND_Z_ORIGIN
-    if (g_nFindZOriginStatus)
+#if FEATURE_FIND_AXIS_ORIGIN
+    if (g_nFindAxisOriginStatus)
         return;
-#endif //FEATURE_FIND_Z_ORIGIN
+#endif //FEATURE_FIND_AXIS_ORIGIN
 
     if (g_nZOSScanStatus) {
         // abort the heat bed scan
         Com::printFLN(PSTR("ZOS cancelled"));
-        g_abortZScan = SCAN_ABORT_REASON_CANCELED;
+        g_abortAxisScan = SCAN_ABORT_REASON_CANCELED;
         abortSearchHeatBedZOffset(false);
     } else {
         Com::printFLN(PSTR("ZOS started"));
         BEEP_START_HEAT_BED_SCAN
         g_nZOSScanStatus = 1;
         // start the heat bed scan
-        g_abortZScan = 0; //dont kill job on start
+        g_abortAxisScan = 0; //dont kill job on start
         if (automatrixleveling)
             g_ZOS_Auto_Matrix_Leveling_State = 1; //aktiviert besonderer modus, bei dem der ZOffsetScan mehrfach in schleife scant und ein schiefes Bett geraderückt, aber die Welligkeit des ursprünglichen HBS behält.
     }
@@ -2091,10 +2092,10 @@ void searchZOScan(void) {
     if (g_nWorkPartScanStatus)
         return;
 #endif //FEATURE_WORK_PART_Z_COMPENSATION
-#if FEATURE_FIND_Z_ORIGIN
-    if (g_nFindZOriginStatus)
+#if FEATURE_FIND_AXIS_ORIGIN
+    if (g_nFindAxisOriginStatus)
         return;
-#endif //FEATURE_FIND_Z_ORIGIN
+#endif //FEATURE_FIND_AXIS_ORIGIN
 
     if (!g_nZOSScanStatus)
         return;
@@ -2122,7 +2123,7 @@ void searchZOScan(void) {
             g_nZOSScanStatus = 2;
             g_min_nZScanZPosition = long(Printer::axisStepsPerMM[Z_AXIS] * g_scanStartZLiftMM); //nur nutzen wenn kleiner.
             g_scanRetries = 0;                                                                  // never retry   TODO allow retries?
-            g_abortZScan = 0;                                                                   // will be set in case of error inside moveZMinusUpFast/Slow
+            g_abortAxisScan = 0;                                                                   // will be set in case of error inside moveZMinusUpFast/Slow
             g_nLastZScanZPosition = 0;                                                          //sodass dass bei mehreren scans nicht die letzte position als abstands limit feststeht.
             break;
         }
@@ -2236,7 +2237,7 @@ void searchZOScan(void) {
             Com::printFLN(PSTR(" [Steps]"));
 #endif // DEBUG_HEAT_BED_SCAN == 2
 
-            moveZ(g_min_nZScanZPosition); //Wenn man hier mit queueRelativeStepsCoordinates über die queue Z verfährt, zeigt das display 10mm statt 5mm an. Weil currentZPositionSteps addiert und man die hier braucht. Also während dem Scan immer nur die moveZ verwenden.
+            moveAxis(g_min_nZScanZPosition); //Wenn man hier mit queueRelativeStepsCoordinates über die queue Z verfährt, zeigt das display 10mm statt 5mm an. Weil currentZPositionSteps addiert und man die hier braucht. Also während dem Scan immer nur die moveZ verwenden.
 
             // move a bit away from the heat bed in order to achieve better measurements in case of hardware configurations where the extruder is very close to the heat bed after the z-homing
             UI_STATUS_UPD(UI_TEXT_ZCALIB);
@@ -2265,7 +2266,7 @@ void searchZOScan(void) {
 #if DEBUG_HEAT_BED_SCAN == 2
                 Com::printFLN(PSTR("Neuen HBS machen!"));
 #endif // DEBUG_HEAT_BED_SCAN == 2
-                g_abortZScan = SCAN_ABORT_REASON_MISSING_MATRIX;
+                g_abortAxisScan = SCAN_ABORT_REASON_MISSING_MATRIX;
                 abortSearchHeatBedZOffset(false);
                 break;
             }
@@ -2325,12 +2326,12 @@ void searchZOScan(void) {
                     break;
                 } else {
                     Com::printFLN(PSTR("ERROR::the idle pressure could not be determined"));
-                    g_abortZScan = SCAN_ABORT_REASON_IDLE_PRESSURE;
+                    g_abortAxisScan = SCAN_ABORT_REASON_IDLE_PRESSURE;
                     abortSearchHeatBedZOffset(false);
                 }
                 break;
-            }                 //egal was readIdlePressure zurückgibt, g_abortZScan könnte 1 sein und muss genullt werden.
-            g_abortZScan = 0; // will be set in case of error inside moveZMinusUpFast/Slow -> != 0 AFTER RETURN would temper with normal HBS-Scan function @ABORT
+            }                 //egal was readIdlePressure zurückgibt, g_abortAxisScan könnte 1 sein und muss genullt werden.
+            g_abortAxisScan = 0; // will be set in case of error inside moveZMinusUpFast/Slow -> != 0 AFTER RETURN would temper with normal HBS-Scan function @ABORT
 
             g_nMinPressureContact = g_nCurrentIdlePressure - SEARCH_HEAT_BED_OFFSET_CONTACT_PRESSURE_DELTA;
             g_nMaxPressureContact = g_nCurrentIdlePressure + SEARCH_HEAT_BED_OFFSET_CONTACT_PRESSURE_DELTA;
@@ -2355,7 +2356,7 @@ void searchZOScan(void) {
             Com::printFLN(PSTR("Approaching HeatBed"));
 
             // move to the surface
-            long oldZsteps = g_nZScanZPosition;
+            long oldZsteps = g_nAxisScanPosition;
 
             moveZMinusUpFast(); // ------
             HAL::delayMilliseconds(g_nScanSlowStepDelay);
@@ -2364,30 +2365,30 @@ void searchZOScan(void) {
             short nTempPressure;
             if (readAveragePressure(&nTempPressure)) {
                 if (g_scanRetries > 0)
-                    g_abortZScan = 0; //funktion soll wenn retrys übrig sind nie abbrechen, das g_abortZScan kommt aus readAveragePressure() -> hat einfluss auf HBS-Abort!!
+                    g_abortAxisScan = 0; //funktion soll wenn retrys übrig sind nie abbrechen, das g_abortAxisScan kommt aus readAveragePressure() -> hat einfluss auf HBS-Abort!!
                 g_retryZScan = 1;
             }
 
-            long didZsteps = abs(g_nZScanZPosition - oldZsteps);
+            long didZsteps = abs(g_nAxisScanPosition - oldZsteps);
             Com::printFLN(PSTR("FastUp:"), didZsteps);
 
             // move 2 intervals (but not more that you went down!) back away from the surface
             long revertZsteps = (didZsteps > 2 * abs(g_nScanHeatBedUpFastSteps) ? 2 * abs(g_nScanHeatBedUpFastSteps) : didZsteps);
             Com::printFLN(PSTR("RevertDown:"), revertZsteps);
-            moveZ(revertZsteps); // ++
+            moveAxis(revertZsteps); // ++
 
             HAL::delayMilliseconds(g_nScanSlowStepDelay);
             //rescan force and look if you reverted the contact pressure to the old state:
             short nTempPressureUp;
             if (readAveragePressure(&nTempPressureUp)) {
                 if (g_scanRetries > 0)
-                    g_abortZScan = 0; //funktion soll wenn retrys übrig sind nie abbrechen, das g_abortZScan kommt aus readAveragePressure() -> hat einfluss auf HBS-Abort!!
+                    g_abortAxisScan = 0; //funktion soll wenn retrys übrig sind nie abbrechen, das g_abortAxisScan kommt aus readAveragePressure() -> hat einfluss auf HBS-Abort!!
                 g_retryZScan = 1;
             }
             //check if the old pressure state is reached again, retry if not. If not you measured some melted plastic or your DMS is driving away.
             if (abs(nTempPressureUp - nTempPressure) < SEARCH_HEAT_BED_OFFSET_CONTACT_PRESSURE_DELTA) {
                 if (g_scanRetries > 0)
-                    g_abortZScan = 0; //funktion soll wenn retrys übrig sind nie abbrechen, das g_abortZScan kommt aus readAveragePressure() -> hat einfluss auf HBS-Abort!!
+                    g_abortAxisScan = 0; //funktion soll wenn retrys übrig sind nie abbrechen, das g_abortAxisScan kommt aus readAveragePressure() -> hat einfluss auf HBS-Abort!!
                 g_retryZScan = 1;
             }
             Com::printF(PSTR("RevertPdelta:"), abs(nTempPressureUp - nTempPressure));
@@ -2402,7 +2403,7 @@ void searchZOScan(void) {
             }
 
             // check for error
-            if (g_abortZScan) {
+            if (g_abortAxisScan) {
                 // will be set in case of error inside moveZMinusUpFast/Slow -> != 0 AFTER RETURN would temper with normal HBS-Scan function @ABORT
                 Com::printFLN(PSTR("ERROR::Cannot find surface"));
                 abortSearchHeatBedZOffset(false);
@@ -2418,25 +2419,25 @@ void searchZOScan(void) {
             // we have roughly found the surface, now we perform the precise slow scan SEARCH_HEAT_BED_OFFSET_SCAN_ITERATIONS times
             for (int i = 1; i <= SEARCH_HEAT_BED_OFFSET_SCAN_ITERATIONS; i++) {
                 Com::printFLN(PSTR("10."), i);
-                long Z = g_nZScanZPosition;
+                long Z = g_nAxisScanPosition;
 
                 // move from moveZMinusUpFast() down again -> für neuen anlauf
-                moveZ(abs(g_nScanHeatBedUpSlowSteps)); // +++..
-                Com::printFLN(PSTR("DownFine:"), (g_nZScanZPosition - Z));
-                Z = g_nZScanZPosition;
+                moveAxis(abs(g_nScanHeatBedUpSlowSteps)); // +++..
+                Com::printFLN(PSTR("DownFine:"), (g_nAxisScanPosition - Z));
+                Z = g_nAxisScanPosition;
 
                 // move slowly to the surface
                 short nTempPressure;
                 moveZMinusUpSlow(&nTempPressure, 2); // -
-                Com::printFLN(PSTR("UpFine:"), (g_nZScanZPosition - Z));
-                Z = g_nZScanZPosition;
+                Com::printFLN(PSTR("UpFine:"), (g_nAxisScanPosition - Z));
+                Z = g_nAxisScanPosition;
 
                 // kraft zurückfahren
                 g_nLastZScanZPosition = 0; //dont remember any old z-positions -> no check if deltaZ got too high.
                 moveZPlusDownSlow(8);      // +
-                Com::printFLN(PSTR("DownFine:"), (g_nZScanZPosition - Z));
+                Com::printFLN(PSTR("DownFine:"), (g_nAxisScanPosition - Z));
                 // messen
-                Z = g_nZScanZPosition;
+                Z = g_nAxisScanPosition;
 
                 // check for error / errorhandling
                 if (g_scanRetries > 0 && g_retryZScan) {
@@ -2447,7 +2448,7 @@ void searchZOScan(void) {
                     prebreak = true;
                     break;
                 }
-                if (g_abortZScan) {
+                if (g_abortAxisScan) {
                     // will be set in case of error inside moveZMinusUpFast/Slow -> != 0 AFTER RETURN would temper with normal HBS-Scan function @ABORT
                     Com::printFLN(PSTR("ERROR::cannot find surface in slow scan"));
                     abortSearchHeatBedZOffset(false);
@@ -2456,11 +2457,11 @@ void searchZOScan(void) {
                 }
 
                 // keep the minimum as the final result
-                if (g_nZScanZPosition < g_min_nZScanZPosition)
-                    g_min_nZScanZPosition = g_nZScanZPosition;
+                if (g_nAxisScanPosition < g_min_nZScanZPosition)
+                    g_min_nZScanZPosition = g_nAxisScanPosition;
 
                 // show height
-                Com::printFLN(PSTR("Z = "), g_nZScanZPosition * Printer::axisMMPerSteps[Z_AXIS], 4);
+                Com::printFLN(PSTR("Z = "), g_nAxisScanPosition * Printer::axisMMPerSteps[Z_AXIS], 4);
             }
             if (prebreak)
                 break;
@@ -2521,7 +2522,7 @@ void searchZOScan(void) {
             if (overflow) {
                 // load the unaltered compensation matrix from the EEPROM since the current in-memory matrix is invalid
                 Com::printFLN(PSTR("Matrix Overflow!"));
-                g_abortZScan = SCAN_ABORT_REASON_OVERFLOWING_MATRIX;
+                g_abortAxisScan = SCAN_ABORT_REASON_OVERFLOWING_MATRIX;
                 abortSearchHeatBedZOffset(true);
                 break;
             }
@@ -2529,7 +2530,7 @@ void searchZOScan(void) {
             if (overH) {
                 // load the unaltered compensation matrix from the EEPROM since the current in-memory matrix is bigger than z=zero
                 Com::printFLN(PSTR("ERROR::Z-Matrix höher Start-Z!"));
-                g_abortZScan = SCAN_ABORT_REASON_BAD_HEIGHT_MATRIX;
+                g_abortAxisScan = SCAN_ABORT_REASON_BAD_HEIGHT_MATRIX;
                 abortSearchHeatBedZOffset(true);
                 break;
             }
@@ -2556,18 +2557,18 @@ void searchZOScan(void) {
             default: {
                 g_nZOSScanStatus = 2; // Goto next AUTO_MATRIX_LEVELING Setting
                 g_ZOS_Auto_Matrix_Leveling_State++;
-                moveZ(Printer::axisStepsPerMM[Z_AXIS]);
+                moveAxis(Printer::axisStepsPerMM[Z_AXIS]);
                 Printer::homeAxis(true, true, false);
-                moveZ(-g_nZScanZPosition); // g_nZScanZPosition counts z-steps. we need to move the heatbed down to be at z=0 again
+                moveAxis(-g_nAxisScanPosition); // g_nAxisScanPosition counts z-steps. we need to move the heatbed down to be at z=0 again
                 outputCompensationMatrix(1);
             }
             }
             break;
         }
         case 99: {
-            moveZ(Printer::axisStepsPerMM[Z_AXIS]);
+            moveAxis(Printer::axisStepsPerMM[Z_AXIS]);
             Printer::homeAxis(false, true, false);
-            moveZ(-g_nZScanZPosition); // g_nZScanZPosition counts z-steps. we need to move the heatbed down to be at z=0 again
+            moveAxis(-g_nAxisScanPosition); // g_nAxisScanPosition counts z-steps. we need to move the heatbed down to be at z=0 again
             g_nZOSScanStatus = 100;    // No AUTO_MATRIX_LEVELING
             break;
         }
@@ -2580,7 +2581,7 @@ void searchZOScan(void) {
             g_nAutoReturnTime = HAL::timeInMilliseconds() + 30000;
             g_uStartOfIdle = HAL::timeInMilliseconds() + 30000; //go to printer ready/ignore status   //end searchZOScan
 
-            //g_nZScanZPosition is 0 now.
+            //g_nAxisScanPosition is 0 now.
             BEEP_SHORT
             Com::printFLN(PSTR("ZOS finished"));
             break;
@@ -2590,7 +2591,7 @@ void searchZOScan(void) {
 } // searchZOScan
 
 void abortSearchHeatBedZOffset(bool reloadMatrix) {
-    showAbortScanReason(PSTR(UI_TEXT_DO_MHIER_BED_SCAN), g_abortZScan);
+    showAbortScanReason(PSTR(UI_TEXT_DO_MHIER_BED_SCAN), g_abortAxisScan);
 
     if (reloadMatrix) {
         if (loadCompensationMatrix((unsigned int)(EEPROM_SECTOR_SIZE * g_nActiveHeatBed))) {
@@ -2598,7 +2599,7 @@ void abortSearchHeatBedZOffset(bool reloadMatrix) {
             initCompensationMatrix();
         }
     }
-    g_abortZScan = 0;
+    g_abortAxisScan = 0;
     g_nZOSScanStatus = 0;
     g_retryZScan = 0;
     g_nLastZScanZPosition = 0;
@@ -3372,8 +3373,8 @@ void showAbortScanReason(const void* scanName, char abortScanIdentifier) {
     }
 }
 
-#if FEATURE_FIND_Z_ORIGIN
-void startFindZOrigin(void) {
+#if FEATURE_FIND_AXIS_ORIGIN
+void startFindAxisOrigin(AxisAndDirection axisAndDirection) {
 #if FEATURE_ALIGN_EXTRUDERS
     if (g_nAlignExtrudersStatus)
         return;
@@ -3388,23 +3389,21 @@ void startFindZOrigin(void) {
     if (g_nWorkPartScanStatus)
         return;
 #endif //FEATURE_WORK_PART_Z_COMPENSATION
-#if FEATURE_FIND_Z_ORIGIN
-        //if( g_nFindZOriginStatus ) return;
-#endif //FEATURE_FIND_Z_ORIGIN
-    if (g_nFindZOriginStatus) {
-        g_abortZScan = SCAN_ABORT_REASON_CANCELED;
+    if (g_nFindAxisOriginStatus) {
+        g_abortAxisScan = SCAN_ABORT_REASON_CANCELED;
     } else {
         if (Printer::operatingMode != OPERATING_MODE_MILL) {
-            Com::printFLN(PSTR("startFindZOrigin(): z-origin not supported in printer mode"));
-            showError((void*)ui_text_find_z_origin, (void*)ui_text_operation_denied);
+            Com::printFLN(PSTR("startFindAxisOrigin(): axis origin search not supported in printer mode"));
+            showError((void*)ui_text_find_axis_origin, (void*)ui_text_operation_denied);
             return;
         }
         // start the search
-        g_nFindZOriginStatus = 1;
+        g_nFindAxisOriginStatus = 1;
+        g_nFindAxisOriginAxisAndDirection = axisAndDirection;
     }
-} // startFindZOrigin
+} // startFindAxisOrigin
 
-void findZOrigin(void) {
+void findAxisOrigin(void) {
 #if FEATURE_ALIGN_EXTRUDERS
     if (g_nAlignExtrudersStatus)
         return;
@@ -3419,9 +3418,9 @@ void findZOrigin(void) {
     if (g_nWorkPartScanStatus)
         return;
 #endif //FEATURE_WORK_PART_Z_COMPENSATION
-#if FEATURE_FIND_Z_ORIGIN
-        //if( g_nFindZOriginStatus ) return;
-#endif //FEATURE_FIND_Z_ORIGIN
+#if FEATURE_FIND_AXIS_ORIGIN
+        //if( g_nFindAxisOriginStatus ) return;
+#endif //FEATURE_FIND_AXIS_ORIGIN
 
     static short nMaxPressureContact;
     static short nMinPressureContact;
@@ -3429,60 +3428,83 @@ void findZOrigin(void) {
     unsigned long uStartTime;
     unsigned long uCurrentTime;
 
-    if (g_abortZScan) {
-        showAbortScanReason((void*)ui_text_find_z_origin, g_abortZScan);
+    if (g_abortAxisScan) {
+        showAbortScanReason((void*)ui_text_find_axis_origin, g_abortAxisScan);
         // the search has been aborted
-        g_abortZScan = 0;
+        g_abortAxisScan = 0;
 
         // turn off the engines
-        Printer::disableZStepper();
-
-        if (Printer::debugInfo()) {
-            Com::printFLN(PSTR("findZOrigin(): aborted"));
+        switch(g_nFindAxisOriginAxisAndDirection) {
+          case AxisAndDirection::Xneg:
+          case AxisAndDirection::Xpos:
+            Printer::disableXStepper();
+            break;
+          case AxisAndDirection::Yneg:
+          case AxisAndDirection::Ypos:
+            Printer::disableYStepper();
+            break;
+          case AxisAndDirection::Zneg:
+            Printer::disableZStepper();
         }
 
-        g_nFindZOriginStatus = 0;
+        if (Printer::debugInfo()) {
+            Com::printFLN(PSTR("findAxisOrigin(): aborted"));
+        }
+
+        g_nFindAxisOriginStatus = 0;
 
         g_uStartOfIdle = HAL::timeInMilliseconds() + 30000; //abort findZOrigin
         return;
     }
 
-    if (g_nFindZOriginStatus) {
+    if (g_nFindAxisOriginStatus) {
         // show that we are active
         previousMillisCmd = HAL::timeInMilliseconds(); //prevent inactive shutdown of steppers/temps
         GCode::keepAlive(Calibrating);
 
-        UI_STATUS_UPD(UI_TEXT_FIND_Z_ORIGIN);
+        UI_STATUS_UPD(UI_TEXT_FIND_AXIS_ORIGIN);
 
         //HAL::delayMilliseconds( 2000 );
 
-        switch (g_nFindZOriginStatus) {
+        switch (g_nFindAxisOriginStatus) {
         case 1: {
-            g_abortZScan = 0;
+            g_abortAxisScan = 0;
             //g_nLastZScanZPosition      = 0; //sodass dass bei mehreren scans nicht die letzte position als abstands limit feststeht. //brauche ich nicht bei findzorigin
             g_nZOriginPosition[Z_AXIS] = 0;
 
             if (Printer::debugInfo()) {
-                Com::printFLN(PSTR("findZOrigin(): started"));
+                Com::printFLN(PSTR("findAxisOrigin(): started"));
             }
 
             if (readAveragePressure(&nCurrentPressure)) {
-                Com::printFLN(PSTR("findZOrigin(): start pressure not determined"));
-                g_abortZScan = SCAN_ABORT_REASON_START_PRESSURE;
+                Com::printFLN(PSTR("findAxisOrigin(): start pressure not determined"));
+                g_abortAxisScan = SCAN_ABORT_REASON_START_PRESSURE;
                 return;
             }
 
-            nMinPressureContact = nCurrentPressure - SEARCH_Z_ORIGIN_CONTACT_PRESSURE_DELTA;
-            nMaxPressureContact = nCurrentPressure + SEARCH_Z_ORIGIN_CONTACT_PRESSURE_DELTA;
+            nMinPressureContact = nCurrentPressure - SEARCH_AXIS_ORIGIN_CONTACT_PRESSURE_DELTA;
+            nMaxPressureContact = nCurrentPressure + SEARCH_AXIS_ORIGIN_CONTACT_PRESSURE_DELTA;
 
             if (Printer::debugInfo()) {
-                Com::printF(PSTR("findZOrigin(): nMinPressureContact = "), nMinPressureContact);
+                Com::printF(PSTR("findAxisOrigin(): nMinPressureContact = "), nMinPressureContact);
                 Com::printFLN(PSTR(", nMaxPressureContact = "), nMaxPressureContact);
             }
 
-            Printer::enableZStepper();
+            // turn on the engines
+            switch(g_nFindAxisOriginAxisAndDirection) {
+              case AxisAndDirection::Xneg:
+              case AxisAndDirection::Xpos:
+                Printer::disableXStepper();
+                break;
+              case AxisAndDirection::Yneg:
+              case AxisAndDirection::Ypos:
+                Printer::disableYStepper();
+                break;
+              case AxisAndDirection::Zneg:
+                Printer::disableZStepper();
+            }
 
-            g_nFindZOriginStatus = 2;
+            g_nFindAxisOriginStatus = 2;
 
 #if DEBUG_FIND_Z_ORIGIN
             Com::printFLN(PSTR("findZOrigin(): 1->10"));
@@ -3493,18 +3515,18 @@ void findZOrigin(void) {
 #if FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
             Printer::disableCMPnow(true); //schalte Z CMP ab für findZOrigin
 #endif                                    // FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
-            g_nFindZOriginStatus = 10;
+            g_nFindAxisOriginStatus = 10;
             break;
         }
         case 10: {
-            // move the heat bed up until we detect the contact pressure
+            // move forward (in selected direction) until we detect the contact pressure
             uStartTime = HAL::timeInMilliseconds();
             while (1) {
                 nCurrentPressure = readStrainGauge(ACTIVE_STRAIN_GAUGE);
 
                 if (nCurrentPressure > nMaxPressureContact || nCurrentPressure < nMinPressureContact) {
                     // we have reached the target pressure
-                    g_nFindZOriginStatus = 20;
+                    g_nFindAxisOriginStatus = 20;
 
 #if DEBUG_FIND_Z_ORIGIN
                     Com::printFLN(PSTR("findZOrigin(): 10->20"));
@@ -3512,37 +3534,52 @@ void findZOrigin(void) {
                     return;
                 }
 
-                if (Printer::isZMinEndstopHit()) {
-                    // this should never happen
-                    Com::printFLN(PSTR("findZOrigin(): the z-min endstop reached"));
-                    g_abortZScan = SCAN_ABORT_REASON_MIN_ENDSTOP;
+                if (Printer::isZMinEndstopHit() || Printer::isXMinEndstopHit() || Printer::isXMaxEndstopHit() ||
+                        Printer::isYMinEndstopHit() || Printer::isYMaxEndstopHit()) {
+                    Com::printFLN(PSTR("findAxisOrigin(): endstop reached"));
+                    g_abortAxisScan = SCAN_ABORT_REASON_MIN_ENDSTOP;
                     return;
                 }
 
-                moveZ(int(SEARCH_Z_ORIGIN_BED_UP_MM * Printer::axisStepsPerMM[Z_AXIS]));
-                g_nZOriginPosition[Z_AXIS] = g_nZScanZPosition; //passt wenn korrekt gehomed.
+                switch(g_nFindAxisOriginAxisAndDirection) {
+                  case AxisAndDirection::Xneg:
+                    moveAxis(int(-SEARCH_AXIS_ORIGIN_FORWARD_MM * Printer::axisStepsPerMM[X_AXIS]), X_AXIS);
+                    break;
+                  case AxisAndDirection::Xpos:
+                    moveAxis(int(SEARCH_AXIS_ORIGIN_FORWARD_MM * Printer::axisStepsPerMM[X_AXIS]), X_AXIS);
+                    break;
+                  case AxisAndDirection::Yneg:
+                    moveAxis(int(-SEARCH_AXIS_ORIGIN_FORWARD_MM * Printer::axisStepsPerMM[Y_AXIS]), Y_AXIS);
+                    break;
+                  case AxisAndDirection::Ypos:
+                    moveAxis(int(SEARCH_AXIS_ORIGIN_FORWARD_MM * Printer::axisStepsPerMM[Y_AXIS]), Y_AXIS);
+                    break;
+                  case AxisAndDirection::Zneg:
+                    moveAxis(int(-SEARCH_AXIS_ORIGIN_FORWARD_MM * Printer::axisStepsPerMM[Z_AXIS]), Z_AXIS);
+                    g_nZOriginPosition[Z_AXIS] = g_nAxisScanPosition; //passt wenn korrekt gehomed.
+                }
 
                 uCurrentTime = HAL::timeInMilliseconds();
-                if ((uCurrentTime - uStartTime) > SEARCH_Z_ORIGIN_BREAKOUT_DELAY) {
+                if ((uCurrentTime - uStartTime) > SEARCH_AXIS_ORIGIN_BREAKOUT_DELAY) {
                     // do not stay within this loop forever
                     return;
                 }
 
-                if (g_abortZScan) {
+                if (g_abortAxisScan) {
                     break;
                 }
             }
             break;
         }
         case 20: {
-            // move the heat bed down again until we do not detect any contact anymore
+            // move backwards until we do not detect any contact anymore
             uStartTime = HAL::timeInMilliseconds();
             while (1) {
                 nCurrentPressure = readStrainGauge(ACTIVE_STRAIN_GAUGE);
 
                 if (nCurrentPressure > nMinPressureContact && nCurrentPressure < nMaxPressureContact) {
                     // we have reached the target pressure
-                    g_nFindZOriginStatus = 30;
+                    g_nFindAxisOriginStatus = 30;
 
 #if DEBUG_FIND_Z_ORIGIN
                     Com::printFLN(PSTR("findZOrigin(): 20 -> 30"));
@@ -3550,22 +3587,38 @@ void findZOrigin(void) {
                     return;
                 }
 
-                if (Printer::isZMaxEndstopHit()) {
-                    Com::printFLN(PSTR("findZOrigin(): the z-max endstop reached"));
-                    g_abortZScan = SCAN_ABORT_REASON_MAX_ENDSTOP;
+                if (Printer::isZMinEndstopHit() || Printer::isXMinEndstopHit() || Printer::isXMaxEndstopHit() ||
+                        Printer::isYMinEndstopHit() || Printer::isYMaxEndstopHit()) {
+                    Com::printFLN(PSTR("findAxisOrigin(): endstop reached"));
+                    g_abortAxisScan = SCAN_ABORT_REASON_MIN_ENDSTOP;
                     return;
                 }
 
-                moveZ(int(SEARCH_Z_ORIGIN_BED_DOWN_MM * Printer::axisStepsPerMM[Z_AXIS]));
-                g_nZOriginPosition[Z_AXIS] = g_nZScanZPosition; //passt wenn korrekt gehomed.
+                switch(g_nFindAxisOriginAxisAndDirection) {
+                  case AxisAndDirection::Xneg:
+                    moveAxis(int(SEARCH_AXIS_ORIGIN_REVERSE_MM * Printer::axisStepsPerMM[X_AXIS]), X_AXIS);
+                    break;
+                  case AxisAndDirection::Xpos:
+                    moveAxis(int(-SEARCH_AXIS_ORIGIN_REVERSE_MM * Printer::axisStepsPerMM[X_AXIS]), X_AXIS);
+                    break;
+                  case AxisAndDirection::Yneg:
+                    moveAxis(int(SEARCH_AXIS_ORIGIN_REVERSE_MM * Printer::axisStepsPerMM[Y_AXIS]), Y_AXIS);
+                    break;
+                  case AxisAndDirection::Ypos:
+                    moveAxis(int(-SEARCH_AXIS_ORIGIN_REVERSE_MM * Printer::axisStepsPerMM[Y_AXIS]), Y_AXIS);
+                    break;
+                  case AxisAndDirection::Zneg:
+                    moveAxis(int(SEARCH_AXIS_ORIGIN_REVERSE_MM * Printer::axisStepsPerMM[Z_AXIS]), Z_AXIS);
+                    g_nZOriginPosition[Z_AXIS] = g_nAxisScanPosition; //passt wenn korrekt gehomed.
+                }
 
                 uCurrentTime = HAL::timeInMilliseconds();
-                if ((uCurrentTime - uStartTime) > SEARCH_Z_ORIGIN_BREAKOUT_DELAY) {
+                if ((uCurrentTime - uStartTime) > SEARCH_AXIS_ORIGIN_BREAKOUT_DELAY) {
                     // do not stay within this loop forever
                     return;
                 }
 
-                if (g_abortZScan) {
+                if (g_abortAxisScan) {
                     break;
                 }
             }
@@ -3573,10 +3626,21 @@ void findZOrigin(void) {
         }
         case 30: {
             // we have found the z-origin
-            setZOrigin();
+            switch(g_nFindAxisOriginAxisAndDirection) {
+              case AxisAndDirection::Xneg:
+                break;
+              case AxisAndDirection::Xpos:
+                break;
+              case AxisAndDirection::Yneg:
+                break;
+              case AxisAndDirection::Ypos:
+                break;
+              case AxisAndDirection::Zneg:
+                setZOrigin();
+            }
 
-            GCode::executeFString(Com::tFindZOrigin);
-            g_nFindZOriginStatus = 40;
+            //GCode::executeFString(Com::tFindZOrigin);
+            g_nFindAxisOriginStatus = 40;
 
 #if DEBUG_FIND_Z_ORIGIN
             Com::printFLN(PSTR("findZOrigin(): 30 -> 40"));
@@ -3590,7 +3654,7 @@ void findZOrigin(void) {
             }
 
             Commands::printCurrentPosition();
-            g_nFindZOriginStatus = 0;
+            g_nFindAxisOriginStatus = 0;
             UI_STATUS_UPD(UI_TEXT_FIND_Z_ORIGIN_DONE);
 
 #if DEBUG_FIND_Z_ORIGIN
@@ -3601,7 +3665,7 @@ void findZOrigin(void) {
         }
     }
 } // findZOrigin
-#endif // FEATURE_FIND_Z_ORIGIN
+#endif // FEATURE_FIND_AXIS_ORIGIN
 
 #if FEATURE_WORK_PART_Z_COMPENSATION
 void startWorkPartScan(char nMode) {
@@ -3618,16 +3682,16 @@ void startWorkPartScan(char nMode) {
 #if FEATURE_WORK_PART_Z_COMPENSATION
         //if( g_nWorkPartScanStatus ) return;
 #endif //FEATURE_WORK_PART_Z_COMPENSATION
-#if FEATURE_FIND_Z_ORIGIN
-    if (g_nFindZOriginStatus)
+#if FEATURE_FIND_AXIS_ORIGIN
+    if (g_nFindAxisOriginStatus)
         return;
-#endif //FEATURE_FIND_Z_ORIGIN
+#endif //FEATURE_FIND_AXIS_ORIGIN
     if (g_nWorkPartScanStatus) {
         // abort the work part scan
         if (Printer::debugInfo()) {
             Com::printFLN(PSTR("startWorkPartScan(): the scan has been cancelled"));
         }
-        g_abortZScan = SCAN_ABORT_REASON_CANCELED;
+        g_abortAxisScan = SCAN_ABORT_REASON_CANCELED;
     } else {
         if (Printer::isPrinting()) {
             // there is some printing in progress at the moment - do not start the heat bed scan in this case
@@ -3662,10 +3726,10 @@ void scanWorkPart(void) {
 #if FEATURE_WORK_PART_Z_COMPENSATION
         //if( g_nWorkPartScanStatus ) return;
 #endif //FEATURE_WORK_PART_Z_COMPENSATION
-#if FEATURE_FIND_Z_ORIGIN
-    if (g_nFindZOriginStatus)
+#if FEATURE_FIND_AXIS_ORIGIN
+    if (g_nFindAxisOriginStatus)
         return;
-#endif //FEATURE_FIND_Z_ORIGIN
+#endif //FEATURE_FIND_AXIS_ORIGIN
 
     static unsigned char nIndexX;
     static unsigned char nIndexY;
@@ -3685,11 +3749,11 @@ void scanWorkPart(void) {
     // +z = work part moves down
     // -z = work part moves up
 
-    if (g_abortZScan) {
-        showAbortScanReason((void*)ui_text_work_part_scan, g_abortZScan);
+    if (g_abortAxisScan) {
+        showAbortScanReason((void*)ui_text_work_part_scan, g_abortAxisScan);
         BEEP_ABORT_WORK_PART_SCAN
         // the scan has been aborted
-        g_abortZScan = 0;
+        g_abortAxisScan = 0;
 
         // start at the home position
         if (g_nWorkPartScanMode) {
@@ -3739,7 +3803,7 @@ void scanWorkPart(void) {
         switch (g_nWorkPartScanStatus) {
         case 1: {
             g_scanStartTime = HAL::timeInMilliseconds();
-            g_abortZScan = 0;
+            g_abortAxisScan = 0;
             nContactPressure = 0;
             g_nLastZScanZPosition = 0; //sodass dass bei mehreren scans nicht die letzte position als abstands limit feststeht.
 
@@ -3864,18 +3928,18 @@ void scanWorkPart(void) {
                         Com::printF(Com::tscanWorkPart);
                         Com::printFLN(PSTR("the z-min endstop has been reached"));
                     }
-                    g_abortZScan = SCAN_ABORT_REASON_MIN_ENDSTOP;
+                    g_abortAxisScan = SCAN_ABORT_REASON_MIN_ENDSTOP;
                     return;
                 }
 
-                moveZ(g_nScanHeatBedUpFastSteps);
+                moveAxis(g_nScanHeatBedUpFastSteps);
 
-                if ((HAL::timeInMilliseconds() - g_lastScanTime) > SEARCH_Z_ORIGIN_BREAKOUT_DELAY) {
+                if ((HAL::timeInMilliseconds() - g_lastScanTime) > SEARCH_AXIS_ORIGIN_BREAKOUT_DELAY) {
                     // do not stay within this loop forever
                     return;
                 }
 
-                if (g_abortZScan) {
+                if (g_abortAxisScan) {
                     break;
                 }
             }
@@ -3922,18 +3986,18 @@ void scanWorkPart(void) {
                         Com::printF(Com::tscanWorkPart);
                         Com::printFLN(PSTR("the z-max endstop has been reached"));
                     }
-                    g_abortZScan = SCAN_ABORT_REASON_MAX_ENDSTOP;
+                    g_abortAxisScan = SCAN_ABORT_REASON_MAX_ENDSTOP;
                     return;
                 }
 
-                moveZ(g_nScanHeatBedDownSlowSteps);
+                moveAxis(g_nScanHeatBedDownSlowSteps);
 
-                if ((HAL::timeInMilliseconds() - g_lastScanTime) > SEARCH_Z_ORIGIN_BREAKOUT_DELAY) {
+                if ((HAL::timeInMilliseconds() - g_lastScanTime) > SEARCH_AXIS_ORIGIN_BREAKOUT_DELAY) {
                     // do not stay within this loop forever
                     return;
                 }
 
-                if (g_abortZScan) {
+                if (g_abortAxisScan) {
                     break;
                 }
             }
@@ -3977,7 +4041,7 @@ void scanWorkPart(void) {
                     Com::printF(Com::tscanWorkPart);
                     Com::printFLN(PSTR("the x-dimension of the z matrix became too big: "), nIndexX);
                 }
-                g_abortZScan = SCAN_ABORT_REASON_MATRIX_DIMENSION;
+                g_abortAxisScan = SCAN_ABORT_REASON_MATRIX_DIMENSION;
                 break;
             }
 
@@ -4032,7 +4096,7 @@ void scanWorkPart(void) {
         }
         case 45: {
             // move away from the surface
-            moveZ(g_nScanHeatBedDownFastSteps);
+            moveAxis(g_nScanHeatBedDownFastSteps);
 
             g_scanRetries--;
             g_nWorkPartScanStatus = 46;
@@ -4091,7 +4155,7 @@ void scanWorkPart(void) {
             // scan this point
             if (testIdlePressure()) {
                 // the current idle pressure is not plausible
-                g_abortZScan = SCAN_ABORT_REASON_IDLE_PRESSURE;
+                g_abortAxisScan = SCAN_ABORT_REASON_IDLE_PRESSURE;
                 break;
             }
 
@@ -4157,8 +4221,8 @@ void scanWorkPart(void) {
                 Com::printF(Com::tSemiColon, (float)nX / Printer::axisStepsPerMM[X_AXIS]);
                 Com::printF(PSTR(";nY;"), nY);
                 Com::printF(Com::tSemiColon, (float)nY / Printer::axisStepsPerMM[Y_AXIS]);
-                Com::printF(PSTR(";nZ;"), g_nZScanZPosition);
-                Com::printF(Com::tSemiColon, (float)g_nZScanZPosition / Printer::axisStepsPerMM[Z_AXIS]);
+                Com::printF(PSTR(";nZ;"), g_nAxisScanPosition);
+                Com::printF(Com::tSemiColon, (float)g_nAxisScanPosition / Printer::axisStepsPerMM[Z_AXIS]);
                 Com::printF(PSTR(";Pressure;"), nContactPressure);
 
                 Com::printF(PSTR(";nIndexX;"), (int)nIndexX);
@@ -4169,7 +4233,7 @@ void scanWorkPart(void) {
 #endif // DEBUG_WORK_PART_SCAN
 
             // remember the z-position and the exact y-position of this row/column
-            g_ZCompensationMatrix[nIndexX][nIndexY] = (short)g_nZScanZPosition;
+            g_ZCompensationMatrix[nIndexX][nIndexY] = (short)g_nAxisScanPosition;
             g_ZCompensationMatrix[0][nIndexY] = (short)((float)nY / Printer::axisStepsPerMM[Y_AXIS] + 0.5); // convert to mm
 
             if (nIndexX > g_uZMatrixMax[X_AXIS]) {
@@ -4185,7 +4249,7 @@ void scanWorkPart(void) {
 #if DEBUG_WORK_PART_SCAN == 2
             if (Printer::debugInfo()) {
                 Com::printF(Com::tscanWorkPart);
-                Com::printFLN(PSTR("54 -> 55 > "), g_nZScanZPosition);
+                Com::printFLN(PSTR("54 -> 55 > "), g_nAxisScanPosition);
             }
 #endif // DEBUG_WORK_PART_SCAN
             break;
@@ -4236,7 +4300,7 @@ void scanWorkPart(void) {
                     Com::printF(Com::tscanWorkPart);
                     Com::printFLN(PSTR("the y-dimension of the z matrix became too big: "), nIndexY);
                 }
-                g_abortZScan = SCAN_ABORT_REASON_MATRIX_DIMENSION;
+                g_abortAxisScan = SCAN_ABORT_REASON_MATRIX_DIMENSION;
                 break;
             }
 
@@ -4436,9 +4500,9 @@ long getWorkPartOffset(void) {
         Com::printF( Com::tSemiColon, nOffset );
         Com::printFLN( Com::tSemiColon, Printer::staticCompensationZ );*/
 
-#if FEATURE_FIND_Z_ORIGIN
+#if FEATURE_FIND_AXIS_ORIGIN
     nOffset -= Printer::staticCompensationZ;
-#endif // FEATURE_FIND_Z_ORIGIN
+#endif // FEATURE_FIND_AXIS_ORIGIN
 
     return nOffset;
 
@@ -4565,7 +4629,7 @@ short readAveragePressure(short* pnAveragePressure) {
     }
 
     Com::printFLN(PSTR("readAveragePressure(): the pressure is not plausible"));
-    g_abortZScan = SCAN_ABORT_REASON_AVERAGE_PRESSURE;
+    g_abortAxisScan = SCAN_ABORT_REASON_AVERAGE_PRESSURE;
     *pnAveragePressure = 0;
     return -1;
 
@@ -4576,16 +4640,16 @@ void moveZPlusDownFast() {
     short nTempPressure;
 
     // move the heat bed down so that we won't hit it when we move to the next position
-    g_nLastZScanZPosition = g_nZScanZPosition;
+    g_nLastZScanZPosition = g_nAxisScanPosition;
     HAL::delayMilliseconds(g_nScanFastStepDelay);
 
-    moveZ(g_nScanHeatBedDownFastSteps);
+    moveAxis(g_nScanHeatBedDownFastSteps);
 
     Commands::checkForPeriodicalActions(Processing);
 
     if (readAveragePressure(&nTempPressure)) {
         // some error has occurred
-        g_abortZScan = SCAN_ABORT_REASON_AVERAGE_PRESSURE;
+        g_abortAxisScan = SCAN_ABORT_REASON_AVERAGE_PRESSURE;
         return;
     }
 
@@ -4599,7 +4663,7 @@ void moveZPlusDownFast() {
 //Spacing Langsam:
 void moveZPlusDownSlow(uint8_t acuteness) {
     short nTempPressure;
-    long startScanZPosition = g_nZScanZPosition;
+    long startScanZPosition = g_nAxisScanPosition;
 
     // move the heat bed down until we detect the retry pressure (slow speed)
     while (1) {
@@ -4614,26 +4678,26 @@ void moveZPlusDownSlow(uint8_t acuteness) {
             break;
         }
 
-        moveZ((g_nScanHeatBedDownSlowSteps / acuteness ? g_nScanHeatBedDownSlowSteps / acuteness : 1));
+        moveAxis((g_nScanHeatBedDownSlowSteps / acuteness ? g_nScanHeatBedDownSlowSteps / acuteness : 1));
 
         Commands::checkForPeriodicalActions(Processing);
 
-        if (g_abortZScan) {
+        if (g_abortAxisScan) {
             break;
         }
 
         char error = 0;
-        if (g_nZScanZPosition > long(Printer::axisStepsPerMM[Z_AXIS] * g_scanStartZLiftMM) || g_nZScanZPosition > 32767) {
-            Com::printFLN(PSTR("Z = "), g_nZScanZPosition * Printer::axisMMPerSteps[Z_AXIS]);
+        if (g_nAxisScanPosition > long(Printer::axisStepsPerMM[Z_AXIS] * g_scanStartZLiftMM) || g_nAxisScanPosition > 32767) {
+            Com::printFLN(PSTR("Z = "), g_nAxisScanPosition * Printer::axisMMPerSteps[Z_AXIS]);
             error = SCAN_ABORT_REASON_SCAN_OVER_START;
-        } else if (g_nLastZScanZPosition && abs(g_nZScanZPosition - g_nLastZScanZPosition) > g_nScanHeatBedDownFastSteps * (2 +                                                                                           /*nach wiederholungen etwas mehr zulassen. krumme keramik braucht wohl mehr ... */
+        } else if (g_nLastZScanZPosition && abs(g_nAxisScanPosition - g_nLastZScanZPosition) > g_nScanHeatBedDownFastSteps * (2 +                                                                                           /*nach wiederholungen etwas mehr zulassen. krumme keramik braucht wohl mehr ... */
                                                                                                                             (g_scanRetries < HEAT_BED_SCAN_RETRIES ?                                                      /* nur beachten bei wiederholung */
                                                                                                                                  (HEAT_BED_SCAN_RETRIES - g_scanRetries <= 2 ? HEAT_BED_SCAN_RETRIES - g_scanRetries : 2) /* nie mehr als 0.2 bzw 2x draufschlagen, das reicht sicher - sonst ist es ein anderer fehler. */
                                                                                                                                                                    : 0))) {
-            Com::printFLN(PSTR("dZ_lastpos = "), abs(g_nZScanZPosition - g_nLastZScanZPosition) * Printer::axisMMPerSteps[Z_AXIS]);
+            Com::printFLN(PSTR("dZ_lastpos = "), abs(g_nAxisScanPosition - g_nLastZScanZPosition) * Printer::axisMMPerSteps[Z_AXIS]);
             error = SCAN_ABORT_REASON_SCAN_TOO_UNEVEN;
-        } else if (abs(startScanZPosition - g_nZScanZPosition) > g_nScanHeatBedDownFastSteps * 2 / acuteness) {
-            Com::printFLN(PSTR("dZ_move = "), g_nZScanZPosition * Printer::axisMMPerSteps[Z_AXIS]);
+        } else if (abs(startScanZPosition - g_nAxisScanPosition) > g_nScanHeatBedDownFastSteps * 2 / acuteness) {
+            Com::printFLN(PSTR("dZ_move = "), g_nAxisScanPosition * Printer::axisMMPerSteps[Z_AXIS]);
             error = SCAN_ABORT_REASON_SCAN_STEP_DELTA_OUT_OF_RANGE;
         }
         if (error) {
@@ -4641,7 +4705,7 @@ void moveZPlusDownSlow(uint8_t acuteness) {
             if (g_scanRetries)
                 g_retryZScan = 1;
             else
-                g_abortZScan = error;
+                g_abortAxisScan = error;
             break;
         }
     }
@@ -4653,15 +4717,15 @@ void moveZMinusUpFast() {
 
     // move the heat bed up until we detect the contact pressure (fast speed)
     while (1) {
-        if (g_nZScanZPosition <= -g_nScanZMaxCompensationSteps || g_nZScanZPosition < -32768) {
+        if (g_nAxisScanPosition <= -g_nScanZMaxCompensationSteps || g_nAxisScanPosition < -32768) {
             Com::printFLN(PSTR("moveZMinusUpFast(): out of range "), (int)g_scanRetries);
             Com::printFLN(PSTR("Z-Endstop Limit:"), Z_ENDSTOP_DRIVE_OVER);
-            Com::printFLN(PSTR("Z = "), g_nZScanZPosition * Printer::axisMMPerSteps[Z_AXIS]);
+            Com::printFLN(PSTR("Z = "), g_nAxisScanPosition * Printer::axisMMPerSteps[Z_AXIS]);
 
             if (g_scanRetries)
                 g_retryZScan = 1;
             else
-                g_abortZScan = SCAN_ABORT_REASON_REACHED_MAX_COMPENSATION;
+                g_abortAxisScan = SCAN_ABORT_REASON_REACHED_MAX_COMPENSATION;
             break;
         }
 
@@ -4679,9 +4743,9 @@ void moveZMinusUpFast() {
         }
 
         Commands::checkForPeriodicalActions(Processing);
-        moveZ(g_nScanHeatBedUpFastSteps);
+        moveAxis(g_nScanHeatBedUpFastSteps);
 
-        if (g_abortZScan) {
+        if (g_abortAxisScan) {
             break;
         }
     }
@@ -4693,15 +4757,15 @@ void moveZMinusUpSlow(short* pnContactPressure, uint8_t acuteness) {
 
     // move the heat bed up until we detect the contact pressure (slow speed)
     while (1) {
-        if (g_nZScanZPosition <= -g_nScanZMaxCompensationSteps || g_nZScanZPosition < -32768) {
+        if (g_nAxisScanPosition <= -g_nScanZMaxCompensationSteps || g_nAxisScanPosition < -32768) {
             Com::printFLN(PSTR("moveZMinusUpSlow(): the z position went out of range, retries = "), g_scanRetries);
             Com::printFLN(PSTR("Z-Endstop Limit:"), Z_ENDSTOP_DRIVE_OVER);
-            Com::printFLN(PSTR("Z = "), g_nZScanZPosition * Printer::axisMMPerSteps[Z_AXIS]);
+            Com::printFLN(PSTR("Z = "), g_nAxisScanPosition * Printer::axisMMPerSteps[Z_AXIS]);
 
             if (g_scanRetries)
                 g_retryZScan = 1;
             else
-                g_abortZScan = SCAN_ABORT_REASON_REACHED_MAX_COMPENSATION;
+                g_abortAxisScan = SCAN_ABORT_REASON_REACHED_MAX_COMPENSATION;
             break;
         }
 
@@ -4719,16 +4783,16 @@ void moveZMinusUpSlow(short* pnContactPressure, uint8_t acuteness) {
         }
 
         Commands::checkForPeriodicalActions(Processing);
-        moveZ((g_nScanHeatBedUpSlowSteps / acuteness ? g_nScanHeatBedUpSlowSteps / acuteness : 1));
+        moveAxis((g_nScanHeatBedUpSlowSteps / acuteness ? g_nScanHeatBedUpSlowSteps / acuteness : 1));
 
-        if (g_abortZScan) {
+        if (g_abortAxisScan) {
             break;
         }
     }
     *pnContactPressure = nTempPressure;
 } // moveZMinusUpSlow
 
-void moveZ(int nSteps) {
+void moveAxis(int nSteps, uint8_t axis) {
     /*
     Warning 03.11.2017 : Do not try to make more steps than < 10mm in one row. Some printers will get a watchdog reset.
     When choosing 10mm one printer crashed while others still worked.
@@ -4753,7 +4817,7 @@ void moveZ(int nSteps) {
     // perform the steps
     for (int i = 0; i < nMaxLoops; i++) {
 #if FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
-        if (g_abortZScan)
+        if (g_abortAxisScan)
             break; // do not continue here in case the current operation has been cancelled
 #endif             // FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
 
@@ -4761,8 +4825,8 @@ void moveZ(int nSteps) {
         if (Printer::operatingMode == OPERATING_MODE_PRINT) // nur printing-mode. Beim millingmode könnte das falsch sein. Test TODO daher nur printing-mode, da stimmts.
 #endif                                                      //FEATURE_MILLING_MODE
         {
-            if (Printer::isAxisHomed(Z_AXIS) && Printer::currentZSteps <= -1 * long(Printer::maxZOverrideSteps)) {
-                g_abortZScan = SCAN_ABORT_REASON_REACHED_MAX_COMPENSATION; // prepare abort
+            if (axis == Z_AXIS && Printer::isAxisHomed(Z_AXIS) && Printer::currentZSteps <= -1 * long(Printer::maxZOverrideSteps)) {
+                g_abortAxisScan = SCAN_ABORT_REASON_REACHED_MAX_COMPENSATION; // prepare abort
                 g_scanRetries = 0;                                         // prevent any retrys this is hopeless in this case.
                 Com::printFLN(PSTR("Z-Endstop protection"));
                 UI_STATUS_UPD("Z-Endstop protection");
@@ -4772,24 +4836,24 @@ void moveZ(int nSteps) {
         }
 
         if (nSteps >= 0) {
-            if (!Printer::getZDirectionIsPos()) {
+            if (!Printer::getAxisDirectionIsPos(axis)) {
                 Printer::setZDirection(true);
-                //Com::printFLN( PSTR( "moveZ: BedDown Z=" ),g_nZScanZPosition );  //kann manchmal verwirrend sein, gleiche richtugnen werden nicht angezeigt. Hoch, etwas runter .... scan ergebnis ... runter für neuanlauf  -> scanergebnis unsichtbar.
+                //Com::printFLN( PSTR( "moveZ: BedDown Z=" ),g_nAxisScanPosition );  //kann manchmal verwirrend sein, gleiche richtugnen werden nicht angezeigt. Hoch, etwas runter .... scan ergebnis ... runter für neuanlauf  -> scanergebnis unsichtbar.
             }
         } else {
-            if (Printer::getZDirectionIsPos()) {
+            if (Printer::getAxisDirectionIsPos(axis)) {
                 Printer::setZDirection(false);
-                //Com::printFLN( PSTR( "moveZ: BedUp Z=" ),g_nZScanZPosition );  //kann manchmal verwirrend sein, gleiche richtugnen werden nicht angezeigt. Hoch, etwas runter .... scan ergebnis ... runter für neuanlauf  -> scanergebnis unsichtbar.
+                //Com::printFLN( PSTR( "moveZ: BedUp Z=" ),g_nAxisScanPosition );  //kann manchmal verwirrend sein, gleiche richtugnen werden nicht angezeigt. Hoch, etwas runter .... scan ergebnis ... runter für neuanlauf  -> scanergebnis unsichtbar.
             }
         }
 
         HAL::delayMicroseconds(XYZ_STEPPER_HIGH_DELAY);
-        Printer::startZStep();
+        Printer::startAxisStep(axis);
 
         HAL::delayMicroseconds(XYZ_STEPPER_LOW_DELAY);
-        Printer::endZStep();
+        Printer::endAxisStep(axis);
 
-        g_nZScanZPosition += (Printer::getZDirectionIsPos() ? 1 : -1);
+        g_nAxisScanPosition += (Printer::getAxisDirectionIsPos(axis) ? 1 : -1);
     }
 } // moveZ
 
@@ -5888,11 +5952,11 @@ void handleScanWorkTasks() {
             scanWorkPart();
         }
 #endif // FEATURE_WORK_PART_Z_COMPENSATION
-#if FEATURE_FIND_Z_ORIGIN
-        if (g_nFindZOriginStatus) {
-            findZOrigin();
+#if FEATURE_FIND_AXIS_ORIGIN
+        if (g_nFindAxisOriginStatus) {
+            findAxisOrigin();
         }
-#endif // FEATURE_FIND_Z_ORIGIN
+#endif // FEATURE_FIND_AXIS_ORIGIN
     }
 #endif // FEATURE_MILLING_MODE
 }
@@ -5990,9 +6054,9 @@ void handleStopPrint(millis_t uTime) {
                 g_nHeatBedScanStatus = 0;
                 //g_nAlignExtrudersStatus = 0;
 
-#if FEATURE_FIND_Z_ORIGIN
-                g_nFindZOriginStatus = 0;
-#endif // FEATURE_FIND_Z_ORIGIN
+#if FEATURE_FIND_AXIS_ORIGIN
+                g_nFindAxisOriginStatus = 0;
+#endif // FEATURE_FIND_AXIS_ORIGIN
 #if FEATURE_MILLING_MODE && FEATURE_WORK_PART_Z_COMPENSATION
                 g_nWorkPartScanStatus = 0;
 #endif // FEATURE_MILLING_MODE && FEATURE_WORK_PART_Z_COMPENSATION
@@ -7634,16 +7698,16 @@ void processSpecialGCode(GCode* pCommand) {
         }
 #endif // FEATURE_CASE_FAN && !CASE_FAN_ALWAYS_ON && CASE_FAN_PIN > -1
 
-#if FEATURE_FIND_Z_ORIGIN
+#if FEATURE_FIND_AXIS_ORIGIN
         case 3130: // M3130 - start/stop the search of the z-origin
         {
-            startFindZOrigin();
+            startFindAxisOrigin(AxisAndDirection::Zneg);
             // We have to wait until the findZOrigin is stopped because this is used in gcode flow.
             // findZOrigin is not processing within pause and resuming after pause.
             Commands::waitUntilEndOfAllMoves(); //find z origin, might prevent stop
             break;
         }
-#endif // FEATURE_FIND_Z_ORIGIN
+#endif // FEATURE_FIND_AXIS_ORIGIN
 
 #if FEATURE_WORK_PART_Z_COMPENSATION
         case 3140: // M3140 - turn the z-compensation off
@@ -8122,7 +8186,7 @@ void processSpecialGCode(GCode* pCommand) {
                     break;
                 }
 
-#if FEATURE_FIND_Z_ORIGIN
+#if FEATURE_FIND_AXIS_ORIGIN
                 case 7: {
                     Com::printF(PSTR("Z-Origin;X;"), g_nZOriginPosition[X_AXIS]);
                     Com::printF(Com::tSemiColon, (float)g_nZOriginPosition[X_AXIS] / Printer::axisStepsPerMM[X_AXIS]);
@@ -8132,7 +8196,7 @@ void processSpecialGCode(GCode* pCommand) {
                     Com::printFLN(Com::tSemiColon, (float)Printer::staticCompensationZ / Printer::axisStepsPerMM[Z_AXIS]);
                     break;
                 }
-#endif // FEATURE_FIND_Z_ORIGIN
+#endif // FEATURE_FIND_AXIS_ORIGIN
 
                 case 9: {
                     Com::printFLN(PSTR("debug level: "), Printer::debugLevel);
@@ -9529,10 +9593,10 @@ bool isAnyScanRunning() {
     if (g_nWorkPartScanStatus)
         return true;
 #endif //FEATURE_WORK_PART_Z_COMPENSATION
-#if FEATURE_FIND_Z_ORIGIN
-    if (g_nFindZOriginStatus)
+#if FEATURE_FIND_AXIS_ORIGIN
+    if (g_nFindAxisOriginStatus)
         return true;
-#endif //FEATURE_FIND_Z_ORIGIN
+#endif //FEATURE_FIND_AXIS_ORIGIN
 
     return false;
 }
@@ -10443,12 +10507,12 @@ void cleanupEPositions(void) {
 } // cleanupEPositions
 
 void setZOrigin(void) {
-#if FEATURE_FIND_Z_ORIGIN
+#if FEATURE_FIND_AXIS_ORIGIN
     g_nZOriginPosition[X_AXIS] = Printer::currentXSteps;
     g_nZOriginPosition[Y_AXIS] = Printer::currentYSteps;
     g_nZOriginPosition[Z_AXIS] = 0;
     Printer::setZOriginSet(true); //flag wegen statusnachricht
-#endif                            // FEATURE_FIND_Z_ORIGIN
+#endif                            // FEATURE_FIND_AXIS_ORIGIN
 
     // Axis length is decreased by active position height
     // Diese neue Länge wandert gleich ins EEPROM. Will man das wirklich? Unten sollte sowieso der Endschalter stoppen.
@@ -10460,7 +10524,7 @@ void setZOrigin(void) {
     // Origin offset set for gcode coordinate translation
     Printer::originOffsetMM[Z_AXIS] = 0;
 
-    g_nZScanZPosition = 0;
+    g_nAxisScanPosition = 0;
     // -> nönö, daran verändert nur das homing was!: Printer::currentZSteps                      = 0; //an dieser variable darf man im druckmodus eigentlich nie rumspielen ^^.
 
     Printer::updateDerivedParameter();
@@ -11016,8 +11080,8 @@ unsigned char isMovingAllowed(const char* pszCommand, char outputLog) {
     }
 #endif // FEATURE_WORK_PART_Z_COMPENSATION
 
-#if FEATURE_FIND_Z_ORIGIN
-    if (g_nFindZOriginStatus && g_nFindZOriginStatus != 30) {
+#if FEATURE_FIND_AXIS_ORIGIN
+    if (g_nFindAxisOriginStatus && g_nFindAxisOriginStatus != 30) {
         // do not allow manual movements while the z-origin is searched
         if (Printer::debugErrors() && outputLog) {
             Com::printF(pszCommand);
@@ -11025,7 +11089,7 @@ unsigned char isMovingAllowed(const char* pszCommand, char outputLog) {
         }
         return 0;
     }
-#endif // FEATURE_FIND_Z_ORIGIN
+#endif // FEATURE_FIND_AXIS_ORIGIN
 
 #if FEATURE_CONFIGURABLE_Z_ENDSTOPS
     if (Printer::ZEndstopUnknown) {
@@ -11080,8 +11144,8 @@ unsigned char isHomingAllowed(GCode* com, char outputLog) {
     }
 #endif // FEATURE_WORK_PART_Z_COMPENSATION
 
-#if FEATURE_FIND_Z_ORIGIN
-    if (g_nFindZOriginStatus) {
+#if FEATURE_FIND_AXIS_ORIGIN
+    if (g_nFindAxisOriginStatus) {
         // do not allow homing while the z-origin is searched
         if (Printer::debugErrors() && outputLog) {
             Com::printFLN(PSTR("G28: homing can not be performed while the z-origin is searched"));
@@ -11090,7 +11154,7 @@ unsigned char isHomingAllowed(GCode* com, char outputLog) {
 
         return 0;
     }
-#endif // FEATURE_FIND_Z_ORIGIN
+#endif // FEATURE_FIND_AXIS_ORIGIN
 
     if (!com) {
         // there is nothing more which we can check
@@ -11418,7 +11482,7 @@ void doEmergencyStop(char reason) {
 
     Printer::stopPrint(); //and tell usb senders to stop
 
-    moveZ(int(Printer::axisStepsPerMM[Z_AXIS] * 5));
+    moveAxis(int(Printer::axisStepsPerMM[Z_AXIS] * 5));
 
     // we are not going to perform any further operations until the restart of the firmware
     Printer::switchEverythingOff();

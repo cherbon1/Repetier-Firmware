@@ -333,7 +333,7 @@ public:
     static INLINE void disableZStepper() {
         InterruptProtectedBlock noInts;
 #if FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
-        Printer::compensatedPositionTargetStepsZ = Printer::compensatedPositionCurrentStepsZ = g_nZScanZPosition = 0;
+        Printer::compensatedPositionTargetStepsZ = Printer::compensatedPositionCurrentStepsZ = g_nAxisScanPosition = 0;
 #endif // FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
         noInts.unprotect();
 
@@ -366,12 +366,12 @@ public:
         Printer::queuePositionZLayerCurrent = 0;
 #endif // FEATURE_HEAT_BED_Z_COMPENSATION
 
-#if FEATURE_FIND_Z_ORIGIN
+#if FEATURE_FIND_AXIS_ORIGIN
         g_nZOriginPosition[X_AXIS] = 0;
         g_nZOriginPosition[Y_AXIS] = 0;
         g_nZOriginPosition[Z_AXIS] = 0;
         Printer::setZOriginSet(false); //flag wegen statusnachricht
-#endif                                 // FEATURE_FIND_Z_ORIGIN
+#endif                                 // FEATURE_FIND_AXIS_ORIGIN
 
         killPausePrint();
 
@@ -547,6 +547,17 @@ public:
     static INLINE bool getXDirectionIsPos() {
         return ((READ(X_DIR_PIN) != 0) ^ INVERT_X_DIR);
     } // getXDirection
+
+    static INLINE bool getAxisDirectionIsPos(uint8_t axis) {
+        switch(axis) {
+            case X_AXIS:
+              return getXDirectionIsPos();
+            case Y_AXIS:
+              return getYDirectionIsPos();
+            case Z_AXIS:
+              return getZDirectionIsPos();
+        }
+    } // getZDirectionIsPos
 
     static INLINE uint8_t isLargeMachine() {
         return flag0 & PRINTER_FLAG0_LARGE_MACHINE;
@@ -980,12 +991,12 @@ public:
         //#if FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
         //			// add the current z-compensation
         //			fvalue += Printer::compensatedPositionCurrentStepsZ; //da drin: zoffset + senseoffset + digitcompensation
-        //			fvalue += g_nZScanZPosition;
+        //			fvalue += g_nAxisScanPosition;
         //#endif // FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
         //
-        //#if FEATURE_FIND_Z_ORIGIN
+        //#if FEATURE_FIND_AXIS_ORIGIN
         //			fvalue += g_nZOriginPosition[Z_AXIS];
-        //#endif // FEATURE_FIND_Z_ORIGIN
+        //#endif // FEATURE_FIND_AXIS_ORIGIN
         //
         //			return float(fvalue * Printer::axisMMPerSteps[Z_AXIS]);
         //		}

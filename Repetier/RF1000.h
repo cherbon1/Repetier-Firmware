@@ -54,14 +54,14 @@ Overflow in Z-Matrix: >12.7f
 
 /** \brief This feature allows to move the milling bed upwards automatically until the miller is hit. The found position is taken over as Z=0 automatically.
      Be aware that mis-using of this functionality can ruin the tool (e.g. in case the tool is placed above the milling bed and not above the to-be-milled object). */
-#define FEATURE_FIND_Z_ORIGIN 1 // 1 = on, 0 = off
+#define FEATURE_FIND_AXIS_ORIGIN 1 // 1 = on, 0 = off
 
 /** \brief Enables/disables the menu entry which allows to choose the currently installed miller type */
 #define FEATURE_CONFIGURABLE_MILLER_TYPE 1 // 1 = on, 0 = off
 
-#if FEATURE_WORK_PART_Z_COMPENSATION && !FEATURE_FIND_Z_ORIGIN
+#if FEATURE_WORK_PART_Z_COMPENSATION && !FEATURE_FIND_AXIS_ORIGIN
 #error It does not make sense to enable the work part z-compensation without enabling of the automatic detection of the z-origin
-#endif // FEATURE_WORK_PART_Z_COMPENSATION && !FEATURE_FIND_Z_ORIGIN
+#endif // FEATURE_WORK_PART_Z_COMPENSATION && !FEATURE_FIND_AXIS_ORIGIN
 
 /** \brief Define the type of the present miller hardware */
 #define MILLER_TYPE MILLER_TYPE_TWO_TRACKS
@@ -919,17 +919,17 @@ Above this value the z compensation will distribute the roughness of the surface
 // ##   configuration of the z origin search
 // ##########################################################################################
 
-#if FEATURE_FIND_Z_ORIGIN
+#if FEATURE_FIND_AXIS_ORIGIN
 
-#define SEARCH_Z_ORIGIN_CONTACT_PRESSURE_DELTA 500 // [digits]
-#define SEARCH_Z_ORIGIN_BREAKOUT_DELAY 100         // [ms]
-#define SEARCH_Z_ORIGIN_BED_UP_MM -0.05f           // [mm]
-#define SEARCH_Z_ORIGIN_BED_DOWN_MM 0.025f         // [mm]
+#define SEARCH_AXIS_ORIGIN_CONTACT_PRESSURE_DELTA 500 // [digits]
+#define SEARCH_AXIS_ORIGIN_BREAKOUT_DELAY 100         // [ms]
+#define SEARCH_AXIS_ORIGIN_FORWARD_MM 0.05f           // [mm]
+#define SEARCH_AXIS_ORIGIN_REVERSE_MM 0.01f           // [mm]
 
 /** \brief The following commands are executed before the z-origin is set to 0. */
-#define FIND_Z_ORIGIN_SCRIPT "G91\nG1 Z15 F5000"
+//#define FIND_Z_ORIGIN_SCRIPT "G91\nG1 Z15 F5000"
 
-#endif // FEATURE_FIND_Z_ORIGIN
+#endif // FEATURE_FIND_AXIS_ORIGIN
 
 // ##########################################################################################
 // ##   debugging
@@ -940,12 +940,12 @@ Above this value the z compensation will distribute the roughness of the surface
 /** \brief Enables debug outputs from the work part scan */
 #define DEBUG_WORK_PART_SCAN 0 // 1 = on, 0 = off
 
-#if FEATURE_FIND_Z_ORIGIN
+#if FEATURE_FIND_AXIS_ORIGIN
 
 /** \brief Enables debug outputs from the search of the z-origin */
 #define DEBUG_FIND_Z_ORIGIN 0 // 1 = on, 0 = off
 
-#endif // FEATURE_FIND_Z_ORIGIN
+#endif // FEATURE_FIND_AXIS_ORIGIN
 
 #endif // FEATURE_MILLING_MODE
 

@@ -1121,7 +1121,7 @@ void Printer::enableCMPnow(void) {
     if (Printer::operatingMode == OPERATING_MODE_MILL) {
 #if FEATURE_WORK_PART_Z_COMPENSATION
         Printer::doWorkPartZCompensation = 1;
-#if FEATURE_FIND_Z_ORIGIN
+#if FEATURE_FIND_AXIS_ORIGIN
         if (g_nZOriginPosition[X_AXIS] || g_nZOriginPosition[Y_AXIS]) {
             Printer::staticCompensationZ = getZMatrixDepth(g_nZOriginPosition[X_AXIS], g_nZOriginPosition[Y_AXIS]); //determineStaticCompensationZ();
         } else {
@@ -1131,7 +1131,7 @@ void Printer::enableCMPnow(void) {
 #else
         // we know nothing about a static z-delta when we do not have the automatic search of the z-origin available
         Printer::staticCompensationZ = 0;
-#endif // FEATURE_FIND_Z_ORIGIN
+#endif // FEATURE_FIND_AXIS_ORIGIN
 #endif // FEATURE_WORK_PART_Z_COMPENSATION
     } else
 #endif // FEATURE_MILLING_MODE
@@ -1555,19 +1555,19 @@ void Printer::homeZAxis() {
         setHomed(-1, -1, false);
 
         InterruptProtectedBlock noInts;
-#if FEATURE_FIND_Z_ORIGIN
+#if FEATURE_FIND_AXIS_ORIGIN
         //das ist die Z-Origin-Höhe und ihre XY-Scan-Stelle.
         g_nZOriginPosition[X_AXIS] = 0;
         g_nZOriginPosition[Y_AXIS] = 0;
         g_nZOriginPosition[Z_AXIS] = 0;
         Printer::setZOriginSet(false); //removes flag wegen statusnachricht
-#endif                                 // FEATURE_FIND_Z_ORIGIN
+#endif                                 // FEATURE_FIND_AXIS_ORIGIN
 
         Printer::resetDirectAxis(Z_AXIS);
 
 #if FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
         //das ist diese Scan-Positions-Z-Zusatzachse für MoveZ-Bewegungen.
-        g_nZScanZPosition = 0;
+        g_nAxisScanPosition = 0;
 #endif // FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
         noInts.unprotect();
 
@@ -1651,7 +1651,7 @@ void Printer::homeDigits() {
             }
         } else {
             Com::printFLN(PSTR("DigitOffset failed reading "));
-            g_abortZScan = 0;
+            g_abortAxisScan = 0;
         }
     }
 #endif // FEATURE_ZERO_DIGITS

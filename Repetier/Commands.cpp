@@ -103,10 +103,10 @@ void Commands::waitUntilEndOfAllMoves() {
 
     if (PrintLine::hasLines())
         bWait = true;
-#if FEATURE_FIND_Z_ORIGIN
-    if (g_nFindZOriginStatus)
+#if FEATURE_FIND_AXIS_ORIGIN
+    if (g_nFindAxisOriginStatus)
         bWait = true;
-#endif // FEATURE_FIND_Z_ORIGIN
+#endif // FEATURE_FIND_AXIS_ORIGIN
 
 #if FEATURE_HEAT_BED_Z_COMPENSATION
     bWait = (Printer::needsCMPwait() ? true : bWait);
@@ -119,10 +119,10 @@ void Commands::waitUntilEndOfAllMoves() {
         if (PrintLine::hasLines())
             bWait = true;
 
-#if FEATURE_FIND_Z_ORIGIN
-        if (g_nFindZOriginStatus)
+#if FEATURE_FIND_AXIS_ORIGIN
+        if (g_nFindAxisOriginStatus)
             bWait = true;
-#endif // FEATURE_FIND_Z_ORIGIN
+#endif // FEATURE_FIND_AXIS_ORIGIN
 
 #if FEATURE_HEAT_BED_Z_COMPENSATION
         bWait = (Printer::needsCMPwait() ? true : bWait);

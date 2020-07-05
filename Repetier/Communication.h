@@ -342,9 +342,9 @@ public:
     FSTRINGVAR(tMountFilamentSoft)
     FSTRINGVAR(tMountFilamentHard)
 
-#if FEATURE_FIND_Z_ORIGIN
+#if FEATURE_FIND_AXIS_ORIGIN
     FSTRINGVAR(tFindZOrigin)
-#endif // FEATURE_FIND_Z_ORIGIN
+#endif // FEATURE_FIND_AXIS_ORIGIN
     FSTRINGVAR(tCap)
     FSTRINGVAR(tConfig)
 

@@ -486,7 +486,7 @@ extern const char ui_text_information[] PROGMEM;
 extern const char ui_text_set_origin[] PROGMEM;
 extern const char ui_text_heat_bed_scan[] PROGMEM;
 extern const char ui_text_work_part_scan[] PROGMEM;
-extern const char ui_text_find_z_origin[] PROGMEM;
+extern const char ui_text_find_axis_origin[] PROGMEM;
 extern const char ui_text_output_object[] PROGMEM;
 extern const char ui_text_park_heat_bed[] PROGMEM;
 extern const char ui_text_pause[] PROGMEM;
@@ -598,10 +598,10 @@ extern float g_scanStartZLiftMM;
 #endif //FEATURE_WORK_PART_Z_COMPENSATION || FEATURE_HEAT_BED_Z_COMPENSATION
 
 #if FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
-extern char g_abortZScan;
+extern char g_abortAxisScan;
 extern short g_ZCompensationMatrix[COMPENSATION_MATRIX_MAX_X][COMPENSATION_MATRIX_MAX_Y];
 extern unsigned char g_uZMatrixMax[2];
-extern long g_nZScanZPosition;
+extern long g_nAxisScanPosition;
 
 extern char g_nHeatBedScanMode; // 0 = oldScan, 1 = PLA, 2 = ABS
 
@@ -662,10 +662,11 @@ extern short g_nDigitFlowCompensation_Fmax;
 #endif // FEATURE_DIGIT_FLOW_COMPENSATION
 #endif // FEATURE_DIGIT_Z_COMPENSATION
 
-#if FEATURE_FIND_Z_ORIGIN
-extern volatile unsigned char g_nFindZOriginStatus;
+#if FEATURE_FIND_AXIS_ORIGIN
+extern volatile unsigned char g_nFindAxisOriginStatus;
 extern long g_nZOriginPosition[3];
-#endif // FEATURE_FIND_Z_ORIGIN
+enum class AxisAndDirection {Xpos,Xneg,Ypos,Yneg,Zneg};
+#endif // FEATURE_FIND_AXIS_ORIGIN
 
 #if FEATURE_ALIGN_EXTRUDERS
 extern volatile unsigned char g_nAlignExtrudersStatus;
@@ -748,7 +749,7 @@ extern void moveZMinusUpFast();
 extern void moveZPlusDownSlow(uint8_t acuteness = 1);
 extern void moveZMinusUpSlow(short* pnContactPressure, uint8_t acuteness = 1);
 extern void moveZPlusDownFast();
-extern void moveZ(int nSteps);
+extern void moveAxis(int nSteps, uint8_t axis = Z_AXIS);
 extern void restoreDefaultScanParameters(void);
 extern void outputScanParameters(void);
 extern void outputCompensationMatrix(char format = 0);
@@ -807,10 +808,10 @@ extern unsigned short readMotorStatus(unsigned char driver);
 extern void cleanupEPositions(void);
 extern void setZOrigin(void);
 
-#if FEATURE_FIND_Z_ORIGIN
-extern void startFindZOrigin(void);
+#if FEATURE_FIND_AXIS_ORIGIN
+extern void startFindAxisOrigin(AxisAndDirection axis);
 extern void findZOrigin(void);
-#endif // FEATURE_FIND_Z_ORIGIN
+#endif // FEATURE_FIND_AXIS_ORIGIN
 
 extern void switchOperatingMode(char newOperatingMode);
 
