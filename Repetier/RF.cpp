@@ -3494,14 +3494,14 @@ void findAxisOrigin(void) {
             switch(g_nFindAxisOriginAxisAndDirection) {
               case AxisAndDirection::Xneg:
               case AxisAndDirection::Xpos:
-                Printer::disableXStepper();
+                Printer::enableXStepper();
                 break;
               case AxisAndDirection::Yneg:
               case AxisAndDirection::Ypos:
-                Printer::disableYStepper();
+                Printer::enableYStepper();
                 break;
               case AxisAndDirection::Zneg:
-                Printer::disableZStepper();
+                Printer::enableZStepper();
             }
 
             g_nFindAxisOriginStatus = 2;
