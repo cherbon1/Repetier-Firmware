@@ -578,15 +578,12 @@ public:
     static INLINE uint8_t isAxisHomed(int8_t b) //X_AXIS 0, Y_AXIS 1, Z_AXIS 2
     {
         switch (b) {
-        case X_AXIS: {
+          case X_AXIS:
             return (flag3 & PRINTER_FLAG3_X_HOMED);
-        }
-        case Y_AXIS: {
+          case Y_AXIS:
             return (flag3 & PRINTER_FLAG3_Y_HOMED);
-        }
-        case Z_AXIS: {
+          case Z_AXIS:
             return (flag3 & PRINTER_FLAG3_Z_HOMED);
-        }
         }
         return 0;
     } // isAxisHomed
