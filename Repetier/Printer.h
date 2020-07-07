@@ -491,6 +491,20 @@ public:
         }
     } // setZDirection
 
+    static INLINE bool setAxisDirection(uint8_t axis, bool positive) {
+        switch(axis) {
+            case X_AXIS:
+              setXDirection(positive);
+              break;
+            case Y_AXIS:
+              setYDirection(positive);
+              break;
+            case Z_AXIS:
+              setZDirection(positive);
+              break;
+        }
+    } // setAxisDirection
+
     static INLINE void startXStep(int8_t dir = (Printer::getXDirectionIsPos() ? 1 : -1)) {
         WRITE(X_STEP_PIN, HIGH);
 #if FEATURE_TWO_XSTEPPER
@@ -557,7 +571,7 @@ public:
             case Z_AXIS:
               return getZDirectionIsPos();
         }
-    } // getZDirectionIsPos
+    } // getAxisDirectionIsPos
 
     static INLINE uint8_t isLargeMachine() {
         return flag0 & PRINTER_FLAG0_LARGE_MACHINE;

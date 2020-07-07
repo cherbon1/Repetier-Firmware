@@ -921,10 +921,10 @@ Above this value the z compensation will distribute the roughness of the surface
 
 #if FEATURE_FIND_AXIS_ORIGIN
 
-#define SEARCH_AXIS_ORIGIN_CONTACT_PRESSURE_DELTA 500 // [digits]
+#define SEARCH_AXIS_ORIGIN_CONTACT_PRESSURE_DELTA 250 // [digits]
+#define SEARCH_AXIS_ORIGIN_PRECISE_PRESSURE_DELTA 100 // [digits]
 #define SEARCH_AXIS_ORIGIN_BREAKOUT_DELAY 100         // [ms]
-#define SEARCH_AXIS_ORIGIN_FORWARD_MM 0.05f           // [mm]
-#define SEARCH_AXIS_ORIGIN_REVERSE_MM 0.01f           // [mm]
+#define SEARCH_AXIS_ORIGIN_FAST_MM 0.05f              // [mm]
 
 /** \brief The following commands are executed before the z-origin is set to 0. */
 //#define FIND_Z_ORIGIN_SCRIPT "G91\nG1 Z15 F5000"
@@ -943,7 +943,7 @@ Above this value the z compensation will distribute the roughness of the surface
 #if FEATURE_FIND_AXIS_ORIGIN
 
 /** \brief Enables debug outputs from the search of the z-origin */
-#define DEBUG_FIND_Z_ORIGIN 0 // 1 = on, 0 = off
+#define DEBUG_FIND_Z_ORIGIN 1 // 1 = on, 0 = off
 
 #endif // FEATURE_FIND_AXIS_ORIGIN
 
