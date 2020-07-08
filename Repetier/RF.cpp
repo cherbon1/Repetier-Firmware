@@ -113,7 +113,8 @@ unsigned char g_uZMatrixMax[2] = { 0, 0 };
 long g_nAxisScanPosition = 0;
 long g_nLastZScanZPosition = 0;
 long g_nAxisScanHalfPressurePosition = 0;
-short g_nAxisScanHalfPressure = 0;
+float g_AxisScanZeroPressure = 0;
+float g_AxisScanHalfPressure = 0;
 
 short g_nMaxPressureContact;
 short g_nMaxPressureRetry;
@@ -3480,21 +3481,22 @@ void findAxisOrigin(void) {
                 Com::printFLN(PSTR("findAxisOrigin(): started"));
             }
 
-            if (readAveragePressure(&nCurrentPressure)) {
-                Com::printFLN(PSTR("findAxisOrigin(): start pressure not determined"));
-                g_abortAxisScan = SCAN_ABORT_REASON_START_PRESSURE;
-                return;
+            // measure zero pressure with high precision
+	    g_AxisScanZeroPressure = 0;
+            for(size_t i=0; i<100; ++i) {
+              g_AxisScanZeroPressure += readStrainGauge(ACTIVE_STRAIN_GAUGE);
             }
+            g_AxisScanZeroPressure /= 100.;
 
 	    if(g_nFindAxisOriginAxisAndDirection == AxisAndDirection::Zneg) {
                 // Z axis uses fast but coarse search first
-		nMinPressureContact = nCurrentPressure - SEARCH_AXIS_ORIGIN_CONTACT_PRESSURE_DELTA;
-		nMaxPressureContact = nCurrentPressure + SEARCH_AXIS_ORIGIN_CONTACT_PRESSURE_DELTA;
+		nMinPressureContact = g_AxisScanZeroPressure - SEARCH_AXIS_ORIGIN_CONTACT_PRESSURE_DELTA;
+		nMaxPressureContact = g_AxisScanZeroPressure + SEARCH_AXIS_ORIGIN_CONTACT_PRESSURE_DELTA;
             }
             else {
                 // X and Y use slow and precise search only
-                nMinPressureContact = nCurrentPressure - SEARCH_AXIS_ORIGIN_PRECISE_PRESSURE_DELTA/2;
-                nMaxPressureContact = nCurrentPressure + SEARCH_AXIS_ORIGIN_PRECISE_PRESSURE_DELTA/2;
+                nMinPressureContact = g_AxisScanZeroPressure - SEARCH_AXIS_ORIGIN_PRECISE_PRESSURE_DELTA/2;
+                nMaxPressureContact = g_AxisScanZeroPressure + SEARCH_AXIS_ORIGIN_PRECISE_PRESSURE_DELTA/2;
             }
 
             if (Printer::debugInfo()) {
@@ -3546,14 +3548,14 @@ void findAxisOrigin(void) {
                     g_nFindAxisOriginStatus = 15;
 
 #if DEBUG_FIND_Z_ORIGIN
-                    Com::printFLN(PSTR("findZOrigin(): 10->15"));
+                    Com::printFLN(PSTR("findAxisOrigin(): 10->15"));
 #endif // DEBUG_FIND_Z_ORIGIN
                     return;
                 }
 
                 if (Printer::isZMinEndstopHit()) {
                     // this should never happen
-                    Com::printFLN(PSTR("findZOrigin(): the z-min endstop reached"));
+                    Com::printFLN(PSTR("findAxisOrigin(): the z-min endstop reached"));
                     g_abortAxisScan = SCAN_ABORT_REASON_MIN_ENDSTOP;
                     return;
                 }
@@ -3578,16 +3580,9 @@ void findAxisOrigin(void) {
             uStartTime = HAL::timeInMilliseconds();
             moveAxis(int(1 * Printer::axisStepsPerMM[Z_AXIS]), Z_AXIS);
 
-            // repeat no-contact pressure measurement
-            if (readAveragePressure(&nCurrentPressure)) {
-                Com::printFLN(PSTR("findAxisOrigin(): start pressure not determined"));
-                g_abortAxisScan = SCAN_ABORT_REASON_START_PRESSURE;
-                return;
-            }
-
             // set pressure limits to half precision range
-            nMinPressureContact = nCurrentPressure - SEARCH_AXIS_ORIGIN_PRECISE_PRESSURE_DELTA/2;
-            nMaxPressureContact = nCurrentPressure + SEARCH_AXIS_ORIGIN_PRECISE_PRESSURE_DELTA/2;
+            nMinPressureContact = g_AxisScanZeroPressure - SEARCH_AXIS_ORIGIN_PRECISE_PRESSURE_DELTA/2;
+            nMaxPressureContact = g_AxisScanZeroPressure + SEARCH_AXIS_ORIGIN_PRECISE_PRESSURE_DELTA/2;
 
             g_nFindAxisOriginStatus = 20;
 #if DEBUG_FIND_Z_ORIGIN
@@ -3607,14 +3602,21 @@ void findAxisOrigin(void) {
 
                 if ( (nCurrentPressure > nMaxPressureContact || nCurrentPressure < nMinPressureContact) && g_nAxisScanHalfPressurePosition == 0) {
 		    // we have reached half the target pressure
-                    g_nAxisScanHalfPressurePosition = g_nAxisScanPosition;
-                    g_nAxisScanHalfPressure = nCurrentPressure;
 
-                    nMinPressureContact = nCurrentPressure - SEARCH_AXIS_ORIGIN_PRECISE_PRESSURE_DELTA;
-                    nMaxPressureContact = nCurrentPressure + SEARCH_AXIS_ORIGIN_PRECISE_PRESSURE_DELTA;
+                    // re-measure pressure with higher precision
+		    g_AxisScanHalfPressure = 0;
+                    for(size_t i=0; i<100; ++i) {
+                      g_AxisScanHalfPressure += readStrainGauge(ACTIVE_STRAIN_GAUGE);
+                    }
+                    g_AxisScanHalfPressure /= 100.;
+
+                    g_nAxisScanHalfPressurePosition = g_nAxisScanPosition;
+
+                    nMinPressureContact = g_AxisScanZeroPressure - SEARCH_AXIS_ORIGIN_PRECISE_PRESSURE_DELTA;
+                    nMaxPressureContact = g_AxisScanZeroPressure + SEARCH_AXIS_ORIGIN_PRECISE_PRESSURE_DELTA;
 #if DEBUG_FIND_Z_ORIGIN
-                    Com::printFLN(PSTR("findZOrigin(): half pressure position: "), g_nAxisScanHalfPressurePosition);
-                    Com::printFLN(PSTR("findZOrigin(): half pressure digits: "), g_nAxisScanHalfPressure);
+                    Com::printFLN(PSTR("findAxisOrigin(): half pressure position: "), g_nAxisScanHalfPressurePosition);
+                    Com::printFLN(PSTR("findAxisOrigin(): half pressure digits: "), g_AxisScanHalfPressure, 2);
 #endif // DEBUG_FIND_Z_ORIGIN
                 }
                 else if (nCurrentPressure > nMaxPressureContact || nCurrentPressure < nMinPressureContact) {
@@ -3622,7 +3624,7 @@ void findAxisOrigin(void) {
                     g_nFindAxisOriginStatus = 25;
 
 #if DEBUG_FIND_Z_ORIGIN
-                    Com::printFLN(PSTR("findZOrigin(): 20->25"));
+                    Com::printFLN(PSTR("findAxisOrigin(): 20->25"));
 #endif // DEBUG_FIND_Z_ORIGIN
                     return;
                 }
@@ -3668,20 +3670,26 @@ void findAxisOrigin(void) {
             // move backwards to computed zero-pressure contact point
             uStartTime = HAL::timeInMilliseconds();
 
+            // re-measure pressure with higher precision
+	    float g_AxisScanFullPressure = 0;
+            for(size_t i=0; i<100; ++i) {
+              g_AxisScanFullPressure += readStrainGauge(ACTIVE_STRAIN_GAUGE);
+            }
+            g_AxisScanFullPressure /= 100.;
+
 #if DEBUG_FIND_Z_ORIGIN
-            Com::printFLN(PSTR("findZOrigin(): full pressure position: "), g_nAxisScanPosition);
-            Com::printFLN(PSTR("findZOrigin(): full pressure digits: "), nCurrentPressure);
+            Com::printFLN(PSTR("findAxisOrigin(): full pressure position: "), g_nAxisScanPosition);
+            Com::printFLN(PSTR("findAxisOrigin(): full pressure digits: "), g_AxisScanFullPressure, 2);
 #endif // DEBUG_FIND_Z_ORIGIN
 
             // linear extrapolation to 0 pressure contact point
-            long zeroPressure = (nMaxPressureContact-nMinPressureContact)/2 + nMinPressureContact;
-            long slope = (nCurrentPressure - g_nAxisScanHalfPressure) / (g_nAxisScanPosition - g_nAxisScanHalfPressurePosition);
-            long distanceToContactPoint = (zeroPressure-nCurrentPressure)/slope;
+            double slope = (double(g_AxisScanFullPressure) - double(g_AxisScanHalfPressure)) / (double(g_nAxisScanPosition) - double(g_nAxisScanHalfPressurePosition));
+            long distanceToContactPoint = (double(g_AxisScanZeroPressure)-double(g_AxisScanFullPressure))/slope;
 
 #if DEBUG_FIND_Z_ORIGIN
-            Com::printFLN(PSTR("findZOrigin(): zeroPressure: "), zeroPressure);
-            Com::printFLN(PSTR("findZOrigin(): slope: "), slope);
-            Com::printFLN(PSTR("findZOrigin(): distanceToContactPoint: "), distanceToContactPoint);
+            Com::printFLN(PSTR("findAxisOrigin(): zeroPressure: "), g_AxisScanZeroPressure, 2);
+            Com::printFLN(PSTR("findAxisOrigin(): slope: "), slope, 2);
+            Com::printFLN(PSTR("findAxisOrigin(): distanceToContactPoint: "), distanceToContactPoint);
 #endif // DEBUG_FIND_Z_ORIGIN
             
 	    // move back until contact point
@@ -3700,7 +3708,7 @@ void findAxisOrigin(void) {
             }
 
 #if DEBUG_FIND_Z_ORIGIN
-            Com::printFLN(PSTR("findZOrigin(): 25->30"));
+            Com::printFLN(PSTR("findAxisOrigin(): 25->30"));
 #endif // DEBUG_FIND_Z_ORIGIN
 
             g_nFindAxisOriginStatus = 30;
@@ -3725,7 +3733,7 @@ void findAxisOrigin(void) {
             g_nFindAxisOriginStatus = 40;
 
 #if DEBUG_FIND_Z_ORIGIN
-            Com::printFLN(PSTR("findZOrigin(): 30 -> 40"));
+            Com::printFLN(PSTR("findAxisOrigin(): 30 -> 40"));
 #endif // DEBUG_FIND_Z_ORIGIN
             break;
         }
@@ -3740,7 +3748,7 @@ void findAxisOrigin(void) {
             UI_STATUS_UPD(UI_TEXT_FIND_Z_ORIGIN_DONE);
 
 #if DEBUG_FIND_Z_ORIGIN
-            Com::printFLN(PSTR("findZOrigin(): 40 -> 0"));
+            Com::printFLN(PSTR("findAxisOrigin(): 40 -> 0"));
 #endif // DEBUG_FIND_Z_ORIGIN
             break;
         }

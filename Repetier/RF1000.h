@@ -922,7 +922,7 @@ Above this value the z compensation will distribute the roughness of the surface
 #if FEATURE_FIND_AXIS_ORIGIN
 
 #define SEARCH_AXIS_ORIGIN_CONTACT_PRESSURE_DELTA 250 // [digits]
-#define SEARCH_AXIS_ORIGIN_PRECISE_PRESSURE_DELTA 100 // [digits]
+#define SEARCH_AXIS_ORIGIN_PRECISE_PRESSURE_DELTA 80  // [digits]
 #define SEARCH_AXIS_ORIGIN_BREAKOUT_DELAY 100         // [ms]
 #define SEARCH_AXIS_ORIGIN_FAST_MM 0.05f              // [mm]
 
