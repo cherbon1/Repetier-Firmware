@@ -809,7 +809,7 @@ extern void cleanupEPositions(void);
 extern void setZOrigin(void);
 
 #if FEATURE_FIND_AXIS_ORIGIN
-extern void startFindAxisOrigin(AxisAndDirection axis);
+extern void startFindAxisOrigin(AxisAndDirection axis, float offset, short mode);
 extern void findZOrigin(void);
 #endif // FEATURE_FIND_AXIS_ORIGIN
 

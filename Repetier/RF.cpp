@@ -215,7 +215,9 @@ short g_nDigitFlowCompensation_Fmax = short(abs(EMERGENCY_PAUSE_DIGITS_MAX));   
 
 #if FEATURE_FIND_AXIS_ORIGIN
 volatile unsigned char g_nFindAxisOriginStatus = 0;
-volatile AxisAndDirection g_nFindAxisOriginAxisAndDirection = AxisAndDirection::Zneg;
+AxisAndDirection g_nFindAxisOriginAxisAndDirection = AxisAndDirection::Zneg;
+float g_nFindAxisOriginOffset = 0;
+short g_nFindAxisOriginMode = 0;
 long g_nZOriginPosition[3] = { 0, 0, 0 };
 #endif // FEATURE_FIND_AXIS_ORIGIN
 
@@ -3377,7 +3379,7 @@ void showAbortScanReason(const void* scanName, char abortScanIdentifier) {
 }
 
 #if FEATURE_FIND_AXIS_ORIGIN
-void startFindAxisOrigin(AxisAndDirection axisAndDirection) {
+void startFindAxisOrigin(AxisAndDirection axisAndDirection, float offset, short mode) {
 #if FEATURE_ALIGN_EXTRUDERS
     if (g_nAlignExtrudersStatus)
         return;
@@ -3403,6 +3405,8 @@ void startFindAxisOrigin(AxisAndDirection axisAndDirection) {
         // start the search
         g_nFindAxisOriginStatus = 1;
         g_nFindAxisOriginAxisAndDirection = axisAndDirection;
+        g_nFindAxisOriginOffset = offset;
+        g_nFindAxisOriginMode = mode;
     }
 } // startFindAxisOrigin
 
@@ -3639,18 +3643,23 @@ void findAxisOrigin(void) {
                 switch(g_nFindAxisOriginAxisAndDirection) {
                   case AxisAndDirection::Xneg:
                     moveAxis(-1, X_AXIS);
+                    --Printer::currentSteps[X_AXIS];
                     break;
                   case AxisAndDirection::Xpos:
                     moveAxis(1, X_AXIS);
+                    ++Printer::currentSteps[X_AXIS];
                     break;
                   case AxisAndDirection::Yneg:
                     moveAxis(-1, Y_AXIS);
+                    --Printer::currentSteps[Y_AXIS];
                     break;
                   case AxisAndDirection::Ypos:
                     moveAxis(1, Y_AXIS);
+                    ++Printer::currentSteps[Y_AXIS];
                     break;
                   case AxisAndDirection::Zneg:
                     moveAxis(-1, Z_AXIS);
+                    --Printer::currentSteps[Z_AXIS];
                     g_nZOriginPosition[Z_AXIS] = g_nAxisScanPosition; //passt wenn korrekt gehomed.
                 }
 
@@ -3697,13 +3706,16 @@ void findAxisOrigin(void) {
               case AxisAndDirection::Xneg:
               case AxisAndDirection::Xpos:
                 moveAxis(distanceToContactPoint, X_AXIS);
+                Printer::currentSteps[X_AXIS] += distanceToContactPoint;
                 break;
               case AxisAndDirection::Yneg:
               case AxisAndDirection::Ypos:
                 moveAxis(distanceToContactPoint, Y_AXIS);
+                Printer::currentSteps[Y_AXIS] += distanceToContactPoint;
                 break;
               case AxisAndDirection::Zneg:
                 moveAxis(distanceToContactPoint, Z_AXIS);
+                Printer::currentSteps[Z_AXIS] += distanceToContactPoint;
                 g_nZOriginPosition[Z_AXIS] = g_nAxisScanPosition; //passt wenn korrekt gehomed.
             }
 
@@ -3715,21 +3727,36 @@ void findAxisOrigin(void) {
             return;
         }
         case 30: {
-            // we have found the z-origin
-            switch(g_nFindAxisOriginAxisAndDirection) {
-              case AxisAndDirection::Xneg:
-                break;
-              case AxisAndDirection::Xpos:
-                break;
-              case AxisAndDirection::Yneg:
-                break;
-              case AxisAndDirection::Ypos:
-                break;
-              case AxisAndDirection::Zneg:
+            // we have found the axis origin
+            
+            // Action (set origin, just print, ...) depending on command
+            if(g_nFindAxisOriginAxisAndDirection == AxisAndDirection::Zneg) {
                 setZOrigin();
             }
+            else if(g_nFindAxisOriginMode == 1) {
+                // set axis origin
+                float xOff = Printer::originOffsetMM[X_AXIS];
+                float yOff = Printer::originOffsetMM[Y_AXIS];
+                float zOff = Printer::originOffsetMM[Z_AXIS];
 
-            //GCode::executeFString(Com::tFindZOrigin);
+                switch(g_nFindAxisOriginAxisAndDirection) {
+                  case AxisAndDirection::Xneg:
+                    xOff = g_nFindAxisOriginOffset - Printer::destinationMM[X_AXIS];
+                    break;
+                  case AxisAndDirection::Xpos:
+                    xOff = -g_nFindAxisOriginOffset - Printer::destinationMM[X_AXIS];
+                    break;
+                  case AxisAndDirection::Yneg:
+                    yOff = g_nFindAxisOriginOffset - Printer::destinationMM[Y_AXIS];
+                    break;
+                  case AxisAndDirection::Ypos:
+                    yOff = -g_nFindAxisOriginOffset - Printer::destinationMM[Y_AXIS];
+                    break;
+                }
+
+                Printer::setOrigin(xOff, yOff, zOff);
+            }
+
             g_nFindAxisOriginStatus = 40;
 
 #if DEBUG_FIND_Z_ORIGIN
@@ -3743,7 +3770,7 @@ void findAxisOrigin(void) {
                 break;
             }
 
-            Commands::printCurrentPosition();
+            Commands::printCurrentPosition(true);
             g_nFindAxisOriginStatus = 0;
             UI_STATUS_UPD(UI_TEXT_FIND_Z_ORIGIN_DONE);
 
@@ -4943,7 +4970,8 @@ void moveAxis(int nSteps, uint8_t axis) {
         HAL::delayMicroseconds(XYZ_STEPPER_LOW_DELAY);
         Printer::endAxisStep(axis);
 
-        g_nAxisScanPosition += (Printer::getAxisDirectionIsPos(axis) ? 1 : -1);
+        auto stepDir = (Printer::getAxisDirectionIsPos(axis) ? 1 : -1);
+        g_nAxisScanPosition += stepDir;
     }
 } // moveZ
 
@@ -7791,7 +7819,7 @@ void processSpecialGCode(GCode* pCommand) {
 #if FEATURE_FIND_AXIS_ORIGIN
         case 3130: // M3130 - start/stop the search of the z-origin
         {
-            startFindAxisOrigin(AxisAndDirection::Zneg);
+            startFindAxisOrigin(AxisAndDirection::Zneg, 0, 1);
             // We have to wait until the findZOrigin is stopped because this is used in gcode flow.
             // findZOrigin is not processing within pause and resuming after pause.
             Commands::waitUntilEndOfAllMoves(); //find z origin, might prevent stop
@@ -7814,11 +7842,18 @@ void processSpecialGCode(GCode* pCommand) {
             }
 	    else {
                 Com::printFLN(PSTR("M3131: Need X or Y parameter"));
+                break;
             }
-            startFindAxisOrigin(ad);
-            // We have to wait until the findZOrigin is stopped because this is used in gcode flow.
-            // findZOrigin is not processing within pause and resuming after pause.
-            Commands::waitUntilEndOfAllMoves(); //find z origin, might prevent stop
+            if(!pCommand->hasS() || pCommand->S < 0 || pCommand->S > 2 || abs(round(pCommand->S)-pCommand->S) > 1e-6) {
+                Com::printFLN(PSTR("M3131: Need S parameter: 0, 1 or 2"));
+                break;
+            }
+            float offset = 0;
+            if(pCommand->hasR()) offset = pCommand->R;
+            startFindAxisOrigin(ad, offset, pCommand->S);
+            // We have to wait until the findAxisOrigin is stopped because this is used in gcode flow.
+            // findAxisOrigin is not processing within pause and resuming after pause.
+            Commands::waitUntilEndOfAllMoves(); //find axis origin, might prevent stop
             break;
         }
 #endif // FEATURE_FIND_AXIS_ORIGIN
@@ -9806,6 +9841,7 @@ void moveXAction(int8_t direction) {
             steps = (Printer::isAxisHomed(X_AXIS) ? Printer::maxSoftEndstopSteps[X_AXIS] - Printer::currentXSteps : Printer::maxSoftEndstopSteps[X_AXIS]);
 
         Printer::offsetRelativeStepsCoordinates(steps, 0, 0, 0, TASK_MOVE_FROM_BUTTON);
+        
         break;
     }
     }
@@ -9902,6 +9938,7 @@ void moveYAction(int8_t direction) {
             steps = (Printer::isAxisHomed(Y_AXIS) ? Printer::maxSoftEndstopSteps[Y_AXIS] - Printer::currentYSteps : Printer::maxSoftEndstopSteps[Y_AXIS]);
 
         Printer::offsetRelativeStepsCoordinates(0, steps, 0, 0, TASK_MOVE_FROM_BUTTON);
+        
         break;
     }
     }

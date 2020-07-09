@@ -130,7 +130,7 @@ void Commands::waitUntilEndOfAllMoves() {
     }
 } // waitUntilEndOfAllMoves
 
-void Commands::printCurrentPosition() {
+void Commands::printCurrentPosition(bool absolute) {
     // Wir zeigen dem Repetier-Host wo wir gerade stehen.
     // Hier ist die reine GCode-Position interessant, sonst würde das Einrechnen des GCode-Origin auch keinen Sinn machen.
     float x = Printer::currentSteps[X_AXIS] * Printer::axisMMPerSteps[X_AXIS];
@@ -138,9 +138,11 @@ void Commands::printCurrentPosition() {
     // Z bleibt ein Sonderfall. Normalerweise auch hier GCode-Position
     float z = Printer::currentZPositionMM();
 
-    x += Printer::originOffsetMM[X_AXIS];
-    y += Printer::originOffsetMM[Y_AXIS];
-    z += Printer::originOffsetMM[Z_AXIS];
+    if(!absolute) {
+      x += Printer::originOffsetMM[X_AXIS];
+      y += Printer::originOffsetMM[Y_AXIS];
+      z += Printer::originOffsetMM[Z_AXIS];
+    }
 
     Com::printF(Com::tXColon, x * (Printer::unitIsInches ? 0.03937 : 1), 2);
     Com::printF(Com::tSpaceYColon, y * (Printer::unitIsInches ? 0.03937 : 1), 2);

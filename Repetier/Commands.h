@@ -29,7 +29,7 @@ public:
     static void processGCode(GCode* com);
     static void processMCode(GCode* com);
     static void waitUntilEndOfAllMoves();
-    static void printCurrentPosition();
+    static void printCurrentPosition(bool absolute = false);
     static void printTemperatures(bool showRaw = false);
 #if FAN_PIN > -1 && FEATURE_FAN_CONTROL
     static void setFanSpeed(uint8_t speed, bool recalc = false); /// Set fan speed 0..255

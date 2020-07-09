@@ -4858,7 +4858,7 @@ void UIDisplay::mainSwitchCase(int action) {
 
 #if FEATURE_FIND_AXIS_ORIGIN
     case UI_ACTION_RF_FIND_Z_ORIGIN: {
-        startFindAxisOrigin(AxisAndDirection::Zneg);
+        startFindAxisOrigin(AxisAndDirection::Zneg, 0, 1);
         break;
     }
 #endif // FEATURE_FIND_AXIS_ORIGIN
