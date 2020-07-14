@@ -150,10 +150,10 @@ void Commands::printCurrentPosition(bool absolute) {
     Com::printF(Com::tSpaceEColon, Printer::destinationMM[E_AXIS] * (Printer::unitIsInches ? 0.03937 : 1), 2);
 
     if(absolute) {
-      Com::printFLN(" (absolute)");
+      Com::printFLN(PSTR(" (absolute)"));
     }
     else {
-      Com::printFLN(" (g-code)");
+      Com::printFLN(PSTR(" (g-code)"));
     }
 } // printCurrentPosition
 
