@@ -3735,7 +3735,7 @@ void findAxisOrigin(void) {
                     distanceToContactPointMM = distanceToContactPoint*Printer::axisMMPerSteps[X_AXIS];
                     if(g_nFindAxisOriginMode == 1) {
                       g_XOriginYPosition = Printer::destinationMM[Y_AXIS];
-                      g_XOriginScanDirection = distanceToContactPoint > 0 ? 1 : -1;
+                      g_XOriginScanDirection = g_nFindAxisOriginAxisAndDirection == AxisAndDirection::Xpos ? 1 : -1;
                     }
                     break;
                   }
@@ -3744,7 +3744,7 @@ void findAxisOrigin(void) {
                     distanceToContactPointMM = distanceToContactPoint*Printer::axisMMPerSteps[Y_AXIS];
                     if(g_nFindAxisOriginMode == 1) {
                       g_YOriginXPosition = Printer::destinationMM[X_AXIS];
-                      g_YOriginScanDirection = distanceToContactPoint > 0 ? 1 : -1;
+                      g_YOriginScanDirection = g_nFindAxisOriginAxisAndDirection == AxisAndDirection::Ypos ? 1 : -1;
                     }
                     break;
                   }
@@ -3791,8 +3791,9 @@ void findAxisOrigin(void) {
                 Com::printFLN(PSTR("mm"));
 #endif // DEBUG_FIND_Z_ORIGIN
 
-                // Compute the rotation if selected and possible
                 if(g_nFindAxisOriginMode == 2) {
+                  // Compute the rotation if selected and possible
+  
                   if(g_XOriginScanDirection == 0 || g_YOriginScanDirection == 0) {
                     Com::printFLN(PSTR("Scan both X and Y axis origins first."));
 #if DEBUG_FIND_Z_ORIGIN
@@ -3801,23 +3802,28 @@ void findAxisOrigin(void) {
                     g_nFindAxisOriginStatus = 40;
                     return;
                   }
-                  float partRotation, slope;
+                  
+                  double partRotation, slope;
                   if( g_nFindAxisOriginAxisAndDirection == AxisAndDirection::Xneg ||
                       g_nFindAxisOriginAxisAndDirection == AxisAndDirection::Xpos    ) {
+                    double dy = Printer::destinationMM[Y_AXIS] - g_XOriginYPosition;
+                    double dx = xOff - Printer::originOffsetMM[X_AXIS];
+#if DEBUG_FIND_Z_ORIGIN
                     Com::printFLN(PSTR("g_XOriginYPosition = "), g_XOriginYPosition);
-                    float dy = Printer::destinationMM[Y_AXIS] - g_XOriginYPosition;
-                    float dx = xOff - Printer::originOffsetMM[X_AXIS];
-                    Com::printFLN(PSTR("dx = "), dx);
-                    Com::printFLN(PSTR("dy = "), dy);
+                    Com::printFLN(PSTR("dx = "), float(dx));
+                    Com::printFLN(PSTR("dy = "), float(dy));
+#endif // DEBUG_FIND_Z_ORIGIN
                     slope = dx/dy;
                     partRotation = atan2(dx,dy);
                   }
                   else {
+                    double dx = Printer::destinationMM[X_AXIS] - g_YOriginXPosition;
+                    double dy = yOff - Printer::originOffsetMM[Y_AXIS];
+#if DEBUG_FIND_Z_ORIGIN
                     Com::printFLN(PSTR("g_YOriginXPosition = "), g_YOriginXPosition);
-                    float dx = Printer::destinationMM[X_AXIS] - g_YOriginXPosition;
-                    float dy = yOff - Printer::originOffsetMM[Y_AXIS];
-                    Com::printFLN(PSTR("dx = "), dx);
-                    Com::printFLN(PSTR("dy = "), dy);
+                    Com::printFLN(PSTR("dx = "), float(dx));
+                    Com::printFLN(PSTR("dy = "), float(dy));
+#endif // DEBUG_FIND_Z_ORIGIN
                     slope = dy/dx;
                     partRotation = atan2(dy,dx);
                   }
@@ -3830,13 +3836,34 @@ void findAxisOrigin(void) {
                   // axis, the workpart corner which should be at the origin needs to be computed by the intersection
                   // of the two straights at the measured angle. Also the offset given for the measurement (tool radius)
                   // needs to be rotated by the measured angle.
-                  
-                  
+                  double mx = slope;                                                 // slope of new x axis
+                  double my = -1./slope;                                             // slope of new y axis
+                  double rx = g_nFindAxisOriginOffset * g_XOriginScanDirection;      // offset as used in x origin scan
+                  double ry = g_nFindAxisOriginOffset * g_YOriginScanDirection;      // offset as used in y origin scan
+                  double bx = g_XOriginYPosition + rx * cos(partRotation) - (mx*Printer::originOffsetMM[X_AXIS]-rx)
+                               + mx * rx * sin(partRotation);                        // y-axis offset for new x axis
+                  double by = (Printer::originOffsetMM[Y_AXIS]-ry) + ry * sin(partRotation) - my*g_YOriginXPosition
+                               - my * ry * cos(partRotation);                        // y-axis offset for new y axis
+                 
+                  double x0new = (bx-by)/(my-mx);
+                  double y0new = mx * x0new + bx;
+
+#if DEBUG_FIND_Z_ORIGIN
+                  Com::printFLN(PSTR("mx = "), float(mx));
+                  Com::printFLN(PSTR("my = "), float(my));
+                  Com::printFLN(PSTR("rx = "), float(rx));
+                  Com::printFLN(PSTR("ry = "), float(ry));
+                  Com::printFLN(PSTR("bx = "), float(bx));
+                  Com::printFLN(PSTR("by = "), float(by));
+                  Com::printFLN(PSTR("x0new = "), float(x0new));
+                  Com::printFLN(PSTR("y0new = "), float(y0new));
+#endif // DEBUG_FIND_Z_ORIGIN
+
+                  Printer::setOrigin(-x0new, -y0new, zOff);
                   
                 }
-                
-                // set origin if requested
-                if(g_nFindAxisOriginMode == 1) {
+                else if(g_nFindAxisOriginMode == 1) {
+                  // set origin if requested
                   Printer::setOrigin(xOff, yOff, zOff);
                 }
             }
