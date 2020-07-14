@@ -147,7 +147,14 @@ void Commands::printCurrentPosition(bool absolute) {
     Com::printF(Com::tXColon, x * (Printer::unitIsInches ? 0.03937 : 1), 2);
     Com::printF(Com::tSpaceYColon, y * (Printer::unitIsInches ? 0.03937 : 1), 2);
     Com::printF(Com::tSpaceZColon, z * (Printer::unitIsInches ? 0.03937 : 1), 2);
-    Com::printFLN(Com::tSpaceEColon, Printer::destinationMM[E_AXIS] * (Printer::unitIsInches ? 0.03937 : 1), 2);
+    Com::printF(Com::tSpaceEColon, Printer::destinationMM[E_AXIS] * (Printer::unitIsInches ? 0.03937 : 1), 2);
+
+    if(absolute) {
+      Com::printFLN(" (absolute)");
+    }
+    else {
+      Com::printFLN(" (g-code)");
+    }
 } // printCurrentPosition
 
 void Commands::printTemperatures(bool showRaw) {
