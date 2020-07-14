@@ -49,6 +49,9 @@ uint8_t Printer::relativeExtruderCoordinateMode = false; // Determines Absolute 
 volatile float Printer::destinationMM[4] = { 0, 0, 0, 0 }; // planned precise mm.
 float Printer::destinationMMLast[4] = { 0, 0, 0, 0 };      // rounded-queued mm.
 float Printer::originOffsetMM[3] = { 0, 0, 0 };
+float Printer::rotationMatrix[2] = {1, 0};
+float Printer::destinationMMLast_XYgcode[2] = {0,0};
+
 uint8_t Printer::flag0 = 0;
 uint8_t Printer::flag1 = 0;
 uint8_t Printer::flag2 = 0;
