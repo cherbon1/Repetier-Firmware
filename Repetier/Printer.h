@@ -93,10 +93,8 @@ public:
 #endif                                  // FEATURE_DIGIT_FLOW_COMPENSATION
     static int8_t lastDirectionSovereignty;
     static float originOffsetMM[3];
-    static float rotationMatrix[2];         // first element: cosine, second element: sine
     static volatile float destinationMM[4]; // Target in mm from origin.
     static float destinationMMLast[4];      // Position in mm from origin.
-    static float destinationMMLast_XYgcode[2];  // Position in mm from origin, in gcode coordinates, only X and Y
 
     static long maxSoftEndstopSteps[3];     // For software endstops, limit of move in positive direction. (=Homing-Offset + Achsenlänge)
     static float axisLengthMM[3];           // Länge des überfahrbaren Bereichs im positiven Homing. (=Schienen-Fahrweg - Homing-Offset - 2x ExtruderOffset)
@@ -244,6 +242,10 @@ public:
     static int16_t wobbleAmplitudes[3 /*4*/];  //X, Y(X_0), Y(X_max), /*Z*/
     static float lastWobbleFixOffset[2 /*3*/]; //< last calculated target wobbleFixOffsets for display output.
 #endif                                         // FEATURE_Kurt67_WOBBLE_FIX
+
+#if FEATURE_PART_ROTATION
+    static float rotationSin, rotationCos;
+#endif // FEATURE_PART_ROTATION
 
     static INLINE void setMenuMode(uint8_t mode, bool on) {
         if (on)

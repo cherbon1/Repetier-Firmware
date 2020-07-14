@@ -49,8 +49,6 @@ uint8_t Printer::relativeExtruderCoordinateMode = false; // Determines Absolute 
 volatile float Printer::destinationMM[4] = { 0, 0, 0, 0 }; // planned precise mm.
 float Printer::destinationMMLast[4] = { 0, 0, 0, 0 };      // rounded-queued mm.
 float Printer::originOffsetMM[3] = { 0, 0, 0 };
-float Printer::rotationMatrix[2] = {1, 0};
-float Printer::destinationMMLast_XYgcode[2] = {0,0};
 
 uint8_t Printer::flag0 = 0;
 uint8_t Printer::flag1 = 0;
@@ -224,6 +222,10 @@ int8_t Printer::wobblePhaseXY = 0;             //+100 = +PI | -100 = -PI
 int16_t Printer::wobbleAmplitudes[3] = { 0 };  //X, Y(X_0), Y(X_max), /*Z*/
 float Printer::lastWobbleFixOffset[2] = { 0 }; ///< last calculated target wobbleFixOffsets for relative coordinates and display output.
 #endif                                         // FEATURE_Kurt67_WOBBLE_FIX
+
+#if FEATURE_PART_ROTATION
+float Printer::rotationSin{0}, Printer::rotationCos{1};
+#endif
 
 void Printer::updateDerivedParameter() {
     // das extruder offset dürfen wir zur achslänge addieren, weil in dem Axis-Length von z.b. 180 mm schon angenommen wird, dass der extruder mit beiden nozzles jeden punkt erreicht.
@@ -445,19 +447,45 @@ For the computation of the destination, the following facts are considered:
 bool Printer::queueGCodeCoordinates(GCode* com, bool noDriving) {
     InterruptProtectedBlock noInts;
     bool isXYZMove = !com->hasNoXYZ();
+
+#if FEATURE_PART_ROTATION
+    // undo coordinate transform (rotation and offset), X and Y is destinationMM in gcode coordinates
+    float Xc = destinationMM[X_AXIS] + Printer::originOffsetMM[X_AXIS];
+    float Yc = destinationMM[Y_AXIS] + Printer::originOffsetMM[Y_AXIS];
+    float X =  Xc * Printer::rotationCos + Yc * Printer::rotationSin ;
+    float Y = -Xc * Printer::rotationSin + Yc * Printer::rotationCos;
+
+    // update by coordinate change from gcode
     if (relativeCoordinateMode) {
+      if(com->hasX()) X += convertToMM(com->X);
+      if(com->hasY()) Y += convertToMM(com->Y);
+    } else {
+      if(com->hasX()) X = convertToMM(com->X);
+      if(com->hasY()) Y = convertToMM(com->Y);
+    }
+
+    // transform from gcode to printer coordinates: rotate by matrix and add the origin offset
+    destinationMM[X_AXIS] = X * Printer::rotationCos - Y * Printer::rotationSin - Printer::originOffsetMM[X_AXIS];
+    destinationMM[Y_AXIS] = X * Printer::rotationSin + Y * Printer::rotationCos - Printer::originOffsetMM[Y_AXIS];
+#endif
+
+    if (relativeCoordinateMode) {
+#if !FEATURE_PART_ROTATION
         if (com->hasX())
             destinationMM[X_AXIS] += convertToMM(com->X);
         if (com->hasY())
             destinationMM[Y_AXIS] += convertToMM(com->Y);
+#endif
         if (com->hasZ())
             destinationMM[Z_AXIS] += convertToMM(com->Z);
     } else //absolute Coordinate Mode
     {
+#if !FEATURE_PART_ROTATION
         if (com->hasX())
             destinationMM[X_AXIS] = convertToMM(com->X) - Printer::originOffsetMM[X_AXIS];
         if (com->hasY())
             destinationMM[Y_AXIS] = convertToMM(com->Y) - Printer::originOffsetMM[Y_AXIS];
+#endif
         if (com->hasZ())
             destinationMM[Z_AXIS] = convertToMM(com->Z) - Printer::originOffsetMM[Z_AXIS];
     }

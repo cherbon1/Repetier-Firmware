@@ -3837,22 +3837,23 @@ void findAxisOrigin(void) {
                   // of the two straights at the measured angle. Also the offset given for the measurement (tool radius)
                   // needs to be rotated by the measured angle.
 
-                  // slopes of the part edges which define the x resp. y origin. Note the contra-intuitive naming when
-                  // thinking about coordinate system axes...
-                  double mx = slope;                                                 // slope of new y(!) axis
-                  double my = -1./slope;                                             // slope of new x(!) axis
+                  // Slopes of the part edges which define the x resp. y origin. Note the counter-intuitive naming when
+                  // thinking about coordinate system axes... Naming is defined by edges determining the respective
+                  // origin!
+                  double mx = -1./slope;                                             // slope of new y(!) axis
+                  double my = slope;                                                 // slope of new x(!) axis
 
-                  // offsets as they have been used by the x resp. y origin scans, including the sign, assuming the
+                  // Offsets as they have been used by the x resp. y origin scans, including the sign, assuming the
                   // offset was the same in all scans.
                   double rx = g_nFindAxisOriginOffset * g_XOriginScanDirection;      // offset as used in x origin scan
                   double ry = g_nFindAxisOriginOffset * g_YOriginScanDirection;      // offset as used in y origin scan
 
                   // Now we define points Ax and Ay, which are the center positions of the scanning tool in contact
                   // position when the x resp. y origin was scanned.
-                  double Ax_x = Printer::originOffsetMM[X_AXIS]-rx; // offset was already added during the scan...
+                  double Ax_x = -Printer::originOffsetMM[X_AXIS]-rx; // offset was already added during the scan...
                   double Ax_y = g_XOriginYPosition;
                   double Ay_x = g_YOriginXPosition;
-                  double Ay_y = Printer::originOffsetMM[Y_AXIS]-ry; // offset was already added during the scan...
+                  double Ay_y = -Printer::originOffsetMM[Y_AXIS]-ry; // offset was already added during the scan...
 
                   // From points Ax and Ay, we conclude to the points Bx and By, which are the angular-corrected
                   // contact points during the respective scan. This takes into account that the scanning tool is round
@@ -3895,6 +3896,10 @@ void findAxisOrigin(void) {
                   // Set the new origin. The computed coordinates need to switch sign, since the origin offset is
                   // subtracted from the GCode coordinates.
                   Printer::setOrigin(-x0new, -y0new, zOff);
+                  
+                  // Rotate gcode coordinate system
+                  Printer::rotationCos = cos(partRotation);
+                  Printer::rotationSin = sin(partRotation);
                   
                 }
                 else if(g_nFindAxisOriginMode == 1) {
