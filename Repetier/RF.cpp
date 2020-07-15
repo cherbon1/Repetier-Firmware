@@ -3752,19 +3752,19 @@ void findAxisOrigin(void) {
                 
                 switch(g_nFindAxisOriginAxisAndDirection) {
                   case AxisAndDirection::Xneg: {
-                    xOff = -g_nFindAxisOriginOffset - distanceToContactPointMM - Printer::destinationMM[X_AXIS];
+                    xOff = -(Printer::destinationMM[X_AXIS] + distanceToContactPointMM - g_nFindAxisOriginOffset);
                     break;
                   }
                   case AxisAndDirection::Xpos: {
-                    xOff = +g_nFindAxisOriginOffset - distanceToContactPointMM - Printer::destinationMM[X_AXIS];
+                    xOff = -(Printer::destinationMM[X_AXIS] + distanceToContactPointMM + g_nFindAxisOriginOffset);
                     break;
                   }
                   case AxisAndDirection::Yneg: {
-                    yOff = -g_nFindAxisOriginOffset - distanceToContactPointMM - Printer::destinationMM[Y_AXIS];
+                    yOff = -(Printer::destinationMM[Y_AXIS] + distanceToContactPointMM - g_nFindAxisOriginOffset);
                     break;
                   }
                   case AxisAndDirection::Ypos: {
-                    yOff = +g_nFindAxisOriginOffset - distanceToContactPointMM - Printer::destinationMM[Y_AXIS];
+                    yOff = -(Printer::destinationMM[Y_AXIS] + distanceToContactPointMM + g_nFindAxisOriginOffset);
                     break;
                   }
                 }
