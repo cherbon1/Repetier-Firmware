@@ -3639,19 +3639,19 @@ void findAxisOrigin(void) {
 
                 switch(g_nFindAxisOriginAxisAndDirection) {
                   case AxisAndDirection::Xneg:
-                    moveAxis(-1, X_AXIS);
+                    moveAxis(-int(0.01 * Printer::axisStepsPerMM[X_AXIS]), X_AXIS);
                     break;
                   case AxisAndDirection::Xpos:
-                    moveAxis(1, X_AXIS);
+                    moveAxis(int(0.01 * Printer::axisStepsPerMM[X_AXIS]), X_AXIS);
                     break;
                   case AxisAndDirection::Yneg:
-                    moveAxis(-1, Y_AXIS);
+                    moveAxis(-int(0.01 * Printer::axisStepsPerMM[Y_AXIS]), Y_AXIS);
                     break;
                   case AxisAndDirection::Ypos:
-                    moveAxis(1, Y_AXIS);
+                    moveAxis(int(0.01 * Printer::axisStepsPerMM[Y_AXIS]), Y_AXIS);
                     break;
                   case AxisAndDirection::Zneg:
-                    moveAxis(-1, Z_AXIS);
+                    moveAxis(-int(0.01 * Printer::axisStepsPerMM[Z_AXIS]), Z_AXIS);
                     g_nZOriginPosition[Z_AXIS] = g_nAxisScanPosition; //passt wenn korrekt gehomed.
                 }
 
