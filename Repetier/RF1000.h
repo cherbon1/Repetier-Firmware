@@ -925,8 +925,8 @@ Above this value the z compensation will distribute the roughness of the surface
 
 #define SEARCH_AXIS_ORIGIN_CONTACT_PRESSURE_DELTA 250      // [digits]
 #define SEARCH_AXIS_ORIGIN_PRECISE_PRESSURE_DELTA 100      // [digits]
-#define SEARCH_AXIS_ORIGIN_PRECISE_PRESSURE_DELTA_MID 75   // [digits] - mid-way pressure (typically 75% of SEARCH_AXIS_ORIGIN_PRECISE_PRESSURE_DELTA)
-#define SEARCH_AXIS_ORIGIN_PRESSURE_AVERAGE 2000           // number of measurements
+#define SEARCH_AXIS_ORIGIN_PRECISE_PRESSURE_DELTA_MID 50   // [digits] - mid-way pressure (typically 50% to 75% of SEARCH_AXIS_ORIGIN_PRECISE_PRESSURE_DELTA)
+#define SEARCH_AXIS_ORIGIN_PRESSURE_AVERAGE 10000          // number of measurements
 #define SEARCH_AXIS_ORIGIN_BREAKOUT_DELAY 100              // [ms]
 #define SEARCH_AXIS_ORIGIN_FAST_MM 0.05f                   // [mm]
 
