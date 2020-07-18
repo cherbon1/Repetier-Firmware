@@ -3580,13 +3580,25 @@ void findAxisOrigin(AxisAndDirection axisAndDirection, float offset, short mode)
   // ==================================================================================================================
   // Step 3: Strain gauge digits may drift, so repeat zero and full pressure measurements
 
+#  if DEBUG_FIND_AXIS_ORIGIN
+    Com::printFLN(PSTR("findAxisOrigin(): remeasure pressures"));
+#  endif // DEBUG_FIND_AXIS_ORIGIN
+
   // zero-measurement: move out first two times the estimated distance to contact position
   moveAxis(2 * estimatedDistance, theAxis);
   if(!readStrainGaugePrecise(g_AxisScanZeroPressure)) return;
 
+#  if DEBUG_FIND_AXIS_ORIGIN
+    Com::printFLN(PSTR("findAxisOrigin(): g_AxisScanZeroPressure: "), g_AxisScanZeroPressure, 2);
+#  endif // DEBUG_FIND_AXIS_ORIGIN
+
   // full-pressure measurement: move back to full-pressure position first
   moveAxis(-2 * estimatedDistance, theAxis);
   if(!readStrainGaugePrecise(g_AxisScanFullPressure)) return;
+
+#  if DEBUG_FIND_AXIS_ORIGIN
+    Com::printFLN(PSTR("findAxisOrigin(): g_AxisScanFullPressure: "), g_AxisScanFullPressure, 2);
+#  endif // DEBUG_FIND_AXIS_ORIGIN
 
   // ==================================================================================================================
   // Step 4: Iterative search for true zero-pressure contact point
