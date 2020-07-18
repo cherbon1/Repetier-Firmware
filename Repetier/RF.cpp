@@ -3764,73 +3764,81 @@ retry:
       }
       Com::printF(PSTR("Part rotation = "), float(partRotation * 180. / M_PI));
       Com::printFLN(PSTR("deg"));
+      
+      // Check if part rotation is actually 0 - no rotation is necessary then and the computations below would fail
+      // due to infinite slope of y axis
+      if(abs(slope) < 1e-6) {
+        Com::printFLN(PSTR("No correction of origin necessary."));
+      }
+      else {
 
-      // Correct X and Y origin for part rotation.
-      // The correction is necessary, because X and Y origin scan is not done at the origin itself but
-      // with an arbitrary displacement along the other axis. If the workpart edge is not parallel to the
-      // axis, the workpart corner which should be at the origin needs to be computed by the intersection
-      // of the two straights at the measured angle. Also the offset given for the measurement (tool radius)
-      // needs to be rotated by the measured angle.
+        // Correct X and Y origin for part rotation.
+        // The correction is necessary, because X and Y origin scan is not done at the origin itself but
+        // with an arbitrary displacement along the other axis. If the workpart edge is not parallel to the
+        // axis, the workpart corner which should be at the origin needs to be computed by the intersection
+        // of the two straights at the measured angle. Also the offset given for the measurement (tool radius)
+        // needs to be rotated by the measured angle.
 
-      // Slopes of the part edges which define the x resp. y origin. Note the counter-intuitive naming when
-      // thinking about coordinate system axes... Naming is defined by edges determining the respective
-      // origin!
-      double mx = -1. / slope; // slope of new y(!) axis
-      double my = slope;       // slope of new x(!) axis
+        // Slopes of the part edges which define the x resp. y origin. Note the counter-intuitive naming when
+        // thinking about coordinate system axes... Naming is defined by edges determining the respective
+        // origin!
+        double mx = -1. / slope; // slope of new y(!) axis
+        double my = slope;       // slope of new x(!) axis
 
-      // Offsets as they have been used by the x resp. y origin scans, including the sign, assuming the
-      // offset was the same in all scans.
-      double rx = g_OriginScanOffsetAndDirection[X_AXIS]; // offset as used in x origin scan
-      double ry = g_OriginScanOffsetAndDirection[X_AXIS]; // offset as used in y origin scan
+        // Offsets as they have been used by the x resp. y origin scans, including the sign, assuming the
+        // offset was the same in all scans.
+        double rx = g_OriginScanOffsetAndDirection[X_AXIS]; // offset as used in x origin scan
+        double ry = g_OriginScanOffsetAndDirection[X_AXIS]; // offset as used in y origin scan
 
-      // Now we define points Ax and Ay, which are the center positions of the scanning tool in contact
-      // position when the x resp. y origin was scanned.
-      double Ax_x = -Printer::originOffsetMM[X_AXIS] - rx; // offset was already added during the scan...
-      double Ax_y = g_OriginScanPosition[X_AXIS];
-      double Ay_x = g_OriginScanPosition[Y_AXIS];
-      double Ay_y = -Printer::originOffsetMM[Y_AXIS] - ry; // offset was already added during the scan...
+        // Now we define points Ax and Ay, which are the center positions of the scanning tool in contact
+        // position when the x resp. y origin was scanned.
+        double Ax_x = -Printer::originOffsetMM[X_AXIS] - rx; // offset was already added during the scan...
+        double Ax_y = g_OriginScanPosition[X_AXIS];
+        double Ay_x = g_OriginScanPosition[Y_AXIS];
+        double Ay_y = -Printer::originOffsetMM[Y_AXIS] - ry; // offset was already added during the scan...
 
-      // From points Ax and Ay, we conclude to the points Bx and By, which are the angular-corrected
-      // contact points during the respective scan. This takes into account that the scanning tool is round
-      // and an angled part comes in contact with the tool at a different position.
-      double Bx_x = Ax_x + rx * cos(partRotation);
-      double Bx_y = Ax_y + rx * sin(partRotation);
-      double By_x = Ay_x - ry * sin(partRotation);
-      double By_y = Ay_y + ry * cos(partRotation);
+        // From points Ax and Ay, we conclude to the points Bx and By, which are the angular-corrected
+        // contact points during the respective scan. This takes into account that the scanning tool is round
+        // and an angled part comes in contact with the tool at a different position.
+        double Bx_x = Ax_x + rx * cos(partRotation);
+        double Bx_y = Ax_y + rx * sin(partRotation);
+        double By_x = Ay_x - ry * sin(partRotation);
+        double By_y = Ay_y + ry * cos(partRotation);
 
-      // (Ax_x, Ax_y) determines together with mx the edge which will become new y axis, while
-      // (Ay_x, Ay_y) determines together with my the edge which will become new x axis.
-      // Now compute the y-axis offset in the printer coordinate system for both straights.
-      double bx = Bx_y - mx * Bx_x;
-      double by = By_y - my * By_x;
+        // (Ax_x, Ax_y) determines together with mx the edge which will become new y axis, while
+        // (Ay_x, Ay_y) determines together with my the edge which will become new x axis.
+        // Now compute the y-axis offset in the printer coordinate system for both straights.
+        double bx = Bx_y - mx * Bx_x;
+        double by = By_y - my * By_x;
 
-      // The intersection of the two computed straights gives the new origin in the printer coordinate
-      // system.
-      double x0new = (bx - by) / (my - mx);
-      double y0new = mx * x0new + bx;
+        // The intersection of the two computed straights gives the new origin in the printer coordinate
+        // system.
+        double x0new = (bx - by) / (my - mx);
+        double y0new = mx * x0new + bx;
 
-#  if DEBUG_FIND_AXIS_ORIGIN
-      Com::printFLN(PSTR("mx = "), float(mx));
-      Com::printFLN(PSTR("my = "), float(my));
-      Com::printFLN(PSTR("rx = "), float(rx));
-      Com::printFLN(PSTR("ry = "), float(ry));
-      Com::printFLN(PSTR("Ax_x = "), float(Ax_x));
-      Com::printFLN(PSTR("Ax_y = "), float(Ax_y));
-      Com::printFLN(PSTR("Ay_x = "), float(Ay_x));
-      Com::printFLN(PSTR("Ay_y = "), float(Ay_y));
-      Com::printFLN(PSTR("Bx_x = "), float(Bx_x));
-      Com::printFLN(PSTR("Bx_y = "), float(Bx_y));
-      Com::printFLN(PSTR("By_x = "), float(By_x));
-      Com::printFLN(PSTR("By_y = "), float(By_y));
-      Com::printFLN(PSTR("bx = "), float(bx));
-      Com::printFLN(PSTR("by = "), float(by));
-      Com::printFLN(PSTR("x0new = "), float(x0new));
-      Com::printFLN(PSTR("y0new = "), float(y0new));
-#  endif // DEBUG_FIND_AXIS_ORIGIN
+  #  if DEBUG_FIND_AXIS_ORIGIN
+        Com::printFLN(PSTR("mx = "), float(mx));
+        Com::printFLN(PSTR("my = "), float(my));
+        Com::printFLN(PSTR("rx = "), float(rx));
+        Com::printFLN(PSTR("ry = "), float(ry));
+        Com::printFLN(PSTR("Ax_x = "), float(Ax_x));
+        Com::printFLN(PSTR("Ax_y = "), float(Ax_y));
+        Com::printFLN(PSTR("Ay_x = "), float(Ay_x));
+        Com::printFLN(PSTR("Ay_y = "), float(Ay_y));
+        Com::printFLN(PSTR("Bx_x = "), float(Bx_x));
+        Com::printFLN(PSTR("Bx_y = "), float(Bx_y));
+        Com::printFLN(PSTR("By_x = "), float(By_x));
+        Com::printFLN(PSTR("By_y = "), float(By_y));
+        Com::printFLN(PSTR("bx = "), float(bx));
+        Com::printFLN(PSTR("by = "), float(by));
+        Com::printFLN(PSTR("x0new = "), float(x0new));
+        Com::printFLN(PSTR("y0new = "), float(y0new));
+  #  endif // DEBUG_FIND_AXIS_ORIGIN
 
-      // Set the new origin. The computed coordinates need to switch sign, since the origin offset is
-      // subtracted from the GCode coordinates.
-      Printer::setOrigin(-x0new, -y0new, zOff);
+        // Set the new origin. The computed coordinates need to switch sign, since the origin offset is
+        // subtracted from the GCode coordinates.
+        Printer::setOrigin(-x0new, -y0new, zOff);
+      }
 
       // Rotate gcode coordinate system
       Printer::rotationCos = cos(partRotation);
