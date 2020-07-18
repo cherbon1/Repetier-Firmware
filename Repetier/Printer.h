@@ -440,6 +440,19 @@ public:
         }
 #endif // STEPPER_ON_DELAY
     }  // enableZStepper
+    
+    static INLINE void enableAxisStepper(short axis) {
+      switch(axis) {
+        case X_AXIS:
+          Printer::enableXStepper();
+          break;
+        case Y_AXIS:
+          Printer::enableYStepper();
+          break;
+        case Z_AXIS:
+          Printer::enableZStepper();
+      }
+    }
 
     static INLINE void setXDirection(bool positive) {
         if (positive) {

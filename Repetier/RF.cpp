@@ -113,8 +113,10 @@ unsigned char g_uZMatrixMax[2] = { 0, 0 };
 long g_nAxisScanPosition = 0;
 long g_nLastZScanZPosition = 0;
 long g_nAxisScanMidPressurePosition = 0;
+long g_nAxisScanFullPressurePosition = 0;
 float g_AxisScanZeroPressure = 0;
 float g_AxisScanMidPressure = 0;
+float g_AxisScanFullPressure = 0;
 
 short g_nMaxPressureContact;
 short g_nMaxPressureRetry;
@@ -3439,6 +3441,24 @@ void findAxisOrigin(void) {
     unsigned long uStartTime;
     unsigned long uCurrentTime;
 
+    short theAxis;
+    short direction = 1;
+    switch(g_nFindAxisOriginAxisAndDirection) {
+      case AxisAndDirection::Xneg:
+        direction = -1;
+      case AxisAndDirection::Xpos:
+        theAxis = X_AXIS;
+        break;
+      case AxisAndDirection::Yneg:
+        direction = -1;
+      case AxisAndDirection::Ypos:
+        theAxis = Y_AXIS;
+        break;
+      case AxisAndDirection::Zneg:
+        direction = -1;
+        theAxis = Z_AXIS;
+    }
+
     if (g_abortAxisScan) {
         showAbortScanReason((void*)ui_text_find_axis_origin, g_abortAxisScan);
         // the search has been aborted
@@ -3467,6 +3487,7 @@ void findAxisOrigin(void) {
         case 1: {
             g_abortAxisScan = 0;
             g_nAxisScanMidPressurePosition = 0;
+            g_nAxisScanFullPressurePosition = 0;
 	    if(g_nFindAxisOriginAxisAndDirection == AxisAndDirection::Zneg) {
                 g_nZOriginPosition[Z_AXIS] = 0;
             }
@@ -3481,7 +3502,13 @@ void findAxisOrigin(void) {
             // measure zero pressure with high precision
 	    g_AxisScanZeroPressure = 0;
             for(size_t i=0; i<SEARCH_AXIS_ORIGIN_PRESSURE_AVERAGE; ++i) {
-              g_AxisScanZeroPressure += readStrainGauge(ACTIVE_STRAIN_GAUGE);
+                Commands::checkForPeriodicalActions(Processing);
+                if (readAveragePressure(&nCurrentPressure)) {
+	            Com::printFLN(PSTR("findAxisOrigin(): current pressure not determined"));
+	            g_abortAxisScan = SCAN_ABORT_REASON_START_PRESSURE;
+	            return;
+	        }
+                g_AxisScanZeroPressure += nCurrentPressure; // readStrainGauge(ACTIVE_STRAIN_GAUGE);
             }
             g_AxisScanZeroPressure /= SEARCH_AXIS_ORIGIN_PRESSURE_AVERAGE;
 
@@ -3502,18 +3529,7 @@ void findAxisOrigin(void) {
             }
 
             // turn on the engines
-            switch(g_nFindAxisOriginAxisAndDirection) {
-              case AxisAndDirection::Xneg:
-              case AxisAndDirection::Xpos:
-                Printer::enableXStepper();
-                break;
-              case AxisAndDirection::Yneg:
-              case AxisAndDirection::Ypos:
-                Printer::enableYStepper();
-                break;
-              case AxisAndDirection::Zneg:
-                Printer::enableZStepper();
-            }
+            Printer::enableAxisStepper(theAxis);
 
             g_nFindAxisOriginStatus = 2;
 
@@ -3558,7 +3574,6 @@ void findAxisOrigin(void) {
                 }
 
                 moveAxis(-int(SEARCH_AXIS_ORIGIN_FAST_MM * Printer::axisStepsPerMM[Z_AXIS]), Z_AXIS);
-                g_nZOriginPosition[Z_AXIS] = g_nAxisScanPosition; //passt wenn korrekt gehomed.
 
                 uCurrentTime = HAL::timeInMilliseconds();
                 if ((uCurrentTime - uStartTime) > SEARCH_AXIS_ORIGIN_BREAKOUT_DELAY) {
@@ -3603,13 +3618,20 @@ void findAxisOrigin(void) {
                     // re-measure pressure with higher precision
 		    g_AxisScanMidPressure = 0;
                     for(size_t i=0; i<SEARCH_AXIS_ORIGIN_PRESSURE_AVERAGE; ++i) {
-                      g_AxisScanMidPressure += readStrainGauge(ACTIVE_STRAIN_GAUGE);
+                        Commands::checkForPeriodicalActions(Processing);
+	            	if (readAveragePressure(&nCurrentPressure)) {
+		            Com::printFLN(PSTR("findAxisOrigin(): current pressure not determined"));
+		            g_abortAxisScan = SCAN_ABORT_REASON_START_PRESSURE;
+		            return;
+		        }
+                        g_AxisScanMidPressure += nCurrentPressure; // readStrainGauge(ACTIVE_STRAIN_GAUGE);
                     }
                     g_AxisScanMidPressure /= SEARCH_AXIS_ORIGIN_PRESSURE_AVERAGE;
                     
                     // verify that mid-way pressure is really reached
                     if(g_AxisScanMidPressure < nMaxPressureContact && g_AxisScanMidPressure > nMinPressureContact) break;
 
+                    // mid-way pressure is reached
                     g_nAxisScanMidPressurePosition = g_nAxisScanPosition;
 
                     nMinPressureContact = g_AxisScanZeroPressure - SEARCH_AXIS_ORIGIN_PRECISE_PRESSURE_DELTA;
@@ -3620,6 +3642,24 @@ void findAxisOrigin(void) {
 #endif // DEBUG_FIND_Z_ORIGIN
                 }
                 else if (nCurrentPressure > nMaxPressureContact || nCurrentPressure < nMinPressureContact) {
+
+                    // re-measure pressure with higher precision
+	            g_AxisScanFullPressure = 0;
+                    for(size_t i=0; i<SEARCH_AXIS_ORIGIN_PRESSURE_AVERAGE; ++i) {
+                        Commands::checkForPeriodicalActions(Processing);
+                    	if (readAveragePressure(&nCurrentPressure)) {
+	                    Com::printFLN(PSTR("findAxisOrigin(): current pressure not determined"));
+	                    g_abortAxisScan = SCAN_ABORT_REASON_START_PRESSURE;
+	                    return;
+	                }
+                        g_AxisScanFullPressure += nCurrentPressure; // readStrainGauge(ACTIVE_STRAIN_GAUGE);
+                    }
+                    g_AxisScanFullPressure /= SEARCH_AXIS_ORIGIN_PRESSURE_AVERAGE;
+
+                    // verify that target pressure is really reached
+                    if(g_AxisScanFullPressure < nMaxPressureContact && g_AxisScanFullPressure > nMinPressureContact) break;
+
+                    g_nAxisScanFullPressurePosition = g_nAxisScanPosition;
 
                     // we have reached the target pressure
                     g_nFindAxisOriginStatus = 25;
@@ -3637,23 +3677,7 @@ void findAxisOrigin(void) {
                     return;
                 }
 
-                switch(g_nFindAxisOriginAxisAndDirection) {
-                  case AxisAndDirection::Xneg:
-                    moveAxis(-int(0.01 * Printer::axisStepsPerMM[X_AXIS]), X_AXIS);
-                    break;
-                  case AxisAndDirection::Xpos:
-                    moveAxis(int(0.01 * Printer::axisStepsPerMM[X_AXIS]), X_AXIS);
-                    break;
-                  case AxisAndDirection::Yneg:
-                    moveAxis(-int(0.01 * Printer::axisStepsPerMM[Y_AXIS]), Y_AXIS);
-                    break;
-                  case AxisAndDirection::Ypos:
-                    moveAxis(int(0.01 * Printer::axisStepsPerMM[Y_AXIS]), Y_AXIS);
-                    break;
-                  case AxisAndDirection::Zneg:
-                    moveAxis(-int(0.01 * Printer::axisStepsPerMM[Z_AXIS]), Z_AXIS);
-                    g_nZOriginPosition[Z_AXIS] = g_nAxisScanPosition; //passt wenn korrekt gehomed.
-                }
+                moveAxis(direction*int(0.01 * Printer::axisStepsPerMM[theAxis]), theAxis);
 
                 uCurrentTime = HAL::timeInMilliseconds();
                 if ((uCurrentTime - uStartTime) > SEARCH_AXIS_ORIGIN_BREAKOUT_DELAY) {
@@ -3668,22 +3692,8 @@ void findAxisOrigin(void) {
             break;
         }
         case 25: {
-            // move backwards to computed zero-pressure contact point
+            // move back to zero-pressure contact point to verify zero pressure
             uStartTime = HAL::timeInMilliseconds();
-
-            // re-measure pressure with higher precision
-	    float g_AxisScanFullPressure = 0;
-            for(size_t i=0; i<SEARCH_AXIS_ORIGIN_PRESSURE_AVERAGE; ++i) {
-              g_AxisScanFullPressure += readStrainGauge(ACTIVE_STRAIN_GAUGE);
-            }
-            g_AxisScanFullPressure /= SEARCH_AXIS_ORIGIN_PRESSURE_AVERAGE;
-
-            // verify that target pressure is really reached
-            if(g_AxisScanFullPressure < nMaxPressureContact && g_AxisScanFullPressure > nMinPressureContact) {
-              // back to previous state: continue searching target pressure point
-              g_nFindAxisOriginStatus = 20;
-              return;
-            }
 
 #if DEBUG_FIND_Z_ORIGIN
             Com::printFLN(PSTR("findAxisOrigin(): full pressure position: "), g_nAxisScanPosition);
@@ -3691,7 +3701,7 @@ void findAxisOrigin(void) {
 #endif // DEBUG_FIND_Z_ORIGIN
 
             // linear extrapolation to 0 pressure contact point
-            double slope = (double(g_AxisScanFullPressure) - double(g_AxisScanMidPressure)) / (double(g_nAxisScanPosition) - double(g_nAxisScanMidPressurePosition));
+            double slope = (double(g_AxisScanFullPressure) - double(g_AxisScanMidPressure)) / (double(g_nAxisScanFullPressurePosition) - double(g_nAxisScanMidPressurePosition));
             long distanceToContactPoint = (double(g_AxisScanZeroPressure)-double(g_AxisScanFullPressure))/slope;
 
 #if DEBUG_FIND_Z_ORIGIN
@@ -3699,26 +3709,92 @@ void findAxisOrigin(void) {
             Com::printFLN(PSTR("findAxisOrigin(): slope: "), slope, 2);
             Com::printFLN(PSTR("findAxisOrigin(): distanceToContactPoint: "), distanceToContactPoint);
 #endif // DEBUG_FIND_Z_ORIGIN
-            
-	    // move back to original position (X/Y) resp. contact point (Z)
-            switch(g_nFindAxisOriginAxisAndDirection) {
-              case AxisAndDirection::Xneg:
-              case AxisAndDirection::Xpos:
-                distanceToContactPoint = g_nAxisScanPosition+distanceToContactPoint;
-                moveAxis(-g_nAxisScanPosition, X_AXIS);
-                break;
-              case AxisAndDirection::Yneg:
-              case AxisAndDirection::Ypos:
-                distanceToContactPoint = g_nAxisScanPosition+distanceToContactPoint;
-                moveAxis(-g_nAxisScanPosition, Y_AXIS);
-                break;
-              case AxisAndDirection::Zneg:
-                moveAxis(-distanceToContactPoint, Z_AXIS);
-                g_nZOriginPosition[Z_AXIS] = g_nAxisScanPosition; //passt wenn korrekt gehomed.
+
+            moveAxis(distanceToContactPoint, theAxis);
+
+            // measure pressure with higher precision
+            double verifyZeroPressure = 0;
+            for(size_t i=0; i<SEARCH_AXIS_ORIGIN_PRESSURE_AVERAGE; ++i) {
+                Commands::checkForPeriodicalActions(Processing);
+            	if (readAveragePressure(&nCurrentPressure)) {
+                    Com::printFLN(PSTR("findAxisOrigin(): current pressure not determined"));
+                    g_abortAxisScan = SCAN_ABORT_REASON_START_PRESSURE;
+                    return;
+                }
+                verifyZeroPressure += nCurrentPressure; // readStrainGauge(ACTIVE_STRAIN_GAUGE);
             }
-                        
+            verifyZeroPressure /= SEARCH_AXIS_ORIGIN_PRESSURE_AVERAGE;
+
+#if DEBUG_FIND_Z_ORIGIN
+            Com::printFLN(PSTR("verifyZeroPressure: "), float(verifyZeroPressure));
+#endif // DEBUG_FIND_Z_ORIGIN
+            
+            if(fabs(verifyZeroPressure - g_AxisScanZeroPressure) > SEARCH_AXIS_ORIGIN_PRECISE_PRESSURE_DELTA_ZERO) {
+                Com::printFLN(PSTR("findAxisOrigin(): Pressure at zero-pressure contact point too big!"));
+                g_abortAxisScan = SCAN_ABORT_REASON_START_PRESSURE;
+                return;
+            }
+
+            g_nFindAxisOriginStatus = 30;
+#if DEBUG_FIND_Z_ORIGIN
+            Com::printFLN(PSTR("findAxisOrigin(): 25->30"));
+#endif // DEBUG_FIND_Z_ORIGIN
+            return;
+        }
+        case 30: {
+            // move a bit back into the scan direction to improve extrapolation with another measurement
+            double slope = (double(g_AxisScanFullPressure) - double(g_AxisScanMidPressure)) / (double(g_nAxisScanFullPressurePosition) - double(g_nAxisScanMidPressurePosition));
+            long distanceToLowPressure = (double(SEARCH_AXIS_ORIGIN_PRECISE_PRESSURE_DELTA_LOW)-double(g_AxisScanZeroPressure))/slope;
+            moveAxis(distanceToLowPressure, theAxis);
+
+#if DEBUG_FIND_Z_ORIGIN
+            Com::printFLN(PSTR("distanceToLowPressure: "), distanceToLowPressure);
+#endif // DEBUG_FIND_Z_ORIGIN
+
+            // measure pressure with higher precision
+            double lowZeroPressure = 0;
+            for(size_t i=0; i<SEARCH_AXIS_ORIGIN_PRESSURE_AVERAGE; ++i) {
+                Commands::checkForPeriodicalActions(Processing);
+            	if (readAveragePressure(&nCurrentPressure)) {
+                    Com::printFLN(PSTR("findAxisOrigin(): current pressure not determined"));
+                    g_abortAxisScan = SCAN_ABORT_REASON_START_PRESSURE;
+                    return;
+                }
+                lowZeroPressure += nCurrentPressure; // readStrainGauge(ACTIVE_STRAIN_GAUGE);
+            }
+            lowZeroPressure /= SEARCH_AXIS_ORIGIN_PRESSURE_AVERAGE;
+
+#if DEBUG_FIND_Z_ORIGIN
+            Com::printFLN(PSTR("lowZeroPressure: "), float(lowZeroPressure));
+#endif // DEBUG_FIND_Z_ORIGIN
+            
+            // move to recomputed zero-pressure contact point
+            slope = (double(g_AxisScanFullPressure) - double(lowZeroPressure)) / (double(g_nAxisScanFullPressurePosition) - double(g_nAxisScanPosition));
+            long distanceToZeroPressure = (double(g_AxisScanZeroPressure)-double(SEARCH_AXIS_ORIGIN_PRECISE_PRESSURE_DELTA_LOW))/slope;
+            moveAxis(distanceToZeroPressure, theAxis);
+
+#if DEBUG_FIND_Z_ORIGIN
+            Com::printFLN(PSTR("distanceToZeroPressure: "), distanceToZeroPressure);
+#endif // DEBUG_FIND_Z_ORIGIN
+
+            g_nFindAxisOriginStatus = 35;
+#if DEBUG_FIND_Z_ORIGIN
+            Com::printFLN(PSTR("findAxisOrigin(): 30->35"));
+#endif // DEBUG_FIND_Z_ORIGIN
+            return;
+            
+        }
+        case 35: {
+	    // move back to original position (X/Y only)
+            auto distanceToContactPoint = g_nAxisScanPosition;
+            if(theAxis != Z_AXIS) {
+              moveAxis(-g_nAxisScanPosition, theAxis);
+            }
+
             // Action (set origin, just print, ...) depending on command
-            if(g_nFindAxisOriginAxisAndDirection == AxisAndDirection::Zneg) {
+            if(theAxis == Z_AXIS) {
+                // Z axis scan can only set the origin
+                g_nZOriginPosition[Z_AXIS] = g_nAxisScanPosition;
                 setZOrigin();
             }
             else {
@@ -3750,24 +3826,7 @@ void findAxisOrigin(void) {
                   }
                 }
                 
-                switch(g_nFindAxisOriginAxisAndDirection) {
-                  case AxisAndDirection::Xneg: {
-                    xOff = -(Printer::destinationMM[X_AXIS] + distanceToContactPointMM - g_nFindAxisOriginOffset);
-                    break;
-                  }
-                  case AxisAndDirection::Xpos: {
-                    xOff = -(Printer::destinationMM[X_AXIS] + distanceToContactPointMM + g_nFindAxisOriginOffset);
-                    break;
-                  }
-                  case AxisAndDirection::Yneg: {
-                    yOff = -(Printer::destinationMM[Y_AXIS] + distanceToContactPointMM - g_nFindAxisOriginOffset);
-                    break;
-                  }
-                  case AxisAndDirection::Ypos: {
-                    yOff = -(Printer::destinationMM[Y_AXIS] + distanceToContactPointMM + g_nFindAxisOriginOffset);
-                    break;
-                  }
-                }
+                xOff = -(Printer::destinationMM[theAxis] + distanceToContactPointMM + direction*g_nFindAxisOriginOffset);
                 
 #if DEBUG_FIND_Z_ORIGIN
                 Com::printFLN(PSTR("findAxisOrigin(): distanceToContactPoint: "), distanceToContactPoint);
@@ -3806,7 +3865,7 @@ void findAxisOrigin(void) {
                   double partRotation, slope;
                   if( g_nFindAxisOriginAxisAndDirection == AxisAndDirection::Xneg ||
                       g_nFindAxisOriginAxisAndDirection == AxisAndDirection::Xpos    ) {
-                    double dy = Printer::destinationMM[Y_AXIS] - g_XOriginYPosition;
+                    double dy = fabs(Printer::destinationMM[Y_AXIS] - g_XOriginYPosition);
                     double dx = xOff - Printer::originOffsetMM[X_AXIS];
 #if DEBUG_FIND_Z_ORIGIN
                     Com::printFLN(PSTR("g_XOriginYPosition = "), g_XOriginYPosition);
@@ -3817,7 +3876,7 @@ void findAxisOrigin(void) {
                     partRotation = atan2(dx,dy);
                   }
                   else {
-                    double dx = Printer::destinationMM[X_AXIS] - g_YOriginXPosition;
+                    double dx = fabs(Printer::destinationMM[X_AXIS] - g_YOriginXPosition);
                     double dy = yOff - Printer::originOffsetMM[Y_AXIS];
 #if DEBUG_FIND_Z_ORIGIN
                     Com::printFLN(PSTR("g_YOriginXPosition = "), g_YOriginXPosition);
