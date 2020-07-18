@@ -3570,14 +3570,28 @@ void findAxisOrigin(AxisAndDirection axisAndDirection, float offset, short mode)
   }
 
   // ==================================================================================================================
-  // Step 2: Iterative search for true zero-pressure contact point
+  // Step 2: Compute first estimate for zero-pressure contact point
 
-  // linear extrapolation to estimate zero-pressure contact point
+  // linear extrapolation
   double slope = (double(g_AxisScanFullPressure) - double(g_AxisScanMidPressure)) /
       (double(g_nAxisScanFullPressurePosition) - double(g_nAxisScanMidPressurePosition));
   long estimatedDistance = (double(g_AxisScanZeroPressure) - double(g_AxisScanFullPressure)) / slope;
-  short nIter = 0;
 
+  // ==================================================================================================================
+  // Step 3: Strain gauge digits may drift, so repeat zero and full pressure measurements
+
+  // zero-measurement: move out first two times the estimated distance to contact position
+  moveAxis(2 * estimatedDistance, theAxis);
+  if(!readStrainGaugePrecise(g_AxisScanZeroPressure)) return;
+
+  // full-pressure measurement: move back to full-pressure position first
+  moveAxis(-2 * estimatedDistance, theAxis);
+  if(!readStrainGaugePrecise(g_AxisScanFullPressure)) return;
+
+  // ==================================================================================================================
+  // Step 4: Iterative search for true zero-pressure contact point
+
+  short nIter = 0;
   while(true) {
     ++nIter;
 #  if DEBUG_FIND_AXIS_ORIGIN
@@ -3622,7 +3636,7 @@ void findAxisOrigin(AxisAndDirection axisAndDirection, float offset, short mode)
 #  endif // DEBUG_FIND_AXIS_ORIGIN
 
   // ==================================================================================================================
-  // Step 3: Final computations depending on selected mode
+  // Step 5: Final computations depending on selected mode
 
   // move back to original position (X/Y only)
   auto distanceToContactPoint = g_nAxisScanPosition;
