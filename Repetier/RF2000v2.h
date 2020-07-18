@@ -951,7 +951,7 @@ Above this value the z compensation will distribute the roughness of the surface
 #if FEATURE_FIND_AXIS_ORIGIN
 
 /** \brief Enables debug outputs from the search of the z-origin */
-#define DEBUG_FIND_Z_ORIGIN 0 // 1 = on, 0 = off
+#    define DEBUG_FIND_AXIS_ORIGIN 0 // 1 = on, 0 = off
 
 #endif // FEATURE_FIND_AXIS_ORIGIN
 

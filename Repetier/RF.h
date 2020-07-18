@@ -663,7 +663,6 @@ extern short g_nDigitFlowCompensation_Fmax;
 #endif // FEATURE_DIGIT_Z_COMPENSATION
 
 #if FEATURE_FIND_AXIS_ORIGIN
-extern volatile unsigned char g_nFindAxisOriginStatus;
 extern long g_nZOriginPosition[3];
 enum class AxisAndDirection {Xpos,Xneg,Ypos,Yneg,Zneg};
 #endif // FEATURE_FIND_AXIS_ORIGIN
@@ -809,7 +808,7 @@ extern void cleanupEPositions(void);
 extern void setZOrigin(void);
 
 #if FEATURE_FIND_AXIS_ORIGIN
-extern void startFindAxisOrigin(AxisAndDirection axis, float offset, short mode);
+extern void findAxisOrigin(AxisAndDirection axis, float offset, short mode);
 extern void findZOrigin(void);
 #endif // FEATURE_FIND_AXIS_ORIGIN
 
