@@ -3571,10 +3571,17 @@ void findAxisOrigin(AxisAndDirection axisAndDirection, float offset, short mode)
 
   // ==================================================================================================================
   // Step 2: Compute first estimate for zero-pressure contact point
+  float moveFraction = 0.8;
 
+retry:
   // linear extrapolation
   double slope = (double(g_AxisScanFullPressure) - double(g_AxisScanMidPressure)) /
       (double(g_nAxisScanFullPressurePosition) - double(g_nAxisScanMidPressurePosition));
+  if(abs(slope) < 0.1) {
+    Com::printFLN(PSTR("findAxisOrigin(): Extrapolation failed"));
+    showError((void*)ui_text_find_axis_origin, PSTR("Extrapolation failed"));
+    return;
+  }
   long estimatedDistance = (double(g_AxisScanZeroPressure) - double(g_AxisScanFullPressure)) / slope;
 
   // ==================================================================================================================
@@ -3584,8 +3591,9 @@ void findAxisOrigin(AxisAndDirection axisAndDirection, float offset, short mode)
     Com::printFLN(PSTR("findAxisOrigin(): remeasure pressures"));
 #  endif // DEBUG_FIND_AXIS_ORIGIN
 
-  // zero-measurement: move out first two times the estimated distance to contact position
-  moveAxis(2 * estimatedDistance, theAxis);
+  // zero-measurement: move out of contact
+  long moveOutSteps = -direction*0.75*Printer::axisStepsPerMM[theAxis];
+  moveAxis(moveOutSteps, theAxis);
   if(!readStrainGaugePrecise(g_AxisScanZeroPressure)) return;
 
 #  if DEBUG_FIND_AXIS_ORIGIN
@@ -3593,7 +3601,7 @@ void findAxisOrigin(AxisAndDirection axisAndDirection, float offset, short mode)
 #  endif // DEBUG_FIND_AXIS_ORIGIN
 
   // full-pressure measurement: move back to full-pressure position first
-  moveAxis(-2 * estimatedDistance, theAxis);
+  moveAxis(-moveOutSteps, theAxis);
   if(!readStrainGaugePrecise(g_AxisScanFullPressure)) return;
 
 #  if DEBUG_FIND_AXIS_ORIGIN
@@ -3612,11 +3620,20 @@ void findAxisOrigin(AxisAndDirection axisAndDirection, float offset, short mode)
     Com::printFLN(PSTR("findAxisOrigin(): estimatedDistance: "), estimatedDistance);
 #  endif // DEBUG_FIND_AXIS_ORIGIN
 
-    // move to estimated contact point
-    moveAxis(estimatedDistance, theAxis);
-
     // abort condition: estimated distance was very small
-    if(abs(estimatedDistance) < 0.02 * Printer::axisStepsPerMM[theAxis]) break;
+    if(abs(estimatedDistance) < 0.02 * Printer::axisStepsPerMM[theAxis]) {
+      moveAxis(estimatedDistance, theAxis);     // move the last step by the full estimatedDistance without moveFraction
+      break;
+    }
+
+    // move towards estimated contact point, move only a fraction of the estimated distance to avoid overshooting
+    long steps = estimatedDistance*moveFraction;
+    if(steps*direction > 0) steps = 0; // do not move in wrong direction
+    if(steps*direction < -0.2*Printer::axisStepsPerMM[theAxis]) steps = -direction*0.2*Printer::axisStepsPerMM[theAxis]; // do not move too far
+#  if DEBUG_FIND_AXIS_ORIGIN
+    Com::printFLN(PSTR("findAxisOrigin(): steps: "), steps);
+#  endif // DEBUG_FIND_AXIS_ORIGIN
+    moveAxis(steps, theAxis);
 
     // measure pressure with higher precision
     float currentPressure;
@@ -3628,18 +3645,33 @@ void findAxisOrigin(AxisAndDirection axisAndDirection, float offset, short mode)
 
     // check if pressure is compatible with zero pressure or not
     if(fabs(currentPressure - g_AxisScanZeroPressure) < SEARCH_AXIS_ORIGIN_PRECISE_PRESSURE_DELTA_ZERO) {
-      // Pressure is zero: move back half way our last move.
-      // prevent that this move fulfills the abort condition
-      auto nextMoveDistanceAbs = fmax(abs(estimatedDistance) / 2, 0.04 * Printer::axisStepsPerMM[theAxis]);
-      // We enforce that the direction goes in original scan direction (rising pressures), just in case this condition
-      // is reached in two consecutive iterations
-      estimatedDistance = direction * nextMoveDistanceAbs;
+      // Pressure is zero
+      if(nIter == 1) {
+        // first iteration: go back to full pressure position, repeat full interation process
+        moveAxis(g_nAxisScanFullPressurePosition - g_nAxisScanFullPressurePosition, theAxis);
+        // reduce move fraction to avoid another overshooting
+        moveFraction *= 0.8;
+        goto retry;
+      }
+      // not first iteration: we are done
+      break;
     }
     else {
       // pressure is not yet (or again not) zero: re-estimate
       slope = (double(g_AxisScanFullPressure) - double(currentPressure)) /
           (double(g_nAxisScanFullPressurePosition) - double(g_nAxisScanPosition));
+      if(abs(slope) < 0.1) {
+        Com::printFLN(PSTR("findAxisOrigin(): Extrapolation failed"));
+        showError((void*)ui_text_find_axis_origin, PSTR("Extrapolation failed"));
+        return;
+      }
       estimatedDistance = (double(g_AxisScanZeroPressure) - double(currentPressure)) / slope;
+      // safety check: estimated distance must go in opposite of original scan direction
+      if(estimatedDistance*direction > 0) {
+        // repeat full iteration process if wrong direction is estimated - pressure might have drifted
+        moveAxis(g_nAxisScanFullPressurePosition - g_nAxisScanFullPressurePosition, theAxis);
+        goto retry;
+      }
     }
   }
 
@@ -3673,7 +3705,13 @@ void findAxisOrigin(AxisAndDirection axisAndDirection, float offset, short mode)
       // set axis origin
       g_OriginScanPosition[theAxis] = Printer::destinationMM[Y_AXIS];
       g_OriginScanOffsetAndDirection[theAxis] = direction * fmax(offset, 1e-6); // prevent loosing the sign
-      xOff = -(Printer::destinationMM[theAxis] + distanceToContactPointMM + direction * offset);
+      auto xyOff = -(Printer::destinationMM[theAxis] + distanceToContactPointMM + direction * offset);
+      if(theAxis == X_AXIS) {
+        xOff = xyOff;
+      }
+      else {
+        yOff = xyOff;
+      }
     }
 
 #  if DEBUG_FIND_AXIS_ORIGIN
@@ -3806,6 +3844,7 @@ void findAxisOrigin(AxisAndDirection axisAndDirection, float offset, short mode)
       Printer::rotationCos = 1.0;
       Printer::rotationSin = 0.0;
     }
+    BEEP_ACCEPT_SET_POSITION
   }
 
   Commands::printCurrentPosition(true);
