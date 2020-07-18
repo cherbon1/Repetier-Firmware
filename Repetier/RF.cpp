@@ -3353,6 +3353,7 @@ void showAbortScanReason(const void* scanName, char abortScanIdentifier) {
 #if FEATURE_FIND_AXIS_ORIGIN
 bool readStrainGaugeCoarse(short& result) {
   Commands::checkForPeriodicalActions(Calibrating);
+  GCode::keepAlive(Calibrating);
   if(readAveragePressure(&result)) {
     Com::printFLN(PSTR("findAxisOrigin(): current pressure not determined"));
     g_abortAxisScan = SCAN_ABORT_REASON_START_PRESSURE;
@@ -3365,6 +3366,7 @@ bool readStrainGaugePrecise(float& result) {
   result = 0;
   for(size_t i = 0; i < SEARCH_AXIS_ORIGIN_PRESSURE_AVERAGE; ++i) {
     Commands::checkForPeriodicalActions(Calibrating);
+    GCode::keepAlive(Calibrating);
     short nCurrentPressure;
     if(readAveragePressure(&nCurrentPressure)) {
       Com::printFLN(PSTR("findAxisOrigin(): current pressure not determined"));
@@ -3461,6 +3463,7 @@ void findAxisOrigin(AxisAndDirection axisAndDirection, float offset, short mode)
     while(1) {
       auto nCurrentPressure = readStrainGauge(ACTIVE_STRAIN_GAUGE);
       Commands::checkForPeriodicalActions(Calibrating);
+      GCode::keepAlive(Calibrating);
 
       if(nCurrentPressure > nMaxPressureContact || nCurrentPressure < nMinPressureContact) {
         // we have reached the target pressure

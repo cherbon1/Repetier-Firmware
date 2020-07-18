@@ -928,7 +928,7 @@ Above this value the z compensation will distribute the roughness of the surface
 #define SEARCH_AXIS_ORIGIN_PRECISE_PRESSURE_DELTA_MID 50   // [digits] - mid-way pressure (typically 50% to 75% of SEARCH_AXIS_ORIGIN_PRECISE_PRESSURE_DELTA)
 #define SEARCH_AXIS_ORIGIN_PRECISE_PRESSURE_DELTA_ZERO 5   // [digits] - maximum pressure at zero-pressure contact point allowed in verification
 #define SEARCH_AXIS_ORIGIN_PRECISE_PRESSURE_DELTA_LOW 15   // [digits] - low pressure to compute low-pressure point for improving the extrapolation
-#define SEARCH_AXIS_ORIGIN_PRESSURE_AVERAGE 100            // number of measurements, will be effectivly multiplied by WORK_PART_SCAN_PRESSURE_READS
+#define SEARCH_AXIS_ORIGIN_PRESSURE_AVERAGE 25             // number of measurements, will be effectivly multiplied by WORK_PART_SCAN_PRESSURE_READS
 #define SEARCH_AXIS_ORIGIN_BREAKOUT_DELAY 100              // [ms]
 #define SEARCH_AXIS_ORIGIN_FAST_MM 0.05f                   // [mm]
 
