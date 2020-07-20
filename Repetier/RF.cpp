@@ -3800,7 +3800,7 @@ retry_step2:
 
       double partRotation, slope;
       if(theAxis == X_AXIS) {
-        double dy = fabs(Printer::destinationMM[Y_AXIS] - g_OriginScanPosition[X_AXIS]);
+        double dy = Printer::destinationMM[Y_AXIS] - g_OriginScanPosition[X_AXIS];
         double dx = xOff - Printer::originOffsetMM[X_AXIS];
 #  if DEBUG_FIND_AXIS_ORIGIN
         Com::printFLN(PSTR("g_OriginYPosition[X_AXIS] = "), g_OriginScanPosition[X_AXIS]);
@@ -3811,7 +3811,7 @@ retry_step2:
         partRotation = atan2(dx, dy);
       }
       else {
-        double dx = fabs(Printer::destinationMM[X_AXIS] - g_OriginScanPosition[Y_AXIS]);
+        double dx = Printer::destinationMM[X_AXIS] - g_OriginScanPosition[Y_AXIS];
         double dy = yOff - Printer::originOffsetMM[Y_AXIS];
 #  if DEBUG_FIND_AXIS_ORIGIN
         Com::printFLN(PSTR("g_YOriginXPosition = "), g_OriginScanPosition[Y_AXIS]);
@@ -3821,6 +3821,12 @@ retry_step2:
         slope = dy / dx;
         partRotation = atan2(dy, dx);
       }
+      
+      // Rotation seems to be >180 if the third scan to determin the angle is done at a more negative position than the
+      // other scan on the same axis to determine the origin. The slope does not reflect this (mathematically).
+      if(partRotation >  180) partRotation -= 180;
+      if(partRotation < -180) partRotation += 180;
+      
       Com::printF(PSTR("Part rotation = "), float(partRotation * 180. / M_PI));
       Com::printFLN(PSTR("deg"));
       
