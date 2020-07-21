@@ -3379,6 +3379,20 @@ bool readStrainGaugePrecise(float& result) {
   return true;
 }
 
+bool readStrainGaugeCompensated(short& result, long zlift) {
+  // measure pressure at original Z level
+  if(!readStrainGaugeCoarse(result)) return false;
+
+  // subtract zero-pressure measured at higher Z level
+  moveAxis(zlift, Z_AXIS);
+  short localZeroPressure;
+  if(!readStrainGaugeCoarse(localZeroPressure)) return false;
+  result -= localZeroPressure;
+  moveAxis(-zlift, Z_AXIS);
+
+  return true;
+}
+
 void findAxisOrigin(AxisAndDirection axisAndDirection, float offset, short mode) {
   // Check if scan is currently allowed
 #  if FEATURE_ALIGN_EXTRUDERS
@@ -3448,13 +3462,18 @@ void findAxisOrigin(AxisAndDirection axisAndDirection, float offset, short mode)
 #  endif // FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
 
   // ==================================================================================================================
-  // Step 0: Z axis only: fast, coarse search first
+  // Step 1 discriminates between z-axis and the other axes.
+retry_step1:
+  long zlift = (theAxis != Z_AXIS ? 3.0 : 0.5) * Printer::axisStepsPerMM[Z_AXIS];
+
+  // ==================================================================================================================
+  // Step 1 (z-axis): Fast, coarse search of contact point
   if(theAxis == Z_AXIS) {
     // determine pressure range
     short startPressure;
     if(!readStrainGaugeCoarse(startPressure)) return;
-    auto nMinPressureContact = startPressure - SEARCH_AXIS_ORIGIN_CONTACT_PRESSURE_DELTA;
-    auto nMaxPressureContact = startPressure + SEARCH_AXIS_ORIGIN_CONTACT_PRESSURE_DELTA;
+    auto nMinPressureContact = startPressure - SEARCH_AXIS_ORIGIN_Z_CONTACT_PRESSURE_DELTA;
+    auto nMaxPressureContact = startPressure + SEARCH_AXIS_ORIGIN_Z_CONTACT_PRESSURE_DELTA;
 
     if(Printer::debugInfo()) {
       Com::printF(PSTR("findAxisOrigin(): nMinPressureContact = "), nMinPressureContact);
@@ -3491,59 +3510,53 @@ void findAxisOrigin(AxisAndDirection axisAndDirection, float offset, short mode)
   }
 
   // ==================================================================================================================
-  // Step 1: Find mid and full pressure positions
-
-  // determine high-precision pressure range
-retry_step1:
-  float g_AxisScanZeroPressure;
-  if(!readStrainGaugePrecise(g_AxisScanZeroPressure)) return;
-  auto nMinPressureContact = g_AxisScanZeroPressure - SEARCH_AXIS_ORIGIN_PRECISE_PRESSURE_DELTA;
-  auto nMaxPressureContact = g_AxisScanZeroPressure + SEARCH_AXIS_ORIGIN_PRECISE_PRESSURE_DELTA;
-
-#  if DEBUG_FIND_AXIS_ORIGIN
-  Com::printFLN(PSTR("findAxisOrigin(): zeroPressure: "), g_AxisScanZeroPressure, 2);
-  Com::printF(PSTR("findAxisOrigin(): nMinPressureContact(mid) = "), nMinPressureContact);
-  Com::printFLN(PSTR(", nMaxPressureContact(mid) = "), nMaxPressureContact);
-#  endif // DEBUG_FIND_AXIS_ORIGIN
-
-  // move forward (in selected direction) until we detect the contact pressure
-  long g_nAxisScanFullPressurePosition = 0;
-  while(1) {
-    short nCurrentPressure;
-    if(readAveragePressure(&nCurrentPressure)) {
-      Com::printFLN(PSTR("findAxisOrigin(): current pressure not determined"));
-      g_abortAxisScan = SCAN_ABORT_REASON_START_PRESSURE;
-      return;
-    }
-
-    // check if target pressure is reached
-    if(nCurrentPressure > nMaxPressureContact || nCurrentPressure < nMinPressureContact) {
-      // re-measure pressure with higher precision
-      if(!readStrainGaugePrecise(g_AxisScanFullPressure)) return;
-
-      // verify that full-range pressure is really reached
-      if(g_AxisScanFullPressure > nMaxPressureContact || g_AxisScanFullPressure < nMinPressureContact) {
-        g_nAxisScanFullPressurePosition = g_nAxisScanPosition;
+  // Step 1 (x/y axis): Coarse search of contact point
+  else {
+    // determine high-precision pressure range
+    float g_AxisScanZeroPressure;
+    if(!readStrainGaugePrecise(g_AxisScanZeroPressure)) return;
+    auto nMinPressureContact = g_AxisScanZeroPressure - SEARCH_AXIS_ORIGIN_XY_CONTACT_PRESSURE_DELTA;
+    auto nMaxPressureContact = g_AxisScanZeroPressure + SEARCH_AXIS_ORIGIN_XY_CONTACT_PRESSURE_DELTA;
 
 #  if DEBUG_FIND_AXIS_ORIGIN
-        Com::printFLN(PSTR("findAxisOrigin(): full pressure position: "), g_nAxisScanFullPressurePosition);
-        Com::printFLN(PSTR("findAxisOrigin(): full pressure digits: "), g_AxisScanFullPressure, 2);
+    Com::printFLN(PSTR("findAxisOrigin(): zeroPressure: "), g_AxisScanZeroPressure, 2);
+    Com::printF(PSTR("findAxisOrigin(): nMinPressureContact(mid) = "), nMinPressureContact);
+    Com::printFLN(PSTR(", nMaxPressureContact(mid) = "), nMaxPressureContact);
 #  endif // DEBUG_FIND_AXIS_ORIGIN
 
-        break;
+    // move forward (in selected direction) until we detect the contact pressure
+    while(1) {
+      short nCurrentPressure;
+      if(readAveragePressure(&nCurrentPressure)) {
+        Com::printFLN(PSTR("findAxisOrigin(): current pressure not determined"));
+        g_abortAxisScan = SCAN_ABORT_REASON_START_PRESSURE;
+        return;
       }
-    }
 
-    // check if endstops hit
-    if(Printer::isZMinEndstopHit() || Printer::isXMinEndstopHit() || Printer::isXMaxEndstopHit() ||
-        Printer::isYMinEndstopHit() || Printer::isYMaxEndstopHit()) {
-      Com::printFLN(PSTR("findAxisOrigin(): endstop reached"));
-      showError((void*)ui_text_find_axis_origin, PSTR("Endstop reached"));
-      return;
-    }
+      // check if target pressure is reached
+      if(nCurrentPressure > nMaxPressureContact || nCurrentPressure < nMinPressureContact) {
+        // validate with compensated scan
+        short currentPressure;
+        if(!readStrainGaugeCompensated(currentPressure, zlift)) return;
+#  if DEBUG_FIND_AXIS_ORIGIN
+        Com::printFLN(PSTR("findAxisOrigin(): compensated pressure: "), currentPressure);
+#  endif // DEBUG_FIND_AXIS_ORIGIN
+        if(abs(currentPressure) < SEARCH_AXIS_ORIGIN_ZERO_PRESSURE_DELTA) {
+          break;
+        }
+      }
 
-    // perform scan move
-    moveAxis(direction * int(0.05 * Printer::axisStepsPerMM[theAxis]), theAxis);
+      // check if endstops hit
+      if(Printer::isZMinEndstopHit() || Printer::isXMinEndstopHit() || Printer::isXMaxEndstopHit() ||
+          Printer::isYMinEndstopHit() || Printer::isYMaxEndstopHit()) {
+        Com::printFLN(PSTR("findAxisOrigin(): endstop reached"));
+        showError((void*)ui_text_find_axis_origin, PSTR("Endstop reached"));
+        return;
+      }
+
+      // perform scan move
+      moveAxis(direction * int(0.05 * Printer::axisStepsPerMM[theAxis]), theAxis);
+    }
   }
 
   // ==================================================================================================================
@@ -3551,8 +3564,7 @@ retry_step1:
 
   // Define search range. A is inside the material, B is outside.
   long A = g_nAxisScanPosition;
-  long B = A - direction*( theAxis != Z_AXIS ? 1.0 : 0.25 )*Printer::axisStepsPerMM[theAxis];
-  long zStep = ( theAxis != Z_AXIS ? 3.0 : 0.5 )*Printer::axisStepsPerMM[Z_AXIS];
+  long B = A - direction * (theAxis != Z_AXIS ? 1.0 : 0.25) * Printer::axisStepsPerMM[theAxis];
 
   for(short i=0; i<7; ++i) {
 
@@ -3566,43 +3578,45 @@ retry_step1:
 #  endif // DEBUG_FIND_AXIS_ORIGIN
     moveAxis(C - g_nAxisScanPosition, theAxis);
 
-    // measure pressure with higher precision
     short currentPressure;
-    if(!readStrainGaugeCoarse(currentPressure)) return;
-
-#  if DEBUG_FIND_AXIS_ORIGIN
-    Com::printFLN(PSTR("currentPressure: "), currentPressure);
-#  endif // DEBUG_FIND_AXIS_ORIGIN
-
-    // subtract zero-pressure measured at higher Z level
-    moveAxis(zStep, Z_AXIS);
-    short localZeroPressure;
-    if(!readStrainGaugeCoarse(localZeroPressure)) return;
-    currentPressure -= localZeroPressure;
-    moveAxis(-zStep, Z_AXIS);
-#  if DEBUG_FIND_AXIS_ORIGIN
-    Com::printFLN(PSTR("localZeroPressure: "), localZeroPressure);
-    Com::printFLN(PSTR("currentPressure (compensated): "), currentPressure);
-#  endif // DEBUG_FIND_AXIS_ORIGIN
+    if(!readStrainGaugeCompensated(currentPressure, zlift)) return;
 
     // binary decision: currentPressure exceeds DELTA_ZERO -> outside, inside otherwise
-    if(abs(currentPressure) > SEARCH_AXIS_ORIGIN_PRECISE_PRESSURE_DELTA_ZERO) {
+    if(abs(currentPressure) > SEARCH_AXIS_ORIGIN_ZERO_PRESSURE_DELTA) {
       A = C;
     }
     else {
       B = C;
     }
-
   }
 
-  // finally move to the center point as the best estimate
-  moveAxis((A+B)/2-g_nAxisScanPosition, theAxis);
+  // ==================================================================================================================
+  // Step 3: Validate
+
+  short currentPressure;
+  moveAxis(direction * 2 * abs(A - B), theAxis); // move into the material by last interval size
+  if(!readStrainGaugeCompensated(currentPressure, zlift)) return;
+  if(abs(currentPressure) < SEARCH_AXIS_ORIGIN_ZERO_PRESSURE_DELTA) {
+#  if DEBUG_FIND_AXIS_ORIGIN
+    Com::printFLN(PSTR("Validation failed. In-material pressure: "), currentPressure);
+    moveAxis(-g_nAxisScanPosition, theAxis);
+    goto retry_step1;
+#  endif // DEBUG_FIND_AXIS_ORIGIN
+  }
+  moveAxis(-2 * direction * 2 * abs(A - B), theAxis); // move to opposite point (out of material)
+  if(abs(currentPressure) > SEARCH_AXIS_ORIGIN_ZERO_PRESSURE_DELTA) {
+#  if DEBUG_FIND_AXIS_ORIGIN
+    Com::printFLN(PSTR("Validation failed. Out-material pressure: "), currentPressure);
+    moveAxis(-g_nAxisScanPosition, theAxis);
+    goto retry_step1;
+#  endif // DEBUG_FIND_AXIS_ORIGIN
+  }
 
   // ==================================================================================================================
-  // Step 3: Final computations depending on selected mode
+  // Step 4: Final computations depending on selected mode
 
   // move back to original position (X/Y only)
-  auto distanceToContactPoint = g_nAxisScanPosition;
+  auto distanceToContactPoint = (A + B) / 2;
   if(theAxis != Z_AXIS) {
     moveAxis(-g_nAxisScanPosition, theAxis);
   }
