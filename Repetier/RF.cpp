@@ -3504,9 +3504,6 @@ retry_step1:
 #  if DEBUG_FIND_AXIS_ORIGIN
     Com::printFLN(PSTR("findAxisOrigin(): coarse contact"));
 #  endif // DEBUG_FIND_AXIS_ORIGIN
-
-    // back off 0.5mm, so we can repeat with more precision
-    moveAxis(int(0.5 * Printer::axisStepsPerMM[Z_AXIS]), Z_AXIS);
   }
 
   // ==================================================================================================================
@@ -3541,7 +3538,7 @@ retry_step1:
 #  if DEBUG_FIND_AXIS_ORIGIN
         Com::printFLN(PSTR("findAxisOrigin(): compensated pressure: "), currentPressure);
 #  endif // DEBUG_FIND_AXIS_ORIGIN
-        if(abs(currentPressure) < SEARCH_AXIS_ORIGIN_ZERO_PRESSURE_DELTA) {
+        if(abs(currentPressure) > SEARCH_AXIS_ORIGIN_ZERO_PRESSURE_DELTA) {
           break;
         }
       }
@@ -3566,27 +3563,35 @@ retry_step1:
   long A = g_nAxisScanPosition;
   long B = A - direction * (theAxis != Z_AXIS ? 1.0 : 0.25) * Printer::axisStepsPerMM[theAxis];
 
-  for(short i=0; i<7; ++i) {
+  for(short i=0; i<14; ++i) {   // 14 iterations should give us a precision of 1 step in X/Y
 
     // move to center point
     long C = (A+B)/2;
-#  if DEBUG_FIND_AXIS_ORIGIN
-    Com::printF(PSTR("iter "), i);
-    Com::printF(PSTR(" : "), A);
-    Com::printF(PSTR(" : "), B);
-    Com::printFLN(PSTR(" : "), C);
-#  endif // DEBUG_FIND_AXIS_ORIGIN
     moveAxis(C - g_nAxisScanPosition, theAxis);
 
     short currentPressure;
     if(!readStrainGaugeCompensated(currentPressure, zlift)) return;
 
-    // binary decision: currentPressure exceeds DELTA_ZERO -> outside, inside otherwise
+#  if DEBUG_FIND_AXIS_ORIGIN
+    Com::printF(PSTR("iter "), i);
+    Com::printF(PSTR(" : "), A);
+    Com::printF(PSTR(" : "), B);
+    Com::printF(PSTR(" : "), C);
+    Com::printFLN(PSTR(" : "), currentPressure);
+#  endif // DEBUG_FIND_AXIS_ORIGIN
+
+    // Binary decision: currentPressure exceeds DELTA_ZERO -> outside, inside otherwise
+    // The next interval is 75% of the previous one and includes the area around both previous edges, to avoid that
+    // a single wrong measurement may spoil our result completely.
     if(abs(currentPressure) > SEARCH_AXIS_ORIGIN_ZERO_PRESSURE_DELTA) {
-      A = C;
+      auto r = B-A;
+      A = A + (C-A)*3/4;
+      B = A+r*3/4;
     }
     else {
-      B = C;
+      auto r = A-B;
+      B = B + (C-B)*3/4;
+      A = B+r*3/4;
     }
   }
 
@@ -3594,20 +3599,23 @@ retry_step1:
   // Step 3: Validate
 
   short currentPressure;
-  moveAxis(direction * 2 * abs(A - B), theAxis); // move into the material by last interval size
+  moveAxis(direction * 0.05*Printer::axisStepsPerMM[theAxis], theAxis); // move into the material by 0.05mm
   if(!readStrainGaugeCompensated(currentPressure, zlift)) return;
   if(abs(currentPressure) < SEARCH_AXIS_ORIGIN_ZERO_PRESSURE_DELTA) {
 #  if DEBUG_FIND_AXIS_ORIGIN
     Com::printFLN(PSTR("Validation failed. In-material pressure: "), currentPressure);
-    moveAxis(-g_nAxisScanPosition, theAxis);
+    Com::printFLN(PSTR("Position: "), g_nAxisScanPosition);
+    moveAxis(-direction*1.0*Printer::axisStepsPerMM[theAxis], theAxis);
     goto retry_step1;
 #  endif // DEBUG_FIND_AXIS_ORIGIN
   }
-  moveAxis(-2 * direction * 2 * abs(A - B), theAxis); // move to opposite point (out of material)
+  moveAxis(-2 * direction * 0.05*Printer::axisStepsPerMM[theAxis], theAxis); // move to opposite point (out of material)
+  if(!readStrainGaugeCompensated(currentPressure, zlift)) return;
   if(abs(currentPressure) > SEARCH_AXIS_ORIGIN_ZERO_PRESSURE_DELTA) {
 #  if DEBUG_FIND_AXIS_ORIGIN
     Com::printFLN(PSTR("Validation failed. Out-material pressure: "), currentPressure);
-    moveAxis(-g_nAxisScanPosition, theAxis);
+    Com::printFLN(PSTR("Position: "), g_nAxisScanPosition);
+    moveAxis(-direction*1.0*Printer::axisStepsPerMM[theAxis], theAxis);
     goto retry_step1;
 #  endif // DEBUG_FIND_AXIS_ORIGIN
   }
