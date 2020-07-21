@@ -3561,7 +3561,7 @@ retry_step1:
 
   // Define search range. A is inside the material, B is outside.
   long A = g_nAxisScanPosition;
-  long B = A - direction * (theAxis != Z_AXIS ? 1.0 : 0.25) * Printer::axisStepsPerMM[theAxis];
+  long B = A - direction * (theAxis != Z_AXIS ? 1.0 : 0.50) * Printer::axisStepsPerMM[theAxis];
 
   for(short i=0; i<14; ++i) {   // 14 iterations should give us a precision of 1 step in X/Y
 
