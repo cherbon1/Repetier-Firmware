@@ -923,10 +923,9 @@ Above this value the z compensation will distribute the roughness of the surface
 
 #define FEATURE_PART_ROTATION           1
 
-#define SEARCH_AXIS_ORIGIN_CONTACT_PRESSURE_DELTA 250      // [digits]
-#define SEARCH_AXIS_ORIGIN_PRECISE_PRESSURE_DELTA 75       // [digits]
-#define SEARCH_AXIS_ORIGIN_PRECISE_PRESSURE_DELTA_MID 50   // [digits] - mid-way pressure (typically 50% to 75% of SEARCH_AXIS_ORIGIN_PRECISE_PRESSURE_DELTA)
-#define SEARCH_AXIS_ORIGIN_PRECISE_PRESSURE_DELTA_ZERO 5   // [digits] - maximum pressure at zero-pressure contact point allowed in verification
+#define SEARCH_AXIS_ORIGIN_CONTACT_PRESSURE_DELTA 250      // [digits] - coarse Z axis scan only
+#define SEARCH_AXIS_ORIGIN_PRECISE_PRESSURE_DELTA 50       // [digits] - reliable coarse contact search
+#define SEARCH_AXIS_ORIGIN_ZERO_PRESSURE_DELTA 15          // [digits] - pressure to be considered zero in compensated binary search
 #define SEARCH_AXIS_ORIGIN_PRESSURE_AVERAGE 25             // number of measurements, will be effectivly multiplied by WORK_PART_SCAN_PRESSURE_READS
 #define SEARCH_AXIS_ORIGIN_BREAKOUT_DELAY 100              // [ms]
 #define SEARCH_AXIS_ORIGIN_FAST_MM 0.05f                   // [mm]

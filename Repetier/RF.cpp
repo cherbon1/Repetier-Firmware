@@ -3405,18 +3405,20 @@ void findAxisOrigin(AxisAndDirection axisAndDirection, float offset, short mode)
     }
   }
 
-  short theAxis;
+  short theAxis, theOtherAxis;
   short direction = 1;
   switch(axisAndDirection) {
     case AxisAndDirection::Xneg:
       direction = -1;
     case AxisAndDirection::Xpos:
       theAxis = X_AXIS;
+      theOtherAxis = Y_AXIS;
       break;
     case AxisAndDirection::Yneg:
       direction = -1;
     case AxisAndDirection::Ypos:
       theAxis = Y_AXIS;
+      theOtherAxis = X_AXIS;
       break;
     case AxisAndDirection::Zneg:
       direction = -1;
@@ -3495,8 +3497,8 @@ void findAxisOrigin(AxisAndDirection axisAndDirection, float offset, short mode)
 retry_step1:
   float g_AxisScanZeroPressure;
   if(!readStrainGaugePrecise(g_AxisScanZeroPressure)) return;
-  auto nMinPressureContact = g_AxisScanZeroPressure - SEARCH_AXIS_ORIGIN_PRECISE_PRESSURE_DELTA_MID;
-  auto nMaxPressureContact = g_AxisScanZeroPressure + SEARCH_AXIS_ORIGIN_PRECISE_PRESSURE_DELTA_MID;
+  auto nMinPressureContact = g_AxisScanZeroPressure - SEARCH_AXIS_ORIGIN_PRECISE_PRESSURE_DELTA;
+  auto nMaxPressureContact = g_AxisScanZeroPressure + SEARCH_AXIS_ORIGIN_PRECISE_PRESSURE_DELTA;
 
 #  if DEBUG_FIND_AXIS_ORIGIN
   Com::printFLN(PSTR("findAxisOrigin(): zeroPressure: "), g_AxisScanZeroPressure, 2);
@@ -3505,9 +3507,6 @@ retry_step1:
 #  endif // DEBUG_FIND_AXIS_ORIGIN
 
   // move forward (in selected direction) until we detect the contact pressure
-  float g_AxisScanMidPressure = 0;
-  float g_AxisScanFullPressure = 0;
-  long g_nAxisScanMidPressurePosition = 0;
   long g_nAxisScanFullPressurePosition = 0;
   while(1) {
     short nCurrentPressure;
@@ -3517,31 +3516,8 @@ retry_step1:
       return;
     }
 
-    // check if mid-way pressure is reached
-    if((nCurrentPressure > nMaxPressureContact || nCurrentPressure < nMinPressureContact) &&
-        g_nAxisScanMidPressurePosition == 0) {
-      // re-measure pressure with higher precision
-      if(!readStrainGaugePrecise(g_AxisScanMidPressure)) return;
-
-      // verify that mid-way pressure is really reached
-      if(g_AxisScanMidPressure > nMaxPressureContact || g_AxisScanMidPressure < nMinPressureContact) {
-        // mid-way pressure is reached
-        g_nAxisScanMidPressurePosition = g_nAxisScanPosition;
-
-        // extend to full pressure range
-        nMinPressureContact = g_AxisScanZeroPressure - SEARCH_AXIS_ORIGIN_PRECISE_PRESSURE_DELTA;
-        nMaxPressureContact = g_AxisScanZeroPressure + SEARCH_AXIS_ORIGIN_PRECISE_PRESSURE_DELTA;
-
-#  if DEBUG_FIND_AXIS_ORIGIN
-        Com::printFLN(PSTR("findAxisOrigin(): mid pressure position: "), g_nAxisScanMidPressurePosition);
-        Com::printFLN(PSTR("findAxisOrigin(): mid pressure digits: "), g_AxisScanMidPressure, 2);
-        Com::printF(PSTR("findAxisOrigin(): nMinPressureContact(full) = "), nMinPressureContact);
-        Com::printFLN(PSTR(", nMaxPressureContact(full) = "), nMaxPressureContact);
-#  endif // DEBUG_FIND_AXIS_ORIGIN
-      }
-    }
-    // check if full-range pressure is reached
-    else if(nCurrentPressure > nMaxPressureContact || nCurrentPressure < nMinPressureContact) {
+    // check if target pressure is reached
+    if(nCurrentPressure > nMaxPressureContact || nCurrentPressure < nMinPressureContact) {
       // re-measure pressure with higher precision
       if(!readStrainGaugePrecise(g_AxisScanFullPressure)) return;
 
@@ -3571,179 +3547,59 @@ retry_step1:
   }
 
   // ==================================================================================================================
-  // Step 2: Compute first estimate for zero-pressure contact point
-  float moveFraction = 0.8;
+  // Step 2: Compensated binary search
 
-retry_step2:
-  // linear extrapolation
-  double slope = (double(g_AxisScanFullPressure) - double(g_AxisScanMidPressure)) /
-      (double(g_nAxisScanFullPressurePosition) - double(g_nAxisScanMidPressurePosition));
-  if(abs(slope) < 0.1) {
-    Com::printFLN(PSTR("findAxisOrigin(): Extrapolation failed"));
-    showError((void*)ui_text_find_axis_origin, PSTR("Extrapolation failed"));
-    return;
-  }
-  long estimatedDistance = (double(g_AxisScanZeroPressure) - double(g_AxisScanFullPressure)) / slope;
+  // Define search range. A is inside the material, B is outside.
+  long A = g_nAxisScanPosition;
+  long B = A - direction*( theAxis != Z_AXIS ? 1.0 : 0.25 )*Printer::axisStepsPerMM[theAxis];
+  long zStep = ( theAxis != Z_AXIS ? 3.0 : 0.5 )*Printer::axisStepsPerMM[Z_AXIS];
 
-  // ==================================================================================================================
-  // Step 3: Strain gauge digits may drift, so repeat zero and full pressure measurements
+  for(short i=0; i<7; ++i) {
 
+    // move to center point
+    long C = (A+B)/2;
 #  if DEBUG_FIND_AXIS_ORIGIN
-    Com::printFLN(PSTR("findAxisOrigin(): remeasure pressures"));
+    Com::printF(PSTR("iter "), i);
+    Com::printF(PSTR(" : "), A);
+    Com::printF(PSTR(" : "), B);
+    Com::printFLN(PSTR(" : "), C);
 #  endif // DEBUG_FIND_AXIS_ORIGIN
-
-  // zero-measurement: move out of contact
-  long moveOutSteps = -direction*0.75*Printer::axisStepsPerMM[theAxis];
-  moveAxis(moveOutSteps, theAxis);
-  if(!readStrainGaugePrecise(g_AxisScanZeroPressure)) return;
-
-#  if DEBUG_FIND_AXIS_ORIGIN
-    Com::printFLN(PSTR("findAxisOrigin(): g_AxisScanZeroPressure: "), g_AxisScanZeroPressure, 2);
-#  endif // DEBUG_FIND_AXIS_ORIGIN
-
-  // full-pressure measurement: move back to full-pressure position first
-  moveAxis(-moveOutSteps, theAxis);
-  if(!readStrainGaugePrecise(g_AxisScanFullPressure)) return;
-
-#  if DEBUG_FIND_AXIS_ORIGIN
-    Com::printFLN(PSTR("findAxisOrigin(): g_AxisScanFullPressure: "), g_AxisScanFullPressure, 2);
-#  endif // DEBUG_FIND_AXIS_ORIGIN
-
-  // check that the two pressures are far enough apart - minimum the defined mid-way pressure
-  if(fabs(g_AxisScanFullPressure-g_AxisScanZeroPressure) < SEARCH_AXIS_ORIGIN_PRECISE_PRESSURE_DELTA_MID) {
-    // not really in contact position, repeat contact search after moving out a bit
-    moveAxis(moveOutSteps, theAxis);
-    goto retry_step1;
-  }
-
-  // ==================================================================================================================
-  // Step 4: Iterative search for true zero-pressure contact point
-
-  short nIter = 0;
-  long measPosition[10];
-  float measPressure[10];
-  while(true) {
-    ++nIter;
-
-    // check for non-convergence
-    if(nIter > 10) {
-      // Common failure mode: zero-pressure is different after moving out of contact. Retry won't help, because it
-      // happens reproducibly.
-      // In this case, try to estimate contact position from recorded measurements.
-      float zeroPressureRecorded = 0;
-      for(short i=5; i<10; ++i) zeroPressureRecorded += measPressure[i];
-      zeroPressureRecorded /= 5;
-      float rms = 0;
-      for(short i=5; i<10; ++i) rms += pow(measPressure[i]-zeroPressureRecorded,2);
-      rms = 1./5. * sqrt(rms);
-    
-#  if DEBUG_FIND_AXIS_ORIGIN
-      Com::printFLN(PSTR("findAxisOrigin(): zeroPressureRecorded: "), zeroPressureRecorded);
-      Com::printFLN(PSTR("findAxisOrigin(): rms: "), rms);
-#  endif // DEBUG_FIND_AXIS_ORIGIN
-      
-      if(rms > SEARCH_AXIS_ORIGIN_PRECISE_PRESSURE_DELTA_ZERO) {
-        // last 5 recorded measurements fluctuacte too much, might be a different failure mode.
-        // move out a bit and start over
-        moveAxis(moveOutSteps, theAxis);
-        goto retry_step1;
-      }
-      
-      // find last measurement which was not at zero pressure
-      short iLast = 0;
-      for(short i=0; i<10; ++i) {
-        if(fabs(measPressure[i]-zeroPressureRecorded) < SEARCH_AXIS_ORIGIN_PRECISE_PRESSURE_DELTA_ZERO) break;
-        iLast = i;
-      }
-      
-      // extrapolate from recorded measurement
-      slope = (double(measPressure[0]) - double(measPressure[iLast])) /
-          (double(measPosition[0]) - double(measPosition[iLast]));
-      if(abs(slope) < 0.1) {
-        Com::printFLN(PSTR("findAxisOrigin(): Extrapolation failed"));
-        showError((void*)ui_text_find_axis_origin, PSTR("Extrapolation failed"));
-        return;
-      }
-      estimatedDistance = (double(zeroPressureRecorded) - double(measPressure[iLast])) / slope;
-#  if DEBUG_FIND_AXIS_ORIGIN
-      Com::printFLN(PSTR("findAxisOrigin(): slope: "), slope, 2);
-      Com::printFLN(PSTR("findAxisOrigin(): estimatedDistance: "), estimatedDistance);
-#  endif // DEBUG_FIND_AXIS_ORIGIN
-
-      // move to computed contact position
-      moveAxis(estimatedDistance-g_nAxisScanPosition, theAxis);
-      break;
-    }
-
-#  if DEBUG_FIND_AXIS_ORIGIN
-    Com::printFLN(PSTR("findAxisOrigin(): nIter: "), nIter);
-    Com::printFLN(PSTR("findAxisOrigin(): slope: "), slope, 2);
-    Com::printFLN(PSTR("findAxisOrigin(): estimatedDistance: "), estimatedDistance);
-#  endif // DEBUG_FIND_AXIS_ORIGIN
-
-    // abort condition: estimated distance was very small
-    if(abs(estimatedDistance) < 0.02 * Printer::axisStepsPerMM[theAxis]) {
-      moveAxis(estimatedDistance, theAxis);     // move the last step by the full estimatedDistance without moveFraction
-      break;
-    }
-
-    // move towards estimated contact point, move only a fraction of the estimated distance to avoid overshooting
-    long steps = estimatedDistance*moveFraction;
-    if(steps*direction > 0) steps = 0; // do not move in wrong direction
-    if(steps*direction < -0.2*Printer::axisStepsPerMM[theAxis]) steps = -direction*0.2*Printer::axisStepsPerMM[theAxis]; // do not move too far
-#  if DEBUG_FIND_AXIS_ORIGIN
-    Com::printFLN(PSTR("findAxisOrigin(): steps: "), steps);
-#  endif // DEBUG_FIND_AXIS_ORIGIN
-    moveAxis(steps, theAxis);
+    moveAxis(C - g_nAxisScanPosition, theAxis);
 
     // measure pressure with higher precision
-    float currentPressure;
-    if(!readStrainGaugePrecise(currentPressure)) return;
-    measPosition[nIter-1] = g_nAxisScanPosition;
-    measPressure[nIter-1] = currentPressure;
+    short currentPressure;
+    if(!readStrainGaugeCoarse(currentPressure)) return;
 
 #  if DEBUG_FIND_AXIS_ORIGIN
-    Com::printFLN(PSTR("currentPressure: "), float(currentPressure));
+    Com::printFLN(PSTR("currentPressure: "), currentPressure);
 #  endif // DEBUG_FIND_AXIS_ORIGIN
 
-    // check if pressure is compatible with zero pressure or not
-    if(fabs(currentPressure - g_AxisScanZeroPressure) < SEARCH_AXIS_ORIGIN_PRECISE_PRESSURE_DELTA_ZERO) {
-      // Pressure is zero
-      if(nIter == 1) {
-        // first iteration: go back to full pressure position, repeat full interation process
-        moveAxis(g_nAxisScanFullPressurePosition - g_nAxisScanFullPressurePosition, theAxis);
-        // reduce move fraction to avoid another overshooting
-        moveFraction *= 0.8;
-        goto retry_step2;
-      }
-      // not first iteration: we are done
-      break;
+    // subtract zero-pressure measured at higher Z level
+    moveAxis(zStep, Z_AXIS);
+    short localZeroPressure;
+    if(!readStrainGaugeCoarse(localZeroPressure)) return;
+    currentPressure -= localZeroPressure;
+    moveAxis(-zStep, Z_AXIS);
+#  if DEBUG_FIND_AXIS_ORIGIN
+    Com::printFLN(PSTR("localZeroPressure: "), localZeroPressure);
+    Com::printFLN(PSTR("currentPressure (compensated): "), currentPressure);
+#  endif // DEBUG_FIND_AXIS_ORIGIN
+
+    // binary decision: currentPressure exceeds DELTA_ZERO -> outside, inside otherwise
+    if(abs(currentPressure) > SEARCH_AXIS_ORIGIN_PRECISE_PRESSURE_DELTA_ZERO) {
+      A = C;
     }
     else {
-      // pressure is not yet (or again not) zero: re-estimate
-      slope = (double(g_AxisScanFullPressure) - double(currentPressure)) /
-          (double(g_nAxisScanFullPressurePosition) - double(g_nAxisScanPosition));
-      if(abs(slope) < 0.1) {
-        Com::printFLN(PSTR("findAxisOrigin(): Extrapolation failed"));
-        showError((void*)ui_text_find_axis_origin, PSTR("Extrapolation failed"));
-        return;
-      }
-      estimatedDistance = (double(g_AxisScanZeroPressure) - double(currentPressure)) / slope;
-      // safety check: estimated distance must go in opposite of original scan direction
-      if(estimatedDistance*direction > 0) {
-        // repeat full iteration process if wrong direction is estimated - pressure might have drifted
-        moveAxis(g_nAxisScanFullPressurePosition - g_nAxisScanFullPressurePosition, theAxis);
-        goto retry_step2;
-      }
+      B = C;
     }
+
   }
 
-#  if DEBUG_FIND_AXIS_ORIGIN
-  Com::printFLN(PSTR("findAxisOrigin(): scan converged"));
-#  endif // DEBUG_FIND_AXIS_ORIGIN
+  // finally move to the center point as the best estimate
+  moveAxis((A+B)/2-g_nAxisScanPosition, theAxis);
 
   // ==================================================================================================================
-  // Step 5: Final computations depending on selected mode
+  // Step 3: Final computations depending on selected mode
 
   // move back to original position (X/Y only)
   auto distanceToContactPoint = g_nAxisScanPosition;
@@ -3853,7 +3709,7 @@ retry_step2:
         // Offsets as they have been used by the x resp. y origin scans, including the sign, assuming the
         // offset was the same in all scans.
         double rx = g_OriginScanOffsetAndDirection[X_AXIS]; // offset as used in x origin scan
-        double ry = g_OriginScanOffsetAndDirection[X_AXIS]; // offset as used in y origin scan
+        double ry = g_OriginScanOffsetAndDirection[Y_AXIS]; // offset as used in y origin scan
 
         // Now we define points Ax and Ay, which are the center positions of the scanning tool in contact
         // position when the x resp. y origin was scanned.
@@ -3879,7 +3735,7 @@ retry_step2:
         // The intersection of the two computed straights gives the new origin in the printer coordinate
         // system.
         double x0new = (bx - by) / (my - mx);
-        double y0new = mx * x0new + bx;
+        double y0new = my * x0new + by;
 
   #  if DEBUG_FIND_AXIS_ORIGIN
         Com::printFLN(PSTR("mx = "), float(mx));
@@ -3914,7 +3770,7 @@ retry_step2:
       Printer::setOrigin(xOff, yOff, zOff);
 
       // set axis origin scan position
-      g_OriginScanPosition[theAxis] = Printer::destinationMM[Y_AXIS];
+      g_OriginScanPosition[theAxis] = Printer::destinationMM[theOtherAxis];
       g_OriginScanOffsetAndDirection[theAxis] = direction * fmax(offset, 1e-6); // prevent loosing the sign
 
       // Reset gcode coordinate system rotation
