@@ -3690,7 +3690,7 @@ retry_step1:
       }
       else {
         double dx = Printer::destinationMM[X_AXIS] - g_OriginScanPosition[Y_AXIS];
-        double dy = yOff - Printer::originOffsetMM[Y_AXIS];
+        double dy = Printer::originOffsetMM[Y_AXIS] - yOff;
 #  if DEBUG_FIND_AXIS_ORIGIN
         Com::printFLN(PSTR("g_YOriginXPosition = "), g_OriginScanPosition[Y_AXIS]);
         Com::printFLN(PSTR("dx = "), float(dx));
