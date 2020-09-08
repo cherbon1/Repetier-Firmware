@@ -923,8 +923,8 @@ Above this value the z compensation will distribute the roughness of the surface
 
 #define FEATURE_PART_ROTATION           1
 
-#  define SEARCH_AXIS_ORIGIN_Z_CONTACT_PRESSURE_DELTA 250 // [digits] - coarse Z axis scan pressure
-#  define SEARCH_AXIS_ORIGIN_XY_CONTACT_PRESSURE_DELTA 50 // [digits] - coarse XY axis scan pressure
+#  define SEARCH_AXIS_ORIGIN_Z_CONTACT_PRESSURE_DELTA  250 // [digits] - coarse Z axis scan pressure
+#  define SEARCH_AXIS_ORIGIN_XY_CONTACT_PRESSURE_DELTA 100 // [digits] - coarse XY axis scan pressure
 #  define SEARCH_AXIS_ORIGIN_ZERO_PRESSURE_DELTA                                                                       \
     15 // [digits] - pressure to be considered zero in compensated binary search
 #  define SEARCH_AXIS_ORIGIN_PRESSURE_AVERAGE                                                                          \

@@ -3379,7 +3379,7 @@ bool readStrainGaugePrecise(float& result) {
   return true;
 }
 
-bool readStrainGaugeCompensated(short& result, long zlift) {
+bool readStrainGaugeCompensated(short& result, long zlift, short axis, short direction) {
   // measure pressure at original Z level
   if(!readStrainGaugeCoarse(result)) return false;
 
@@ -3388,7 +3388,16 @@ bool readStrainGaugeCompensated(short& result, long zlift) {
   short localZeroPressure;
   if(!readStrainGaugeCoarse(localZeroPressure)) return false;
   result -= localZeroPressure;
+  
+  // Move out of material, then down and finally into the original position. This avoids deforming the stock as compared
+  // to moving down to original position directly. This is done only for X and Y scans
+  if(axis == X_AXIS || axis == Y_AXIS) {
+    moveAxis(-direction*0.5*Printer::axisStepsPerMM[axis],axis);
+  }
   moveAxis(-zlift, Z_AXIS);
+  if(axis == X_AXIS || axis == Y_AXIS) {
+    moveAxis(+direction*0.5*Printer::axisStepsPerMM[axis],axis);
+  }
 
   return true;
 }
@@ -3534,7 +3543,7 @@ retry_step1:
       if(nCurrentPressure > nMaxPressureContact || nCurrentPressure < nMinPressureContact) {
         // validate with compensated scan
         short currentPressure;
-        if(!readStrainGaugeCompensated(currentPressure, zlift)) return;
+        if(!readStrainGaugeCompensated(currentPressure, zlift, theAxis, direction)) return;
 #  if DEBUG_FIND_AXIS_ORIGIN
         Com::printFLN(PSTR("findAxisOrigin(): compensated pressure: "), currentPressure);
 #  endif // DEBUG_FIND_AXIS_ORIGIN
@@ -3570,7 +3579,7 @@ retry_step1:
     moveAxis(C - g_nAxisScanPosition, theAxis);
 
     short currentPressure;
-    if(!readStrainGaugeCompensated(currentPressure, zlift)) return;
+    if(!readStrainGaugeCompensated(currentPressure, zlift, theAxis, direction)) return;
 
 #  if DEBUG_FIND_AXIS_ORIGIN
     Com::printF(PSTR("iter "), i);
@@ -3600,7 +3609,7 @@ retry_step1:
 
   short currentPressure;
   moveAxis(direction * 0.05*Printer::axisStepsPerMM[theAxis], theAxis); // move into the material by 0.05mm
-  if(!readStrainGaugeCompensated(currentPressure, zlift)) return;
+  if(!readStrainGaugeCompensated(currentPressure, zlift, theAxis, direction)) return;
   if(abs(currentPressure) < SEARCH_AXIS_ORIGIN_ZERO_PRESSURE_DELTA) {
 #  if DEBUG_FIND_AXIS_ORIGIN
     Com::printFLN(PSTR("Validation failed. In-material pressure: "), currentPressure);
@@ -3610,7 +3619,7 @@ retry_step1:
 #  endif // DEBUG_FIND_AXIS_ORIGIN
   }
   moveAxis(-2 * direction * 0.05*Printer::axisStepsPerMM[theAxis], theAxis); // move to opposite point (out of material)
-  if(!readStrainGaugeCompensated(currentPressure, zlift)) return;
+  if(!readStrainGaugeCompensated(currentPressure, zlift, theAxis, direction)) return;
   if(abs(currentPressure) > SEARCH_AXIS_ORIGIN_ZERO_PRESSURE_DELTA) {
 #  if DEBUG_FIND_AXIS_ORIGIN
     Com::printFLN(PSTR("Validation failed. Out-material pressure: "), currentPressure);
