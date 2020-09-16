@@ -4088,14 +4088,17 @@ void scanWorkPart(void) {
                 }
             }
 
-            // we should never end up here
             break;
         }
         case 33: {
             short nCurrentPressure;
+ 
+            auto nLastPressure = readStrainGauge(ACTIVE_STRAIN_GAUGE);
+            auto nLastPosition = g_nAxisScanPosition;
 
             // move the work part down again until we do not detect any contact anymore
             g_lastScanTime = HAL::timeInMilliseconds();
+
             while (1) {
                 nCurrentPressure = readStrainGauge(ACTIVE_STRAIN_GAUGE);
 
@@ -4105,6 +4108,20 @@ void scanWorkPart(void) {
                         Com::printF(Com::tscanWorkPart);
                         Com::printFLN(PSTR("the z-origin has been determined"));
                     }
+                    
+                    // linear extrapolation to zero pressure contact position
+                    double slope = double(nLastPosition-g_nAxisScanPosition)/double(nLastPressure-nCurrentPressure);
+                    int distance = (g_nFirstIdlePressure-nCurrentPressure)*slope;
+                    moveAxis(distance);
+#if DEBUG_WORK_PART_SCAN == 2
+                    Com::printF(PSTR("nLastPressure: "), nLastPressure);
+                    Com::printF(PSTR("; nLastPosition: "), nLastPosition);
+                    Com::printF(PSTR("; nCurrentPressure: "), nCurrentPressure);
+                    Com::printF(PSTR("; g_nAxisScanPosition: "), g_nAxisScanPosition);
+                    Com::printF(PSTR("; g_nFirstIdlePressure: "), g_nFirstIdlePressure);
+                    Com::printF(PSTR("; slope: "), float(slope));
+                    Com::printFLN(PSTR("; distance: "), distance);
+#endif
 
                     setZOrigin();
 
@@ -4119,7 +4136,7 @@ void scanWorkPart(void) {
 #if DEBUG_WORK_PART_SCAN == 2
                     if (Printer::debugInfo()) {
                         Com::printF(Com::tscanWorkPart);
-                        Com::printFLN(PSTR("33 -> 35 > "), nZ);
+                        Com::printFLN(PSTR("33 -> 35 > "), g_nLastZScanZPosition);
                     }
 #endif // DEBUG_WORK_PART_SCAN
                     return;
@@ -4136,10 +4153,12 @@ void scanWorkPart(void) {
 
                 moveAxis(g_nScanHeatBedDownSlowSteps);
 
+                /* -> do not break out of this loop, since we need to keep nLastPressure/nLastPosition
+                      this should not be harmful, since this step is normally quite fast.
                 if ((HAL::timeInMilliseconds() - g_lastScanTime) > SEARCH_AXIS_ORIGIN_BREAKOUT_DELAY) {
                     // do not stay within this loop forever
                     return;
-                }
+                }*/
 
                 if (g_abortAxisScan) {
                     break;
@@ -4347,7 +4366,21 @@ void scanWorkPart(void) {
             // move slowly to the surface
             moveZMinusUpSlow(&nTempPressure);
             nContactPressure = nTempPressure;
-            moveZPlusDownSlow(8); //and slowslowly back near idle pressure
+            auto nLastPosition = g_nAxisScanPosition;
+            moveZPlusDownSlow(&nTempPressure,8); //and slowslowly back near idle pressure
+            // linear extrapolation to zero-pressure contact position
+            double slope = double(nLastPosition-g_nAxisScanPosition)/double(nContactPressure-nTempPressure);
+            int distance = (g_nCurrentIdlePressure-nTempPressure)*slope;
+#if DEBUG_WORK_PART_SCAN == 2
+            Com::printF(PSTR("nContactPressure: "), nContactPressure);
+            Com::printF(PSTR("; nLastPosition: "), nLastPosition);
+            Com::printF(PSTR("; nTempPressure: "), nTempPressure);
+            Com::printF(PSTR("; g_nAxisScanPosition: "), g_nAxisScanPosition);
+            Com::printF(PSTR("; g_nCurrentIdlePressure: "), g_nCurrentIdlePressure);
+            Com::printF(PSTR("; slope: "), float(slope));
+            Com::printFLN(PSTR("; distance: "), distance);
+#endif
+            moveAxis(distance);
             g_nWorkPartScanStatus = 54;
 
 #if DEBUG_WORK_PART_SCAN == 2
@@ -4806,6 +4839,11 @@ void moveZPlusDownFast() {
 
 //Spacing Langsam:
 void moveZPlusDownSlow(uint8_t acuteness) {
+  short temp;
+  moveZPlusDownSlow(&temp, acuteness);
+}
+
+void moveZPlusDownSlow(short* pnContactPressure, uint8_t acuteness) {
     short nTempPressure;
     long startScanZPosition = g_nAxisScanPosition;
 
@@ -4853,6 +4891,7 @@ void moveZPlusDownSlow(uint8_t acuteness) {
             break;
         }
     }
+    *pnContactPressure = nTempPressure;
 } // moveZPlusDownSlow
 
 //gegen Düse fahren schnell:

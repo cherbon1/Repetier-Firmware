@@ -871,7 +871,7 @@ Above this value the z compensation will distribute the roughness of the surface
 #define WORK_PART_SCAN_UP_FAST_MM -0.025f   // [mm]
 #define WORK_PART_SCAN_UP_SLOW_MM -0.005f   // [mm]
 #define WORK_PART_SCAN_DOWN_SLOW_MM 0.0125f // [mm]
-#define WORK_PART_SCAN_DOWN_FAST_MM 0.5f    // [mm]
+#define WORK_PART_SCAN_DOWN_FAST_MM 0.2f    // [mm]
 
 #define WORK_PART_SCAN_FAST_STEP_DELAY_MS 5   // [ms]
 #define WORK_PART_SCAN_SLOW_STEP_DELAY_MS 100 // [ms]

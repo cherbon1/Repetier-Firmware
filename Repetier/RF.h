@@ -746,6 +746,7 @@ extern short readAveragePressure(short* pnAveragePressure);
 
 extern void moveZMinusUpFast();
 extern void moveZPlusDownSlow(uint8_t acuteness = 1);
+extern void moveZPlusDownSlow(short* pnContactPressure, uint8_t acuteness = 1);
 extern void moveZMinusUpSlow(short* pnContactPressure, uint8_t acuteness = 1);
 extern void moveZPlusDownFast();
 extern void moveAxis(int nSteps, uint8_t axis = Z_AXIS);
