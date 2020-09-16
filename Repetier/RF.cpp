@@ -1848,7 +1848,7 @@ void alignExtruders(void) {
     g_abortAxisScan = 0;
 
     // avoid to crash the extruder against the heat bed during a following move
-    moveZ(int(Printer::axisStepsPerMM[Z_AXIS] * 5));
+    moveAxis(int(Printer::axisStepsPerMM[Z_AXIS] * 5));
 
     Com::printFLN(PSTR("alignExtruders(): aborted"));
 
@@ -1992,7 +1992,7 @@ void alignExtruders(void) {
         }
         case 145: {
             // avoid to crash the extruder against the heat bed during the following moves
-            moveZ(int(Printer::axisStepsPerMM[Z_AXIS] * 5));
+            moveAxis(int(Printer::axisStepsPerMM[Z_AXIS] * 5));
 
             Printer::homeAxis(true, true, true);
 

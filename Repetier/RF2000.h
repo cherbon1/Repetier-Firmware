@@ -929,10 +929,16 @@ Above this value the z compensation will distribute the roughness of the surface
 
 #if FEATURE_FIND_AXIS_ORIGIN
 
-#define SEARCH_Z_ORIGIN_CONTACT_PRESSURE_DELTA 500 // [digits]
-#define SEARCH_Z_ORIGIN_BREAKOUT_DELAY 100         // [ms]
-#define SEARCH_Z_ORIGIN_BED_UP_MM -0.05f           // [mm]
-#define SEARCH_Z_ORIGIN_BED_DOWN_MM 0.025f         // [mm]
+#define FEATURE_PART_ROTATION           1
+
+#  define SEARCH_AXIS_ORIGIN_Z_CONTACT_PRESSURE_DELTA  250 // [digits] - coarse Z axis scan pressure
+#  define SEARCH_AXIS_ORIGIN_XY_CONTACT_PRESSURE_DELTA 100 // [digits] - coarse XY axis scan pressure
+#  define SEARCH_AXIS_ORIGIN_ZERO_PRESSURE_DELTA                                                                       \
+    15 // [digits] - pressure to be considered zero in compensated binary search
+#  define SEARCH_AXIS_ORIGIN_PRESSURE_AVERAGE                                                                          \
+    25 // number of measurements, will be effectivly multiplied by WORK_PART_SCAN_PRESSURE_READS
+#  define SEARCH_AXIS_ORIGIN_BREAKOUT_DELAY 100 // [ms]
+#  define SEARCH_AXIS_ORIGIN_FAST_MM 0.05f      // [mm]
 
 /** \brief The following commands are executed before the z-origin is set to 0. */
 #define FIND_Z_ORIGIN_SCRIPT "G91\nG1 Z15 F5000"
