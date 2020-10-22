@@ -1635,10 +1635,6 @@ long PrintLine::performMove(PrintLine* move, uint8_t forQueue) {
 
     Printer::interval = HAL::CPUDivU2(v);
 
-    // Dieses Limit bedeutet max. 31250 steps/s bei 16mhz.
-    if (Printer::interval < 512)
-        Printer::interval = 512;
-
     //RETURN manipulated value:
     unsigned long interval = Printer::interval;
 
@@ -1660,7 +1656,7 @@ long PrintLine::performMove(PrintLine* move, uint8_t forQueue) {
     if (Printer::isAdvanceActivated()) {
         minInterval += 64;
     }
-    while (interval < Printer::stepsPackingMinInterval) {
+    while (interval < minInterval) {
         interval += one_interval;
         Printer::stepsPerTimerCall += 1;
     }
