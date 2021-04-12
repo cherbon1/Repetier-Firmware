@@ -22,7 +22,7 @@
 #define UI_PRINTER_NAME "RF2000"
 
 /** \brief Number of extruders */
-#define NUM_EXTRUDER 2 // 1 = Single, 2 = Dual
+#define NUM_EXTRUDER 1 // 1 = Single, 2 = Dual
 
 /** \brief Specifies the maximal drive over millimeters which the z-endstop can bear without getting damaged or degraded */
 /*
