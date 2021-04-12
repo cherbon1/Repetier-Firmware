@@ -44,7 +44,7 @@
 
 /** \brief Define the type of your device */
 //#define MOTHERBOARD                         DEVICE_TYPE_RF1000
-//#define MOTHERBOARD                         DEVICE_TYPE_RF2000
+#define MOTHERBOARD                         DEVICE_TYPE_RF2000
 //#define MOTHERBOARD                         DEVICE_TYPE_RF2000v2
 
 #ifndef MOTHERBOARD
