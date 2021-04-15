@@ -184,7 +184,7 @@ PTC-Thermistors
 53: E3D PT100 Board (direct AD voltage in)
 60: HEATER_USES_AD8495 (Delivers 5mV/degC)
 100: AD595 */
-#define EXT0_TEMPSENSOR_TYPE 3
+#define EXT0_TEMPSENSOR_TYPE 8
 
 /** \brief Analog input pin for reading temperatures or pin enabling SS for MAX6675 */
 #define EXT0_TEMPSENSOR_PIN TEMP_0_PIN
