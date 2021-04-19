@@ -195,7 +195,7 @@ PTC-Thermistors
 #define EXT0_DIR_PIN E0_DIR_PIN
 
 /** \brief set to 0/1 for normal/inverse direction */
-#define EXT0_INVERSE false
+#define EXT0_INVERSE true
 #define EXT0_ENABLE_PIN E0_ENABLE_PIN
 
 /** \brief For Inverting Stepper Enable Pins (Active Low) use 0, Non Inverting (Active High) use 1 */
